@@ -41,6 +41,11 @@ const SYSTEM_PAGES = [
   { id: 'page:/home', labelFr: 'Tableau de bord principal (Accueil)', labelEn: 'Main Dashboard (Home)', group: 'system' },
   { id: 'page:/paid', labelFr: 'Dashboard PAID', labelEn: 'PAID Dashboard', group: 'system' },
   { id: 'page:/analytics', labelFr: 'Analytiques continentales', labelEn: 'Continental Analytics', group: 'system' },
+  { id: 'page:/collecte/campaigns', labelFr: 'Campagnes de collecte', labelEn: 'Data Collection Campaigns', group: 'system' },
+  { id: 'page:/historical/dashboard', labelFr: 'Donnees historiques', labelEn: 'Historical Data', group: 'system' },
+  { id: 'page:/quality', labelFr: 'Qualite des donnees', labelEn: 'Data Quality', group: 'system' },
+  { id: 'page:/data-sharing/dashboard', labelFr: 'Partage de donnees', labelEn: 'Data Sharing', group: 'system' },
+  // ── Domain dashboards ──
   { id: 'page:/domains/animal-health', labelFr: 'Sante animale', labelEn: 'Animal Health', group: 'domain' },
   { id: 'page:/domains/livestock-prod', labelFr: 'Elevage & Production', labelEn: 'Livestock & Production', group: 'domain' },
   { id: 'page:/domains/fisheries', labelFr: 'Peche & Aquaculture', labelEn: 'Fisheries & Aquaculture', group: 'domain' },
@@ -49,6 +54,30 @@ const SYSTEM_PAGES = [
   { id: 'page:/domains/wildlife', labelFr: 'Faune sauvage & Biodiversite', labelEn: 'Wildlife & Biodiversity', group: 'domain' },
   { id: 'page:/domains/apiculture', labelFr: 'Apiculture & Pollinisation', labelEn: 'Apiculture & Pollination', group: 'domain' },
   { id: 'page:/domains/climate-env', labelFr: 'Climat & Environnement', labelEn: 'Climate & Environment', group: 'domain' },
+  // ── Sub-domain dashboards — Animal Health ──
+  { id: 'page:/domains/animal-health/PPR', labelFr: 'Sante animale > PPR', labelEn: 'Animal Health > PPR', group: 'subdomain' },
+  { id: 'page:/domains/animal-health/AQUATIC_HEALTH', labelFr: 'Sante animale > Sante aquatique', labelEn: 'Animal Health > Aquatic Health', group: 'subdomain' },
+  { id: 'page:/domains/animal-health/AMR', labelFr: 'Sante animale > Resistance antimicrobienne', labelEn: 'Animal Health > AMR', group: 'subdomain' },
+  // ── Sub-domain dashboards — Livestock ──
+  { id: 'page:/domains/livestock-prod/DAIRY', labelFr: 'Elevage > Lait', labelEn: 'Livestock > Dairy', group: 'subdomain' },
+  { id: 'page:/domains/livestock-prod/RED_MEAT', labelFr: 'Elevage > Viande rouge', labelEn: 'Livestock > Red Meat', group: 'subdomain' },
+  { id: 'page:/domains/livestock-prod/POULTRY', labelFr: 'Elevage > Volaille', labelEn: 'Livestock > Poultry', group: 'subdomain' },
+  { id: 'page:/domains/livestock-prod/PORK', labelFr: 'Elevage > Porc', labelEn: 'Livestock > Pork', group: 'subdomain' },
+  { id: 'page:/domains/livestock-prod/SMALL_RUMINANTS', labelFr: 'Elevage > Petits ruminants', labelEn: 'Livestock > Small Ruminants', group: 'subdomain' },
+  // ── Sub-domain dashboards — Governance ──
+  { id: 'page:/domains/governance/CLINICS', labelFr: 'Gouvernance > Cliniques', labelEn: 'Governance > Clinics', group: 'subdomain' },
+  { id: 'page:/domains/governance/SLAUGHTERHOUSES', labelFr: 'Gouvernance > Abattoirs', labelEn: 'Governance > Slaughterhouses', group: 'subdomain' },
+  { id: 'page:/domains/governance/LEGAL_FRAMEWORKS', labelFr: 'Gouvernance > Cadres juridiques', labelEn: 'Governance > Legal Frameworks', group: 'subdomain' },
+  { id: 'page:/domains/governance/VACCINATION', labelFr: 'Gouvernance > Vaccination', labelEn: 'Governance > Vaccination', group: 'subdomain' },
+  { id: 'page:/domains/governance/SURVEILLANCE', labelFr: 'Gouvernance > Surveillance', labelEn: 'Governance > Surveillance', group: 'subdomain' },
+  { id: 'page:/domains/governance/LABORATORIES', labelFr: 'Gouvernance > Laboratoires', labelEn: 'Governance > Laboratories', group: 'subdomain' },
+  // ── Sub-domain dashboards — Trade & SPS ──
+  { id: 'page:/domains/trade-sps/DAIRY_TRADE', labelFr: 'Commerce > Commerce du lait', labelEn: 'Trade > Dairy Trade', group: 'subdomain' },
+  { id: 'page:/domains/trade-sps/RED_MEAT_TRADE', labelFr: 'Commerce > Viande rouge', labelEn: 'Trade > Red Meat Trade', group: 'subdomain' },
+  { id: 'page:/domains/trade-sps/POULTRY_TRADE', labelFr: 'Commerce > Volaille', labelEn: 'Trade > Poultry Trade', group: 'subdomain' },
+  { id: 'page:/domains/trade-sps/PORK_TRADE', labelFr: 'Commerce > Porc', labelEn: 'Trade > Pork Trade', group: 'subdomain' },
+  { id: 'page:/domains/trade-sps/SMALL_RUMINANTS_TRADE', labelFr: 'Commerce > Petits ruminants', labelEn: 'Trade > Small Ruminants Trade', group: 'subdomain' },
+  { id: 'page:/domains/trade-sps/FISHERIES_TRADE', labelFr: 'Commerce > Halieutique', labelEn: 'Trade > Fisheries Trade', group: 'subdomain' },
 ];
 
 const TRANSITIONS = [
@@ -692,6 +721,35 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                 ) : null;
               })()}
 
+              {/* Sub-domain Pages */}
+              {(() => {
+                const subdomainItems = SYSTEM_PAGES.filter(p => p.group === 'subdomain')
+                  .filter(p => !slides.some(s => s.dashboardId === p.id))
+                  .filter(p => !searchFilter || (isFr ? p.labelFr : p.labelEn).toLowerCase().includes(searchFilter.toLowerCase()));
+                return subdomainItems.length > 0 ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Layers className="h-4 w-4 text-amber-600" />
+                      <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">
+                        {isFr ? 'Sous-domaines' : 'Sub-domains'} ({subdomainItems.length})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {subdomainItems.map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => addSlide(p.id)}
+                          className="flex items-center gap-2 rounded-md border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-left hover:bg-amber-50 hover:border-amber-300 dark:hover:bg-amber-900/20 dark:hover:border-amber-700 transition-colors"
+                        >
+                          <Plus className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{isFr ? p.labelFr : p.labelEn}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
               {/* Dashboard Builder */}
               {(() => {
                 const builderItems = builderList.filter((d: any) => {
@@ -808,11 +866,23 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                                 slide.dashboardTitleFr ||
                                 slide.dashboardId}
                           </p>
-                          {slide.dashboardId.startsWith('page:') && (
-                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex-shrink-0">
-                              {SYSTEM_PAGES.find(p => p.id === slide.dashboardId)?.group === 'domain' ? (isFr ? 'Domaine' : 'Domain') : 'Page'}
-                            </span>
-                          )}
+                          {slide.dashboardId.startsWith('page:') && (() => {
+                            const sp = SYSTEM_PAGES.find(p => p.id === slide.dashboardId);
+                            const grp = sp?.group;
+                            return grp === 'subdomain' ? (
+                              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 flex-shrink-0">
+                                {isFr ? 'Sous-domaine' : 'Sub-domain'}
+                              </span>
+                            ) : grp === 'domain' ? (
+                              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">
+                                {isFr ? 'Domaine' : 'Domain'}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex-shrink-0">
+                                Page
+                              </span>
+                            );
+                          })()}
                           {slide.dashboardId.startsWith('bi:') && (
                             <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 flex-shrink-0">BI</span>
                           )}
