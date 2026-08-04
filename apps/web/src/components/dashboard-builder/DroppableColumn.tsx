@@ -54,7 +54,8 @@ export function DroppableColumn({
         onSelect?.();
       }}
       className={cn(
-        'flex flex-col gap-3 min-h-[80px] rounded-lg p-2 transition-all cursor-pointer',
+        'flex flex-col gap-3 rounded-lg transition-all',
+        editable ? 'min-h-[80px] p-2 cursor-pointer' : 'p-0.5',
         isOver && 'bg-[#1F4E79]/10 ring-2 ring-[#1F4E79]/30',
         isSelected && !isOver && 'ring-2 ring-[#1F4E79]/40 bg-[#1F4E79]/5',
         !isOver && !isSelected && editable && 'bg-gray-50/50 dark:bg-gray-900/30 hover:bg-gray-100/50 dark:hover:bg-gray-800/30',

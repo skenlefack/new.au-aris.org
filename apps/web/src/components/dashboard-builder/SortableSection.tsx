@@ -83,11 +83,16 @@ export function SortableSection({
 
       {!section.isCollapsed && (
         <div
-          className="rounded-b-lg border border-t-0 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3"
+          className={cn(
+            'rounded-b-lg bg-white dark:bg-gray-900/50',
+            editable
+              ? 'border border-t-0 border-gray-200 dark:border-gray-700 p-3'
+              : 'border border-t-0 border-gray-100 dark:border-gray-800 p-2',
+          )}
           style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${Math.max(1, Math.min(12, Number(section.columnCount) || 2))}, 1fr)`,
-            gap: '12px',
+            gap: editable ? '12px' : '10px',
           }}
         >
           {cols.map((columnWidgets, colIdx) => (

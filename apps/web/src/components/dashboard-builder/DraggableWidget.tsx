@@ -141,7 +141,8 @@ export function DraggableWidget({
         minHeight: MIN_HEIGHTS[widget.type] || '120px',
       }}
       className={cn(
-        'group relative flex flex-1 flex-col overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-800',
+        'group relative flex flex-1 flex-col overflow-hidden rounded-xl border bg-white dark:bg-gray-900 dark:border-gray-800 transition-shadow',
+        editable ? 'shadow-sm' : 'shadow-sm hover:shadow-md',
         isDragging && 'opacity-40 shadow-lg ring-2 ring-[#1F4E79]/30 z-50',
         editable && !isDragging && 'hover:ring-1 hover:ring-[#1F4E79]/20',
       )}
@@ -159,7 +160,7 @@ export function DraggableWidget({
                 <GripVertical className="h-4 w-4" />
               </button>
             )}
-            <h3 className="truncate text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <h3 className="truncate text-[12px] font-semibold text-gray-600 dark:text-gray-300 tracking-tight">
               {widget.title}
             </h3>
           </div>

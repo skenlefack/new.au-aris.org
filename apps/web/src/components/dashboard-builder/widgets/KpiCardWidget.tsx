@@ -108,32 +108,46 @@ export function KpiCardWidget({
   const animatedValue = useAnimatedCounter(typeof value === 'number' ? value : 0);
 
   return (
-    <div className="flex h-full items-center gap-2.5 px-3 py-2">
+    <div
+      className="relative flex h-full items-center gap-3 px-4 py-3 overflow-hidden"
+      style={{
+        background: `linear-gradient(135deg, ${accentColor}08 0%, ${accentColor}03 100%)`,
+      }}
+    >
+      {/* Accent stripe */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full"
+        style={{ backgroundColor: accentColor }}
+      />
+
       {/* Icon circle */}
       {Icon && (
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-          style={{ backgroundColor: `${accentColor}15` }}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl shadow-sm"
+          style={{
+            backgroundColor: `${accentColor}12`,
+            border: `1px solid ${accentColor}20`,
+          }}
         >
-          <Icon className="h-4.5 w-4.5" style={{ color: accentColor }} />
+          <Icon className="h-5 w-5" style={{ color: accentColor }} />
         </div>
       )}
 
       {/* Content */}
       <div className="flex flex-col justify-center min-w-0">
         <span
-          className="text-xl font-bold leading-tight tracking-tight"
+          className="text-2xl font-extrabold leading-tight tracking-tight"
           style={{ color: accentColor }}
         >
           {prefix}
           {typeof value === 'number' ? animatedValue.toLocaleString() : value}
           {suffix}
         </span>
-        <p className="truncate text-[10px] font-medium leading-tight text-gray-500 dark:text-gray-400">
+        <p className="truncate text-[11px] font-medium leading-snug text-gray-500 dark:text-gray-400 mt-0.5">
           {displayLabel}
         </p>
         {trend != null && (
-          <span className={cn('flex items-center gap-0.5 text-[10px] font-medium', trendColor)}>
+          <span className={cn('flex items-center gap-0.5 text-[10px] font-semibold mt-0.5', trendColor)}>
             <TrendIcon className="h-3 w-3" />
             {Math.abs(trend).toFixed(1)}%
           </span>

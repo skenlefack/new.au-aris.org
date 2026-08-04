@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { BarChart3 } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
 import {
   ResponsiveContainer,
@@ -34,6 +35,24 @@ const DEFAULT_COLORS = [
   '#9333ea', '#0891b2', '#ea580c',
 ];
 
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+      <p className="mb-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200">{label}</p>
+      {payload.map((p: any, i: number) => (
+        <div key={i} className="flex items-center gap-2 text-[11px]">
+          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
+          <span className="text-gray-500 dark:text-gray-400">{p.name}:</span>
+          <span className="font-bold tabular-nums" style={{ color: p.color }}>
+            {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** For vertical bar charts, compute a min height so every bar is visible. */
 function verticalBarMinHeight(dataLen: number): number {
   // ~32px per bar + 60px padding (axes, legend)
@@ -54,8 +73,9 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-gray-400">
-        {t('dbNoData')}
+      <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400">
+        <BarChart3 className="h-8 w-8 text-gray-300 dark:text-gray-600" />
+        <p className="text-xs font-medium">{t('dbNoData')}</p>
       </div>
     );
   }
@@ -73,7 +93,7 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />}
             <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
+            <Tooltip content={<CustomTooltip />} />
             {showLegend && <Legend />}
             {yKeys.map((key, i) => (
               <Line
@@ -103,7 +123,7 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
                 <YAxis tick={{ fontSize: 11 }} />
               </>
             )}
-            <Tooltip />
+            <Tooltip content={<CustomTooltip />} />
             {showLegend && yKeys.length > 1 && <Legend />}
             {yKeys.map((key, i) => (
               <Bar
@@ -131,7 +151,7 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
                 <YAxis tick={{ fontSize: 11 }} />
               </>
             )}
-            <Tooltip />
+            <Tooltip content={<CustomTooltip />} />
             {showLegend && <Legend />}
             {yKeys.map((key, i) => (
               <Bar
@@ -151,7 +171,7 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />}
             <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
+            <Tooltip content={<CustomTooltip />} />
             {showLegend && <Legend />}
             {yKeys.map((key, i) => (
               <Area
@@ -167,46 +187,50 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
         );
 
       case 'PIE':
-        if (cfg.variant === 'conic' && data?.length) {
+        if (cfg.variant !== 'classic' && data?.length) {
           const total = data.reduce((sum, d) => sum + (Number(d[valueKey]) || 0), 0);
-          const CONIC_COLORS = ['#1F4E79', '#C9A227', '#2563eb', '#16a34a', '#dc2626', '#9333ea', '#0891b2', '#ea580c', '#6366f1', '#14b8a6'];
+          const pieColors = colors.length >= data.length ? colors : ['#1F4E79', '#C9A227', '#2563eb', '#16a34a', '#dc2626', '#9333ea', '#0891b2', '#ea580c', '#6366f1', '#14b8a6'];
           let cumPercent = 0;
           const segments = data.map((d, i) => {
             const pct = total > 0 ? (Number(d[valueKey]) / total) * 100 : 0;
             const from = cumPercent;
             cumPercent += pct;
-            return `${CONIC_COLORS[i % CONIC_COLORS.length]} ${from}% ${cumPercent}%`;
+            return `${pieColors[i % pieColors.length]} ${from}% ${cumPercent}%`;
           });
           const gradient = `conic-gradient(${segments.join(', ')})`;
 
           return (
-            <div className="flex items-center gap-4 h-full p-2">
+            <div className="flex items-center gap-5 h-full p-3">
               <div className="relative flex-shrink-0">
-                <div className="rounded-full" style={{ width: 120, height: 120, background: gradient }} />
+                <div className="rounded-full shadow-inner" style={{ width: 130, height: 130, background: gradient }} />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="rounded-full bg-white dark:bg-gray-900" style={{ width: 60, height: 60 }}>
+                  <div className="rounded-full bg-white dark:bg-gray-900 shadow-sm" style={{ width: 65, height: 65 }}>
                     <div className="flex h-full flex-col items-center justify-center">
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">{total.toLocaleString()}</span>
-                      <span className="text-[9px] text-gray-500">Total</span>
+                      <span className="text-lg font-extrabold text-gray-900 dark:text-white">{total.toLocaleString()}</span>
+                      <span className="text-[9px] font-medium text-gray-400">Total</span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-1 min-w-0 overflow-auto max-h-full">
-                {data.slice(0, 8).map((d, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-[11px]">
-                    <div className="h-2.5 w-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: CONIC_COLORS[i % CONIC_COLORS.length] }} />
-                    <span className="truncate text-gray-700 dark:text-gray-300">{String(d[nameKey] || '')}</span>
-                    <span className="ml-auto font-medium tabular-nums">{Number(d[valueKey]).toLocaleString()}</span>
-                  </div>
-                ))}
+              <div className="flex flex-col gap-1.5 min-w-0 overflow-auto max-h-full">
+                {data.slice(0, 10).map((d, i) => {
+                  const pct = total > 0 ? ((Number(d[valueKey]) / total) * 100).toFixed(0) : '0';
+                  return (
+                    <div key={i} className="flex items-center gap-2 text-[11px]">
+                      <div className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: pieColors[i % pieColors.length] }} />
+                      <span className="truncate text-gray-600 dark:text-gray-300">{String(d[nameKey] || '')}</span>
+                      <span className="ml-auto font-bold tabular-nums text-gray-800 dark:text-gray-100">{Number(d[valueKey]).toLocaleString()}</span>
+                      <span className="text-[9px] font-medium text-gray-400 tabular-nums w-7 text-right">{pct}%</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
         }
         return (
           <PieChart>
-            <Tooltip />
+            <Tooltip content={<CustomTooltip />} />
             {showLegend && <Legend />}
             <Pie
               data={data}

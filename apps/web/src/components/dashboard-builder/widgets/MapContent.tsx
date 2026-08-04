@@ -82,19 +82,19 @@ function Legend({ max, unit, valueLabel }: { max: number; unit?: string; valueLa
   const stops = [0, 0.25, 0.5, 0.75, 1];
   return (
     <div
-      className="absolute bottom-3 right-3 z-[1000] rounded-md bg-white/90 px-2.5 py-2 text-[10px] shadow-md backdrop-blur dark:bg-gray-900/90 dark:text-gray-200"
+      className="absolute bottom-3 right-3 z-[1000] rounded-lg bg-white/95 px-3 py-2.5 text-[10px] shadow-lg ring-1 ring-black/5 backdrop-blur-sm dark:bg-gray-900/95 dark:text-gray-200 dark:ring-white/10"
     >
-      <div className="mb-1 font-medium">
+      <div className="mb-1.5 text-[11px] font-semibold text-gray-700 dark:text-gray-200">
         {valueLabel}{unit ? ` (${unit})` : ''}
       </div>
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-px rounded-md overflow-hidden">
         {stops.map((s, i) => (
           <div key={i} className="flex flex-col items-center">
             <div
-              className="h-2.5 w-5 rounded-[2px]"
+              className="h-3 w-7"
               style={{ backgroundColor: valueToColor(s * max, max) }}
             />
-            <span className="mt-0.5">{Math.round(s * max)}</span>
+            <span className="mt-1 text-[9px] font-medium tabular-nums text-gray-500 dark:text-gray-400">{Math.round(s * max).toLocaleString()}</span>
           </div>
         ))}
       </div>
@@ -176,24 +176,28 @@ export default function MapContent({ data, config, title }: MapContentProps) {
                 opacity: 0.9,
               }}
             >
-              <Tooltip direction="top" offset={[0, -radius]} opacity={0.95}>
-                <div className="text-xs">
-                  <div className="font-semibold">{country.name}</div>
+              <Tooltip direction="top" offset={[0, -radius]} opacity={0.97}>
+                <div className="text-xs min-w-[120px]">
+                  <div className="font-bold text-[13px] mb-0.5">{country.name}</div>
                   {hasData && datum && (
-                    <>
-                      <div className="text-gray-600 dark:text-gray-300">
-                        {datum.label ?? t('dbValue')}: <strong>{value.toLocaleString()}</strong>
-                        {unit ? ` ${unit}` : ''}
+                    <div className="space-y-0.5">
+                      <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-gray-300">
+                        <span>{datum.label ?? t('dbValue')}</span>
+                        <span className="font-bold text-[13px]" style={{ color: fillColor }}>
+                          {value.toLocaleString()}
+                          {unit ? ` ${unit}` : ''}
+                        </span>
                       </div>
                       {datum.extras && Object.entries(datum.extras).map(([k, v]) => (
-                        <div key={k} className="text-gray-600 dark:text-gray-300">
-                          {k}: <strong>{typeof v === 'number' ? v.toLocaleString() : v}</strong>
+                        <div key={k} className="flex items-center justify-between gap-3 text-gray-500 dark:text-gray-400">
+                          <span>{k}</span>
+                          <span className="font-semibold tabular-nums">{typeof v === 'number' ? v.toLocaleString() : v}</span>
                         </div>
                       ))}
-                    </>
+                    </div>
                   )}
                   {hasData && !datum && (
-                    <div className="text-gray-400 italic">{t('dbNoData')}</div>
+                    <div className="text-gray-400 italic text-[10px]">{t('dbNoData')}</div>
                   )}
                   {!hasData && (
                     <div className="text-gray-500">

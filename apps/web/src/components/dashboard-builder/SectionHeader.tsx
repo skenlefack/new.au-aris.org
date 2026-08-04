@@ -51,9 +51,20 @@ export function SectionHeader({
   };
 
   const colCount = Number(section.columnCount) || 2;
+  const sectionColor = (section.config as any)?.color || '#1F4E79';
 
   return (
-    <div className="flex items-center gap-2 rounded-t-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
+    <div
+      className="flex items-center gap-2 rounded-t-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 relative overflow-hidden"
+    >
+      {/* Section color accent bar */}
+      {!editable && (
+        <div
+          className="absolute left-0 top-0 bottom-0 w-1"
+          style={{ backgroundColor: sectionColor }}
+        />
+      )}
+
       {/* Drag handle — ONLY this element has drag listeners */}
       {editable && (
         <button
@@ -101,7 +112,7 @@ export function SectionHeader({
           />
         </div>
       ) : (
-        <span className="flex-1 min-w-0 text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
+        <span className="flex-1 min-w-0 text-[13px] font-bold text-gray-700 dark:text-gray-200 truncate tracking-tight pl-1">
           {section.title || section.titleFr || section.titleEn || ''}
         </span>
       )}
@@ -130,8 +141,14 @@ export function SectionHeader({
         </div>
       )}
 
-      {/* Count */}
-      <span className="text-xs text-gray-400 tabular-nums flex-shrink-0">
+      {/* Count badge */}
+      <span
+        className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums flex-shrink-0"
+        style={{
+          backgroundColor: `${sectionColor}15`,
+          color: sectionColor,
+        }}
+      >
         {section.widgets.length}
       </span>
 
