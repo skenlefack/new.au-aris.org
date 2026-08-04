@@ -36,20 +36,20 @@ export default function DashboardLayout({
 
   // Viewer token injection for public slideshow embeds.
   // When an iframe loads a page with ?embed=1&viewerToken=xxx, inject the
-  // token into the auth store so AuthGuard allows access without a real login.
-  const setAuth = useAuthStore((s) => s.setAuth);
-  const existingToken = useAuthStore((s) => s.accessToken);
-  useEffect(() => {
-    if (!isEmbed || typeof window === 'undefined') return;
+  // token into the auth store SYNCHRONOUSLY during initial render so that
+  // AuthGuard and all child data-fetching hooks see the token immediately.
+  const [viewerInjected] = useState(() => {
+    if (typeof window === 'undefined') return false;
     const params = new URLSearchParams(window.location.search);
     const viewerToken = params.get('viewerToken');
-    if (!viewerToken) return;
+    const embed = params.get('embed');
+    if (embed !== '1' || !viewerToken) return false;
     // Only inject if there is no existing authenticated session
-    if (existingToken) return;
-    // Decode JWT payload to extract minimal user info
+    const current = useAuthStore.getState();
+    if (current.accessToken && current.isAuthenticated) return false;
     try {
       const payload = JSON.parse(atob(viewerToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      setAuth(
+      useAuthStore.getState().setAuth(
         {
           id: payload.sub ?? 'viewer',
           email: payload.email ?? 'viewer@au-aris.org',
@@ -63,8 +63,9 @@ export default function DashboardLayout({
         viewerToken,
         '', // no refresh token — the slideshow player handles renewal
       );
-    } catch { /* ignore malformed token */ }
-  }, [isEmbed, setAuth, existingToken]);
+      return true;
+    } catch { return false; }
+  });
 
   // Full-bleed pages (no padding wrapper) — dashboard handles its own layout
   const isFullBleed = isEmbed || pathname === '/home' || pathname === '/' || pathname.startsWith('/bi-tools/');

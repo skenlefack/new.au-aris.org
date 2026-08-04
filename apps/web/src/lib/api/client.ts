@@ -38,6 +38,12 @@ function getStoredAuth(): {
   if (typeof window === 'undefined') {
     return { accessToken: null, refreshToken: null };
   }
+  // Prefer Zustand in-memory state (updated synchronously by viewerToken injection)
+  // over localStorage (which may lag behind due to async persist).
+  const zustand = useAuthStore.getState();
+  if (zustand.accessToken) {
+    return { accessToken: zustand.accessToken, refreshToken: zustand.refreshToken };
+  }
   try {
     const raw = localStorage.getItem('aris-auth');
     if (raw) {
@@ -59,12 +65,15 @@ function getSelectedTenantId(): string | null {
     const raw = localStorage.getItem('aris-tenant');
     if (raw) {
       const parsed = JSON.parse(raw);
-      return parsed?.state?.selectedTenantId ?? null;
+      const tid = parsed?.state?.selectedTenantId ?? null;
+      if (tid) return tid;
     }
   } catch {
     // ignore parse errors
   }
-  return null;
+  // Fallback: extract tenantId from auth store (covers viewer/embed sessions)
+  const auth = useAuthStore.getState();
+  return (auth.user as any)?.tenantId ?? null;
 }
 
 function getStoredLocale(): string {
