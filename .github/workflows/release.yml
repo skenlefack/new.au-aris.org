@@ -104,7 +104,7 @@ jobs:
         run: pnpm turbo build --filter=@aris/web --filter=@aris/admin
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-web-${{ github.ref_name }}
           path: |
