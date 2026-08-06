@@ -11,7 +11,7 @@ import { getSocket, disconnectSocket } from './socket';
  * Must be called once in the dashboard layout.
  * Subscribes to channels and invalidates React Query caches on events.
  */
-export function useRealtime(): void {
+export function useRealtime(enabled = true): void {
   const accessToken = useAuthStore((s) => s.accessToken);
   const setConnectionStatus = useRealtimeStore(
     (s) => s.setConnectionStatus,
@@ -24,7 +24,7 @@ export function useRealtime(): void {
   const connectedRef = useRef(false);
 
   useEffect(() => {
-    if (!accessToken) {
+    if (!enabled || !accessToken) {
       disconnectSocket();
       setConnectionStatus('disconnected');
       return;

@@ -72,8 +72,8 @@ export default function DashboardLayout({
   // Full-bleed pages (no padding wrapper) — dashboard handles its own layout
   const isFullBleed = isEmbed || pathname === '/home' || pathname === '/' || pathname.startsWith('/bi-tools/');
 
-  // Connect to WebSocket realtime service
-  useRealtime();
+  // Connect to WebSocket realtime service (skip in embed mode — viewer doesn't need realtime)
+  useRealtime(!isEmbed);
 
   // Auto-detect browser language if i18n.autoDetect is enabled
   const { data: i18nConfig } = usePublicLocales();
@@ -95,21 +95,22 @@ export default function DashboardLayout({
   // Apply dynamic entity accent color
   useEntityTheme();
 
-  // Sync all domains from public API into domain store (for DomainAutocomplete, DomainSelector, etc.)
+  // ── Hooks below are skipped in embed mode (viewer iframes) to avoid unnecessary
+  //    API calls that would fail with 401 and pollute the console ──
   const { data: publicDomainData } = usePublicDomains();
   const setAllDomains = useDomainStore((s) => s.setAllDomains);
   const hydrateFromMeAccess = useDomainStore((s) => s.hydrateFromMeAccess);
   const isHydrated = useDomainStore((s) => s.hydrated);
   useEffect(() => {
+    if (isEmbed) return;
     const domains = (publicDomainData as any)?.data;
     if (Array.isArray(domains) && domains.length > 0) {
       setAllDomains(domains);
     }
-  }, [publicDomainData, setAllDomains]);
+  }, [isEmbed, publicDomainData, setAllDomains]);
 
-  // Hydrate hierarchical sub-domain permissions from /me/access
   useEffect(() => {
-    if (isHydrated) return;
+    if (isEmbed || isHydrated) return;
     const token = useAuthStore.getState().accessToken;
     if (!token) return;
     fetch('/api/v1/credential/me/access', {
@@ -126,17 +127,16 @@ export default function DashboardLayout({
         }
       })
       .catch(() => { /* non-blocking */ });
-  }, [isHydrated, hydrateFromMeAccess]);
+  }, [isEmbed, isHydrated, hydrateFromMeAccess]);
 
-  // Load i18n translation overrides from backend (SystemConfig category: i18n-overrides)
   const { data: i18nOverridesData } = useSettingsConfig('i18n-overrides');
   const setI18nOverrides = useI18nOverridesStore((s) => s.setOverrides);
   useEffect(() => {
+    if (isEmbed) return;
     const configs = (i18nOverridesData as any)?.data;
     if (Array.isArray(configs)) {
       const map: Record<string, Record<string, string>> = {};
       for (const cfg of configs) {
-        // key stored as "namespace.key" (e.g. "settings.translationsTitle")
         const k = typeof cfg.key === 'string' ? cfg.key : '';
         if (k && typeof cfg.value === 'object' && cfg.value !== null) {
           map[k] = cfg.value as Record<string, string>;
@@ -144,7 +144,7 @@ export default function DashboardLayout({
       }
       setI18nOverrides(map);
     }
-  }, [i18nOverridesData, setI18nOverrides]);
+  }, [isEmbed, i18nOverridesData, setI18nOverrides]);
 
   // Persist sidebar state + auto-collapse on tablet
   useEffect(() => {
