@@ -170,6 +170,8 @@ def compute_data(ssh, db_host, db_pass, cb, cc):
                 fmt_by_country[country] = {}
             fmt_by_country[country][fmt] = qty
 
+    # Build set of countries that received kits (allocated)
+    allocated_countries = set()
     map_data = []
     for r in map_rows:
         if r[0]:
@@ -179,7 +181,6 @@ def compute_data(ssh, db_host, db_pass, cb, cc):
                 kits_val = int(r[1]) if r[1].lstrip('-').isdigit() else 0
                 samples_val = int(r[2]) if len(r) > 2 and r[2].lstrip('-').isdigit() else 0
                 extras = {"Echantillons": samples_val}
-                # Add kit type breakdown
                 fmts = fmt_by_country.get(country_name, {})
                 for fmt_name, fmt_qty in sorted(fmts.items()):
                     extras[f"Kits {fmt_name}"] = fmt_qty
@@ -187,8 +188,30 @@ def compute_data(ssh, db_host, db_pass, cb, cc):
                     "countryCode": iso,
                     "value": kits_val,
                     "label": "Kits",
+                    "status": "allocated",
                     "extras": extras,
                 })
+                allocated_countries.add(country_name)
+
+    # Add countries that REQUESTED kits but didn't receive any (from diagnostics campaign)
+    req_rows = parse_rows(run_q(ssh, db_host, db_pass,
+        f"SELECT data->>'country', SUM(COALESCE((data->>'kits_requested')::int,0)) "
+        f"FROM submissions WHERE campaign_id = '{cb}' AND data->>'kits_requested' IS NOT NULL "
+        f"GROUP BY 1"))
+    for r in req_rows:
+        if r[0]:
+            country_name = r[0].strip()
+            if country_name not in allocated_countries:
+                iso = country_to_iso(country_name)
+                if iso:
+                    kits_req = int(r[1]) if r[1].lstrip('-').isdigit() else 0
+                    map_data.append({
+                        "countryCode": iso,
+                        "value": 0,
+                        "label": "Kits",
+                        "status": "requested",
+                        "extras": {"Kits demandes": kits_req},
+                    })
 
     d["map_kits"] = {"data": {"byCountry": map_data}, "unit": "kits"}
 

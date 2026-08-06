@@ -20,6 +20,8 @@ export interface MapCountryDatum {
   countryCode: string;
   value: number;
   label?: string;
+  /** 'allocated' | 'requested' | undefined — drives 3-color logic */
+  status?: string;
   /** Additional key-value pairs shown in the tooltip (e.g. samples, year) */
   extras?: Record<string, string | number>;
 }
@@ -48,19 +50,18 @@ function lerpColor(a: string, b: string, t: number): string {
   return `#${((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1)}`;
 }
 
-/** Green -> Yellow -> Red gradient. value in [0, max]. */
-function valueToColor(value: number, max: number): string {
-  if (max <= 0) return '#3b82f6'; // blue fallback
+/** Green gradient for allocated countries: light green → dark green */
+function allocatedColor(value: number, max: number): string {
+  if (max <= 0) return '#22c55e';
   const t = Math.min(value / max, 1);
-  if (t <= 0.5) return lerpColor('#22c55e', '#eab308', t * 2);
-  return lerpColor('#eab308', '#ef4444', (t - 0.5) * 2);
+  return lerpColor('#86efac', '#15803d', t); // green-300 → green-700
 }
 
 /** Radius proportional to value, clamped. */
 function valueToRadius(value: number, max: number): number {
-  if (max <= 0) return 5;
+  if (max <= 0) return 6;
   const t = Math.min(value / max, 1);
-  return 5 + t * 19; // 5..24
+  return 7 + t * 17; // 7..24
 }
 
 /* ── REC color palette (fallback when no data) ──────────────────────────────── */
@@ -76,25 +77,25 @@ const REC_COLORS: Record<string, string> = {
   censad: '#6366f1',
 };
 
-/* ── Legend ──────────────────────────────────────────────────────────────────── */
+/* ── Category Legend ───────────────────────────────────────────────────────── */
 
-function Legend({ max, unit, valueLabel }: { max: number; unit?: string; valueLabel: string }) {
-  const stops = [0, 0.25, 0.5, 0.75, 1];
+function CategoryLegend({ hasRequested }: { hasRequested: boolean }) {
+  const items = [
+    { color: '#22c55e', border: '#16a34a', label: 'Kits alloues' },
+    ...(hasRequested ? [{ color: '#9ca3af', border: '#6b7280', label: 'Demande sans allocation' }] : []),
+    { color: '#f3f4f6', border: '#d1d5db', label: 'Pas de demande' },
+  ];
+
   return (
-    <div
-      className="absolute bottom-3 right-3 z-[1000] rounded-lg bg-white/95 px-3 py-2.5 text-[10px] shadow-lg ring-1 ring-black/5 backdrop-blur-sm dark:bg-gray-900/95 dark:text-gray-200 dark:ring-white/10"
-    >
-      <div className="mb-1.5 text-[11px] font-semibold text-gray-700 dark:text-gray-200">
-        {valueLabel}{unit ? ` (${unit})` : ''}
-      </div>
-      <div className="flex items-center gap-px rounded-md overflow-hidden">
-        {stops.map((s, i) => (
-          <div key={i} className="flex flex-col items-center">
+    <div className="absolute bottom-3 right-3 z-[1000] rounded-lg bg-white/95 px-3 py-2.5 shadow-lg ring-1 ring-black/5 backdrop-blur-sm dark:bg-gray-900/95 dark:ring-white/10">
+      <div className="flex flex-col gap-1.5">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-center gap-2">
             <div
-              className="h-3 w-7"
-              style={{ backgroundColor: valueToColor(s * max, max) }}
+              className="h-3 w-3 rounded-full shrink-0"
+              style={{ backgroundColor: item.color, border: `1.5px solid ${item.border}` }}
             />
-            <span className="mt-1 text-[9px] font-medium tabular-nums text-gray-500 dark:text-gray-400">{Math.round(s * max).toLocaleString()}</span>
+            <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">{item.label}</span>
           </div>
         ))}
       </div>
@@ -108,17 +109,19 @@ export default function MapContent({ data, config, title }: MapContentProps) {
   const t = useTranslations('dashboard');
   const unit = (config?.unit as string) ?? '';
 
-  // Build lookup: countryCode -> datum
-  const { lookup, maxValue, hasData } = useMemo(() => {
+  // Build lookups
+  const { lookup, maxValue, hasData, hasRequested } = useMemo(() => {
     const map = new Map<string, MapCountryDatum>();
     let mx = 0;
+    let hasReq = false;
     if (data?.byCountry && data.byCountry.length > 0) {
       for (const d of data.byCountry) {
         map.set(d.countryCode.toUpperCase(), d);
         if (d.value > mx) mx = d.value;
+        if (d.status === 'requested') hasReq = true;
       }
     }
-    return { lookup: map, maxValue: mx, hasData: map.size > 0 };
+    return { lookup: map, maxValue: mx, hasData: map.size > 0, hasRequested: hasReq };
   }, [data]);
 
   // Determine dark mode from document class
@@ -147,21 +150,49 @@ export default function MapContent({ data, config, title }: MapContentProps) {
         {AFRICA_COUNTRIES.map((country: AfricaCountryGeo) => {
           const datum = lookup.get(country.code);
           const value = datum?.value ?? 0;
+          const status = datum?.status;
 
-          // Determine visual style
-          const fillColor = hasData
-            ? datum
-              ? valueToColor(value, maxValue)
-              : '#d1d5db' // gray for no-data countries
-            : REC_COLORS[country.rec] ?? '#94a3b8';
+          // 3 categories:
+          // 1. Allocated (value > 0 or status === 'allocated') → green gradient
+          // 2. Requested but no allocation (status === 'requested', value === 0) → gray
+          // 3. No data → white/light (no demand)
+          let fillColor: string;
+          let radius: number;
+          let fillOpacity: number;
+          let strokeColor: string;
+          let strokeWeight: number;
 
-          const radius = hasData
-            ? datum
-              ? valueToRadius(value, maxValue)
-              : 4
-            : 6;
-
-          const fillOpacity = hasData ? (datum ? 0.8 : 0.3) : 0.6;
+          if (hasData) {
+            if (datum && (value > 0 || status === 'allocated')) {
+              // Allocated — green with size proportional to value
+              fillColor = allocatedColor(value, maxValue);
+              radius = valueToRadius(value, maxValue);
+              fillOpacity = 0.85;
+              strokeColor = '#15803d';
+              strokeWeight = 2;
+            } else if (datum && status === 'requested') {
+              // Requested but no allocation — gray
+              fillColor = '#9ca3af';
+              radius = 8;
+              fillOpacity = 0.7;
+              strokeColor = '#6b7280';
+              strokeWeight = 1.5;
+            } else {
+              // No demand, no kits — white/very light
+              fillColor = isDark ? '#374151' : '#f3f4f6';
+              radius = 5;
+              fillOpacity = 0.5;
+              strokeColor = isDark ? '#4b5563' : '#d1d5db';
+              strokeWeight = 1;
+            }
+          } else {
+            // No data at all — show REC colors
+            fillColor = REC_COLORS[country.rec] ?? '#94a3b8';
+            radius = 6;
+            fillOpacity = 0.6;
+            strokeColor = '#fff';
+            strokeWeight = 1.5;
+          }
 
           return (
             <CircleMarker
@@ -171,25 +202,37 @@ export default function MapContent({ data, config, title }: MapContentProps) {
               pathOptions={{
                 fillColor,
                 fillOpacity,
-                color: '#fff',
-                weight: 1.5,
+                color: strokeColor,
+                weight: strokeWeight,
                 opacity: 0.9,
               }}
             >
               <Tooltip direction="top" offset={[0, -radius]} opacity={0.97}>
-                <div className="text-xs min-w-[120px]">
-                  <div className="font-bold text-[13px] mb-0.5">{country.name}</div>
-                  {hasData && datum && (
+                <div className="text-xs min-w-[140px]">
+                  <div className="font-bold text-[13px] mb-1">{country.name}</div>
+                  {hasData && datum && value > 0 && (
                     <div className="space-y-0.5">
-                      <div className="flex items-center justify-between gap-3 text-gray-600 dark:text-gray-300">
-                        <span>{datum.label ?? t('dbValue')}</span>
-                        <span className="font-bold text-[13px]" style={{ color: fillColor }}>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-gray-500">{datum.label ?? 'Kits'}</span>
+                        <span className="font-bold text-[13px] text-green-600">
                           {value.toLocaleString()}
                           {unit ? ` ${unit}` : ''}
                         </span>
                       </div>
                       {datum.extras && Object.entries(datum.extras).map(([k, v]) => (
-                        <div key={k} className="flex items-center justify-between gap-3 text-gray-500 dark:text-gray-400">
+                        <div key={k} className="flex items-center justify-between gap-3 text-gray-500">
+                          <span>{k}</span>
+                          <span className="font-semibold tabular-nums">{typeof v === 'number' ? v.toLocaleString() : v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {hasData && datum && status === 'requested' && value === 0 && (
+                    <div className="text-gray-500 text-[11px]">
+                      <span className="inline-block w-2 h-2 rounded-full bg-gray-400 mr-1" />
+                      Demande sans allocation
+                      {datum.extras && Object.entries(datum.extras).map(([k, v]) => (
+                        <div key={k} className="flex items-center justify-between gap-3 mt-0.5">
                           <span>{k}</span>
                           <span className="font-semibold tabular-nums">{typeof v === 'number' ? v.toLocaleString() : v}</span>
                         </div>
@@ -197,7 +240,7 @@ export default function MapContent({ data, config, title }: MapContentProps) {
                     </div>
                   )}
                   {hasData && !datum && (
-                    <div className="text-gray-400 italic text-[10px]">{t('dbNoData')}</div>
+                    <div className="text-gray-400 italic text-[10px]">Pas de demande</div>
                   )}
                   {!hasData && (
                     <div className="text-gray-500">
@@ -211,12 +254,12 @@ export default function MapContent({ data, config, title }: MapContentProps) {
         })}
       </MapContainer>
 
-      {/* Legend — only when there is data */}
-      {hasData && <Legend max={maxValue} unit={unit} valueLabel={t('dbValue')} />}
+      {/* Category legend */}
+      {hasData && <CategoryLegend hasRequested={hasRequested} />}
 
       {/* Title overlay (top-left) */}
       {title && (
-        <div className="absolute left-3 top-3 z-[1000] rounded-md bg-white/80 px-2.5 py-1 text-xs font-semibold text-gray-700 shadow backdrop-blur dark:bg-gray-900/80 dark:text-gray-200">
+        <div className="absolute left-3 top-3 z-[1000] rounded-lg bg-white/90 px-3 py-1.5 text-xs font-bold text-gray-700 shadow-md backdrop-blur-sm dark:bg-gray-900/90 dark:text-gray-200">
           {title}
         </div>
       )}
