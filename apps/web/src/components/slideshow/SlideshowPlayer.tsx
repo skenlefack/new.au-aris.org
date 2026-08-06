@@ -459,12 +459,8 @@ export function SlideshowPlayer({
 
   const displayTitle = locale === 'en' ? (titleEn || titleFr || title) : (titleFr || titleEn || title);
 
-  // Auto fullscreen on load
-  useEffect(() => {
-    if (isPublic && containerRef.current) {
-      containerRef.current.requestFullscreen?.().catch(() => {});
-    }
-  }, [isPublic]);
+  // Note: auto-fullscreen removed — browsers require a user gesture to enter fullscreen.
+  // Users can press F or click the fullscreen button instead.
 
   const goNext = useCallback(() => {
     setCurrentIndex((prev) => {

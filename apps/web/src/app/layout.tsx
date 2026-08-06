@@ -22,6 +22,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'ARIS',
   },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
   icons: {
     icon: [
       { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
