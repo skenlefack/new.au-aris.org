@@ -273,10 +273,13 @@ function DashboardSlideRenderer({ dashboardId, durationMs, onReady }: { dashboar
 //  Smart Ticker
 // ═══════════════════════════════════════════════════════════════════════
 
-function SmartTicker({ dashboardId, accentColor, isDark }: { dashboardId: string; accentColor: string; isDark: boolean }) {
-  // Only fetch dashboard data for Dashboard Builder UUIDs — page: and bi: are not dashboard IDs
+function SmartTicker({ dashboardId, accentColor, isDark, isPublic, preRendered }: {
+  dashboardId: string; accentColor: string; isDark: boolean; isPublic?: boolean; preRendered?: any;
+}) {
+  // In public mode, don't fetch live data (no auth). Use pre-rendered data instead.
+  // Also skip page: and bi: IDs which are not Dashboard Builder UUIDs.
   const isRealDashboard = !dashboardId.startsWith('page:') && !dashboardId.startsWith('bi:');
-  const fetchId = isRealDashboard ? dashboardId : '';
+  const fetchId = isRealDashboard && !isPublic ? dashboardId : '';
   const { data: renderData } = useDashboardRender(fetchId);
   const { data: dashboardData } = useDashboard(fetchId);
   const locale = useLocaleStore((s) => s.locale);
@@ -284,11 +287,14 @@ function SmartTicker({ dashboardId, accentColor, isDark }: { dashboardId: string
   const messages = useMemo(() => {
     const msgs: string[] = [];
     const dashboard = dashboardData?.data;
-    const renderedWidgets = (renderData?.data as any)?.renderedWidgets;
+    // Use pre-rendered data in public mode, live data otherwise
+    const renderedWidgets = preRendered?.renderedWidgets ?? (renderData?.data as any)?.renderedWidgets;
 
-    if (!renderedWidgets && !dashboard) return ['ARIS - Animal Resources Information System - African Union Inter-African Bureau for Animal Resources'];
+    if (!renderedWidgets && !dashboard && !preRendered) return ['ARIS - Animal Resources Information System - African Union Inter-African Bureau for Animal Resources'];
 
-    const title = locale === 'en' ? ((dashboard as any)?.titleEn || dashboard?.title) : ((dashboard as any)?.titleFr || dashboard?.title);
+    const title = locale === 'en'
+      ? ((dashboard as any)?.titleEn || dashboard?.title || preRendered?.dashboard?.title_en)
+      : ((dashboard as any)?.titleFr || dashboard?.title || preRendered?.dashboard?.title_fr);
     if (title) msgs.push(title);
 
     if (Array.isArray(renderedWidgets)) {
@@ -326,7 +332,7 @@ function SmartTicker({ dashboardId, accentColor, isDark }: { dashboardId: string
 
     if (msgs.length === 0) msgs.push('AU-IBAR ARIS - Systeme continental d\'information sur les ressources animales');
     return msgs;
-  }, [renderData, dashboardData, locale]);
+  }, [renderData, dashboardData, preRendered, locale]);
 
   const tickerText = messages.join('        \u2726        ');
   const doubledText = `${tickerText}        \u2726        ${tickerText}`;
@@ -846,7 +852,7 @@ export function SlideshowPlayer({
           {/* Scrolling ticker — main band */}
           <div className="flex-1 flex items-center overflow-hidden min-w-0 py-3">
             {currentSlide?.dashboardId && (
-              <SmartTicker dashboardId={currentSlide.dashboardId} accentColor={themeColor.accent} isDark={isDark} />
+              <SmartTicker dashboardId={currentSlide.dashboardId} accentColor={themeColor.accent} isDark={isDark} isPublic={isPublic} preRendered={currentSlide.dashboard} />
             )}
           </div>
 
