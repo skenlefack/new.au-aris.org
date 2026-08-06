@@ -65,14 +65,16 @@ ISO_TO_REC = {
 
 
 def run_q(ssh, db_host, db_pass, sql):
-    chan = ssh.get_transport().open_session()
-    chan.exec_command(
-        "echo '{}' | sudo -S docker run --rm --network host "
-        "-e PGPASSWORD={} postgres:16 "
-        "psql -h {} -p 5432 -U aris -d aris -t -A -c \"{}\"".format(
-            SSH_PASS, db_pass, db_host, sql.replace('"', '\\"'))
+    # Escape single quotes in SQL for shell embedding
+    escaped_sql = sql.replace("'", "'\\''")
+    cmd = (
+        f"echo '{SSH_PASS}' | sudo -S docker run --rm --network host "
+        f"-e PGPASSWORD='{db_pass}' postgres:16 "
+        f"psql -h {db_host} -p 5432 -U aris -d aris -t -A -c '{escaped_sql}'"
     )
-    chan.settimeout(30)
+    chan = ssh.get_transport().open_session()
+    chan.settimeout(60)
+    chan.exec_command(cmd)
     out = b""
     try:
         while True:
@@ -82,9 +84,8 @@ def run_q(ssh, db_host, db_pass, sql):
             out += ch
     except Exception:
         pass
-    # Filter out sudo password prompt and docker pull messages
     result = out.decode(errors="replace").strip()
-    lines = [l for l in result.split("\n") if l.strip() and not l.startswith("[sudo]") and "Unable to find" not in l and "Pulling" not in l and "Digest:" not in l and "Status:" not in l and "docker.io" not in l]
+    lines = [l for l in result.split("\n") if l.strip() and "[sudo]" not in l and "Unable to find" not in l and "Pulling" not in l and "Digest:" not in l and "Status:" not in l and "docker.io" not in l]
     return "\n".join(lines).strip()
 
 
