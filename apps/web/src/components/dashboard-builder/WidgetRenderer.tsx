@@ -270,9 +270,11 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
         if (Array.isArray(cfg.colors) && !chartConfig.colors) {
           chartConfig.colors = cfg.colors;
         }
+        // Normalize backend type names (BAR_CHART→BAR, PIE_CHART→PIE, etc.)
+        const chartType = widget.type.replace('_CHART', '') as any;
         return (
           <ChartWidget
-            type={widget.type}
+            type={chartType}
             data={cfg.data}
             config={chartConfig}
           />
