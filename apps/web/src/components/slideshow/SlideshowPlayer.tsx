@@ -274,8 +274,11 @@ function DashboardSlideRenderer({ dashboardId, durationMs, onReady }: { dashboar
 // ═══════════════════════════════════════════════════════════════════════
 
 function SmartTicker({ dashboardId, accentColor, isDark }: { dashboardId: string; accentColor: string; isDark: boolean }) {
-  const { data: renderData } = useDashboardRender(dashboardId);
-  const { data: dashboardData } = useDashboard(dashboardId);
+  // Only fetch dashboard data for Dashboard Builder UUIDs — page: and bi: are not dashboard IDs
+  const isRealDashboard = !dashboardId.startsWith('page:') && !dashboardId.startsWith('bi:');
+  const fetchId = isRealDashboard ? dashboardId : '';
+  const { data: renderData } = useDashboardRender(fetchId);
+  const { data: dashboardData } = useDashboard(fetchId);
   const locale = useLocaleStore((s) => s.locale);
 
   const messages = useMemo(() => {

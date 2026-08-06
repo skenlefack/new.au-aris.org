@@ -35,34 +35,36 @@ export default function DashboardLayout({
   );
 
   // Viewer token injection for public slideshow embeds.
-  // When an iframe loads a page with ?embed=1&viewerToken=xxx, inject the
-  // token into the auth store SYNCHRONOUSLY during initial render so that
-  // AuthGuard and all child data-fetching hooks see the token immediately.
+  // When an iframe loads ?embed=1&viewerToken=xxx we must inject the token
+  // into BOTH localStorage (so Zustand persist hydration finds it) AND the
+  // in-memory Zustand state (so immediate API calls have the token).
+  // This runs synchronously during initial render, before any child mounts.
   const [viewerInjected] = useState(() => {
     if (typeof window === 'undefined') return false;
     const params = new URLSearchParams(window.location.search);
     const viewerToken = params.get('viewerToken');
     const embed = params.get('embed');
     if (embed !== '1' || !viewerToken) return false;
-    // Only inject if there is no existing authenticated session
-    const current = useAuthStore.getState();
-    if (current.accessToken && current.isAuthenticated) return false;
     try {
       const payload = JSON.parse(atob(viewerToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      useAuthStore.getState().setAuth(
-        {
-          id: payload.sub ?? 'viewer',
-          email: payload.email ?? 'viewer@au-aris.org',
-          firstName: 'Slideshow',
-          lastName: 'Viewer',
-          role: (payload.role ?? 'ANALYST') as any,
-          roles: payload.roles ?? [payload.role ?? 'ANALYST'],
-          tenantId: payload.tenantId ?? '',
-          tenantLevel: payload.tenantLevel ?? 'CONTINENTAL',
-        },
-        viewerToken,
-        '', // no refresh token — the slideshow player handles renewal
-      );
+      const user = {
+        id: payload.sub ?? 'viewer',
+        email: payload.email ?? 'viewer@au-aris.org',
+        firstName: 'Slideshow',
+        lastName: 'Viewer',
+        role: payload.role ?? 'ANALYST',
+        roles: payload.roles ?? [payload.role ?? 'ANALYST'],
+        tenantId: payload.tenantId ?? '',
+        tenantLevel: payload.tenantLevel ?? 'CONTINENTAL',
+      };
+      // Write to localStorage FIRST — Zustand persist hydration reads from here.
+      // Without this, persist overwrites the in-memory state with the old (empty) localStorage.
+      localStorage.setItem('aris-auth', JSON.stringify({
+        state: { user, accessToken: viewerToken, refreshToken: '', isAuthenticated: true },
+        version: 0,
+      }));
+      // Also set in-memory Zustand state for immediate use
+      useAuthStore.getState().setAuth(user as any, viewerToken, '');
       return true;
     } catch { return false; }
   });
