@@ -438,9 +438,9 @@ export function DashboardSynthetic() {
                   <Bar dataKey="outbreaks" fill="#ef4444" radius={[2, 2, 0, 0]} />
                 </BarChart>
               ) : (
-                <BarChart data={dashData.yearlyOutbreaks} margin={{ top: 4, right: 8, bottom: 2, left: 4 }}>
-                  <XAxis dataKey="year" tick={{ fontSize: 8 }} interval={1} />
-                  <YAxis tick={{ fontSize: 8 }} width={35} />
+                <BarChart data={dashData.yearlyOutbreaks} margin={{ top: 4, right: 8, bottom: 18, left: 4 }}>
+                  <XAxis dataKey="year" tick={{ fontSize: 7, angle: -45, textAnchor: 'end' }} interval={0} height={30} />
+                  <YAxis tick={{ fontSize: 8 }} width={35} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
                   <Tooltip content={<CompactTooltip />} />
                   <Bar dataKey="outbreaks" fill="#ef4444" radius={[2, 2, 0, 0]} />
                 </BarChart>
