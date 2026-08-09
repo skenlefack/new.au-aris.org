@@ -117,7 +117,7 @@ function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 function DashboardContent() {
-  const [filterPanelOpen, setFilterPanelOpen] = useState(true);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [activePage, setActivePage] = useState('overview');
   const [viewMode, setViewMode] = useState<ViewMode>('synthetic');
   const [isFullscreen, setIsFullscreen] = useState(false);

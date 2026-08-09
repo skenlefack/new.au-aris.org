@@ -255,7 +255,14 @@ export function useDashboardData(filters?: DashboardFilters) {
     staleTime: STALE_TIME,
   });
 
-  // 8. Weekly time series (epi curve)
+  // 8. Diseases from master-data (reliable source for the filter dropdown)
+  const masterDiseasesQuery = useQuery<{ data: Array<{ id: string; code: string; nameEn: string; nameFr: string }> }>({
+    queryKey: ['dashboard-master-diseases'],
+    queryFn: () => analyticsClient.get('/master-data/diseases', { limit: '500', sort: 'nameEn', order: 'asc' }),
+    staleTime: 30 * 60_000,
+  });
+
+  // 9. Weekly time series (epi curve)
   const weeklyQuery = useQuery<{ data: Array<{ period: string; value: number }> }>({
     queryKey: ['dashboard-weekly-trend', healthIds, filterKey],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-query`, {
@@ -484,15 +491,50 @@ export function useDashboardData(filters?: DashboardFilters) {
       .sort((a, b) => a.year.localeCompare(b.year));
   })();
 
-  // All disease names for the filter dropdown (from unfiltered distribution)
+  // All disease names for the filter dropdown
+  // Priority: master-data diseases (reliable), enriched with historical counts if available
   const allDiseaseNames: Array<{ value: string; label: string }> = (() => {
-    const raw = diseaseDistQuery.data?.data;
-    if (!raw) return [];
-    return raw
-      .filter((d) => d.label && d.label.trim() && d.value > 0
-        && d.label !== 'ZERO-CAS' && !d.label.match(/^[0-9a-f]{8}-/))
-      .sort((a, b) => b.value - a.value)
-      .map((d) => ({ value: d.label, label: `${d.label} (${d.value.toLocaleString()})` }));
+    const masterDiseases = masterDiseasesQuery.data?.data;
+    const histRaw = diseaseDistQuery.data?.data;
+
+    // Build a map of disease counts from historical data
+    const histCounts = new Map<string, number>();
+    if (histRaw) {
+      for (const d of histRaw) {
+        if (d.label && d.label.trim() && d.value > 0
+          && d.label !== 'ZERO-CAS' && !d.label.match(/^[0-9a-f]{8}-/)) {
+          histCounts.set(d.label.toLowerCase(), d.value);
+        }
+      }
+    }
+
+    // If master-data diseases available, use them as the primary source
+    if (masterDiseases && masterDiseases.length > 0) {
+      const items = masterDiseases
+        .filter((d) => d.nameEn || d.nameFr)
+        .map((d) => {
+          const name = d.nameEn || d.nameFr || d.code;
+          const count = histCounts.get(name.toLowerCase()) ?? histCounts.get(d.code?.toLowerCase() ?? '') ?? 0;
+          return {
+            value: d.nameEn || d.code,
+            label: count > 0 ? `${name} (${count.toLocaleString()})` : name,
+            count,
+          };
+        })
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+      return items.map(({ value, label }) => ({ value, label }));
+    }
+
+    // Fallback: use historical distribution only
+    if (histRaw && histRaw.length > 0) {
+      return histRaw
+        .filter((d) => d.label && d.label.trim() && d.value > 0
+          && d.label !== 'ZERO-CAS' && !d.label.match(/^[0-9a-f]{8}-/))
+        .sort((a, b) => b.value - a.value)
+        .map((d) => ({ value: d.label, label: `${d.label} (${d.value.toLocaleString()})` }));
+    }
+
+    return [];
   })();
 
   const isLoading = datasetsQuery.isLoading;
