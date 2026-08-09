@@ -259,6 +259,7 @@ export class DbStatsService {
     diseaseDistribution: Array<{ label: string; value: number }>;
     countryDistribution: Array<{ label: string; value: number }>;
     monthlyTrend: Array<{ month: string; outbreaks: number; reports: number }>;
+    yearlyOutbreaks: Array<{ year: string; outbreaks: number }>;
   }> {
     const cached = await this.redis.get('analytics:dashboard-charts');
     if (cached) {
@@ -269,8 +270,8 @@ export class DbStatsService {
     try {
       const MV = 'analytics.mv_campaign_stats';
 
-      // All 3 queries from materialized view (fast)
-      const [{ rows: diseaseRows }, { rows: countryRows }, { rows: trendRows }] = await Promise.all([
+      // All 4 queries from materialized view (fast)
+      const [{ rows: diseaseRows }, { rows: countryRows }, { rows: trendRows }, { rows: yearlyRows }] = await Promise.all([
         client.query(`SELECT disease AS label, COUNT(*)::int AS value
           FROM ${MV} WHERE valid_disease
           GROUP BY 1 ORDER BY value DESC LIMIT 8`),
@@ -285,19 +286,25 @@ export class DbStatsService {
           FROM ${MV} WHERE valid_country AND submitted_at IS NOT NULL
           GROUP BY EXTRACT(YEAR FROM submitted_at), EXTRACT(MONTH FROM submitted_at), TO_CHAR(submitted_at, 'Mon')
           ORDER BY MAX(submitted_at) DESC LIMIT 12`),
+
+        client.query(`SELECT EXTRACT(YEAR FROM submitted_at)::int AS year,
+          COUNT(*)::int AS outbreaks
+          FROM ${MV} WHERE valid_country AND submitted_at IS NOT NULL
+          GROUP BY 1 ORDER BY 1`),
       ]);
 
       const result = {
         diseaseDistribution: diseaseRows.map((r: any) => ({ label: r.label, value: r.value })),
         countryDistribution: countryRows.map((r: any) => ({ label: r.label, value: r.value })),
         monthlyTrend: trendRows.reverse().map((r: any) => ({ month: r.month, outbreaks: r.outbreaks, reports: r.reports })),
+        yearlyOutbreaks: yearlyRows.map((r: any) => ({ year: String(r.year), outbreaks: r.outbreaks })),
       };
 
       await this.redis.set('analytics:dashboard-charts', JSON.stringify(result), CACHE_TTL);
       return result;
     } catch (err) {
       console.error('[DbStatsService] Dashboard charts query failed:', err);
-      return { diseaseDistribution: [], countryDistribution: [], monthlyTrend: [] };
+      return { diseaseDistribution: [], countryDistribution: [], monthlyTrend: [], yearlyOutbreaks: [] };
     } finally {
       client.release();
     }

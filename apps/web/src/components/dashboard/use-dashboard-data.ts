@@ -298,6 +298,14 @@ export function useDashboardData(filters?: DashboardFilters) {
     staleTime: STALE_TIME,
   });
 
+  // 10. Fallback: Dashboard charts from analytics service (includes yearlyOutbreaks)
+  const dashChartsQuery = useQuery<{ data: { yearlyOutbreaks?: Array<{ year: string; outbreaks: number }> } }>({
+    queryKey: ['dashboard-charts-fallback'],
+    queryFn: () => analyticsClient.get('/analytics/dashboard/charts'),
+    enabled: !hasHealth && !datasetsQuery.isLoading,
+    staleTime: 30 * 60_000,
+  });
+
   // ── Transform: KPIs ──────────────────────────────────────────────────────
 
   const kpis: DashboardKpis = (() => {
@@ -479,16 +487,26 @@ export function useDashboardData(filters?: DashboardFilters) {
   // ── Transform: Yearly outbreaks ──────────────────────────────────────────
 
   const yearlyOutbreaks: Array<{ year: string; outbreaks: number }> = (() => {
+    // Primary: from historical cross-query
     const raw = yearlyQuery.data?.data;
-    if (!raw || raw.length === 0) return [];
-    return raw
-      .map((d) => {
-        const date = new Date(d.period);
-        const year = date.getFullYear();
-        return { year: String(year), outbreaks: d.value ?? 0 };
-      })
-      .filter((d) => parseInt(d.year) >= 2007 && parseInt(d.year) <= 2025)
-      .sort((a, b) => a.year.localeCompare(b.year));
+    if (raw && raw.length > 0) {
+      return raw
+        .map((d) => {
+          const date = new Date(d.period);
+          const year = date.getFullYear();
+          return { year: String(year), outbreaks: d.value ?? 0 };
+        })
+        .filter((d) => parseInt(d.year) >= 2007 && parseInt(d.year) <= 2026)
+        .sort((a, b) => a.year.localeCompare(b.year));
+    }
+    // Fallback: from analytics dashboard/charts endpoint
+    const fallback = dashChartsQuery.data?.data?.yearlyOutbreaks;
+    if (fallback && fallback.length > 0) {
+      return fallback
+        .filter((d) => parseInt(d.year) >= 2007 && parseInt(d.year) <= 2026)
+        .sort((a, b) => a.year.localeCompare(b.year));
+    }
+    return [];
   })();
 
   // All disease names for the filter dropdown
