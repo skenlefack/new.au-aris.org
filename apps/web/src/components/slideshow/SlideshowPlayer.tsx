@@ -50,8 +50,8 @@ function IframeSlideRenderer({ src, onReady }: { src: string; onReady?: () => vo
   );
 }
 
-function SlideRenderer({ dashboardId, durationMs, onReady, isPublic, preRendered, viewerToken }: {
-  dashboardId: string; durationMs: number; onReady?: () => void; isPublic?: boolean; preRendered?: any; viewerToken?: string;
+function SlideRenderer({ dashboardId, durationMs, onReady, isPublic, preRendered, viewerToken, scrollMode }: {
+  dashboardId: string; durationMs: number; onReady?: () => void; isPublic?: boolean; preRendered?: any; viewerToken?: string; scrollMode?: string;
 }) {
   // System page — rendered as iframe (with viewerToken for public mode)
   if (dashboardId.startsWith('page:')) {
@@ -66,12 +66,69 @@ function SlideRenderer({ dashboardId, durationMs, onReady, isPublic, preRendered
   }
   // Dashboard Builder — use pre-rendered data in public mode, otherwise fetch live
   if (isPublic && preRendered) {
-    return <PublicDashboardSlideRenderer dashboard={preRendered} durationMs={durationMs} onReady={onReady} />;
+    return <PublicDashboardSlideRenderer dashboard={preRendered} durationMs={durationMs} onReady={onReady} scrollMode={scrollMode} />;
   }
-  return <DashboardSlideRenderer dashboardId={dashboardId} durationMs={durationMs} onReady={onReady} />;
+  return <DashboardSlideRenderer dashboardId={dashboardId} durationMs={durationMs} onReady={onReady} scrollMode={scrollMode} />;
 }
 
-function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onReady }: { dashboard: any; durationMs: number; onReady?: () => void }) {
+/**
+ * Compute scroll positions for SECTION mode.
+ * Groups consecutive sections so that no section is cut off.
+ * Each group of sections that fits within viewHeight becomes one "screen".
+ * If a single section is taller than viewHeight, it gets its own screen
+ * and will scroll to show its bottom part as the next screen.
+ */
+function computeSectionScrollPositions(container: HTMLElement, viewHeight: number): number[] {
+  // Find all section elements (direct children or data-section markers)
+  const sectionEls = container.querySelectorAll('[data-section-id]');
+  if (sectionEls.length === 0) {
+    // Fallback: look for section-like containers (the SectionList renders sections as divs)
+    const children = Array.from(container.children);
+    if (children.length <= 1) return [];
+    // Use children of the first wrapper
+    const wrapper = children[0];
+    const sections = wrapper ? Array.from(wrapper.children) : children;
+    return computeScrollFromElements(sections as HTMLElement[], container, viewHeight);
+  }
+  return computeScrollFromElements(Array.from(sectionEls) as HTMLElement[], container, viewHeight);
+}
+
+function computeScrollFromElements(sections: HTMLElement[], container: HTMLElement, viewHeight: number): number[] {
+  if (sections.length === 0) return [];
+
+  const positions: number[] = []; // scroll positions (first is always 0, skip it)
+
+  let currentGroupTop = 0; // top of the current group in scroll coordinates
+
+  for (const section of sections) {
+    const rect = section.getBoundingClientRect();
+    const sectionTop = rect.top - container.getBoundingClientRect().top + container.scrollTop;
+    const sectionBottom = sectionTop + rect.height;
+
+    // If this section would be cut off from the current group
+    if (sectionBottom - currentGroupTop > viewHeight && sectionTop > currentGroupTop) {
+      // Start a new group at this section's top
+      // But don't add position 0 (that's the initial state)
+      if (sectionTop > 0) {
+        positions.push(sectionTop);
+      }
+      currentGroupTop = sectionTop;
+
+      // If this single section is taller than viewHeight, we need extra scroll(s)
+      if (rect.height > viewHeight) {
+        const extraScreens = Math.ceil(rect.height / viewHeight) - 1;
+        for (let j = 1; j <= extraScreens; j++) {
+          positions.push(Math.min(sectionTop + j * viewHeight, container.scrollHeight - viewHeight));
+        }
+        currentGroupTop = sectionTop + extraScreens * viewHeight;
+      }
+    }
+  }
+
+  return positions;
+}
+
+function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onReady, scrollMode }: { dashboard: any; durationMs: number; onReady?: () => void; scrollMode?: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const readyCalledRef = useRef(false);
@@ -145,18 +202,34 @@ function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onRe
       const viewHeight = el.clientHeight;
       if (contentHeight <= viewHeight) return;
 
-      const totalScreens = Math.ceil(contentHeight / viewHeight);
-      const timePerScreen = durationMs / totalScreens;
       scrollTimersRef.current = [];
-      for (let i = 1; i < totalScreens; i++) {
-        const t = setTimeout(() => {
-          if (!scrollRef.current) return;
-          scrollRef.current.scrollTo({
-            top: Math.min(i * viewHeight, contentHeight - viewHeight),
-            behavior: 'smooth',
-          });
-        }, i * timePerScreen);
-        scrollTimersRef.current.push(t);
+
+      if (scrollMode === 'SECTION') {
+        // Section-by-section: scroll to section boundaries so no widget is cut
+        const scrollPositions = computeSectionScrollPositions(el, viewHeight);
+        if (scrollPositions.length === 0) return;
+        const timePerScreen = durationMs / (scrollPositions.length + 1);
+        for (let i = 0; i < scrollPositions.length; i++) {
+          const t = setTimeout(() => {
+            if (!scrollRef.current) return;
+            scrollRef.current.scrollTo({ top: scrollPositions[i], behavior: 'smooth' });
+          }, (i + 1) * timePerScreen);
+          scrollTimersRef.current.push(t);
+        }
+      } else {
+        // CONTINUOUS: original pixel-based scroll
+        const totalScreens = Math.ceil(contentHeight / viewHeight);
+        const timePerScreen = durationMs / totalScreens;
+        for (let i = 1; i < totalScreens; i++) {
+          const t = setTimeout(() => {
+            if (!scrollRef.current) return;
+            scrollRef.current.scrollTo({
+              top: Math.min(i * viewHeight, contentHeight - viewHeight),
+              behavior: 'smooth',
+            });
+          }, i * timePerScreen);
+          scrollTimersRef.current.push(t);
+        }
       }
     }, 600);
 
@@ -164,7 +237,7 @@ function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onRe
       clearTimeout(measureTimer);
       scrollTimersRef.current.forEach(clearTimeout);
     };
-  }, [preRendered, durationMs, onReady]);
+  }, [preRendered, durationMs, onReady, scrollMode]);
 
   if (!sections.length) {
     return (
@@ -181,7 +254,7 @@ function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onRe
   );
 }
 
-function DashboardSlideRenderer({ dashboardId, durationMs, onReady }: { dashboardId: string; durationMs: number; onReady?: () => void }) {
+function DashboardSlideRenderer({ dashboardId, durationMs, onReady, scrollMode }: { dashboardId: string; durationMs: number; onReady?: () => void; scrollMode?: string }) {
   const { data: dashboardData, isLoading: loadingDash } = useDashboard(dashboardId);
   const { data: renderData, isLoading: loadingRender } = useDashboardRender(dashboardId);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -210,23 +283,32 @@ function DashboardSlideRenderer({ dashboardId, durationMs, onReady }: { dashboar
       const viewHeight = el.clientHeight;
       if (contentHeight <= viewHeight) return; // No overflow, nothing to scroll
 
-      // Calculate number of "screens" (pages)
-      const totalScreens = Math.ceil(contentHeight / viewHeight);
-      // Equal time per screen — first screen gets the same time as all others
-      const timePerScreen = durationMs / totalScreens;
-
-      // Scroll to each screen sequentially — first scroll at timePerScreen (after first screen has had its full time)
       scrollTimersRef.current = [];
-      for (let i = 1; i < totalScreens; i++) {
-        const t = setTimeout(() => {
-          if (!scrollRef.current) return;
-          const targetScroll = Math.min(i * viewHeight, contentHeight - viewHeight);
-          scrollRef.current.scrollTo({
-            top: targetScroll,
-            behavior: 'smooth',
-          });
-        }, i * timePerScreen);
-        scrollTimersRef.current.push(t);
+
+      if (scrollMode === 'SECTION') {
+        // Section-by-section: scroll to section boundaries so no widget is cut
+        const scrollPositions = computeSectionScrollPositions(el, viewHeight);
+        if (scrollPositions.length === 0) return;
+        const timePerScreen = durationMs / (scrollPositions.length + 1);
+        for (let i = 0; i < scrollPositions.length; i++) {
+          const t = setTimeout(() => {
+            if (!scrollRef.current) return;
+            scrollRef.current.scrollTo({ top: scrollPositions[i], behavior: 'smooth' });
+          }, (i + 1) * timePerScreen);
+          scrollTimersRef.current.push(t);
+        }
+      } else {
+        // CONTINUOUS: original pixel-based scroll
+        const totalScreens = Math.ceil(contentHeight / viewHeight);
+        const timePerScreen = durationMs / totalScreens;
+        for (let i = 1; i < totalScreens; i++) {
+          const t = setTimeout(() => {
+            if (!scrollRef.current) return;
+            const targetScroll = Math.min(i * viewHeight, contentHeight - viewHeight);
+            scrollRef.current.scrollTo({ top: targetScroll, behavior: 'smooth' });
+          }, i * timePerScreen);
+          scrollTimersRef.current.push(t);
+        }
       }
     }, 600); // Wait for dashboard widgets to render
 
@@ -234,7 +316,7 @@ function DashboardSlideRenderer({ dashboardId, durationMs, onReady }: { dashboar
       clearTimeout(measureTimer);
       scrollTimersRef.current.forEach(clearTimeout);
     };
-  }, [loadingDash, loadingRender, dashboard, durationMs, onReady]);
+  }, [loadingDash, loadingRender, dashboard, durationMs, onReady, scrollMode]);
 
   if (loadingDash || loadingRender) {
     return (
@@ -406,6 +488,7 @@ interface SlideshowPlayerProps {
   loop?: boolean;
   showProgress?: boolean;
   showControls?: boolean;
+  scrollMode?: string;
   isPublic?: boolean;
   viewerToken?: string;
   onClose?: () => void;
@@ -425,6 +508,7 @@ export function SlideshowPlayer({
   autoPlay = true,
   loop = true,
   showProgress = true,
+  scrollMode = 'CONTINUOUS',
   isPublic = false,
   viewerToken,
   onClose,
@@ -764,6 +848,7 @@ export function SlideshowPlayer({
               isPublic={isPublic}
               preRendered={currentSlide.dashboard}
               viewerToken={viewerToken}
+              scrollMode={scrollMode}
             />
           ) : (
             <div className="flex items-center justify-center h-full">

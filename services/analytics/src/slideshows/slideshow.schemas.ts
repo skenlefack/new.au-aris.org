@@ -8,6 +8,11 @@ export const SlideshowTransitionSchema = Type.Union([
   Type.Literal('FLIP'),
 ]);
 
+export const SlideshowScrollModeSchema = Type.Union([
+  Type.Literal('CONTINUOUS'),
+  Type.Literal('SECTION'),
+]);
+
 export const CreateSlideshowSchema = Type.Object({
   titleFr: Type.String({ minLength: 1 }),
   titleEn: Type.String({ minLength: 1 }),
@@ -20,6 +25,7 @@ export const CreateSlideshowSchema = Type.Object({
   loop: Type.Optional(Type.Boolean({ default: true })),
   showProgress: Type.Optional(Type.Boolean({ default: true })),
   showControls: Type.Optional(Type.Boolean({ default: false })),
+  scrollMode: Type.Optional(SlideshowScrollModeSchema),
   slides: Type.Optional(Type.Array(Type.Object({
     dashboardId: Type.String({ minLength: 1 }),
     sortOrder: Type.Integer({ minimum: 0 }),
@@ -42,6 +48,7 @@ export const UpdateSlideshowSchema = Type.Partial(Type.Object({
   loop: Type.Boolean(),
   showProgress: Type.Boolean(),
   showControls: Type.Boolean(),
+  scrollMode: SlideshowScrollModeSchema,
 }));
 export type UpdateSlideshowDto = Static<typeof UpdateSlideshowSchema>;
 

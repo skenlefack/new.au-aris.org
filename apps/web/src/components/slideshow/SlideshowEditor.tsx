@@ -126,6 +126,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
   const [loop, setLoop] = useState(true);
   const [showProgress, setShowProgress] = useState(true);
   const [showControls, setShowControls] = useState(false);
+  const [scrollMode, setScrollMode] = useState('CONTINUOUS');
   const [isActive, setIsActive] = useState(true);
   const [slides, setSlides] = useState<
     Array<{
@@ -153,6 +154,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
       setLoop(existing.loop ?? true);
       setShowProgress(existing.showProgress ?? true);
       setShowControls(existing.showControls ?? false);
+      setScrollMode(existing.scrollMode ?? 'CONTINUOUS');
       setIsActive(existing.isActive ?? true);
       setPublicToken(existing.publicToken || '');
       setSlides(
@@ -181,6 +183,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
       loop,
       showProgress,
       showControls,
+      scrollMode,
       ...(slideshowId ? { isActive } : {}),
     };
 
@@ -315,6 +318,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
               loop={loop}
               showProgress={showProgress}
               showControls={true}
+              scrollMode={scrollMode}
               onClose={() => setShowPreview(false)}
             />
           </div>
@@ -561,6 +565,48 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                       )}
                     />
                   </button>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">
+                    {isFr ? 'Defilement vertical (dashboards longs)' : 'Vertical scroll (long dashboards)'}
+                  </label>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">
+                    {isFr
+                      ? 'Comment defiler le contenu qui depasse l\'ecran'
+                      : 'How to scroll content that exceeds the screen'}
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setScrollMode('CONTINUOUS')}
+                      className={cn(
+                        'flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors text-left',
+                        scrollMode === 'CONTINUOUS'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-400'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400',
+                      )}
+                    >
+                      <div className="font-semibold">{isFr ? 'Continu' : 'Continuous'}</div>
+                      <div className="text-[10px] mt-0.5 opacity-70">
+                        {isFr ? 'Defilement pixel par pixel' : 'Pixel-by-pixel scroll'}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScrollMode('SECTION')}
+                      className={cn(
+                        'flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors text-left',
+                        scrollMode === 'SECTION'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-400'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400',
+                      )}
+                    >
+                      <div className="font-semibold">{isFr ? 'Par section' : 'By section'}</div>
+                      <div className="text-[10px] mt-0.5 opacity-70">
+                        {isFr ? 'Section par section, sans couper les widgets' : 'Section by section, no cut widgets'}
+                      </div>
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium">{isFr ? 'Controles navigation' : 'Navigation controls'}</label>

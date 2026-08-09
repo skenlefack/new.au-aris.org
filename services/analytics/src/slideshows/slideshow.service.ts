@@ -186,8 +186,8 @@ export class SlideshowService {
         `INSERT INTO dashboard_builder.dashboard_slideshows
          (id, tenant_id, title_fr, title_en, title_ar, title_pt, description,
           public_token, transition, interval_ms, auto_play, loop, show_progress, show_controls,
-          created_by, created_at, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW(),NOW())`,
+          scroll_mode, created_by, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW())`,
         [
           id, tenantId,
           dto.titleFr, dto.titleEn, dto.titleAr ?? null, dto.titlePt ?? null,
@@ -195,6 +195,7 @@ export class SlideshowService {
           dto.transition ?? 'FADE', dto.intervalMs ?? 15000,
           dto.autoPlay ?? true, dto.loop ?? true,
           dto.showProgress ?? true, dto.showControls ?? false,
+          dto.scrollMode ?? 'CONTINUOUS',
           userId,
         ],
       );
@@ -244,6 +245,7 @@ export class SlideshowService {
       ['loop', 'loop', dto.loop],
       ['showProgress', 'show_progress', dto.showProgress],
       ['showControls', 'show_controls', dto.showControls],
+      ['scrollMode', 'scroll_mode', dto.scrollMode],
     ];
 
     for (const [, col, val] of fields) {
@@ -372,6 +374,7 @@ export class SlideshowService {
       loop: row.loop,
       showProgress: row.show_progress,
       showControls: row.show_controls,
+      scrollMode: row.scroll_mode ?? 'CONTINUOUS',
       createdBy: row.created_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

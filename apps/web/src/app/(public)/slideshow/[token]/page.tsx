@@ -57,6 +57,7 @@ export default function PublicSlideshowPage() {
       loop={data.loop}
       showProgress={data.showProgress}
       showControls={data.showControls}
+      scrollMode={data.scrollMode}
       isPublic
       viewerToken={viewerToken}
     />

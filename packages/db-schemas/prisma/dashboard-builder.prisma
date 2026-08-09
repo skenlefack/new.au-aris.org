@@ -257,6 +257,13 @@ model UserDashboardPreference {
 
 // ── Dashboard Slideshow ───────────────────────────────────────────────
 
+enum SlideshowScrollMode {
+  CONTINUOUS
+  SECTION
+
+  @@schema("dashboard_builder")
+}
+
 enum SlideshowTransition {
   FADE
   SLIDE_LEFT
@@ -283,6 +290,7 @@ model DashboardSlideshow {
   loop            Boolean              @default(true)
   showProgress    Boolean              @default(true) @map("show_progress")
   showControls    Boolean              @default(false) @map("show_controls")
+  scrollMode      SlideshowScrollMode  @default(CONTINUOUS) @map("scroll_mode")
   createdBy       String               @map("created_by") @db.Uuid
   createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz

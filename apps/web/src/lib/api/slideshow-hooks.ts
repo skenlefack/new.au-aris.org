@@ -35,6 +35,7 @@ export interface Slideshow {
   loop: boolean;
   showProgress: boolean;
   showControls: boolean;
+  scrollMode: string;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

@@ -58,6 +58,7 @@ export function SortableSection({
   return (
     <div
       ref={setNodeRef}
+      data-section-id={section.id}
       style={{ transform: tx, transition: transition ?? undefined }}
       className={cn(
         'rounded-lg',
