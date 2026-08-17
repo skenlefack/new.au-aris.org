@@ -120,6 +120,8 @@ model Species {
   scientificName       String          @map("scientific_name") @db.VarChar(255)
   commonNameEn         String          @map("common_name_en") @db.VarChar(255)
   commonNameFr         String          @map("common_name_fr") @db.VarChar(255)
+  commonNamePt         String          @default("") @map("common_name_pt") @db.VarChar(255)
+  commonNameAr         String          @default("") @map("common_name_ar") @db.VarChar(255)
   category             SpeciesCategory
   productionCategories String[]        @map("production_categories") @db.VarChar(50)
   isWoahListed         Boolean         @default(false) @map("is_woah_listed")
@@ -148,6 +150,8 @@ model Disease {
   code            String   @unique @db.VarChar(20)
   nameEn          String   @map("name_en") @db.VarChar(255)
   nameFr          String   @map("name_fr") @db.VarChar(255)
+  namePt          String   @default("") @map("name_pt") @db.VarChar(255)
+  nameAr          String   @default("") @map("name_ar") @db.VarChar(255)
   isWoahListed    Boolean  @default(false) @map("is_woah_listed")
   affectedSpecies String[] @map("affected_species") @db.VarChar(20)
   isNotifiable    Boolean  @default(false) @map("is_notifiable")
@@ -171,6 +175,8 @@ model Unit {
   code         String       @unique @db.VarChar(20)
   nameEn       String       @map("name_en") @db.VarChar(100)
   nameFr       String       @map("name_fr") @db.VarChar(100)
+  namePt       String       @default("") @map("name_pt") @db.VarChar(100)
+  nameAr       String       @default("") @map("name_ar") @db.VarChar(100)
   symbol       String       @db.VarChar(20)
   category     UnitCategory
   siConversion Float?       @map("si_conversion")
@@ -192,6 +198,8 @@ model Temporality {
   code          String   @unique @db.VarChar(30)
   nameEn        String   @map("name_en") @db.VarChar(255)
   nameFr        String   @map("name_fr") @db.VarChar(255)
+  namePt        String   @default("") @map("name_pt") @db.VarChar(255)
+  nameAr        String   @default("") @map("name_ar") @db.VarChar(255)
   calendarType  String   @map("calendar_type") @db.VarChar(50)
   periodStart   DateTime @map("period_start") @db.Date
   periodEnd     DateTime @map("period_end") @db.Date
@@ -220,6 +228,8 @@ model Identifier {
   code        String         @unique @db.VarChar(50)
   nameEn      String         @map("name_en") @db.VarChar(255)
   nameFr      String         @map("name_fr") @db.VarChar(255)
+  namePt      String         @default("") @map("name_pt") @db.VarChar(255)
+  nameAr      String         @default("") @map("name_ar") @db.VarChar(255)
   type        IdentifierType
   geoEntityId String?        @map("geo_entity_id") @db.Uuid
   latitude    Float?
