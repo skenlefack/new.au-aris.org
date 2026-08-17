@@ -25,6 +25,7 @@ import {
 } from '@/lib/api/hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const GATES = [
   'Completeness',

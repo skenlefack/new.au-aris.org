@@ -12,6 +12,7 @@ import {
   type AiChatMessage,
 } from '@/lib/api/ai-hooks';
 import { Sparkles, Plus, Send, Trash2, MessageSquare, Bot, User, Loader2, ChevronLeft } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function AiChatPage() {
   const [selectedId, setSelectedId] = useState<string | undefined>();

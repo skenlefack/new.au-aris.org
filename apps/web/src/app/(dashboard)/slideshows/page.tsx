@@ -10,6 +10,7 @@ import {
   type Slideshow,
 } from '@/lib/api/slideshow-hooks';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function SlideshowsPage() {
   const router = useRouter();

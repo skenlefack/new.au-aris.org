@@ -30,6 +30,7 @@ import {
   pickLocale,
 } from '@/lib/api/knowledge-hub-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'KNOWLEDGE_MANAGER']);
 

@@ -20,6 +20,7 @@ import {
   useHistoricalDatasets,
   type HistoricalDataset,
 } from '@/lib/api/historical-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 /* ------------------------------------------------------------------ */
 /*  Domain config                                                       */

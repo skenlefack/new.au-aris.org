@@ -37,6 +37,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useSettingsRecs, useSettingsCountries } from '@/lib/api/settings-hooks';
 import { useCampaigns } from '@/lib/api/hooks';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
+import { useTranslations } from '@/lib/i18n/translations';
 
 type Tab = 'USER_OWNED' | 'SHARED' | 'SYSTEM_TEMPLATE';
 

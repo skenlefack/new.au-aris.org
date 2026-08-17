@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { useDashboardKpisRange, type TimeRange } from '@/lib/api/hooks';
 import { KpiCardSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 // ─── Time Range Options ──────────────────────────────────────────────────────
 
