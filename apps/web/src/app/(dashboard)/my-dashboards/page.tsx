@@ -141,7 +141,7 @@ function DashboardCard({
             onDelete(dashboard.id);
           }}
           className="absolute right-2 top-2 rounded p-1 text-gray-300 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400 transition-all"
-          title="Delete dashboard"
+          title={t('deleteDashboard')}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -151,6 +151,7 @@ function DashboardCard({
 }
 
 export default function MyDashboardsPage() {
+  const t = useTranslations('dashboard');
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>('USER_OWNED');
@@ -270,8 +271,8 @@ export default function MyDashboardsPage() {
       onSuccess: () => {
         addToast({
           type: 'success',
-          title: 'Dashboard supprimé',
-          message: 'Le tableau de bord a été supprimé avec succès.',
+          title: t('deleteDashboard'),
+          message: t('deleteConfirm'),
         });
         setDeleteTarget(null);
       },
@@ -292,10 +293,10 @@ export default function MyDashboardsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            My Dashboards
+            {t('myDashboards')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Build custom dashboards with drag-and-drop widgets
+            {t('myDashboardsSubtitle')}
           </p>
         </div>
         <button
@@ -304,7 +305,7 @@ export default function MyDashboardsPage() {
           className="flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#163a5c] disabled:opacity-50 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          New Dashboard
+          {t('newDashboard')}
         </button>
       </div>
 

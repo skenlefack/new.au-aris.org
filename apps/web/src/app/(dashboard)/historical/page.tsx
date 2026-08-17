@@ -52,6 +52,7 @@ const STATUS_BADGE: Record<string, string> = {
 /* ------------------------------------------------------------------ */
 
 export default function HistoricalDataPage() {
+  const t = useTranslations('historical');
   const [domainFilter, setDomainFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [searchText, setSearchText] = useState('');
@@ -79,7 +80,7 @@ export default function HistoricalDataPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Historical Data</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Imported datasets, time series and versioned records across all domains
           </p>

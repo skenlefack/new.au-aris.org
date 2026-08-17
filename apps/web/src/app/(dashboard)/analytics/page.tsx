@@ -122,6 +122,7 @@ function shortNumber(n: number): string {
 // ─── Page Component ──────────────────────────────────────────────────────────
 
 export default function AnalyticsDashboardPage() {
+  const t = useTranslations('analytics');
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const { data, isLoading, isError, error, refetch } =
     useDashboardKpisRange(timeRange);
@@ -155,10 +156,10 @@ export default function AnalyticsDashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Analytics
+            {t('pageTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Continental data overview, trends, and quality metrics
+            {t('pageSubtitle')}
           </p>
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800">
@@ -198,7 +199,7 @@ export default function AnalyticsDashboardPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
-            label="Total Records"
+            label={t('totalRecords')}
             value={totalRecords.toLocaleString()}
             icon={<Database className="h-5 w-5 text-[#1B5E20]" />}
             trend={formatTrend(recordsTrend)}
@@ -206,7 +207,7 @@ export default function AnalyticsDashboardPage() {
             accentBg="bg-[#1B5E20]/5"
           />
           <KpiCard
-            label="Active Countries"
+            label={t('activeCountries')}
             value={activeCountries.toString()}
             suffix="/ 55"
             icon={<Globe className="h-5 w-5 text-[#006064]" />}

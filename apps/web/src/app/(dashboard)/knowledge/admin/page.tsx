@@ -35,6 +35,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'KNOWLEDGE_MANAGER']);
 
 export default function KnowledgeDashboardPage() {
+  const t = useTranslations('knowledge');
   const user = useAuthStore((s) => s.user);
   const locale = useAuthStore((s) => s.user?.locale ?? 'en');
   const isReviewer = !!user?.roles?.some((r) => REVIEWER_ROLES.has(r));
@@ -74,9 +75,7 @@ export default function KnowledgeDashboardPage() {
               Welcome{user?.firstName ? `, ${user.firstName}` : ''}
             </h1>
             <p className="mt-2 max-w-xl text-emerald-100">
-              Publish and validate institutional knowledge across the African Union — articles,
-              reports, briefings, news and more. Multilingual content (EN/FR/PT/AR) with
-              workflow validation by the continental knowledge manager.
+              {t('adminSubtitle')}
             </p>
           </div>
           <div className="flex flex-col gap-2 md:flex-row">
@@ -84,14 +83,14 @@ export default function KnowledgeDashboardPage() {
               href="/knowledge/admin/publications/new"
               className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow hover:bg-emerald-50"
             >
-              <Plus className="h-4 w-4" /> New publication
+              <Plus className="h-4 w-4" /> {t('newPublication')}
             </Link>
             <Link
               href="/knowledge"
               target="_blank"
               className="inline-flex items-center justify-center gap-2 rounded-md border border-white/30 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur hover:bg-white/20"
             >
-              <ExternalLink className="h-4 w-4" /> Public portal
+              <ExternalLink className="h-4 w-4" /> {t('publicPortal')}
             </Link>
           </div>
         </div>
