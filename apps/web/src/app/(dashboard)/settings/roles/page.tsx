@@ -89,8 +89,8 @@ interface RoleFormData {
   level: string;
   color: string;
   icon: string;
-  name: { en: string; fr: string; pt: string; ar: string };
-  description: { en: string; fr: string; pt: string; ar: string };
+  name: { en: string; fr: string; pt: string; ar: string; es: string; sw: string };
+  description: { en: string; fr: string; pt: string; ar: string; es: string; sw: string };
   isActive: boolean;
   sortOrder: number;
 }

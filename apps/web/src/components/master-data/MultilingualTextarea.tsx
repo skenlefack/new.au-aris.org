@@ -24,8 +24,8 @@ interface MultilingualTextareaProps {
   rows?: number;
 }
 
-const LANG_LABELS: Record<LangCode, string> = { en: 'EN', fr: 'FR', pt: 'PT', ar: 'AR', es: 'ES' };
-const LANG_NAMES: Record<LangCode, string> = { en: 'English', fr: 'Français', pt: 'Português', ar: 'العربية', es: 'Español' };
+const LANG_LABELS: Record<LangCode, string> = { en: 'EN', fr: 'FR', pt: 'PT', ar: 'AR', es: 'ES', sw: 'SW' };
+const LANG_NAMES: Record<LangCode, string> = { en: 'English', fr: 'Français', pt: 'Português', ar: 'العربية', es: 'Español', sw: 'Kiswahili' };
 
 export function MultilingualTextarea({
   label,

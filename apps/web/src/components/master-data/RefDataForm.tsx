@@ -25,7 +25,7 @@ interface RefDataFormProps {
   itemId?: string;
 }
 
-const emptyMl = (): MultilingualValue => ({ en: '', fr: '', pt: '', ar: '', es: '' });
+const emptyMl = (): MultilingualValue => ({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
 
 export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
   const router = useRouter();

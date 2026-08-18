@@ -90,6 +90,8 @@ model Dashboard {
   titleEn         String               @map("title_en")
   titleAr         String?              @map("title_ar")
   titlePt         String?              @map("title_pt")
+  titleEs      String?  @map("title_es")
+  titleSw      String?  @map("title_sw")
   description     String?              @db.Text
 
   // ── Grid configuration ──
@@ -132,6 +134,8 @@ model DashboardSection {
   titleEn         String             @default("") @map("title_en") @db.VarChar(255)
   titleAr         String?            @map("title_ar") @db.VarChar(255)
   titlePt         String?            @map("title_pt") @db.VarChar(255)
+  titleEs      String?  @map("title_es")
+  titleSw      String?  @map("title_sw")
 
   // ── Layout ──
   columnCount     Int                @default(2) @map("column_count") @db.SmallInt // 1-12
@@ -180,6 +184,8 @@ model DashboardWidget {
   titleEn         String             @map("title_en")
   titleAr         String?            @map("title_ar")
   titlePt         String?            @map("title_pt")
+  titleEs      String?  @map("title_es")
+  titleSw      String?  @map("title_sw")
 
   // ── Configuration (JSON blobs) ──
   config          Json               @default("{}")
@@ -281,6 +287,8 @@ model DashboardSlideshow {
   titleEn         String               @map("title_en")
   titleAr         String?              @map("title_ar")
   titlePt         String?              @map("title_pt")
+  titleEs      String?  @map("title_es")
+  titleSw      String?  @map("title_sw")
   description     String?              @db.Text
   publicToken     String               @unique @default(uuid()) @map("public_token") @db.Uuid
   isActive        Boolean              @default(true) @map("is_active")

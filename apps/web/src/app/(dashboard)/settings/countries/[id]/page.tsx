@@ -484,7 +484,7 @@ export default function CountryDetailPage() {
                         className="w-full rounded border border-gray-200 px-2 py-1 text-xs font-mono dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </td>
-                    {(['en', 'fr', 'pt', 'ar'] as const).map((lang) => (
+                    {(['en', 'fr', 'pt', 'ar', 'es', 'sw'] as const).map((lang) => (
                       <td key={lang} className="px-3 py-2">
                         <input
                           type="text"

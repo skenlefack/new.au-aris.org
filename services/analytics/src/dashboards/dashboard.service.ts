@@ -368,7 +368,7 @@ export class DashboardService {
                VALUES (gen_random_uuid(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW())`,
               [id, newSectionId, w.column_index ?? 0, w.sort_order ?? 0,
                w.type, w.data_source, w.grid_x, w.grid_y, w.grid_w, w.grid_h,
-               w.title_fr, w.title_en, w.title_ar, w.title_pt,
+               w.title_fr, w.title_en, w.title_ar, w.title_pt, w.title_es, w.title_sw,
                JSON.stringify(w.config), JSON.stringify(w.filters)],
             );
           }

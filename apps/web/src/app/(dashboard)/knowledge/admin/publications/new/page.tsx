@@ -17,7 +17,7 @@ import {
 import { uploadFile, detectAttachmentKind, type UploadedFile } from '@/lib/api/drive-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
-const LOCALES = ['en', 'fr', 'pt', 'ar'] as const;
+const LOCALES = ['en', 'fr', 'pt', 'ar', 'es', 'sw'] as const;
 type Locale = (typeof LOCALES)[number];
 
 const PUBLICATION_TYPES: PublicationType[] = [

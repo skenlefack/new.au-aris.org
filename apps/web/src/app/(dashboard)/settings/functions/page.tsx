@@ -53,8 +53,8 @@ interface FunctionFormData {
   level: 'continental' | 'regional' | 'national';
   category: string;
   roleIds: string[];
-  name: { en: string; fr: string; pt: string; ar: string };
-  description: { en: string; fr: string; pt: string; ar: string };
+  name: { en: string; fr: string; pt: string; ar: string; es: string; sw: string };
+  description: { en: string; fr: string; pt: string; ar: string; es: string; sw: string };
   isActive: boolean;
   isDefault: boolean;
   sortOrder: number;
