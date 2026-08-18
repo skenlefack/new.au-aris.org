@@ -42,8 +42,8 @@ interface KpiForm {
 
 const EMPTY_FORM: KpiForm = {
   code: '',
-  name: { en: '', fr: '', pt: '', ar: '' },
-  description: { en: '', fr: '', pt: '', ar: '' },
+  name: { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
+  description: { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
   domainCode: '',
   icon: '',
   color: '#1565C0',
@@ -85,8 +85,8 @@ export default function KpisPage() {
     setEditingId(kpi.id);
     setForm({
       code: kpi.code,
-      name: kpi.name ?? { en: '', fr: '', pt: '', ar: '' },
-      description: kpi.description ?? { en: '', fr: '', pt: '', ar: '' },
+      name: kpi.name ?? { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
+      description: kpi.description ?? { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
       domainCode: kpi.domainCode ?? '',
       icon: kpi.icon ?? '',
       color: kpi.color ?? '#1565C0',

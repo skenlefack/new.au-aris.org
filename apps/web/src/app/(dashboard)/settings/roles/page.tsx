@@ -100,8 +100,8 @@ const EMPTY_FORM: RoleFormData = {
   level: 'national',
   color: '#6b7280',
   icon: 'Shield',
-  name: { en: '', fr: '', pt: '', ar: '' },
-  description: { en: '', fr: '', pt: '', ar: '' },
+  name: { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
+  description: { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
   isActive: true,
   sortOrder: 0,
 };

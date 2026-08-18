@@ -29,7 +29,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { GeoLocationPicker } from '@/components/geo/GeoLocationPicker';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 
-const emptyML: Record<string, string> = { en: '', fr: '', pt: '', ar: '' };
+const emptyML: Record<string, string> = { en: '', fr: '', pt: '', ar: '', es: '', sw: '' };
 
 export default function DivisionsPage() {
   const { id: countryId } = useParams<{ id: string }>();

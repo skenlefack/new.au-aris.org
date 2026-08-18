@@ -177,7 +177,7 @@ export default function MyDashboardsPage() {
 
   // New dashboard modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newTitle, setNewTitle] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '' });
+  const [newTitle, setNewTitle] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [newZone, setNewZone] = useState<'principal' | 'domain' | 'subdomain' | 'campaign' | 'public_rec' | 'public_country'>(
     searchParams.get('domain') ? 'domain' : 'principal',
   );
@@ -204,7 +204,7 @@ export default function MyDashboardsPage() {
   const allCampaigns: any[] = campaignsData?.data ?? [];
 
   const openCreateModal = () => {
-    setNewTitle({ en: '', fr: '', pt: '', ar: '' });
+    setNewTitle({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
     setNewZone(searchParams.get('domain') ? 'domain' : 'principal');
     setNewDomainCode(searchParams.get('domain') ?? '');
     setNewSubDomainCode('');

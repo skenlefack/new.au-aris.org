@@ -42,8 +42,8 @@ interface StatForm {
 
 const EMPTY_FORM: StatForm = {
   code: '',
-  name: { en: '', fr: '', pt: '', ar: '' },
-  description: { en: '', fr: '', pt: '', ar: '' },
+  name: { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
+  description: { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
   domainCode: '',
   icon: '',
   color: '#1565C0',
@@ -113,8 +113,8 @@ export default function StatisticsPage() {
     setEditingId(stat.id);
     setForm({
       code: stat.code,
-      name: stat.name ?? { en: '', fr: '', pt: '', ar: '' },
-      description: stat.description ?? { en: '', fr: '', pt: '', ar: '' },
+      name: stat.name ?? { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
+      description: stat.description ?? { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
       domainCode: stat.domainCode ?? '',
       icon: stat.icon ?? '',
       color: stat.color ?? '#1565C0',

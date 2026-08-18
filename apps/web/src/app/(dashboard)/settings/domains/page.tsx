@@ -37,8 +37,8 @@ interface DomainForm {
 
 const EMPTY_FORM: DomainForm = {
   code: '',
-  name: { en: '', fr: '', pt: '', ar: '', es: '' },
-  description: { en: '', fr: '', pt: '', ar: '', es: '' },
+  name: { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
+  description: { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
   icon: 'Layers',
   color: '#003399',
   isActive: true,
@@ -72,8 +72,8 @@ export default function DomainsPage() {
     setEditingId(domain.id);
     setForm({
       code: domain.code,
-      name: domain.name ?? { en: '', fr: '', pt: '', ar: '', es: '' },
-      description: domain.description ?? { en: '', fr: '', pt: '', ar: '', es: '' },
+      name: domain.name ?? { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
+      description: domain.description ?? { en: '', fr: '', pt: '', ar: '', es: '', sw: '' },
       icon: domain.icon ?? 'Layers',
       color: domain.color ?? '#003399',
       isActive: domain.isActive ?? true,

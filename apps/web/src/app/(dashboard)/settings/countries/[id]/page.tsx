@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { RichTextEditor } from '@/components/settings/RichTextEditor';
 
-const emptyML = { en: '', fr: '', pt: '', ar: '' };
+const emptyML = { en: '', fr: '', pt: '', ar: '', es: '', sw: '' };
 
 export default function CountryDetailPage() {
   const { id } = useParams<{ id: string }>();

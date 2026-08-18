@@ -13,7 +13,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-const emptyML = { en: '', fr: '', pt: '', ar: '' };
+const emptyML = { en: '', fr: '', pt: '', ar: '', es: '', sw: '' };
 
 export default function RecDetailPage() {
   const { id } = useParams<{ id: string }>();

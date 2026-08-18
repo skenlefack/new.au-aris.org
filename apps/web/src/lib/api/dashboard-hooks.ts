@@ -89,6 +89,8 @@ function pickTitle(obj: any, locale: string): string {
   switch (locale) {
     case 'ar': return obj.title_ar || obj.titleAr || obj.title_fr || obj.titleFr || obj.title_en || obj.titleEn || '';
     case 'pt': return obj.title_pt || obj.titlePt || obj.title_fr || obj.titleFr || obj.title_en || obj.titleEn || '';
+    case 'es': return obj.title_es || obj.titleEs || obj.title_fr || obj.titleFr || obj.title_en || obj.titleEn || '';
+    case 'sw': return obj.title_sw || obj.titleSw || obj.title_en || obj.titleEn || obj.title_fr || obj.titleFr || '';
     case 'en': return obj.title_en || obj.titleEn || obj.title_fr || obj.titleFr || '';
     default:   return obj.title_fr || obj.titleFr || obj.title_en || obj.titleEn || '';
   }
@@ -171,6 +173,8 @@ function mapWidgetLayout(w: any): any {
     titleEn: w.title_en ?? w.titleEn ?? '',
     titleAr: w.title_ar ?? w.titleAr ?? null,
     titlePt: w.title_pt ?? w.titlePt ?? null,
+    titleEs: w.title_es ?? w.titleEs ?? null,
+    titleSw: w.title_sw ?? w.titleSw ?? null,
     sectionId: w.section_id ?? w.sectionId ?? null,
     columnIndex: w.column_index ?? w.columnIndex ?? 0,
     sortOrder: w.sort_order ?? w.sortOrder ?? 0,
@@ -198,6 +202,8 @@ function mapSectionWidgets(sec: any): DashboardSection {
     titleEn: sec.title_en ?? sec.titleEn ?? '',
     titleAr: sec.title_ar ?? sec.titleAr ?? null,
     titlePt: sec.title_pt ?? sec.titlePt ?? null,
+    titleEs: sec.title_es ?? sec.titleEs ?? null,
+    titleSw: sec.title_sw ?? sec.titleSw ?? null,
     columnCount: sec.column_count ?? sec.columnCount ?? 2,
     sortOrder: sec.sort_order ?? sec.sortOrder ?? 0,
     isCollapsed: sec.is_collapsed ?? sec.isCollapsed ?? false,
@@ -240,6 +246,8 @@ function mapDashboardWidgets(data: any): any {
       titleEn: 'Main Section',
       titleAr: null,
       titlePt: null,
+      titleEs: null,
+      titleSw: null,
       columnCount: 1,
       sortOrder: 0,
       isCollapsed: false,
@@ -306,6 +314,8 @@ export interface DashboardSection {
   titleEn: string;
   titleAr?: string | null;
   titlePt?: string | null;
+  titleEs?: string | null;
+  titleSw?: string | null;
   columnCount: number;
   sortOrder: number;
   isCollapsed: boolean;
@@ -484,6 +494,8 @@ export function useCreateDashboard() {
       titleEn?: string;
       titlePt?: string;
       titleAr?: string;
+      titleEs?: string;
+      titleSw?: string;
       description?: string;
       scope: DashboardScope;
       domainCode?: string;
@@ -498,6 +510,8 @@ export function useCreateDashboard() {
         titleFr: body.titleFr || body.title || 'Nouveau tableau de bord',
         titleEn: body.titleEn || body.title || 'New Dashboard',
         titlePt: body.titlePt || null,
+        titleEs: body.titleEs || null,
+        titleSw: body.titleSw || null,
         titleAr: body.titleAr || null,
       };
       return analyticsClient.post<{ data: Dashboard }>('/analytics/dashboards', payload);

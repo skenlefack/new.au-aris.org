@@ -51,9 +51,9 @@ export default function EditPublicationPage() {
 
   const [initialized, setInitialized] = useState(false);
   const [activeLocale, setActiveLocale] = useState<Locale>(userLocale);
-  const [title, setTitle] = useState<Record<Locale, string>>({ en: '', fr: '', pt: '', ar: '' });
-  const [summary, setSummary] = useState<Record<Locale, string>>({ en: '', fr: '', pt: '', ar: '' });
-  const [content, setContent] = useState<Record<Locale, string>>({ en: '', fr: '', pt: '', ar: '' });
+  const [title, setTitle] = useState<Record<Locale, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
+  const [summary, setSummary] = useState<Record<Locale, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
+  const [content, setContent] = useState<Record<Locale, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [categoryId, setCategoryId] = useState<string>('');
   const [type, setType] = useState<PublicationType>('ARTICLE');
   const [visibility, setVisibility] = useState<Visibility>('PUBLIC');

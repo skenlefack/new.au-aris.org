@@ -26,6 +26,8 @@ export interface Slideshow {
   titleEn: string;
   titleAr?: string | null;
   titlePt?: string | null;
+  titleEs?: string | null;
+  titleSw?: string | null;
   description?: string | null;
   publicToken: string;
   isActive: boolean;

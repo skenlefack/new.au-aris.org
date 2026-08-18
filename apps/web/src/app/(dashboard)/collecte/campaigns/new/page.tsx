@@ -124,8 +124,8 @@ function NewCampaignPage() {
   }, [allDomains]);
 
   // Multilingual name & description
-  const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
-  const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
+  const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
+  const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
 
   // Multi-domain selection — PAID mode auto-selects 'paid'
   const [selectedDomains, setSelectedDomains] = useState<string[]>(isPaidMode ? ['paid'] : []);

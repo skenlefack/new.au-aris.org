@@ -186,7 +186,7 @@ function MultiLangConfigField({ label, description, value, onChange, disabled }:
   const obj: Record<string, string> =
     value && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, string>)
-      : { en: '', fr: '', pt: '', ar: '' };
+      : { en: '', fr: '', pt: '', ar: '', es: '', sw: '' };
 
   return (
     <div className="rounded-lg border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900/50">
