@@ -302,10 +302,10 @@ export function usePublicLocales() {
     queryFn: async () => {
       try {
         const res = await fetch('/api/v1/public/i18n');
-        if (!res.ok) return { data: { availableLocales: ['en', 'fr', 'pt', 'ar', 'es'], defaultLocale: 'en' } };
+        if (!res.ok) return { data: { availableLocales: ['en', 'fr', 'pt', 'ar', 'es', 'sw'], defaultLocale: 'en' } };
         return res.json();
       } catch {
-        return { data: { availableLocales: ['en', 'fr', 'pt', 'ar', 'es'], defaultLocale: 'en' } };
+        return { data: { availableLocales: ['en', 'fr', 'pt', 'ar', 'es', 'sw'], defaultLocale: 'en' } };
       }
     },
     staleTime: 10 * 60_000,

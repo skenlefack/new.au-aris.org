@@ -15,7 +15,7 @@ export type SectionType =
   | 'ANNEX' | 'FREE_TEXT';
 export type SectionStatus = 'PENDING' | 'GENERATED' | 'AI_UNAVAILABLE' | 'EDITED' | 'APPROVED';
 export type ReportScope = 'CONTINENTAL' | 'REGIONAL' | 'NATIONAL';
-export type ReportLanguage = 'fr' | 'en' | 'pt' | 'ar';
+export type ReportLanguage = 'fr' | 'en' | 'pt' | 'ar' | 'es' | 'sw';
 
 export interface TemplateSection {
   code: string;

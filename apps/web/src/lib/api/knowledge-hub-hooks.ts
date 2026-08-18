@@ -19,7 +19,7 @@ export type Visibility = 'PUBLIC' | 'PRIVATE';
 export type ReviewDecision = 'APPROVED' | 'REJECTED' | 'REQUEST_CHANGES' | 'COMMENT';
 export type AttachmentKind = 'DOCUMENT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'ARCHIVE' | 'OTHER';
 
-export type LocalisedText = Partial<Record<'en' | 'fr' | 'pt' | 'ar', string>>;
+export type LocalisedText = Partial<Record<'en' | 'fr' | 'pt' | 'ar' | 'es' | 'sw', string>>;
 
 export type CategoryStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -446,6 +446,6 @@ export function useAllTenants() {
 
 export function pickLocale(text: LocalisedText | null | undefined, locale: string): string {
   if (!text) return '';
-  const code = locale.toLowerCase().slice(0, 2) as 'en' | 'fr' | 'pt' | 'ar';
+  const code = locale.toLowerCase().slice(0, 2) as 'en' | 'fr' | 'pt' | 'ar' | 'es' | 'sw';
   return text[code] ?? text.en ?? text.fr ?? text.pt ?? text.ar ?? '';
 }

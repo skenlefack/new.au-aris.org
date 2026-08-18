@@ -191,8 +191,8 @@ function NewCampaignPage() {
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
   const handleAiAccept = (draft: any) => {
-    if (draft.name) setName(typeof draft.name === 'string' ? { en: draft.name, fr: '', pt: '', ar: '', es: '' } : draft.name);
-    if (draft.description) setDescription(typeof draft.description === 'string' ? { en: draft.description, fr: '', pt: '', ar: '', es: '' } : draft.description);
+    if (draft.name) setName(typeof draft.name === 'string' ? { en: draft.name, fr: '', pt: '', ar: '', es: '', sw: '' } : draft.name);
+    if (draft.description) setDescription(typeof draft.description === 'string' ? { en: draft.description, fr: '', pt: '', ar: '', es: '', sw: '' } : draft.description);
     if (draft.startDate) setStartDate(draft.startDate);
     if (draft.endDate) setEndDate(draft.endDate);
     if (draft.frequency) setFrequency(draft.frequency);
