@@ -21,6 +21,7 @@ import { TextBlockConfig } from './config/TextBlockConfig';
 import { AlertFeedConfig } from './config/AlertFeedConfig';
 import { AnalyticsQueryConfig } from './config/AnalyticsQueryConfig';
 import { GeoAggregationConfig } from './config/GeoAggregationConfig';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
 
 interface WidgetConfigPanelProps {
   widget: DashboardWidget | null;
@@ -132,7 +133,7 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
   const updateWidget = useUpdateWidget();
   const addToast = useRealtimeStore((s) => s.addToast);
 
-  const [localTitle, setLocalTitle] = useState('');
+  const [localTitle, setLocalTitle] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [dataSourceType, setDataSourceType] = useState('INDICATOR');
   const [dataSourceConfig, setDataSourceConfig] = useState<Record<string, unknown>>({});
   const [displayConfig, setDisplayConfig] = useState<Record<string, unknown>>({});
@@ -141,7 +142,12 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
   // Sync local state when widget changes
   useEffect(() => {
     if (widget) {
-      setLocalTitle(widget.title || '');
+      setLocalTitle({
+        fr: (widget as any).titleFr || widget.title || '',
+        en: (widget as any).titleEn || widget.title || '',
+        pt: (widget as any).titlePt || '', ar: (widget as any).titleAr || '',
+        es: (widget as any).titleEs || '', sw: (widget as any).titleSw || '',
+      });
       const ds = widget.dataSource ?? {};
       setDataSourceType((ds.type as string) || 'INDICATOR');
       setDataSourceConfig({ ...ds });
@@ -172,7 +178,10 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
       await updateWidget.mutateAsync({
         dashboardId,
         widgetId: widget.id,
-        title: localTitle,
+        title: localTitle.fr || localTitle.en,
+        titleFr: localTitle.fr, titleEn: localTitle.en,
+        titlePt: localTitle.pt, titleAr: localTitle.ar,
+        titleEs: localTitle.es, titleSw: localTitle.sw,
         config: displayConfig,
         dataSource: { ...dataSourceConfig, type: dataSourceType },
       });
@@ -220,12 +229,10 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
           {/* Section 1: Widget Title */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">{t('dbWidgetTitle')}</h3>
-            <input
-              type="text"
+            <MultilingualInput
+              label={t('dbWidgetTitle')}
               value={localTitle}
-              onChange={(e) => setLocalTitle(e.target.value)}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
+              onChange={setLocalTitle}
               placeholder={t('dbEnterWidgetTitle')}
             />
           </section>
