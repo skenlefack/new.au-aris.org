@@ -51,6 +51,8 @@ function SubDomainForm() {
   const [labelEn, setLabelEn] = useState('');
   const [labelAr, setLabelAr] = useState('');
   const [labelPt, setLabelPt] = useState('');
+  const [labelEs, setLabelEs] = useState('');
+  const [labelSw, setLabelSw] = useState('');
   const [displayOrder, setDisplayOrder] = useState(0);
   const [active, setActive] = useState(true);
   const [description, setDescription] = useState('');
@@ -60,7 +62,7 @@ function SubDomainForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { handleBlur } = useAutoTranslateOnBlur(
-    { en: labelEn, fr: labelFr, pt: labelPt, ar: labelAr },
+    { en: labelEn, fr: labelFr, pt: labelPt, ar: labelAr, es: labelEs, sw: labelSw },
     { en: (v) => setLabelEn(v), fr: (v) => setLabelFr(v), pt: (v) => setLabelPt(v), ar: (v) => setLabelAr(v) },
   );
 
@@ -88,6 +90,8 @@ function SubDomainForm() {
         labelEn: labelEn.trim(),
         labelAr: labelAr.trim() || null,
         labelPt: labelPt.trim() || null,
+        labelEs: labelEs.trim() || null,
+        labelSw: labelSw.trim() || null,
         displayOrder,
         active,
         description: description.trim() || null,

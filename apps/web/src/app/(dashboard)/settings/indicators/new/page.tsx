@@ -78,6 +78,8 @@ function IndicatorForm() {
   const [nameEn, setNameEn] = useState('');
   const [nameAr, setNameAr] = useState('');
   const [namePt, setNamePt] = useState('');
+  const [nameEs, setNameEs] = useState('');
+  const [nameSw, setNameSw] = useState('');
   const [domainId, setDomainId] = useState('');
   const [subDomainId, setSubDomainId] = useState('');
   const [scope, setScope] = useState<IndicatorScope>('NATIONAL');
@@ -91,7 +93,7 @@ function IndicatorForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { handleBlur: handleNameBlur } = useAutoTranslateOnBlur(
-    { en: nameEn, fr: nameFr, pt: namePt, ar: nameAr },
+    { en: nameEn, fr: nameFr, pt: namePt, ar: nameAr, es: nameEs, sw: nameSw },
     { en: (v) => setNameEn(v), fr: (v) => setNameFr(v), pt: (v) => setNamePt(v), ar: (v) => setNameAr(v) },
   );
 

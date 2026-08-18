@@ -41,6 +41,8 @@ interface TypeFormData {
   labelEn: string;
   labelAr: string;
   labelPt: string;
+  labelEs: string;
+  labelSw: string;
   description: string;
   color: string;
   iconName: string;
@@ -53,6 +55,8 @@ const EMPTY_FORM: TypeFormData = {
   labelEn: '',
   labelAr: '',
   labelPt: '',
+  labelEs: '',
+  labelSw: '',
   description: '',
   color: '#1F4E79',
   iconName: '',
@@ -76,12 +80,14 @@ function TypeFormModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { handleBlur } = useAutoTranslateOnBlur(
-    { en: form.labelEn, fr: form.labelFr, pt: form.labelPt, ar: form.labelAr },
+    { en: form.labelEn, fr: form.labelFr, pt: form.labelPt, ar: form.labelAr, es: form.labelEs, sw: form.labelSw },
     {
       en: (v) => setForm((f) => ({ ...f, labelEn: v })),
       fr: (v) => setForm((f) => ({ ...f, labelFr: v })),
       pt: (v) => setForm((f) => ({ ...f, labelPt: v })),
       ar: (v) => setForm((f) => ({ ...f, labelAr: v })),
+      es: (v) => setForm((f) => ({ ...f, labelEs: v })),
+      sw: (v) => setForm((f) => ({ ...f, labelSw: v })),
     },
   );
 

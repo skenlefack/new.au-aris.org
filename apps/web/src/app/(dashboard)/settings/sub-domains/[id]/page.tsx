@@ -76,6 +76,8 @@ function SubDomainDetail() {
   const [labelEn, setLabelEn] = useState('');
   const [labelAr, setLabelAr] = useState('');
   const [labelPt, setLabelPt] = useState('');
+  const [labelEs, setLabelEs] = useState('');
+  const [labelSw, setLabelSw] = useState('');
   const [typeEnum, setTypeEnum] = useState<SubDomainType>('VALUE_CHAIN');
   const [valueChainCode, setValueChainCode] = useState('');
   const [displayOrder, setDisplayOrder] = useState(0);
@@ -86,7 +88,7 @@ function SubDomainDetail() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { handleBlur } = useAutoTranslateOnBlur(
-    { en: labelEn, fr: labelFr, pt: labelPt, ar: labelAr },
+    { en: labelEn, fr: labelFr, pt: labelPt, ar: labelAr, es: labelEs, sw: labelSw },
     { en: (v) => setLabelEn(v), fr: (v) => setLabelFr(v), pt: (v) => setLabelPt(v), ar: (v) => setLabelAr(v) },
   );
 
@@ -119,6 +121,8 @@ function SubDomainDetail() {
       await updateMutation.mutateAsync({
         id, labelFr: labelFr.trim(), labelEn: labelEn.trim(),
         labelAr: labelAr.trim() || null, labelPt: labelPt.trim() || null,
+        labelEs: labelEs.trim() || null,
+        labelSw: labelSw.trim() || null,
         typeEnum, valueChainCode: typeEnum === 'VALUE_CHAIN' && valueChainCode ? valueChainCode : null,
         displayOrder, description: description.trim() || null,
         icon: icon || null, color: color || null,

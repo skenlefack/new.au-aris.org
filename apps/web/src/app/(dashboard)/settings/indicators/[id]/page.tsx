@@ -79,6 +79,8 @@ function IndicatorDetail() {
   const [nameEn, setNameEn] = useState('');
   const [nameAr, setNameAr] = useState('');
   const [namePt, setNamePt] = useState('');
+  const [nameEs, setNameEs] = useState('');
+  const [nameSw, setNameSw] = useState('');
   const [domainId, setDomainId] = useState('');
   const [selectedDomainCode, setSelectedDomainCode] = useState('');
   const [subDomainId, setSubDomainId] = useState('');
@@ -93,7 +95,7 @@ function IndicatorDetail() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { handleBlur: handleNameBlur } = useAutoTranslateOnBlur(
-    { en: nameEn, fr: nameFr, pt: namePt, ar: nameAr },
+    { en: nameEn, fr: nameFr, pt: namePt, ar: nameAr, es: nameEs, sw: nameSw },
     { en: (v) => setNameEn(v), fr: (v) => setNameFr(v), pt: (v) => setNamePt(v), ar: (v) => setNameAr(v) },
   );
 
