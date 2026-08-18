@@ -5,6 +5,8 @@ export interface MultilingualText {
   fr?: string;
   pt?: string;
   ar?: string;
+  es?: string;
+  sw?: string;
   [key: string]: string | undefined;
 }
 

@@ -1,0 +1,791 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ARIS</string>
+    <string name="app_subtitle">Animal Resources Information System</string>
+
+    <!-- Splash / Branding -->
+    <string name="au_ibar_branding">African Union \u2014 Inter-African Bureau for Animal Resources</string>
+
+    <!-- Error -->
+    <string name="error_something_wrong">Something went wrong</string>
+    <string name="retry">Retry</string>
+    <string name="go_back">Go Back</string>
+
+    <!-- Auth -->
+    <string name="email">Barua pepe</string>
+    <string name="password">Nenosiri</string>
+    <string name="login">Ingia</string>
+    <string name="logout">Toka</string>
+    <string name="logout_confirm">Are you sure you want to sign out? Unsynced data will remain on the device.</string>
+
+    <!-- Navigation -->
+    <string name="dashboard">Dashibodi</string>
+    <string name="campaigns">Kampeni</string>
+    <string name="submissions">My Submissions</string>
+    <string name="notifications">Arifa</string>
+    <string name="settings">Mipangilio</string>
+
+    <!-- Campaign -->
+    <string name="no_campaigns">No active campaigns</string>
+    <string name="no_submissions">No submissions yet</string>
+    <string name="campaign_detail">Campaign Details</string>
+    <string name="progress">Progress</string>
+    <string name="recent_campaigns">Recent Campaigns</string>
+    <string name="campaign_status">Hali</string>
+    <string name="campaign_domain">Domain</string>
+    <string name="campaign_start">Start</string>
+    <string name="campaign_end">End</string>
+    <string name="campaign_target">Target</string>
+    <string name="campaign_forms">Fomu</string>
+    <string name="campaign_countries">Countries</string>
+    <string name="campaign_agents">Agents</string>
+    <string name="campaign_info">Campaign Info</string>
+    <string name="form_templates">Form Templates</string>
+    <string name="no_templates">No templates assigned</string>
+    <string name="fill_form">Fill Form</string>
+    <string name="target_countries">Target Countries</string>
+    <string name="no_countries">No countries specified</string>
+    <string name="submitted">Submitted</string>
+    <string name="validated">Validated</string>
+    <string name="rejected">Imekataliwa</string>
+    <string name="completion">%d%%</string>
+    <string name="status_planned">Imepangwa</string>
+    <string name="status_active">Hai</string>
+    <string name="status_completed">Imekamilika</string>
+    <string name="status_cancelled">Imesitishwa</string>
+    <string name="loading_campaign">Loading campaign details\u2026</string>
+    <string name="campaign_not_found">Campaign not found</string>
+
+    <!-- Sync -->
+    <string name="sync">Sync</string>
+    <string name="sync_now">Sync Now</string>
+    <string name="sync_frequency">Sync Frequency</string>
+    <string name="last_sync">Last Sync</string>
+    <string name="never">Never</string>
+
+    <!-- Status -->
+    <string name="pending">Inasubiri</string>
+    <string name="synced">Synced</string>
+    <string name="failed">Failed</string>
+    <string name="conflict">Conflict</string>
+    <string name="draft">Rasimu</string>
+
+    <!-- Form -->
+    <string name="new_submission">New Submission</string>
+    <string name="save_draft">Save Draft</string>
+    <string name="submit">Wasilisha</string>
+    <string name="select_option">Select an option</string>
+    <string name="select_species">Select species</string>
+    <string name="select_disease">Select disease</string>
+    <string name="select_country">Select country</string>
+    <string name="select_admin1">Select admin level 1</string>
+    <string name="select_admin2">Select admin level 2</string>
+    <string name="capture_location">Capture GPS Location</string>
+    <string name="take_photo">Take Photo</string>
+    <string name="location_captured">Location captured</string>
+    <string name="photo_captured">Photo captured</string>
+    <string name="field_required">This field is required</string>
+    <string name="validation_error">Validation error</string>
+    <string name="form_saved">Draft saved</string>
+    <string name="form_submitted">Submission queued for sync</string>
+    <string name="pick_date">Pick date</string>
+
+    <!-- Workflow Validation -->
+    <string name="workflow_status">Validation Pipeline</string>
+    <string name="workflow_level_1">National Steward</string>
+    <string name="workflow_level_2">Data Owner / CVO</string>
+    <string name="workflow_level_3">REC Steward</string>
+    <string name="workflow_level_4">AU-IBAR</string>
+    <string name="workflow_pending">Inasubiri</string>
+    <string name="workflow_approved">Imeidhinishwa</string>
+    <string name="workflow_rejected">Imekataliwa</string>
+    <string name="workflow_not_started">Not started</string>
+    <string name="workflow_level_label">Level %1$d of 4</string>
+
+    <!-- Data Quality Gates -->
+    <string name="quality_gates">Quality Gates</string>
+    <string name="quality_completeness">Completeness</string>
+    <string name="quality_temporal">Temporal Consistency</string>
+    <string name="quality_geographic">Geographic Consistency</string>
+    <string name="quality_codes">Codes &amp; Vocabularies</string>
+    <string name="quality_units">Units</string>
+    <string name="quality_dedup">Deduplication</string>
+    <string name="quality_audit">Auditability</string>
+    <string name="quality_confidence">Confidence Score</string>
+    <string name="quality_passed">Passed</string>
+    <string name="quality_failed">Failed</string>
+    <string name="quality_skipped">Skipped</string>
+    <string name="quality_score">Score: %1$d%%</string>
+    <string name="quality_no_results">Quality check not yet run</string>
+    <string name="quality_gates_passed">%1$d/%2$d gates passed</string>
+
+    <!-- Filtering -->
+    <string name="filter">Chuja</string>
+    <string name="search_submissions">Search submissions\u2026</string>
+    <string name="filter_all">Zote</string>
+    <string name="filter_by_status">By Status</string>
+    <string name="filter_by_domain">By Domain</string>
+    <string name="filter_by_date">By Date</string>
+    <string name="clear_filters">Clear Filters</string>
+    <string name="date_from">From</string>
+    <string name="date_to">To</string>
+    <string name="domain_health">Afya ya Wanyama</string>
+    <string name="domain_livestock">Mifugo</string>
+    <string name="domain_fisheries">Uvuvi</string>
+    <string name="domain_wildlife">Wanyamapori</string>
+    <string name="domain_apiculture">Ufugaji Nyuki</string>
+    <string name="domain_trade">Trade &amp; SPS</string>
+    <string name="domain_governance">Utawala</string>
+    <string name="domain_climate">Hali ya Hewa</string>
+    <string name="domain_knowledge">Maarifa</string>
+
+    <!-- PDF Export -->
+    <string name="export_pdf">Export PDF</string>
+    <string name="export_generating">Generating PDF\u2026</string>
+    <string name="export_success">PDF exported successfully</string>
+    <string name="export_error">PDF export failed</string>
+    <string name="export_share">Share PDF</string>
+
+    <!-- Multi-Tenant -->
+    <string name="tenant_hierarchy">Organization</string>
+    <string name="continental">Continental</string>
+    <string name="rec_level">REC</string>
+    <string name="member_state">Member State</string>
+    <string name="switch_context">Switch Context</string>
+    <string name="current_tenant">Current: %s</string>
+
+    <!-- Crash Reporting -->
+    <string name="crash_reports">Crash Reports</string>
+    <string name="crash_uploading">Uploading crash reports\u2026</string>
+    <string name="crash_uploaded">Crash reports uploaded</string>
+    <string name="crash_count">%d pending crash report(s)</string>
+
+    <!-- In-App Messaging -->
+    <string name="messages">Ujumbe</string>
+    <string name="new_message">New Message</string>
+    <string name="type_message">Type a message\u2026</string>
+    <string name="send">Send</string>
+    <string name="no_messages">No messages yet</string>
+    <string name="message_sent">Message sent</string>
+    <string name="select_recipient">Select recipient</string>
+    <string name="message_from">From: %s</string>
+
+    <!-- MFA -->
+    <string name="mfa_title">Two-Step Verification</string>
+    <string name="mfa_subtitle">Enter the 6-digit code from your authenticator app</string>
+    <string name="mfa_code_label">Verification Code</string>
+    <string name="mfa_verify">Verify</string>
+    <string name="mfa_cancel">Back to Sign In</string>
+    <string name="mfa_invalid_code">Invalid verification code</string>
+    <string name="mfa_code_required">Please enter the 6-digit code</string>
+
+    <!-- Login redesign -->
+    <string name="welcome_back">Welcome back</string>
+    <string name="sign_in_title">Sign in to ARIS</string>
+    <string name="sign_in_subtitle">Continental Animal Resources Platform</string>
+    <string name="domains">Domains</string>
+    <string name="aris_version">ARIS</string>
+    <string name="powered_by_au_ibar">Powered by AU-IBAR</string>
+    <string name="settings_profile">Wasifu</string>
+
+    <!-- Dashboard -->
+    <string name="health_overview">Health Overview</string>
+    <string name="no_kpi_data">No KPI data available</string>
+    <string name="pending_submissions">Pending Submissions</string>
+    <string name="quick_actions">Quick Actions</string>
+
+    <!-- Notifications -->
+    <string name="no_notifications">No notifications</string>
+    <string name="mark_all_read">Mark all as read</string>
+    <string name="unread">Unread</string>
+    <string name="channel_alerts">Outbreak Alerts</string>
+    <string name="channel_alerts_desc">Urgent outbreak and disease alerts</string>
+    <string name="channel_general">Jumla</string>
+    <string name="channel_general_desc">Sync updates and system notifications</string>
+
+    <!-- Settings -->
+    <string name="language">Lugha</string>
+    <string name="clear_cache">Clear Local Cache</string>
+    <string name="clear_cache_desc">Remove all offline data from this device</string>
+    <string name="clear_cache_confirm">This will delete all locally stored campaigns, submissions, and referential data. You will need to sync again. Continue?</string>
+    <string name="cache_cleared">Cache cleared successfully</string>
+
+    <!-- Server environment -->
+    <string name="server_environment">Server</string>
+    <string name="server_env_current">Connected to %1$s</string>
+    <string name="server_env_switch_title">Switch Server</string>
+    <string name="server_env_switch_confirm">Switching to %1$s will log you out and clear your session. You will need to sign in again.\n\nContinue?</string>
+    <string name="server_env_switched">Switched to %1$s — please sign in again</string>
+
+    <string name="app_version">App Version</string>
+    <string name="unknown_user">Unknown User</string>
+    <string name="confirm">Thibitisha</string>
+    <string name="cancel">Ghairi</string>
+
+    <!-- Connectivity -->
+    <string name="offline_banner">You are offline. Data will sync when connected.</string>
+    <string name="offline_no_connection">No internet connection</string>
+
+    <!-- Livestock -->
+    <string name="livestock_census">Livestock Census</string>
+    <string name="production_record">Production Record</string>
+    <string name="population_count">Population Count</string>
+    <string name="methodology">Methodology</string>
+    <string name="select_methodology">Select methodology</string>
+    <string name="product_type">Product Type</string>
+    <string name="quantity">Quantity</string>
+    <string name="unit">Unit</string>
+    <string name="census_saved">Census data saved</string>
+    <string name="production_saved">Production record saved</string>
+    <string name="methodology_household_survey">Household Survey</string>
+    <string name="methodology_aerial_survey">Aerial Survey</string>
+    <string name="methodology_ground_count">Ground Count</string>
+    <string name="methodology_admin_records">Administrative Records</string>
+    <string name="methodology_sample_frame">Sample Frame Census</string>
+    <string name="methodology_complete_enum">Complete Enumeration</string>
+    <string name="product_milk">Milk</string>
+    <string name="product_meat">Meat</string>
+    <string name="product_eggs">Eggs</string>
+    <string name="product_wool">Wool</string>
+    <string name="product_hides">Hides &amp; Skins</string>
+    <string name="product_honey">Honey</string>
+    <string name="product_other">Other</string>
+    <string name="unit_litres">Litres</string>
+    <string name="unit_kilograms">Kilograms</string>
+    <string name="unit_tonnes">Tonnes</string>
+    <string name="unit_units">Units</string>
+    <string name="unit_heads">Heads</string>
+    <string name="unit_dozens">Dozens</string>
+
+    <!-- Animal Health -->
+    <string name="outbreak_report">Outbreak Report</string>
+    <string name="surveillance_event">Surveillance Event</string>
+    <string name="surveillance_type">Surveillance Type</string>
+    <string name="target_species">Target Species</string>
+    <string name="suspicion_date">Suspicion Date</string>
+    <string name="confirmation_date">Confirmation Date</string>
+    <string name="morbidity_count">Morbidity Count</string>
+    <string name="mortality_count">Mortality Count</string>
+    <string name="sample_count">Sample Count</string>
+    <string name="result">Result</string>
+    <string name="lab_reference">Lab Reference</string>
+    <string name="event_date">Event Date</string>
+    <string name="gps_location">GPS Location</string>
+    <string name="notes">Notes</string>
+
+    <!-- Fisheries -->
+    <string name="capture_record">Capture Record</string>
+    <string name="aquaculture_record">Aquaculture Record</string>
+    <string name="fao_catch_area">FAO Catch Area</string>
+    <string name="quantity_kg">Quantity (kg)</string>
+    <string name="vessel_name">Vessel Name</string>
+    <string name="gear_type">Gear Type</string>
+    <string name="landing_site">Landing Site</string>
+    <string name="capture_date">Capture Date</string>
+    <string name="farm_type">Farm Type</string>
+    <string name="production_tonnes">Production (tonnes)</string>
+    <string name="area_hectares">Area (hectares)</string>
+    <string name="water_source">Water Source</string>
+    <string name="stocking_density">Stocking Density</string>
+
+    <!-- Apiculture -->
+    <string name="apiary_record">Apiary Record</string>
+    <string name="colony_health">Colony Health</string>
+    <string name="colony_count">Colony Count</string>
+    <string name="hive_type">Hive Type</string>
+    <string name="honey_production_kg">Honey Production (kg)</string>
+    <string name="health_status">Health Status</string>
+    <string name="bee_species">Bee Species</string>
+    <string name="inspection_date">Inspection Date</string>
+    <string name="colony_id">Colony ID</string>
+    <string name="queen_status">Queen Status</string>
+    <string name="pest_disease">Pest / Disease</string>
+    <string name="treatment_applied">Treatment Applied</string>
+    <string name="losses">Losses</string>
+
+    <!-- Wildlife -->
+    <string name="wildlife_observation">Wildlife Observation</string>
+    <string name="observation_method">Observation Method</string>
+    <string name="habitat_type">Habitat Type</string>
+    <string name="protected_area">Protected Area</string>
+    <string name="threat_level">Threat Level</string>
+    <string name="count">Count</string>
+    <string name="observation_date">Observation Date</string>
+    <string name="hwc_report">Human-Wildlife Conflict Report</string>
+    <string name="conflict_type">Conflict Type</string>
+    <string name="casualties">Casualties</string>
+    <string name="damage_estimate">Damage Estimate (USD)</string>
+    <string name="mitigation_measures">Mitigation Measures</string>
+    <string name="incident_date">Incident Date</string>
+
+    <!-- Photo Evidence -->
+    <string name="photo_gallery">Photo Gallery</string>
+    <string name="add_photo">Add Photo</string>
+    <string name="photos_count">%d photo(s)</string>
+    <string name="compressing_photo">Compressing photo…</string>
+    <string name="photo_upload_queued">Photo queued for upload</string>
+    <string name="photo_upload_failed">Photo upload failed</string>
+    <string name="no_photos">No photos attached</string>
+
+    <!-- GPS Tracking -->
+    <string name="start_tracking">Start GPS Tracking</string>
+    <string name="stop_tracking">Stop GPS Tracking</string>
+    <string name="tracking_active">GPS tracking active</string>
+    <string name="track_recorded">GPS track recorded</string>
+    <string name="track_points">%d points recorded</string>
+    <string name="gps_tracking_notification">GPS Tracking</string>
+    <string name="gps_tracking_channel">GPS Tracking</string>
+    <string name="gps_tracking_desc">Recording field visit GPS path</string>
+
+    <!-- Mini Reports -->
+    <string name="reports">Ripoti</string>
+    <string name="my_summary">My Summary</string>
+    <string name="submissions_by_status">Submissions by Status</string>
+    <string name="submissions_by_domain">Submissions by Domain</string>
+    <string name="campaign_progress">Campaign Progress</string>
+    <string name="sync_statistics">Sync Statistics</string>
+    <string name="total_synced">Total Synced</string>
+    <string name="total_pending">Total Pending</string>
+    <string name="total_failed">Total Failed</string>
+
+    <!-- Biometric / PIN Lock -->
+    <string name="app_lock">App Lock</string>
+    <string name="enable_biometric">Enable Biometric Lock</string>
+    <string name="enable_pin">Enable PIN Lock</string>
+    <string name="set_pin">Set PIN</string>
+    <string name="enter_pin">Enter PIN</string>
+    <string name="confirm_pin">Confirm PIN</string>
+    <string name="pin_mismatch">PINs do not match</string>
+    <string name="pin_set_success">PIN set successfully</string>
+    <string name="biometric_prompt_title">Unlock ARIS</string>
+    <string name="biometric_prompt_subtitle">Use your fingerprint or face to unlock</string>
+    <string name="biometric_prompt_negative">Use PIN</string>
+    <string name="unlock_required">Authentication required</string>
+    <string name="wrong_pin">Wrong PIN. Try again.</string>
+    <string name="pin_lock">PIN Lock</string>
+    <string name="pin_lock_enabled">Enabled — tap to disable</string>
+    <string name="pin_lock_disabled">Protect the app with a 4-digit PIN</string>
+
+    <!-- Conflict Resolution -->
+    <string name="conflict_resolution">Conflict Resolution</string>
+    <string name="conflict_explanation">This submission was modified on the server while you were offline. Compare the differences and choose which version to keep.</string>
+    <string name="local_version">Your Version</string>
+    <string name="server_version">Server Version</string>
+    <string name="keep_local">Keep Mine</string>
+    <string name="accept_server">Accept Server</string>
+    <string name="merge_manual">Merge Manually</string>
+    <string name="discard_submission">Discard</string>
+    <string name="field_differs">Imebadilishwa</string>
+    <string name="field_same">Unchanged</string>
+    <string name="no_conflicts">No conflicts to resolve</string>
+    <string name="conflict_resolved">Conflict resolved — submission queued for sync</string>
+    <string name="conflict_discarded">Submission discarded</string>
+    <string name="conflicts_count">%d conflict(s)</string>
+    <string name="confirm_keep_local">Keep your local version and overwrite the server data?</string>
+    <string name="confirm_accept_server">Accept the server version and discard your local changes?</string>
+    <string name="confirm_discard">Permanently discard this submission? This cannot be undone.</string>
+    <string name="resolve_conflict">Resolve Conflict</string>
+    <string name="differences_found">%d difference(s) found</string>
+    <string name="all_fields_match">All fields match — no differences</string>
+    <string name="tap_to_resolve">Tap to resolve</string>
+    <string name="cd_conflict_field">Field %1$s: your value is %2$s, server value is %3$s</string>
+
+    <!-- Additional error strings -->
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_server">Server error. Please try again later.</string>
+    <string name="error_unknown">An unexpected error occurred.</string>
+
+    <!-- Offline Maps -->
+    <string name="offline_maps">Offline Maps</string>
+    <string name="cd_back_button">Go back</string>
+    <string name="created_at_label">Created: %s</string>
+    <string name="map_layers">Map Layers</string>
+    <string name="download_tiles">Download Map Tiles</string>
+    <string name="downloading_tiles">Downloading tiles\u2026</string>
+    <string name="map_submissions">Submission Locations</string>
+    <string name="map_outbreaks">Outbreak Markers</string>
+    <string name="map_gps_tracks">GPS Tracks</string>
+    <string name="tile_storage_size">Tile storage: %s</string>
+    <string name="delete_tiles">Delete Offline Tiles</string>
+    <string name="download_region_preset">Download Region Preset</string>
+
+    <!-- Release -->
+    <string name="loading">Loading\u2026</string>
+    <string name="version_format">Version %s</string>
+
+    <!-- Maps (additional) -->
+    <string name="tiles_downloaded">Map tiles downloaded</string>
+    <string name="no_offline_tiles">No offline tiles available</string>
+
+    <!-- Charts -->
+    <string name="cd_sparkline">Sparkline showing %1$s trend over %2$d points</string>
+    <string name="cd_line_chart">Line chart showing %d data points</string>
+    <string name="cd_pie_chart">Pie chart: %s</string>
+    <string name="cd_bar_chart">Bar chart with %d items</string>
+    <string name="chart_campaign_progress">Campaign Progress</string>
+    <string name="chart_submissions_status">Submissions by Status</string>
+    <string name="chart_sync_history">Sync History</string>
+    <string name="chart_kpi_trend">KPI Trend</string>
+    <string name="chart_no_data">No chart data available</string>
+
+    <!-- Relative time -->
+    <string name="just_now">Just now</string>
+    <string name="minutes_ago">%dm ago</string>
+    <string name="hours_ago">%dh ago</string>
+
+    <!-- Accessibility -->
+    <string name="cd_app_logo">ARIS application logo</string>
+    <string name="cd_sync_status">Sync status: %s</string>
+    <string name="cd_kpi_value">%1$s: %2$s</string>
+    <string name="cd_campaign_card">Campaign: %1$s, Status: %2$s</string>
+    <string name="cd_submission_card">Submission for %1$s, Status: %2$s</string>
+    <string name="cd_new_submission">Create new submission</string>
+    <string name="cd_sync_data">Synchronize data</string>
+    <string name="cd_view_submissions">View all submissions</string>
+    <string name="cd_sign_out">Toka</string>
+    <string name="cd_au_logo">AU-IBAR Logo</string>
+    <string name="cd_email_field">Email address</string>
+    <string name="cd_password_field">Nenosiri</string>
+    <string name="hide_password">Hide password</string>
+    <string name="show_password">Show password</string>
+    <string name="submission_count">%d submissions</string>
+    <string name="ok">Sawa</string>
+    <string name="cd_pick_date">Pick date</string>
+    <string name="cd_notification_unread">Unread notification</string>
+    <string name="cd_notification_read">Read notification</string>
+    <string name="cd_close_dialog">Close dialog</string>
+    <string name="cd_open_menu">Open menu</string>
+    <string name="cd_search">Tafuta</string>
+    <string name="cd_clear_search">Clear search</string>
+    <string name="cd_clear_filters">Clear filters</string>
+    <string name="cd_capture_location">Capture GPS location</string>
+    <string name="cd_take_photo">Take photo</string>
+    <string name="cd_stop_tracking">Stop GPS tracking</string>
+    <string name="cd_start_tracking">Start GPS tracking</string>
+    <string name="cd_keep_local">Keep local version</string>
+    <string name="cd_accept_server">Accept server version</string>
+    <string name="cd_merge_versions">Merge versions</string>
+    <string name="cd_discard">Discard submission</string>
+    <string name="cd_profile">Wasifu</string>
+    <string name="cd_settings">Mipangilio</string>
+    <string name="cd_refresh">Onyesha upya</string>
+    <string name="cd_delete_digit">Delete digit</string>
+    <string name="cd_signing_in">Signing in, please wait</string>
+    <string name="cd_verifying_code">Verifying code, please wait</string>
+    <string name="cd_login_error">Login error: %s</string>
+    <string name="cd_verification_error">Verification error: %s</string>
+
+    <!-- Offline Map Features -->
+    <string name="my_location">My Location</string>
+    <string name="map_style">Map Style</string>
+    <string name="download_confirm_title">Download Tiles?</string>
+    <string name="download_estimate_total">%d tiles total</string>
+    <string name="download_estimate_cached">%d already cached</string>
+    <string name="download_estimate_new">%d to download</string>
+    <string name="download_estimate_size">Estimated size: %s</string>
+    <string name="location_permission_required">Location permission required to show your position</string>
+    <string name="gps_recording_active">GPS Recording: %d points</string>
+    <string name="cd_my_location">Show my location on map</string>
+    <string name="tile_source_osm">OpenStreetMap</string>
+    <string name="tile_source_topo">OpenTopoMap</string>
+    <string name="tile_source_hot">Humanitarian (HOT)</string>
+
+    <!-- Outbreak / Map -->
+    <string name="outbreak">Mlipuko</string>
+    <string name="outbreaks">Milipuko</string>
+    <string name="cd_map_view">Map showing submission locations and GPS tracks</string>
+    <string name="cd_splash_loading">ARIS, Animal Resources Information System. Loading application.</string>
+    <string name="cd_photo">Photo</string>
+    <string name="cd_status">%s status</string>
+    <string name="cd_submission_detail">Submission for campaign %1$s, Date: %2$s, Status: %3$s</string>
+    <string name="cd_submission_detail_error">Submission for campaign %1$s, Date: %2$s, Status: %3$s, Error: %4$s</string>
+    <string name="cd_submission_row">Submission from %1$s, Status: %2$s</string>
+    <string name="cd_submission_row_error">Submission from %1$s, Status: %2$s, Error: %3$s</string>
+
+    <!-- Domain Dashboard -->
+    <string name="key_indicators">Key Indicators</string>
+    <string name="quick_access">Quick Access</string>
+    <string name="quick_report">Quick Report</string>
+    <string name="active_campaigns">Active Campaigns</string>
+    <string name="total_submissions_label">Mawasilisho</string>
+    <string name="completion_rate">Completion Rate</string>
+    <string name="total_campaigns">Total Campaigns</string>
+    <string name="form_catalog">Form Catalog</string>
+    <string name="fill">Fill</string>
+    <string name="no_domain_campaigns">No active campaigns for this domain</string>
+    <string name="cd_offline_banner">You are offline. Data will be saved locally and synced when connection is restored.</string>
+    <string name="cd_no_internet">No internet connection</string>
+
+    <!-- Deep Linking -->
+    <string name="deep_link_error">Could not open the requested item</string>
+    <string name="deep_link_not_found">Item not found</string>
+
+    <!-- Governance -->
+    <string name="legal_framework">Legal Framework</string>
+    <string name="law_title">Law Title</string>
+    <string name="law_type">Law Type</string>
+    <string name="adoption_date">Adoption Date</string>
+    <string name="law_status">Law Status</string>
+    <string name="scope">Scope</string>
+    <string name="implementing_body">Implementing Body</string>
+    <string name="vet_capacity">Veterinary Capacity</string>
+    <string name="facility_type">Facility Type</string>
+    <string name="staff_count">Staff Count</string>
+    <string name="equipment_level">Equipment Level</string>
+    <string name="accreditation_status">Accreditation Status</string>
+    <string name="location">Location</string>
+
+    <!-- App Update -->
+    <string name="update_available">Update Available</string>
+    <string name="update_message">A new version of ARIS (%s) is available. Please update for the latest features and security fixes.</string>
+    <string name="update_required">Update Required</string>
+    <string name="update_required_message">A critical update is required. Please update ARIS to continue.</string>
+    <string name="update_now">Update Now</string>
+    <string name="update_later">Later</string>
+    <string name="update_checking">Checking for updates\u2026</string>
+
+    <!-- Trade & SPS -->
+    <string name="trade_flow">Trade Flow</string>
+    <string name="sps_certificate">SPS Certificate</string>
+    <string name="commodity">Commodity</string>
+    <string name="origin_country">Origin Country</string>
+    <string name="destination_country">Destination Country</string>
+    <string name="quantity_tonnes">Quantity (Tonnes)</string>
+    <string name="value_usd">Value (USD)</string>
+    <string name="sps_cert_ref">SPS Certificate Ref</string>
+    <string name="border_point">Border Point</string>
+    <string name="trade_date">Trade Date</string>
+    <string name="cert_number">Certificate Number</string>
+    <string name="cert_type">Certificate Type</string>
+    <string name="exporter">Exporter Name</string>
+    <string name="importer">Importer Name</string>
+    <string name="validity_start">Validity Start</string>
+    <string name="validity_end">Validity End</string>
+    <string name="cert_status">Certificate Status</string>
+    <string name="issue_date">Issue Date</string>
+
+    <!-- Climate & Environment -->
+    <string name="water_stress_record">Water Stress Record</string>
+    <string name="water_body_name">Water Body Name</string>
+    <string name="stress_level">Stress Level</string>
+    <string name="measurement_date">Measurement Date</string>
+    <string name="cause">Cause</string>
+    <string name="affected_area_km2">Affected Area (km\u00B2)</string>
+    <string name="rangeland_assessment">Rangeland Assessment</string>
+    <string name="area_name">Area Name</string>
+    <string name="condition_score">Condition Score (1\u20135)</string>
+    <string name="vegetation_cover">Vegetation Cover (%)</string>
+    <string name="degradation_level">Degradation Level</string>
+    <string name="carrying_capacity">Carrying Capacity (heads/ha)</string>
+    <string name="assessment_date">Assessment Date</string>
+
+    <!-- Indicators (Chantier C) -->
+    <string name="indicators">Viashiria</string>
+    <string name="no_indicators">No indicators available</string>
+    <string name="indicator_detail">Indicator Detail</string>
+    <string name="current_value">Current Value</string>
+    <string name="target">Target</string>
+    <string name="history">History</string>
+    <string name="details">Maelezo</string>
+    <string name="indicator_code">Code</string>
+    <string name="indicator_type">Aina</string>
+    <string name="measurement_mode">Measurement</string>
+
+    <!-- Reports (Chantier D) -->
+    <string name="report_detail">Report Detail</string>
+    <string name="no_reports">No reports available</string>
+    <string name="offline_available">Offline</string>
+    <string name="downloading">Downloading…</string>
+    <string name="download">Pakua</string>
+    <string name="download_pdf">Download PDF</string>
+    <string name="pdf_not_downloaded">PDF not yet downloaded</string>
+    <string name="pdf_file_missing">PDF file missing — re-download</string>
+    <string name="pdf_render_error">Could not render PDF</string>
+
+    <!-- Dashboards (Chantier B) -->
+    <string name="dashboards">Dashboards</string>
+    <string name="no_dashboards">No dashboards available</string>
+    <string name="no_widgets">No widgets in this dashboard</string>
+    <string name="cached">Cached offline</string>
+    <string name="kpi_widget_placeholder">—</string>
+    <string name="table_widget_placeholder">Table data loading…</string>
+    <string name="alert_feed_placeholder">Alert feed loading…</string>
+    <string name="unsupported_widget">Unsupported widget</string>
+
+    <!-- Flash Alerts (Chantier D) -->
+    <string name="flash_alerts">Flash Alerts</string>
+    <string name="no_flash_alerts">No flash alerts</string>
+
+    <!-- Data Validation -->
+    <string name="validation">Uthibitisho</string>
+    <string name="validation_title">Data Validation</string>
+    <string name="validation_subtitle">Review and validate submitted data</string>
+    <string name="validation_pending_reviews">Pending Reviews</string>
+    <string name="validation_approved_week">Approved This Week</string>
+    <string name="validation_avg_time">Avg Processing Time</string>
+    <string name="validation_all_levels">All Levels</string>
+    <string name="validation_all_statuses">All Statuses</string>
+    <string name="validation_all_types">All Types</string>
+    <string name="validation_returned">Imerudishwa</string>
+    <string name="validation_health_event">Health Event</string>
+    <string name="validation_vaccination">Chanjo</string>
+    <string name="validation_lab_result">Lab Result</string>
+    <string name="validation_census">Census</string>
+    <string name="validation_no_items">No items to validate</string>
+    <string name="validation_no_items_hint">All submissions have been reviewed</string>
+    <string name="validation_approve">Idhinisha</string>
+    <string name="validation_reject">Kataa</string>
+    <string name="validation_return">Rudisha</string>
+    <string name="validation_add_comment">Add a comment\u2026</string>
+    <string name="validation_page_info">Page %1$d of %2$d (%3$d items)</string>
+    <string name="validation_previous">Iliyotangulia</string>
+    <string name="validation_next">Ifuatayo</string>
+    <string name="validation_tab_to_validate">To Validate</string>
+    <string name="validation_tab_rejected">Imekataliwa</string>
+    <string name="validation_tab_returned">Imerudishwa</string>
+    <string name="validation_tab_validated">Validated</string>
+    <string name="validation_total_pending">Total Pending</string>
+    <string name="validation_total_approved">Total Approved</string>
+    <string name="validation_total_rejected">Total Rejected</string>
+    <string name="validation_sla_breaches">SLA Breaches</string>
+    <string name="validation_search_placeholder">Search submissions\u2026</string>
+    <string name="validation_select_all">Select All</string>
+    <string name="validation_bulk_approve">Bulk Approve</string>
+    <string name="validation_bulk_reject">Bulk Reject</string>
+    <string name="validation_bulk_return">Bulk Return</string>
+    <string name="validation_selected_count">%1$d selected</string>
+    <string name="validation_overdue">Overdue</string>
+    <string name="validation_hours_left">%1$dh left</string>
+
+    <!-- Sync Status -->
+    <string name="sync_status_online">Online</string>
+    <string name="sync_status_offline">Offline</string>
+    <string name="sync_status_pending">%d pending</string>
+    <string name="sync_status_syncing">Syncing\u2026</string>
+
+    <!-- Stale Data -->
+    <string name="stale_data_warning">Data may be outdated (last updated %s ago). Connect to refresh.</string>
+
+    <!-- Hardcoded strings externalized -->
+    <string name="analytics_dashboard">Analytics Dashboard</string>
+    <string name="kpi_title">Key Performance Indicators</string>
+    <string name="beneficiaries_by_country">Beneficiaries by Country</string>
+    <string name="submissions_over_time">Submissions Over Time</string>
+    <string name="period_monthly">Monthly</string>
+    <string name="period_weekly">Weekly</string>
+    <string name="error_occurred">An error occurred</string>
+    <string name="no_dashboard_configured">No dashboard configured</string>
+    <string name="browse_dashboards">Browse dashboards</string>
+    <string name="loading_dashboard">Loading dashboard\u2026</string>
+    <string name="sub_domains">Sub-domains</string>
+    <string name="tab_active">Hai</string>
+    <string name="tab_planned">Imepangwa</string>
+    <string name="tab_completed">Imekamilika</string>
+    <string name="tab_archived">Imehifadhiwa</string>
+    <string name="no_status_campaigns">No %s campaigns</string>
+    <string name="target_label">target</string>
+    <string name="previous_value">Previous: %s</string>
+    <string name="widget_image">Image</string>
+    <string name="no_image">No image</string>
+    <string name="widget_map">Africa Map</string>
+    <string name="widget_embedded">Embedded BI content</string>
+    <string name="widget_type">Widget: %s</string>
+    <string name="record_submitted_sync">%s submitted for sync</string>
+    <string name="record_draft_saved">%s draft saved</string>
+    <string name="gps_capturing">Capturing\u2026</string>
+    <string name="additional_observations">Additional observations\u2026</string>
+    <string name="example_park">e.g. Serengeti National Park</string>
+    <string name="email_password_required">Email and password are required</string>
+    <string name="account_expired_default">Your temporary account has expired. Contact your administrator.</string>
+    <string name="failed_load_form">Failed to load form</string>
+    <string name="no_form_fields">No form fields available</string>
+    <string name="close_preview">Close Preview</string>
+    <string name="preview_label">Preview</string>
+    <string name="preview_mode_msg">Preview mode \u2014 submissions disabled for this campaign.</string>
+    <string name="form_label">Fomu</string>
+
+    <!-- Domain Dashboard Redesign -->
+    <string name="domain_total_submissions">Total Submissions</string>
+    <string name="domain_active_countries">Active Countries</string>
+    <string name="domain_active_campaigns">Active Campaigns</string>
+    <string name="domain_completion_rate">Completion Rate</string>
+    <string name="domain_quality_score">Data Quality</string>
+    <string name="domain_trend">Trend</string>
+    <string name="domain_trend_delta">%s%% vs last month</string>
+    <string name="domain_countries_suffix"> / 55</string>
+    <string name="domain_synthesis">Visual Synthesis</string>
+    <string name="domain_country_coverage">Country Coverage</string>
+    <string name="domain_monthly_trend">Monthly Trend</string>
+    <string name="domain_subdomain_breakdown">By Sub-domain</string>
+    <string name="domain_recent_activity">Recent Activity</string>
+    <string name="domain_activity_submission">New submission</string>
+    <string name="domain_activity_validation">Data validated</string>
+    <string name="domain_activity_campaign">Campaign started</string>
+    <string name="domain_no_activity">No recent activity</string>
+    <string name="domain_view_all">View all</string>
+    <string name="domain_data_submissions">Mawasilisho</string>
+
+    <!-- Initial Sync -->
+    <string name="sync_setting_up">Setting up ARIS</string>
+    <string name="sync_preparing">Preparing your offline workspace\u2026</string>
+    <string name="sync_step_geo">Countries &amp; Admin Divisions</string>
+    <string name="sync_step_species">Species Catalog</string>
+    <string name="sync_step_diseases">Disease Registry</string>
+    <string name="sync_step_campaigns">Active Campaigns</string>
+    <string name="sync_step_templates">Form Templates</string>
+    <string name="sync_step_refdata">Reference Data</string>
+    <string name="sync_step_dashboard">Dashboard &amp; KPIs</string>
+    <string name="sync_waiting">Waiting\u2026</string>
+    <string name="sync_in_progress">Syncing\u2026</string>
+    <string name="sync_step_done">%d records</string>
+    <string name="sync_step_failed">Failed</string>
+    <string name="sync_completed">Imekamilika</string>
+    <string name="sync_once_hint">This only happens once. Data will be available offline.</string>
+    <string name="sync_continue">Continue</string>
+
+    <!-- i18n: TileDownloadScreen -->
+    <string name="tile_offline_maps_manager">Offline Maps Manager</string>
+    <string name="tile_cache_status">Cache Status</string>
+    <string name="tile_total_cache_size">Total Cache Size</string>
+    <string name="tile_tiles_cached">Tiles Cached</string>
+    <string name="tile_tiles_count">%d tiles</string>
+    <string name="tile_storage_quota">Storage Quota: %1$s / %2$s</string>
+    <string name="tile_source">Tile Source</string>
+    <string name="tile_region_presets">Region Presets</string>
+    <string name="tile_download_progress">Download Progress</string>
+    <string name="tile_downloading_count">Downloading %1$d / %2$d tiles</string>
+    <string name="tile_prune_expired">Prune Expired</string>
+    <string name="tile_clear_all_cache">Clear All Cache</string>
+    <string name="tile_cache_actions">Cache Actions</string>
+    <string name="tile_clear_cache_title">Clear All Cache?</string>
+    <string name="tile_clear_cache_message">This will delete all cached map tiles. You will need to re-download them for offline use.</string>
+    <string name="tile_download_region">Download %s?</string>
+
+    <!-- i18n: Knowledge Hub -->
+    <string name="knowledge_hub">Knowledge Hub</string>
+    <string name="knowledge_article">Article</string>
+    <string name="knowledge_course">Course</string>
+    <string name="knowledge_elearning">E-Learning</string>
+    <string name="knowledge_enroll">Enroll</string>
+    <string name="knowledge_search">Tafuta</string>
+    <string name="knowledge_search_placeholder">Search publications\u2026</string>
+    <string name="knowledge_no_courses">No courses available yet</string>
+
+    <!-- i18n: Form fields -->
+    <string name="clear">Clear</string>
+    <string name="done">Done</string>
+    <string name="add_row">Add Row</string>
+    <string name="enter_law_title">Enter law title</string>
+    <string name="enter_implementing_body">Enter implementing body</string>
+    <string name="enter_staff_count">Enter staff count</string>
+    <string name="select_admin_unit">Select admin unit</string>
+
+    <!-- i18n: Misc screens -->
+    <string name="prune_old">Prune Old</string>
+    <string name="search_name_email">Search by name or email\u2026</string>
+    <string name="message_label">Message</string>
+    <string name="delete_photo">Delete Photo</string>
+    <string name="delete_photo_confirm">Remove this photo from the submission?</string>
+    <string name="comment">Comment</string>
+    <string name="currency_usd_prefix">USD </string>
+</resources>

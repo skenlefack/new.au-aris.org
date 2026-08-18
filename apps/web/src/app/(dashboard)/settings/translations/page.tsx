@@ -39,6 +39,7 @@ import frMessages from '@/messages/fr.json';
 import ptMessages from '@/messages/pt.json';
 import arMessages from '@/messages/ar.json';
 import esMessages from '@/messages/es.json';
+import swMessages from '@/messages/sw.json';
 
 const ALL_MESSAGES: Record<string, Record<string, unknown>> = {
   en: enMessages,
@@ -46,6 +47,7 @@ const ALL_MESSAGES: Record<string, Record<string, unknown>> = {
   pt: ptMessages,
   ar: arMessages,
   es: esMessages,
+  sw: swMessages,
 };
 
 const LANGUAGES = [
@@ -54,6 +56,7 @@ const LANGUAGES = [
   { code: 'pt', name: 'Portugu\u00eas', flag: '\uD83C\uDDF5\uD83C\uDDF9' },
   { code: 'ar', name: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629', flag: '\uD83C\uDDF8\uD83C\uDDE6' },
   { code: 'es', name: 'Espa\u00f1ol', flag: '\uD83C\uDDEA\uD83C\uDDF8' },
+  { code: 'sw', name: 'Kiswahili', flag: '\uD83C\uDDF9\uD83C\uDDFF' },
 ] as const;
 
 type TabId = 'config' | 'references' | 'review' | 'collecte';

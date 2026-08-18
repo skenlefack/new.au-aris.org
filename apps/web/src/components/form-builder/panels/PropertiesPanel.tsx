@@ -22,7 +22,7 @@ const TAB_KEYS: { key: Tab; tKey: string }[] = [
 ];
 
 // ---- Multilingual inline input with Auto-Translate ----
-const LANGS = ['en', 'fr', 'pt', 'ar'] as const;
+const LANGS = ['en', 'fr', 'pt', 'ar', 'es', 'sw'] as const;
 
 function MLInput({
   label,

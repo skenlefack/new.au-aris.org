@@ -4,10 +4,11 @@ import * as fr from './translations/fr.json';
 import * as pt from './translations/pt.json';
 import * as ar from './translations/ar.json';
 import * as es from './translations/es.json';
+import * as sw from './translations/sw.json';
 
-export type SupportedLocale = 'en' | 'fr' | 'pt' | 'ar' | 'es';
+export type SupportedLocale = 'en' | 'fr' | 'pt' | 'ar' | 'es' | 'sw';
 
-export const SUPPORTED_LOCALES: SupportedLocale[] = ['en', 'fr', 'pt', 'ar', 'es'];
+export const SUPPORTED_LOCALES: SupportedLocale[] = ['en', 'fr', 'pt', 'ar', 'es', 'sw'];
 export const DEFAULT_LOCALE: SupportedLocale = 'en';
 
 type TranslationMap = Record<string, unknown>;
@@ -18,6 +19,7 @@ const TRANSLATIONS: Record<SupportedLocale, TranslationMap> = {
   pt: pt as unknown as TranslationMap,
   ar: ar as unknown as TranslationMap,
   es: es as unknown as TranslationMap,
+  sw: sw as unknown as TranslationMap,
 };
 
 @Injectable()

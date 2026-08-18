@@ -157,7 +157,7 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
 
   /** Translate any untranslated text/textarea fields before submission */
   const translateUntranslatedFields = async (formValues: Record<string, unknown>): Promise<Record<string, unknown>> => {
-    const ALL_LANG_CODES = ['en', 'fr', 'pt', 'ar'];
+    const ALL_LANG_CODES = ['en', 'fr', 'pt', 'ar', 'es', 'sw'];
     const textFields = new Set<string>();
 
     // Only translate fields explicitly marked as translatable

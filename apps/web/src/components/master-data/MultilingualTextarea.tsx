@@ -32,7 +32,7 @@ export function MultilingualTextarea({
   value,
   onChange,
   required = false,
-  languages = ['en', 'fr', 'pt', 'ar'],
+  languages = ['en', 'fr', 'pt', 'ar', 'es', 'sw'],
   placeholder,
   disabled = false,
   error,

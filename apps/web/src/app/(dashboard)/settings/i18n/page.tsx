@@ -16,6 +16,7 @@ const LANGUAGES = [
   { code: 'pt', name: 'Portuguese', native: 'Portugu\u00eas',  rtl: false },
   { code: 'es', name: 'Spanish',    native: 'Espa\u00f1ol',    rtl: false },
   { code: 'ar', name: 'Arabic',     native: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629',     rtl: true },
+  { code: 'sw', name: 'Swahili',    native: 'Kiswahili',  rtl: false },
 ] as const;
 
 const NUMBER_SAMPLE = 1234567.89;

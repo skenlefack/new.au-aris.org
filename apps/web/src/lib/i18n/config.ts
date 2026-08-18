@@ -1,4 +1,4 @@
-export const LOCALES = ['en', 'fr', 'pt', 'ar', 'es'] as const;
+export const LOCALES = ['en', 'fr', 'pt', 'ar', 'es', 'sw'] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = 'en';
 
@@ -8,6 +8,7 @@ export const LOCALE_LABELS: Record<Locale, { label: string; flag: string; dir: '
   pt: { label: 'Portugu\u00EAs', flag: '\u{1F1F5}\u{1F1F9}', dir: 'ltr' },
   ar: { label: '\u0627\u0644\u0639\u0631\u0628\u064A\u0629', flag: '\u{1F1F8}\u{1F1E6}', dir: 'rtl' },
   es: { label: 'Espa\u00F1ol', flag: '\u{1F1EA}\u{1F1F8}', dir: 'ltr' },
+  sw: { label: 'Kiswahili', flag: '\u{1F1F9}\u{1F1FF}', dir: 'ltr' },
 };
 
 export const RTL_LOCALES: Locale[] = ['ar'];

@@ -7,9 +7,10 @@ import fr from '@/messages/fr.json';
 import pt from '@/messages/pt.json';
 import ar from '@/messages/ar.json';
 import es from '@/messages/es.json';
+import sw from '@/messages/sw.json';
 import type { Locale } from './config';
 
-const messages: Record<Locale, Record<string, Record<string, string>>> = { en, fr, pt, ar, es };
+const messages: Record<Locale, Record<string, Record<string, string>>> = { en, fr, pt, ar, es, sw };
 
 /**
  * Hook that returns translation function for a namespace.

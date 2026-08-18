@@ -36,7 +36,7 @@ export function useKnowledgeLocale(): [KnowledgeLocale, (l: KnowledgeLocale) => 
     const handler = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue) {
         const v = e.newValue as KnowledgeLocale;
-        if (['en', 'fr', 'pt', 'ar'].includes(v)) setLocaleState(v);
+        if (['en', 'fr', 'pt', 'ar', 'es', 'sw'].includes(v)) setLocaleState(v);
       }
     };
     window.addEventListener('storage', handler);
