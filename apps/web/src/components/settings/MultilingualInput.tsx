@@ -6,7 +6,7 @@ import { Loader2, Wand2 } from 'lucide-react';
 import { useTranslateToAll } from '@/lib/api/translation-hooks';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 
-type LangCode = 'en' | 'fr' | 'pt' | 'ar';
+type LangCode = 'en' | 'fr' | 'pt' | 'ar' | 'es' | 'sw';
 
 interface MultilingualValue {
   [key: string]: string;
@@ -23,8 +23,8 @@ interface MultilingualInputProps {
   error?: string;
 }
 
-const LANG_LABELS: Record<string, string> = { en: 'EN', fr: 'FR', pt: 'PT', ar: 'AR' };
-const LANG_NAMES: Record<string, string> = { en: 'English', fr: 'Français', pt: 'Português', ar: 'العربية' };
+const LANG_LABELS: Record<string, string> = { en: 'EN', fr: 'FR', pt: 'PT', ar: 'AR', es: 'ES', sw: 'SW' };
+const LANG_NAMES: Record<string, string> = { en: 'English', fr: 'Français', pt: 'Português', ar: 'العربية', es: 'Español', sw: 'Kiswahili' };
 
 export function MultilingualInput({
   label,

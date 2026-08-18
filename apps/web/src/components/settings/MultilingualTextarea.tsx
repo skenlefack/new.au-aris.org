@@ -6,7 +6,7 @@ import { Loader2, Wand2 } from 'lucide-react';
 import { useTranslateToAll } from '@/lib/api/translation-hooks';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 
-type LangCode = 'en' | 'fr' | 'pt' | 'ar';
+type LangCode = 'en' | 'fr' | 'pt' | 'ar' | 'es' | 'sw';
 
 interface MultilingualValue {
   [key: string]: string;

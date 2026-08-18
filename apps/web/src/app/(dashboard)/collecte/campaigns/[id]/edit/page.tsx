@@ -54,7 +54,7 @@ const allRecs = getAllRecs();
 type AnyCampaign = any;
 
 function toMultilingual(val: unknown): Record<string, string> {
-  if (!val) return { en: '', fr: '', pt: '', ar: '', es: '' };
+  if (!val) return { en: '', fr: '', pt: '', ar: '', es: '', sw: '' };
   if (typeof val === 'string') return { en: val, fr: '', pt: '', ar: '', es: '' };
   if (typeof val === 'object') return { en: '', fr: '', pt: '', ar: '', es: '', ...(val as Record<string, string>) };
   return { en: String(val), fr: '', pt: '', ar: '', es: '' };
@@ -92,8 +92,8 @@ export default function EditCampaignPage() {
     return DOMAIN_OPTIONS;
   }, [allDomains]);
 
-  const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
-  const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
+  const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
+  const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
   const [selectedSubDomains, setSelectedSubDomains] = useState<string[]>([]);
   const [selectedRecs, setSelectedRecs] = useState<RecConfig[]>([]);

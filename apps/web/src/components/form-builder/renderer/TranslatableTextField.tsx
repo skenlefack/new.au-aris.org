@@ -11,6 +11,8 @@ const ALL_LANGS = [
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
   { code: 'pt', label: 'Português', flag: '🇵🇹' },
   { code: 'ar', label: 'العربية', flag: '🇸🇦' },
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'sw', label: 'Kiswahili', flag: '🇹🇿' },
 ] as const;
 
 interface TranslatableTextFieldProps {

@@ -238,7 +238,7 @@ export default function I18nSettingsPage() {
             {t('clickToSetDefault')}
           </p>
         )}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
           {LANGUAGES.map((lang) => {
             const isDefault = defaultLocale === lang.code;
             const isEnabled = availableLocales.includes(lang.code);
