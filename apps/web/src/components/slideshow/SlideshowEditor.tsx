@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import {
   useSlideshow,
@@ -117,8 +118,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
 
   // ─── Form state ──────────────────────────────────────────────────
 
-  const [titleFr, setTitleFr] = useState('');
-  const [titleEn, setTitleEn] = useState('');
+  const [title, setTitle] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [description, setDescription] = useState('');
   const [transition, setTransition] = useState('FADE');
   const [intervalMs, setIntervalMs] = useState(15000);
@@ -145,8 +145,11 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
 
   useEffect(() => {
     if (existing) {
-      setTitleFr(existing.titleFr || '');
-      setTitleEn(existing.titleEn || '');
+      setTitle({
+        en: existing.titleEn || '', fr: existing.titleFr || '',
+        pt: existing.titlePt || '', ar: existing.titleAr || '',
+        es: existing.titleEs || '', sw: existing.titleSw || '',
+      });
       setDescription(existing.description || '');
       setTransition(existing.transition || 'FADE');
       setIntervalMs(existing.intervalMs || 15000);
@@ -174,8 +177,9 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
 
   const handleSave = async () => {
     const payload = {
-      titleFr,
-      titleEn,
+      titleFr: title.fr, titleEn: title.en,
+      titlePt: title.pt || null, titleAr: title.ar || null,
+      titleEs: title.es || null, titleSw: title.sw || null,
       description,
       transition,
       intervalMs,
@@ -366,7 +370,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
           )}
           <button
             onClick={handleSave}
-            disabled={isSaving || !titleFr || !titleEn}
+            disabled={isSaving || !title.fr || !title.en}
             className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="h-4 w-4 mr-2" />
@@ -395,24 +399,12 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
               </h3>
             </div>
             <div className="p-4 space-y-4">
-              <div>
-                <label className="text-sm font-medium">{isFr ? 'Titre (FR)' : 'Title (FR)'}</label>
-                <input
-                  value={titleFr}
-                  onChange={(e) => setTitleFr(e.target.value)}
-                  placeholder="Mon diaporama"
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">{isFr ? 'Titre (EN)' : 'Title (EN)'}</label>
-                <input
-                  value={titleEn}
-                  onChange={(e) => setTitleEn(e.target.value)}
-                  placeholder="My slideshow"
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                />
-              </div>
+              <MultilingualInput
+                label={isFr ? 'Titre' : 'Title'}
+                value={title}
+                onChange={setTitle}
+                required
+              />
               <div>
                 <label className="text-sm font-medium">Description</label>
                 <textarea

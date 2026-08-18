@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { GripVertical, Trash2, ChevronDown, ChevronRight, Copy } from 'lucide-react';
 import type { DashboardSection } from '@/lib/api/dashboard-hooks';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import { useTranslations } from '@/lib/i18n/translations';
 
+const SECTION_LANGS = ['fr', 'en', 'pt', 'ar', 'es', 'sw'] as const;
+
 interface SectionHeaderProps {
   section: DashboardSection;
   editable?: boolean;
   dragListeners?: SyntheticListenerMap;
-  onTitleChange?: (titles: { titleFr: string; titleEn: string }) => void;
+  onTitleChange?: (titles: Record<string, string>) => void;
   onColumnCountChange?: (count: number) => void;
   onToggleCollapse?: () => void;
   onRemove?: () => void;
@@ -30,20 +32,36 @@ export function SectionHeader({
   onDuplicate,
 }: SectionHeaderProps) {
   const t = useTranslations('dashboard');
-  const inputFrRef = useRef<HTMLInputElement>(null);
-  const inputEnRef = useRef<HTMLInputElement>(null);
+  const [activeLang, setActiveLang] = useState<string>('fr');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const titlesRef = useRef<Record<string, string>>({
+    fr: section.titleFr ?? '', en: section.titleEn ?? '',
+    pt: (section as any).titlePt ?? '', ar: (section as any).titleAr ?? '',
+    es: (section as any).titleEs ?? '', sw: (section as any).titleSw ?? '',
+  });
 
-  // Keep input values in sync with section prop
   useEffect(() => {
-    if (inputFrRef.current) inputFrRef.current.value = section.titleFr ?? '';
-    if (inputEnRef.current) inputEnRef.current.value = section.titleEn ?? '';
+    titlesRef.current = {
+      fr: section.titleFr ?? '', en: section.titleEn ?? '',
+      pt: (section as any).titlePt ?? '', ar: (section as any).titleAr ?? '',
+      es: (section as any).titleEs ?? '', sw: (section as any).titleSw ?? '',
+    };
+    if (inputRef.current) inputRef.current.value = titlesRef.current[activeLang] ?? '';
   }, [section.id]);
 
   const handleBlur = () => {
+    titlesRef.current[activeLang] = inputRef.current?.value ?? '';
     onTitleChange?.({
-      titleFr: inputFrRef.current?.value ?? '',
-      titleEn: inputEnRef.current?.value ?? '',
+      titleFr: titlesRef.current.fr, titleEn: titlesRef.current.en,
+      titlePt: titlesRef.current.pt, titleAr: titlesRef.current.ar,
+      titleEs: titlesRef.current.es, titleSw: titlesRef.current.sw,
     });
+  };
+
+  const switchLang = (lang: string) => {
+    titlesRef.current[activeLang] = inputRef.current?.value ?? '';
+    setActiveLang(lang);
+    if (inputRef.current) inputRef.current.value = titlesRef.current[lang] ?? '';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -87,28 +105,36 @@ export function SectionHeader({
           : <ChevronDown className="h-4 w-4" />}
       </button>
 
-      {/* Title — two side-by-side inputs for FR/EN */}
+      {/* Title — language tabs + single input */}
       {editable ? (
         <div className="flex flex-1 min-w-0 items-center gap-1">
-          <span className="text-[10px] font-bold text-gray-400 uppercase flex-shrink-0">{t('dbLangFr')}</span>
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            {SECTION_LANGS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => switchLang(l)}
+                className={`text-[9px] font-bold uppercase px-1 py-0.5 rounded transition-colors ${
+                  activeLang === l
+                    ? 'bg-[#1F4E79] text-white'
+                    : titlesRef.current[l]
+                      ? 'text-emerald-600 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <input
-            ref={inputFrRef}
+            ref={inputRef}
             type="text"
-            defaultValue={section.titleFr ?? ''}
+            defaultValue={titlesRef.current[activeLang] ?? ''}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
+            dir={activeLang === 'ar' ? 'rtl' : 'ltr'}
             className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 border-none outline-none focus:ring-1 focus:ring-[#1F4E79]/30 rounded px-1"
-            placeholder={t('sectionTitlePlaceholderFr')}
-          />
-          <span className="text-[10px] font-bold text-gray-400 uppercase flex-shrink-0 ml-1">{t('dbLangEn')}</span>
-          <input
-            ref={inputEnRef}
-            type="text"
-            defaultValue={section.titleEn ?? ''}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 border-none outline-none focus:ring-1 focus:ring-[#1F4E79]/30 rounded px-1"
-            placeholder={t('sectionTitlePlaceholderEn')}
+            placeholder={`Section title (${activeLang.toUpperCase()})`}
           />
         </div>
       ) : (

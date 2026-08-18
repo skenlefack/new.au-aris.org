@@ -7,6 +7,8 @@ import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { createDefaultFormSchema } from '@/components/form-builder/utils/form-schema';
 import { useCreateFormTemplate, useImportExcelTemplate, type FormType } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
+import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { TargetsSelector, type TargetFormValue } from '@/components/forms/TargetsSelector';
 import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
 
@@ -18,21 +20,21 @@ export default function NewFormPage() {
   const importMutation = useImportExcelTemplate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [name, setName] = useState('');
+  const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [domain, setDomain] = useState('animal_health');
   const [targets, setTargets] = useState<TargetFormValue[]>([
     { domainCode: 'animal_health', subDomainCode: null, isPrimary: true },
   ]);
   const [formType, setFormType] = useState<FormType>('CAMPAIGN');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [isCreating, setIsCreating] = useState(false);
 
   // AI suggestion dialog state
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
   const handleAiAccept = (draft: any) => {
-    if (draft.name) setName(draft.name);
-    if (draft.description) setDescription(draft.description);
+    if (draft.name) setName((prev) => ({ ...prev, en: draft.name }));
+    if (draft.description) setDescription((prev) => ({ ...prev, en: draft.description }));
     if (draft.domain) setDomain(draft.domain);
     if (draft.formType) setFormType(draft.formType);
     if (Array.isArray(draft.targets) && draft.targets.length > 0) {
@@ -52,7 +54,7 @@ export default function NewFormPage() {
   const [importError, setImportError] = useState('');
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
+    if (!(name.fr || name.en || '').trim()) return;
     setIsCreating(true);
 
     const schema = createDefaultFormSchema();
@@ -66,7 +68,8 @@ export default function NewFormPage() {
 
     try {
       const result = await createMutation.mutateAsync({
-        name: name.trim(),
+        name: name.fr || name.en || '',
+        nameI18n: name,
         domain: effectiveDomain,
         formType,
         schema,
@@ -176,19 +179,12 @@ export default function NewFormPage() {
           </div>
 
           <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                {t('formName')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t('formNamePlaceholder')}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                autoFocus
-              />
-            </div>
+            <MultilingualInput
+              label={t('formName')}
+              value={name}
+              onChange={setName}
+              required
+            />
 
             {/* Targets */}
             <div>
@@ -249,23 +245,16 @@ export default function NewFormPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                {t('description')}
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t('formDescPlaceholder')}
-                rows={3}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-              />
-            </div>
+            <MultilingualTextarea
+              label={t('description')}
+              value={description}
+              onChange={setDescription}
+            />
 
             <div className="flex items-center gap-3 pt-2">
               <button
                 onClick={handleCreate}
-                disabled={!name.trim() || isCreating}
+                disabled={!(name.fr || name.en || '').trim() || isCreating}
                 className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isCreating ? t('creating') : t('createAndOpenEditor')}

@@ -57,8 +57,7 @@ export default function GenerateReportWizard() {
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
 
   // Config form state
-  const [titleFr, setTitleFr] = useState('');
-  const [titleEn, setTitleEn] = useState('');
+  const [title, setTitle] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [themeFr, setThemeFr] = useState('');
   const [scope, setScope] = useState<ReportScope>('CONTINENTAL');
   const [domainId, setDomainId] = useState('');
@@ -81,8 +80,7 @@ export default function GenerateReportWizard() {
 
   function handleSelectTemplate(tpl: ReportTemplate) {
     setSelectedTemplate(tpl);
-    setTitleFr(tpl.nameFr);
-    setTitleEn(tpl.nameEn);
+    setTitle({ en: tpl.nameEn || '', fr: tpl.nameFr || '', pt: tpl.namePt || '', ar: tpl.nameAr || '', es: tpl.nameEs || '', sw: tpl.nameSw || '' });
     if (tpl.domainId) setDomainId(tpl.domainId);
     if (tpl.scope) setScope(tpl.scope);
     setStep(1);
@@ -94,8 +92,8 @@ export default function GenerateReportWizard() {
     generateMutation.mutate(
       {
         templateId: selectedTemplate.id,
-        titleFr,
-        titleEn,
+        titleFr: title.fr,
+        titleEn: title.en,
         themeFr: themeFr || undefined,
         scope,
         domainId: domainId || undefined,
@@ -117,7 +115,7 @@ export default function GenerateReportWizard() {
     );
   }
 
-  const canGoToConfirm = !!titleFr && !!titleEn && !!periodStart && !!periodEnd;
+  const canGoToConfirm = !!(title.fr || title.en) && !!periodStart && !!periodEnd;
 
   return (
     <div className="space-y-6">
@@ -257,8 +255,8 @@ export default function GenerateReportWizard() {
               </label>
               <input
                 type="text"
-                value={titleFr}
-                onChange={(e) => setTitleFr(e.target.value)}
+                value={title.fr}
+                onChange={(e) => setTitle(prev => ({ ...prev, fr: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
             </div>
@@ -270,8 +268,8 @@ export default function GenerateReportWizard() {
               </label>
               <input
                 type="text"
-                value={titleEn}
-                onChange={(e) => setTitleEn(e.target.value)}
+                value={title.en}
+                onChange={(e) => setTitle(prev => ({ ...prev, en: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
             </div>
@@ -419,8 +417,8 @@ export default function GenerateReportWizard() {
 
           <div className="space-y-4 max-w-2xl">
             <SummaryRow label={t('reportTemplate')} value={locale === 'fr' ? selectedTemplate.nameFr : selectedTemplate.nameEn} />
-            <SummaryRow label={t('titleFr')} value={titleFr} />
-            <SummaryRow label={t('titleEn')} value={titleEn} />
+            <SummaryRow label={t('titleFr')} value={title.fr} />
+            <SummaryRow label={t('titleEn')} value={title.en} />
             {themeFr && <SummaryRow label={t('theme')} value={themeFr} />}
             <SummaryRow label={t('scope')} value={scope} />
             <SummaryRow label={t('periodStart')} value={periodStart} />
