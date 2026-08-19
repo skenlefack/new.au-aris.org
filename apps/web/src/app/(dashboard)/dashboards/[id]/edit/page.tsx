@@ -35,7 +35,7 @@ export default function DashboardEditPage() {
   const d = dashboard as any;
 
   const [title, setTitle] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
   const titleInitRef = useRef(false);
 
@@ -100,7 +100,12 @@ export default function DashboardEditPage() {
       pt: d.title_pt || d.titlePt || '', ar: d.title_ar || d.titleAr || '',
       es: d.title_es || d.titleEs || '', sw: d.title_sw || d.titleSw || '',
     });
-    setDescription(d.description || '');
+    setDescription({
+      en: d.description_en || d.descriptionEn || d.description || '',
+      fr: d.description_fr || d.descriptionFr || d.description || '',
+      pt: d.description_pt || d.descriptionPt || '', ar: d.description_ar || d.descriptionAr || '',
+      es: d.description_es || d.descriptionEs || '', sw: d.description_sw || d.descriptionSw || '',
+    });
     setRefreshInterval(d.refreshInterval ?? d.refresh_interval ?? null);
     titleInitRef.current = true;
   }
@@ -312,9 +317,10 @@ export default function DashboardEditPage() {
     // 1. Update title/description/refreshInterval if changed
     const dashRefresh = d?.refreshInterval ?? d?.refresh_interval ?? null;
     const titleChanged = title.fr !== (d?.title_fr || d?.titleFr || '') || title.en !== (d?.title_en || d?.titleEn || '');
-    if (titleChanged || description !== (d?.description || '') || refreshInterval !== dashRefresh) {
+    const descChanged = (description.fr || description.en) !== (d?.description || d?.description_fr || '');
+    if (titleChanged || descChanged || refreshInterval !== dashRefresh) {
       await updateDashboard.mutateAsync({
-        id, title: title.fr || title.en, description, refreshInterval,
+        id, title: title.fr || title.en, description: description.fr || description.en, refreshInterval,
         titleFr: title.fr, titleEn: title.en,
         titlePt: title.pt, titleAr: title.ar,
         titleEs: title.es, titleSw: title.sw,

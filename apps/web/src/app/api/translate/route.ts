@@ -118,6 +118,8 @@ export async function POST(request: NextRequest) {
           { source: 'pt', target: 'en' }, { source: 'pt', target: 'fr' },
           { source: 'ar', target: 'en' }, { source: 'ar', target: 'fr' },
           { source: 'es', target: 'en' }, { source: 'es', target: 'fr' },
+          { source: 'en', target: 'sw' }, { source: 'fr', target: 'sw' },
+          { source: 'sw', target: 'en' }, { source: 'sw', target: 'fr' },
         ],
         engine: 'ollama',
       },
@@ -312,7 +314,7 @@ const AI_ORCHESTRATOR_URL = process.env.AI_ORCHESTRATOR_URL
   ?? 'http://localhost:4000';
 
 const LANG_NAMES: Record<string, string> = {
-  en: 'English', fr: 'French', pt: 'Portuguese', ar: 'Arabic', es: 'Spanish',
+  en: 'English', fr: 'French', pt: 'Portuguese', ar: 'Arabic', es: 'Spanish', sw: 'Swahili',
 };
 
 /** Translate a single text using Ollama AI — called with pre-parsed params */

@@ -25,6 +25,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
+import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import {
   useSlideshow,
@@ -119,7 +120,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
   // ─── Form state ──────────────────────────────────────────────────
 
   const [title, setTitle] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [transition, setTransition] = useState('FADE');
   const [intervalMs, setIntervalMs] = useState(15000);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -150,7 +151,12 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
         pt: existing.titlePt || '', ar: existing.titleAr || '',
         es: existing.titleEs || '', sw: existing.titleSw || '',
       });
-      setDescription(existing.description || '');
+      setDescription({
+        en: existing.descriptionEn || existing.description || '',
+        fr: existing.descriptionFr || existing.description || '',
+        pt: existing.descriptionPt || '', ar: existing.descriptionAr || '',
+        es: existing.descriptionEs || '', sw: existing.descriptionSw || '',
+      });
       setTransition(existing.transition || 'FADE');
       setIntervalMs(existing.intervalMs || 15000);
       setAutoPlay(existing.autoPlay ?? true);
@@ -180,7 +186,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
       titleFr: title.fr, titleEn: title.en,
       titlePt: title.pt || null, titleAr: title.ar || null,
       titleEs: title.es || null, titleSw: title.sw || null,
-      description,
+      description: description.fr || description.en || '',
       transition,
       intervalMs,
       autoPlay,
@@ -405,15 +411,11 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                 onChange={setTitle}
                 required
               />
-              <div>
-                <label className="text-sm font-medium">Description</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 min-h-[60px]"
-                />
-              </div>
+              <MultilingualTextarea
+                label="Description"
+                value={description}
+                onChange={setDescription}
+              />
               {slideshowId && (
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium">{isFr ? 'Actif' : 'Active'}</label>
