@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTenantStore } from '@/lib/stores/tenant-store';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import {
   useFormBuilderTemplate,
   useFormOverlays,
@@ -629,14 +630,13 @@ function AddFieldInline({
   isMutating: boolean;
 }) {
   const ftDef = FIELD_TYPES.find((ft) => ft.type === fieldType);
-  const [labelEn, setLabelEn] = useState('');
-  const [labelFr, setLabelFr] = useState('');
+  const [label, setLabel] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [required, setRequired] = useState(false);
   const [masterDataType, setMasterDataType] = useState('');
   const [options, setOptions] = useState<SelectOption[]>([]);
   const [newOptLabel, setNewOptLabel] = useState('');
 
-  const code = generateCodeFromLabel(labelEn || 'field');
+  const code = generateCodeFromLabel(label.en || 'field');
 
   const needsOptions =
     fieldType === 'select' ||
@@ -647,11 +647,11 @@ function AddFieldInline({
   const needsMasterData = fieldType === 'master-data-select';
 
   function handleSubmit() {
-    if (!labelEn.trim()) return;
+    if (!(label.en || label.fr || '').trim()) return;
 
     const field = createDefaultField(fieldType, sectionId);
     field.code = `custom_${code}`;
-    field.label = { en: labelEn, fr: labelFr || undefined };
+    field.label = { ...label };
     field.required = required;
 
     if (needsOptions && options.length > 0) {
@@ -697,26 +697,12 @@ function AddFieldInline({
           <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
             Label (English) <span className="text-red-400">*</span>
           </label>
-          <input
-            type="text"
-            value={labelEn}
-            onChange={(e) => setLabelEn(e.target.value)}
+          <MultilingualInput
+            label=""
+            value={label}
+            onChange={setLabel}
             placeholder="e.g. Herd Size"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-        </div>
-
-        {/* Label FR */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
-            Label (French)
-          </label>
-          <input
-            type="text"
-            value={labelFr}
-            onChange={(e) => setLabelFr(e.target.value)}
-            placeholder="e.g. Taille du troupeau"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            required
           />
         </div>
 
@@ -850,15 +836,18 @@ function EditFieldInline({
 }) {
   const data = override.data;
   const existingLabel = data.label as MultilingualText | undefined;
-  const [labelEn, setLabelEn] = useState(existingLabel?.en ?? '');
-  const [labelFr, setLabelFr] = useState(existingLabel?.fr ?? '');
+  const [label, setLabel] = useState<Record<string, string>>({
+    en: existingLabel?.en ?? '', fr: existingLabel?.fr ?? '',
+    pt: existingLabel?.pt ?? '', ar: existingLabel?.ar ?? '',
+    es: existingLabel?.es ?? '', sw: existingLabel?.sw ?? '',
+  });
   const [required, setRequired] = useState((data.required as boolean) ?? false);
 
   function handleSubmit() {
-    if (!labelEn.trim()) return;
-    const code = `custom_${generateCodeFromLabel(labelEn)}`;
+    if (!(label.en || label.fr || '').trim()) return;
+    const code = `custom_${generateCodeFromLabel(label.en || 'field')}`;
     onSave(override.fieldId, {
-      label: { en: labelEn, fr: labelFr || undefined },
+      label: { ...label },
       code,
       required,
     });
@@ -879,28 +868,12 @@ function EditFieldInline({
       </div>
 
       <div className="space-y-3">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600">
-            Label (English) <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="text"
-            value={labelEn}
-            onChange={(e) => setLabelEn(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600">
-            Label (French)
-          </label>
-          <input
-            type="text"
-            value={labelFr}
-            onChange={(e) => setLabelFr(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-        </div>
+        <MultilingualInput
+          label="Label"
+          value={label}
+          onChange={setLabel}
+          required
+        />
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"

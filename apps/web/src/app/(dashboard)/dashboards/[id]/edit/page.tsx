@@ -34,7 +34,7 @@ export default function DashboardEditPage() {
   const dashboard = dashboardData?.data;
   const d = dashboard as any;
 
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [description, setDescription] = useState('');
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
   const titleInitRef = useRef(false);
@@ -94,7 +94,12 @@ export default function DashboardEditPage() {
 
   // Initialize title once
   if (d && !titleInitRef.current) {
-    setTitle(d.title || d.title_fr || d.titleFr || '');
+    setTitle({
+      fr: d.title_fr || d.titleFr || d.title || '',
+      en: d.title_en || d.titleEn || d.title || '',
+      pt: d.title_pt || d.titlePt || '', ar: d.title_ar || d.titleAr || '',
+      es: d.title_es || d.titleEs || '', sw: d.title_sw || d.titleSw || '',
+    });
     setDescription(d.description || '');
     setRefreshInterval(d.refreshInterval ?? d.refresh_interval ?? null);
     titleInitRef.current = true;
@@ -131,7 +136,7 @@ export default function DashboardEditPage() {
       // The draft may be the full AI response { id, type, output: {...} }
       // or just the inner output. Handle both.
       const inner = draft.output ?? draft;
-      if (inner.title) setTitle(inner.title);
+      if (inner.title) setTitle(prev => ({ ...prev, fr: inner.title, en: inner.title }));
       const widgets = inner.widgets ?? draft.widgets;
       if (Array.isArray(widgets) && localSections.length > 0) {
         const targetSection = localSections[0];
@@ -305,10 +310,15 @@ export default function DashboardEditPage() {
 
   const handleSave = async () => {
     // 1. Update title/description/refreshInterval if changed
-    const dashTitle = d?.title || d?.title_fr || '';
     const dashRefresh = d?.refreshInterval ?? d?.refresh_interval ?? null;
-    if (title !== dashTitle || description !== (d?.description || '') || refreshInterval !== dashRefresh) {
-      await updateDashboard.mutateAsync({ id, title, description, refreshInterval });
+    const titleChanged = title.fr !== (d?.title_fr || d?.titleFr || '') || title.en !== (d?.title_en || d?.titleEn || '');
+    if (titleChanged || description !== (d?.description || '') || refreshInterval !== dashRefresh) {
+      await updateDashboard.mutateAsync({
+        id, title: title.fr || title.en, description, refreshInterval,
+        titleFr: title.fr, titleEn: title.en,
+        titlePt: title.pt, titleAr: title.ar,
+        titleEs: title.es, titleSw: title.sw,
+      });
     }
 
     // 2. Save layout (sections + widget positions)

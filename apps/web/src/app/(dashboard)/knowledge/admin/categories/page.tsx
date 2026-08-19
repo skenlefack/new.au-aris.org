@@ -40,6 +40,7 @@ import {
 } from '@/lib/api/knowledge-hub-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { RecCountryPicker } from '@/components/knowledge/RecCountryPicker';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
 
 const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'KNOWLEDGE_MANAGER']);
 
@@ -607,10 +608,11 @@ function CategoryForm({
   onSave: (input: any) => Promise<void>;
 }) {
   const [slug, setSlug] = useState(initial?.slug ?? '');
-  const [nameEn, setNameEn] = useState(initial?.nameEn ?? '');
-  const [nameFr, setNameFr] = useState(initial?.nameFr ?? '');
-  const [namePt, setNamePt] = useState(initial?.namePt ?? '');
-  const [nameAr, setNameAr] = useState(initial?.nameAr ?? '');
+  const [name, setName] = useState<Record<string, string>>({
+    en: initial?.nameEn ?? '', fr: initial?.nameFr ?? '',
+    pt: initial?.namePt ?? '', ar: initial?.nameAr ?? '',
+    es: initial?.nameEs ?? '', sw: initial?.nameSw ?? '',
+  });
   const [parentId, setParentId] = useState<string | null>(initial?.parentId ?? null);
   const [scope, setScope] = useState<CategoryScope>(initial?.scope ?? defaultScope);
   const [scopeTenantId, setScopeTenantId] = useState(
@@ -623,8 +625,8 @@ function CategoryForm({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nameEn.trim()) {
-      toast.error('Name (EN) is required');
+    if (!(name.en || name.fr || '').trim()) {
+      toast.error('Name is required');
       return;
     }
     if (!initial && !slug.trim()) {
@@ -634,10 +636,12 @@ function CategoryForm({
     setBusy(true);
     try {
       const payload: any = {
-        nameEn: nameEn.trim(),
-        nameFr: nameFr.trim() || undefined,
-        namePt: namePt.trim() || undefined,
-        nameAr: nameAr.trim() || undefined,
+        nameEn: (name.en || name.fr || '').trim(),
+        nameFr: name.fr?.trim() || undefined,
+        namePt: name.pt?.trim() || undefined,
+        nameAr: name.ar?.trim() || undefined,
+        nameEs: name.es?.trim() || undefined,
+        nameSw: name.sw?.trim() || undefined,
         parentId: parentId ?? undefined,
         icon: icon.trim() || undefined,
         color: color.trim() || undefined,
@@ -674,41 +678,12 @@ function CategoryForm({
           </Field>
         )}
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Name (English)" required>
-            <input
-              value={nameEn}
-              onChange={(e) => setNameEn(e.target.value)}
-              placeholder="Animal Health"
-              className={INPUT_CLS}
-            />
-          </Field>
-          <Field label="Name (French)">
-            <input
-              value={nameFr}
-              onChange={(e) => setNameFr(e.target.value)}
-              placeholder="Santé animale"
-              className={INPUT_CLS}
-            />
-          </Field>
-          <Field label="Name (Portuguese)">
-            <input
-              value={namePt}
-              onChange={(e) => setNamePt(e.target.value)}
-              placeholder="Saúde animal"
-              className={INPUT_CLS}
-            />
-          </Field>
-          <Field label="Name (Arabic)">
-            <input
-              value={nameAr}
-              onChange={(e) => setNameAr(e.target.value)}
-              placeholder="الصحة الحيوانية"
-              dir="rtl"
-              className={INPUT_CLS}
-            />
-          </Field>
-        </div>
+        <MultilingualInput
+          label="Category Name"
+          value={name}
+          onChange={setName}
+          required
+        />
 
         <div className="grid gap-4 md:grid-cols-[1fr_auto_auto]">
           <Field label="Icon (Lucide name)" hint="e.g. Heart, Activity, FlaskConical">

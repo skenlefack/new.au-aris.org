@@ -20,6 +20,7 @@ import { GeoLocationPicker } from '@/components/geo/GeoLocationPicker';
 import { GeoPointMap } from '@/components/form-builder/renderer/GeoPointMap';
 import { GeoPolygonMap } from '@/components/form-builder/renderer/GeoPolygonMap';
 import { useGeoEntities, type GeoEntity } from '@/lib/api/geo-hooks';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import {
   useRefDataList,
   useCreateRefData,
@@ -371,8 +372,11 @@ function InfrastructureForm({ item, onBack }: { item: RefDataItem | null; onBack
 
   // ── Form state ──
   const [code, setCode] = useState(item?.code ?? '');
-  const [nameEn, setNameEn] = useState(item?.name?.en ?? '');
-  const [nameFr, setNameFr] = useState(item?.name?.fr ?? '');
+  const [name, setName] = useState<Record<string, string>>({
+    en: item?.name?.en ?? '', fr: item?.name?.fr ?? '',
+    pt: item?.name?.pt ?? '', ar: item?.name?.ar ?? '',
+    es: item?.name?.es ?? '', sw: item?.name?.sw ?? '',
+  });
   const [category, setCategory] = useState(item?.category ?? '');
   const [subType, setSubType] = useState(item?.subType ?? '');
   const [year, setYear] = useState(item?.year?.toString() ?? '');
@@ -436,10 +440,10 @@ function InfrastructureForm({ item, onBack }: { item: RefDataItem | null; onBack
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code || !nameEn || !category || !subType || !countryCode) return;
+    if (!code || !(name.en || name.fr) || !category || !subType || !countryCode) return;
 
     const data: Record<string, any> = {
-      code, name: { en: nameEn, fr: nameFr || nameEn }, category, subType, status, scope: 'national', countryCode,
+      code, name: { ...name, en: name.en || name.fr }, category, subType, status, scope: 'national', countryCode,
     };
     if (year) data.year = parseInt(year, 10);
     if (yearEstablished) data.yearEstablished = parseInt(yearEstablished, 10);
@@ -525,12 +529,9 @@ function InfrastructureForm({ item, onBack }: { item: RefDataItem | null; onBack
             <FormField label="Code" required>
               <input type="text" value={code} onChange={(e) => setCode(e.target.value)} className="form-input" placeholder="e.g. LAB-KE-001" required maxLength={50} />
             </FormField>
-            <FormField label="Name (EN)" required>
-              <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} className="form-input" placeholder="Name in English" required />
-            </FormField>
-            <FormField label="Name (FR)">
-              <input type="text" value={nameFr} onChange={(e) => setNameFr(e.target.value)} className="form-input" placeholder="Nom en français" />
-            </FormField>
+            <div className="md:col-span-2">
+              <MultilingualInput label="Name" value={name} onChange={setName} required />
+            </div>
             <FormField label="Abbreviation">
               <input type="text" value={abbreviation} onChange={(e) => setAbbreviation(e.target.value)} className="form-input" placeholder="e.g. CVL" maxLength={50} />
             </FormField>
@@ -632,7 +633,7 @@ function InfrastructureForm({ item, onBack }: { item: RefDataItem | null; onBack
             className="rounded-lg border border-gray-200 dark:border-gray-700 px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             Cancel
           </button>
-          <button type="submit" disabled={isSaving || !code || !nameEn || !category || !subType || !countryCode}
+          <button type="submit" disabled={isSaving || !code || !(name.en || name.fr) || !category || !subType || !countryCode}
             className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50 transition-colors">
             {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEdit ? 'Save Changes' : 'Register Infrastructure'}
