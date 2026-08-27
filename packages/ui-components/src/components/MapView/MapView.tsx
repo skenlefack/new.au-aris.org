@@ -52,7 +52,7 @@ export const MapView: React.FC<MapViewProps> = ({
         map = L.map(mapRef.current).setView(center, zoom);
         leafletMapRef.current = map;
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2b9n_1_481d72d339003f7d23db5152', {
           attribution: '&copy; CARTO &copy; OSM contributors',
           maxZoom: 18,
         }).addTo(map as L.Map);

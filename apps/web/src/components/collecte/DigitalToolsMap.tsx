@@ -151,8 +151,8 @@ export default function DigitalToolsMap({ countries, statusColors, statusLabels 
 
   const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
   const tileUrl = isDark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2b9n_1_481d72d339003f7d23db5152'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2b9n_1_481d72d339003f7d23db5152';
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-b-xl">

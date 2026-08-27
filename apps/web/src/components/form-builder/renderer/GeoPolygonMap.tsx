@@ -130,7 +130,7 @@ export function GeoPolygonMap({
             scrollWheelZoom
           >
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2b9n_1_481d72d339003f7d23db5152"
               attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             />
             <ClickHandler onClick={handleMapClick} />

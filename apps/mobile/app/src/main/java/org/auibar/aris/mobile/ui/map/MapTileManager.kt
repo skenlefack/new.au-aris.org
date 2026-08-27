@@ -330,7 +330,7 @@ class MapTileManager @Inject constructor(
             label = "CartoDB Light",
             sourceName = "CartoLight",
             maxZoom = 19,
-            urlTemplate = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+            urlTemplate = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png?key=cb1_2b9n_1_481d72d339003f7d23db5152",
             servers = arrayOf("a", "b", "c"),
         ),
         TOPO(
@@ -344,7 +344,7 @@ class MapTileManager @Inject constructor(
             label = "CartoDB Voyager",
             sourceName = "CartoVoyager",
             maxZoom = 19,
-            urlTemplate = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+            urlTemplate = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_2b9n_1_481d72d339003f7d23db5152",
             servers = arrayOf("a", "b", "c"),
         );
 
