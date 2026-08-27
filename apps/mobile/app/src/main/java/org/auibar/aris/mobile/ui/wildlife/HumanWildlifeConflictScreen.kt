@@ -195,7 +195,7 @@ fun HumanWildlifeConflictScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
                 placeholder = { Text("0.00") },
-                prefix = { Text("USD ") },
+                prefix = { Text(stringResource(R.string.currency_usd_prefix)) },
             )
 
             Spacer(modifier = Modifier.height(16.dp))

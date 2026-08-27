@@ -132,18 +132,17 @@ class CampaignDetailViewModel @Inject constructor(
                 val domainKey = RoleConfig.backendToMobileKey(detail.domain)
 
                 // Resolve template IDs to template infos
-                var allTemplateIds = detail.templateIds.ifEmpty {
+                // Each campaign has ONE template — prefer templateId, fallback to templateIds
+                val allTemplateIds = detail.templateIds.ifEmpty {
                     listOfNotNull(detail.templateId).filter { it.isNotBlank() }
                 }
 
-                // If no template IDs, load published templates for this domain
-                var templateInfos = resolveTemplates(allTemplateIds)
-                if (templateInfos.isEmpty() && detail.domain.isNotBlank()) {
-                    val domainTemplates = campaignApi.getPublishedTemplatesSafe(detail.domain)
-                    templateInfos = domainTemplates.map {
-                        TemplateInfo(id = it.id, name = it.name, domain = it.domain, version = it.version)
-                    }
+                // Also check local entity templateId if API didn't return any
+                val finalTemplateIds = allTemplateIds.ifEmpty {
+                    localCampaign?.templateId?.takeIf { it.isNotBlank() }?.let { listOf(it) } ?: emptyList()
                 }
+
+                val templateInfos = resolveTemplates(finalTemplateIds)
 
                 // Parse dates
                 val startMs = parseIsoDate(detail.startDate)

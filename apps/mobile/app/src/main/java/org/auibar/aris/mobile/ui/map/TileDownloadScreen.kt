@@ -41,10 +41,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.auibar.aris.mobile.R
 
 private const val STORAGE_QUOTA_BYTES = 500L * 1024 * 1024 // 500 MB
 
@@ -69,12 +71,12 @@ fun TileDownloadScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Offline Maps Manager") },
+                title = { Text(stringResource(R.string.tile_offline_maps_manager)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.cd_back_button),
                         )
                     }
                 },
@@ -92,7 +94,7 @@ fun TileDownloadScreen(
             item {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Cache Status",
+                    text = stringResource(R.string.tile_cache_status),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -107,7 +109,7 @@ fun TileDownloadScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = "Total Cache Size",
+                                text = stringResource(R.string.tile_total_cache_size),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
@@ -122,18 +124,18 @@ fun TileDownloadScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = "Tiles Cached",
+                                text = stringResource(R.string.tile_tiles_cached),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
-                                text = "$tileCount tiles",
+                                text = stringResource(R.string.tile_tiles_count, tileCount),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
                             )
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "Storage Quota: ${MapTileManager.formatSize(cacheSize)} / ${MapTileManager.formatSize(STORAGE_QUOTA_BYTES)}",
+                            text = stringResource(R.string.tile_storage_quota, MapTileManager.formatSize(cacheSize), MapTileManager.formatSize(STORAGE_QUOTA_BYTES)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -151,7 +153,7 @@ fun TileDownloadScreen(
             // Section 2: Tile Source
             item {
                 Text(
-                    text = "Tile Source",
+                    text = stringResource(R.string.tile_source),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -187,7 +189,7 @@ fun TileDownloadScreen(
             // Section 3: Region Presets
             item {
                 Text(
-                    text = "Region Presets",
+                    text = stringResource(R.string.tile_region_presets),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -233,7 +235,7 @@ fun TileDownloadScreen(
                                 contentDescription = null,
                                 modifier = Modifier.padding(end = 4.dp),
                             )
-                            Text("Download")
+                            Text(stringResource(R.string.download))
                         }
                     }
                 }
@@ -243,7 +245,7 @@ fun TileDownloadScreen(
             if (isDownloading) {
                 item {
                     Text(
-                        text = "Download Progress",
+                        text = stringResource(R.string.tile_download_progress),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -259,7 +261,7 @@ fun TileDownloadScreen(
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = "Downloading $downloadedTiles / $totalTiles tiles",
+                                text = stringResource(R.string.tile_downloading_count, downloadedTiles, totalTiles),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Spacer(Modifier.height(8.dp))
@@ -269,7 +271,7 @@ fun TileDownloadScreen(
                                     contentColor = MaterialTheme.colorScheme.error,
                                 ),
                             ) {
-                                Text("Cancel")
+                                Text(stringResource(R.string.cancel))
                             }
                         }
                     }
@@ -298,7 +300,7 @@ fun TileDownloadScreen(
             // Section 5: Cache Actions
             item {
                 Text(
-                    text = "Cache Actions",
+                    text = stringResource(R.string.tile_cache_actions),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -312,7 +314,7 @@ fun TileDownloadScreen(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 4.dp),
                         )
-                        Text("Prune Expired")
+                        Text(stringResource(R.string.tile_prune_expired))
                     }
                     OutlinedButton(
                         onClick = { showClearCacheDialog = true },
@@ -325,7 +327,7 @@ fun TileDownloadScreen(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 4.dp),
                         )
-                        Text("Clear All Cache")
+                        Text(stringResource(R.string.tile_clear_all_cache))
                     }
                 }
                 Spacer(Modifier.height(24.dp))
@@ -341,15 +343,15 @@ fun TileDownloadScreen(
         }
         AlertDialog(
             onDismissRequest = { pendingDownloadPreset = null },
-            title = { Text("Download ${preset.label}?") },
+            title = { Text(stringResource(R.string.tile_download_region, preset.label)) },
             text = {
                 Column {
-                    Text("Total tiles: ${estimate.totalTiles}")
-                    Text("Already cached: ${estimate.cachedTiles}")
-                    Text("To download: ${estimate.toDownload}")
+                    Text(stringResource(R.string.download_estimate_total, estimate.totalTiles))
+                    Text(stringResource(R.string.download_estimate_cached, estimate.cachedTiles))
+                    Text(stringResource(R.string.download_estimate_new, estimate.toDownload))
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Estimated size: ${estimate.formattedSize}",
+                        text = stringResource(R.string.download_estimate_size, estimate.formattedSize),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.primary,
@@ -361,12 +363,12 @@ fun TileDownloadScreen(
                     viewModel.downloadPreset(preset)
                     pendingDownloadPreset = null
                 }) {
-                    Text("Download")
+                    Text(stringResource(R.string.download))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDownloadPreset = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             },
         )
@@ -376,21 +378,21 @@ fun TileDownloadScreen(
     if (showClearCacheDialog) {
         AlertDialog(
             onDismissRequest = { showClearCacheDialog = false },
-            title = { Text("Clear All Cache?") },
+            title = { Text(stringResource(R.string.tile_clear_cache_title)) },
             text = {
-                Text("This will delete all cached map tiles. You will need to re-download them for offline use.")
+                Text(stringResource(R.string.tile_clear_cache_message))
             },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.clearCache()
                     showClearCacheDialog = false
                 }) {
-                    Text("Clear", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.clear), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearCacheDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             },
         )

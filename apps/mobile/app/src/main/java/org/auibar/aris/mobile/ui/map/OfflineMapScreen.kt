@@ -513,7 +513,7 @@ fun OfflineMapScreen(
                     if (uiState.tileStorageSize != "0 B") {
                         TextButton(onClick = { viewModel.pruneExpiredTiles() }) {
                             Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("Prune Old", modifier = Modifier.padding(start = 4.dp))
+                            Text(stringResource(R.string.prune_old), modifier = Modifier.padding(start = 4.dp))
                         }
                         TextButton(onClick = { viewModel.deleteTiles() }) {
                             Text(stringResource(R.string.delete_tiles))

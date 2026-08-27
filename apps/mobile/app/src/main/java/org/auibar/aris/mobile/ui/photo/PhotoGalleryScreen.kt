@@ -199,8 +199,8 @@ fun PhotoGalleryScreen(
     deleteTarget?.let { photoId ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("Delete Photo") },
-            text = { Text("Remove this photo from the submission?") },
+            title = { Text(stringResource(R.string.delete_photo)) },
+            text = { Text(stringResource(R.string.delete_photo_confirm)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deletePhoto(photoId)

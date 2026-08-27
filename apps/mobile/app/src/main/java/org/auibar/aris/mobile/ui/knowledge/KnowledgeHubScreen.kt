@@ -46,12 +46,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.remote.dto.KnowledgePublicationDto
 import org.auibar.aris.mobile.ui.theme.DomainKnowledge
 
@@ -73,7 +75,7 @@ fun KnowledgeHubScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Knowledge Hub") },
+                title = { Text(stringResource(R.string.knowledge_hub)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -256,7 +258,7 @@ fun KnowledgeHubScreen(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "E-Learning",
+                                        text = stringResource(R.string.knowledge_elearning),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                     )

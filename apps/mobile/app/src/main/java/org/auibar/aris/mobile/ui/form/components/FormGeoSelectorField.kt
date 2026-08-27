@@ -37,11 +37,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.google.android.gms.location.LocationServices
+import org.auibar.aris.mobile.R
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -523,10 +525,10 @@ private fun GeoPickerDialog(
                     }) {
                         Icon(Icons.Default.Clear, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
-                        Text("Clear")
+                        Text(stringResource(R.string.clear))
                     }
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                     Button(
                         onClick = {
@@ -537,7 +539,7 @@ private fun GeoPickerDialog(
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
-                        Text("Done")
+                        Text(stringResource(R.string.done))
                     }
                 }
             }

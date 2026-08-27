@@ -191,10 +191,10 @@ class SyncRepository @Inject constructor(
             geoDao.upsertAll(refs.geoUnits.map { dto ->
                 GeoEntity(
                     id = dto.id,
-                    name = dto.name,
+                    name = dto.resolvedName,
                     level = dto.level,
                     parentId = dto.parentId,
-                    isoCode = dto.isoCode,
+                    isoCode = dto.isoCode ?: dto.countryCode,
                     syncedAt = now,
                 )
             })

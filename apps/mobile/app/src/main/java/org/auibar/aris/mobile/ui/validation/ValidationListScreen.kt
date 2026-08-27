@@ -1,5 +1,7 @@
 package org.auibar.aris.mobile.ui.validation
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -28,11 +30,16 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -44,9 +51,14 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,7 +90,7 @@ private val BlueDark = Color(0xFF1565C0)
 private val PurpleColor = Color(0xFF7B1FA2)
 private val OrangeColor = Color(0xFFE65100)
 
-/* ── Level / Status / Priority config ─────────────────────────── */
+/* ── Level / Status config ───────────────────────────────────── */
 
 private data class LevelStyle(val color: Color, val dotColor: Color)
 
@@ -98,18 +110,12 @@ private fun levelShortLabel(level: String): String = when (level) {
 }
 
 private fun statusColors(status: String): Pair<Color, Color> = when (status.uppercase()) {
-    "PENDING" -> AmberLight to AmberDark
-    "APPROVED" -> GreenLight to GreenDark
+    "PENDING", "SUBMITTED", "IN_REVIEW" -> AmberLight to AmberDark
+    "APPROVED", "VALIDATED" -> GreenLight to GreenDark
     "REJECTED" -> RedLight to RedDark
     "RETURNED" -> BlueLight to BlueDark
+    "ESCALATED" -> Color(0xFFF3E5F5) to PurpleColor
     else -> Color(0xFFF5F5F5) to Color(0xFF616161)
-}
-
-@Suppress("unused")
-private fun priorityDotColor(priority: String): Color = when (priority) {
-    "high" -> Color(0xFFF44336)
-    "medium" -> Color(0xFFFFC107)
-    else -> Color(0xFF9E9E9E)
 }
 
 private fun entityBadgeColors(type: String): Pair<Color, Color> = when (type) {
@@ -128,174 +134,367 @@ fun ValidationListScreen(
     viewModel: ValidationListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        // ── Header ──
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.validation_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = stringResource(R.string.validation_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                IconButton(onClick = { viewModel.loadValidations() }) {
-                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.cd_refresh))
-                }
-            }
+    // Show bulk action result
+    LaunchedEffect(state.bulkResultMessage) {
+        state.bulkResultMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.dismissBulkMessage()
         }
+    }
 
-        // ── KPI Cards ──
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                KpiCard(
-                    icon = Icons.Default.Schedule,
-                    iconTint = AmberDark,
-                    iconBg = AmberLight,
-                    label = stringResource(R.string.validation_pending_reviews),
-                    value = "${state.pendingCount}",
-                    modifier = Modifier.weight(1f),
-                )
-                KpiCard(
-                    icon = Icons.Default.CheckCircle,
-                    iconTint = GreenDark,
-                    iconBg = GreenLight,
-                    label = stringResource(R.string.validation_approved_week),
-                    value = "${state.approvedThisWeek}",
-                    modifier = Modifier.weight(1f),
-                )
-                KpiCard(
-                    icon = Icons.Default.Timer,
-                    iconTint = BlueDark,
-                    iconBg = BlueLight,
-                    label = stringResource(R.string.validation_avg_time),
-                    value = "\u2014",
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-
-        // ── Filters ──
-        item {
-            FilterRow(
-                levelFilter = state.levelFilter,
-                statusFilter = state.statusFilter,
-                entityTypeFilter = state.entityTypeFilter,
-                onLevelChange = viewModel::setLevelFilter,
-                onStatusChange = viewModel::setStatusFilter,
-                onEntityTypeChange = viewModel::setEntityTypeFilter,
-            )
-        }
-
-        // ── Loading ──
-        if (state.isLoading) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 80.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // ── Header ──
             item {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-        }
-
-        // ── Error ──
-        if (state.isError) {
-            item {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = RedLight),
+                Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.validation_title),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = stringResource(R.string.validation_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(onClick = { viewModel.loadValidations() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.cd_refresh))
+                    }
+                }
+            }
+
+            // ── KPI Cards (server-driven) ──
+            item {
+                val dashboard = state.dashboard
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    KpiCard(
+                        icon = Icons.Default.Schedule,
+                        iconTint = AmberDark,
+                        iconBg = AmberLight,
+                        label = stringResource(R.string.validation_total_pending),
+                        value = "${dashboard?.totalPending ?: state.items.count { it.status.equals("PENDING", true) }}",
+                        modifier = Modifier.weight(1f),
+                    )
+                    KpiCard(
+                        icon = Icons.Default.CheckCircle,
+                        iconTint = GreenDark,
+                        iconBg = GreenLight,
+                        label = stringResource(R.string.validation_total_approved),
+                        value = "${dashboard?.totalApproved ?: 0}",
+                        modifier = Modifier.weight(1f),
+                    )
+                    KpiCard(
+                        icon = Icons.Default.Close,
+                        iconTint = RedDark,
+                        iconBg = RedLight,
+                        label = stringResource(R.string.validation_total_rejected),
+                        value = "${dashboard?.totalRejected ?: 0}",
+                        modifier = Modifier.weight(1f),
+                    )
+                    KpiCard(
+                        icon = Icons.Default.Warning,
+                        iconTint = OrangeColor,
+                        iconBg = AmberLight,
+                        label = stringResource(R.string.validation_sla_breaches),
+                        value = "${dashboard?.slaBreaches ?: 0}",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            // ── Tabs ──
+            item {
+                val tabs = ValidationTab.entries
+                val selectedIndex = tabs.indexOf(state.activeTab)
+                ScrollableTabRow(
+                    selectedTabIndex = selectedIndex,
+                    edgePadding = 0.dp,
+                    containerColor = Color.Transparent,
+                    divider = {},
+                ) {
+                    tabs.forEach { tab ->
+                        val count = state.tabCounts[tab]
+                        Tab(
+                            selected = state.activeTab == tab,
+                            onClick = { viewModel.setActiveTab(tab) },
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Text(
+                                        text = when (tab) {
+                                            ValidationTab.TO_VALIDATE -> stringResource(R.string.validation_tab_to_validate)
+                                            ValidationTab.REJECTED -> stringResource(R.string.validation_tab_rejected)
+                                            ValidationTab.RETURNED -> stringResource(R.string.validation_tab_returned)
+                                            ValidationTab.VALIDATED -> stringResource(R.string.validation_tab_validated)
+                                        },
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                    if (count != null && count > 0) {
+                                        Badge(
+                                            containerColor = if (state.activeTab == tab)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.surfaceVariant,
+                                        ) {
+                                            Text("$count", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            // ── Search + Level filter ──
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Search bar
+                    OutlinedTextField(
+                        value = state.searchQuery,
+                        onValueChange = viewModel::setSearchQuery,
+                        placeholder = { Text(stringResource(R.string.validation_search_placeholder)) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                    )
+
+                    // Level filter chips
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = state.errorMessage ?: stringResource(R.string.error_something_wrong),
-                            modifier = Modifier.weight(1f),
-                            color = RedDark,
+                        Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(18.dp))
+                        FilterChipDropdown(
+                            label = state.levelFilter?.let { levelShortLabel(it) } ?: stringResource(R.string.validation_all_levels),
+                            options = listOf(
+                                null to stringResource(R.string.validation_all_levels),
+                                "NATIONAL_TECHNICAL" to "L1 — National Technical",
+                                "NATIONAL_OFFICIAL" to "L2 — National Official",
+                                "REC_HARMONIZATION" to "L3 — REC Harmonization",
+                                "CONTINENTAL_PUBLICATION" to "L4 — Continental",
+                            ),
+                            selected = state.levelFilter,
+                            onSelect = viewModel::setLevelFilter,
                         )
-                        TextButton(onClick = { viewModel.loadValidations() }) {
-                            Text(stringResource(R.string.retry))
+                    }
+                }
+            }
+
+            // ── Select All / Bulk bar ──
+            if (state.activeTab == ValidationTab.TO_VALIDATE && state.items.isNotEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TextButton(onClick = {
+                            if (state.selectedIds.size == state.items.size) viewModel.clearSelection()
+                            else viewModel.selectAll()
+                        }) {
+                            Icon(Icons.Default.SelectAll, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                if (state.selectedIds.size == state.items.size) stringResource(R.string.cancel)
+                                else stringResource(R.string.validation_select_all),
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                        if (state.selectedIds.isNotEmpty()) {
+                            Text(
+                                stringResource(R.string.validation_selected_count, state.selectedIds.size),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── Loading ──
+            if (state.isLoading) {
+                item {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+
+            // ── Error ──
+            if (state.isError) {
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = RedLight),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = state.errorMessage ?: stringResource(R.string.error_something_wrong),
+                                modifier = Modifier.weight(1f),
+                                color = RedDark,
+                            )
+                            TextButton(onClick = { viewModel.loadValidations() }) {
+                                Text(stringResource(R.string.retry))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Empty state ──
+            if (!state.isLoading && !state.isError && state.items.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Icon(
+                            Icons.Default.Inbox,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.validation_no_items),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = stringResource(R.string.validation_no_items_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            // ── Items list ──
+            val filteredItems = if (state.searchQuery.isBlank()) state.items
+            else state.items.filter {
+                it.domain.contains(state.searchQuery, true) ||
+                    it.entityId.contains(state.searchQuery, true) ||
+                    it.entityType.contains(state.searchQuery, true)
+            }
+
+            items(filteredItems, key = { it.id }) { item ->
+                ValidationItemCard(
+                    item = item,
+                    isSelected = item.id in state.selectedIds,
+                    showCheckbox = state.activeTab == ValidationTab.TO_VALIDATE,
+                    onToggleSelect = { viewModel.toggleSelection(item.id) },
+                    isConfirming = state.confirmingAction?.id == item.id,
+                    confirmingAction = state.confirmingAction?.action,
+                    comment = state.actionComments[item.id] ?: "",
+                    isPerformingAction = state.isPerformingAction,
+                    showActions = state.activeTab == ValidationTab.TO_VALIDATE,
+                    onApprove = { viewModel.startConfirming(item.id, "approve") },
+                    onReject = { viewModel.startConfirming(item.id, "reject") },
+                    onReturn = { viewModel.startConfirming(item.id, "return") },
+                    onComment = { viewModel.startConfirming(item.id, "comment") },
+                    onConfirm = { viewModel.performAction() },
+                    onCancel = { viewModel.cancelConfirming() },
+                    onCommentChange = { viewModel.setActionComment(item.id, it) },
+                )
+            }
+
+            // ── Pagination ──
+            if (state.totalPages > 1) {
+                item {
+                    PaginationBar(
+                        page = state.page,
+                        totalPages = state.totalPages,
+                        total = state.total,
+                        onPrevious = viewModel::previousPage,
+                        onNext = viewModel::nextPage,
+                    )
+                }
+            }
+        }
+
+        // ── Floating Bulk Action Bar ──
+        if (state.selectedIds.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (state.isBulkActioning) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    } else {
+                        Button(
+                            onClick = { viewModel.bulkAction("approve") },
+                            colors = ButtonDefaults.buttonColors(containerColor = GreenDark),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(stringResource(R.string.validation_bulk_approve), style = MaterialTheme.typography.labelSmall)
+                        }
+                        Button(
+                            onClick = { viewModel.bulkAction("return") },
+                            colors = ButtonDefaults.buttonColors(containerColor = BlueDark),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(stringResource(R.string.validation_bulk_return), style = MaterialTheme.typography.labelSmall)
+                        }
+                        Button(
+                            onClick = { viewModel.bulkAction("reject") },
+                            colors = ButtonDefaults.buttonColors(containerColor = RedDark),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(stringResource(R.string.validation_bulk_reject), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
             }
         }
 
-        // ── Empty state ──
-        if (!state.isLoading && !state.isError && state.items.isEmpty()) {
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 48.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Icon(
-                        Icons.Default.Inbox,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.validation_no_items),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = stringResource(R.string.validation_no_items_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-
-        // ── Items list ──
-        items(state.items, key = { it.id }) { item ->
-            ValidationItemCard(
-                item = item,
-                isConfirming = state.confirmingAction?.id == item.id,
-                confirmingAction = state.confirmingAction?.action,
-                comment = state.actionComments[item.id] ?: "",
-                isPerformingAction = state.isPerformingAction,
-                onApprove = { viewModel.startConfirming(item.id, "approve") },
-                onReject = { viewModel.startConfirming(item.id, "reject") },
-                onReturn = { viewModel.startConfirming(item.id, "return") },
-                onComment = { viewModel.startConfirming(item.id, "comment") },
-                onConfirm = { viewModel.performAction() },
-                onCancel = { viewModel.cancelConfirming() },
-                onCommentChange = { viewModel.setActionComment(item.id, it) },
-                onViewDetails = { /* TODO: navigate to submission detail via item.entityId */ },
-            )
-        }
-
-        // ── Pagination ──
-        if (state.totalPages > 1) {
-            item {
-                PaginationBar(
-                    page = state.page,
-                    totalPages = state.totalPages,
-                    total = state.total,
-                    onPrevious = viewModel::previousPage,
-                    onNext = viewModel::nextPage,
-                )
-            }
-        }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }
 
@@ -314,25 +513,25 @@ private fun KpiCard(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(10.dp)) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(32.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(iconBg),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
+                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -341,73 +540,7 @@ private fun KpiCard(
     }
 }
 
-/* ── Filter Row ───────────────────────────────────────────────── */
-
-@Composable
-private fun FilterRow(
-    levelFilter: String?,
-    statusFilter: String?,
-    entityTypeFilter: String?,
-    onLevelChange: (String?) -> Unit,
-    onStatusChange: (String?) -> Unit,
-    onEntityTypeChange: (String?) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(18.dp))
-
-        FilterChipDropdown(
-            label = levelFilter?.let { levelShortLabel(it) } ?: stringResource(R.string.validation_all_levels),
-            options = listOf(
-                null to stringResource(R.string.validation_all_levels),
-                "NATIONAL_TECHNICAL" to "L1 — National Technical",
-                "NATIONAL_OFFICIAL" to "L2 — National Official",
-                "REC_HARMONIZATION" to "L3 — REC Harmonization",
-                "CONTINENTAL_PUBLICATION" to "L4 — Continental",
-            ),
-            selected = levelFilter,
-            onSelect = onLevelChange,
-        )
-
-        FilterChipDropdown(
-            label = statusFilter?.replaceFirstChar { it.uppercase() }
-                ?: stringResource(R.string.validation_all_statuses),
-            options = listOf(
-                null to stringResource(R.string.validation_all_statuses),
-                "PENDING" to stringResource(R.string.workflow_pending),
-                "APPROVED" to stringResource(R.string.workflow_approved),
-                "REJECTED" to stringResource(R.string.workflow_rejected),
-                "RETURNED" to stringResource(R.string.validation_returned),
-            ),
-            selected = statusFilter,
-            onSelect = onStatusChange,
-        )
-
-        FilterChipDropdown(
-            label = when (entityTypeFilter) {
-                "health_event" -> stringResource(R.string.validation_health_event)
-                "vaccination" -> stringResource(R.string.validation_vaccination)
-                "lab_result" -> stringResource(R.string.validation_lab_result)
-                "census" -> stringResource(R.string.validation_census)
-                else -> stringResource(R.string.validation_all_types)
-            },
-            options = listOf(
-                null to stringResource(R.string.validation_all_types),
-                "health_event" to stringResource(R.string.validation_health_event),
-                "vaccination" to stringResource(R.string.validation_vaccination),
-                "lab_result" to stringResource(R.string.validation_lab_result),
-                "census" to stringResource(R.string.validation_census),
-            ),
-            selected = entityTypeFilter,
-            onSelect = onEntityTypeChange,
-        )
-    }
-}
+/* ── Filter Chip Dropdown ────────────────────────────────────── */
 
 @Composable
 private fun <T> FilterChipDropdown(
@@ -454,10 +587,14 @@ private fun <T> FilterChipDropdown(
 @Composable
 private fun ValidationItemCard(
     item: ValidationItemDto,
+    isSelected: Boolean,
+    showCheckbox: Boolean,
+    onToggleSelect: () -> Unit,
     isConfirming: Boolean,
     confirmingAction: String?,
     comment: String,
     isPerformingAction: Boolean,
+    showActions: Boolean,
     onApprove: () -> Unit,
     onReject: () -> Unit,
     onReturn: () -> Unit,
@@ -465,23 +602,38 @@ private fun ValidationItemCard(
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
     onCommentChange: (String) -> Unit,
-    onViewDetails: () -> Unit = {},
 ) {
     val (statusBg, statusFg) = statusColors(item.status)
     val level = LEVEL_STYLES[item.currentLevel] ?: LEVEL_STYLES["NATIONAL_TECHNICAL"]!!
     val (entityBg, entityFg) = entityBadgeColors(item.entityType)
 
+    val cardBg by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        else MaterialTheme.colorScheme.surface,
+        animationSpec = tween(200),
+        label = "cardBg",
+    )
+
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onViewDetails),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // ── Title + Status badge ──
+            // ── Title row + checkbox ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (showCheckbox) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onToggleSelect() },
+                        modifier = Modifier.size(32.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
                 Text(
                     text = item.domain.replace("_", " ").replaceFirstChar { it.uppercase() }.ifEmpty { item.entityId },
                     style = MaterialTheme.typography.titleSmall,
@@ -491,7 +643,6 @@ private fun ValidationItemCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                // Status badge
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
@@ -509,12 +660,11 @@ private fun ValidationItemCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ── Entity type + Level + Priority row ──
+            // ── Entity type + Level + SLA row ──
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Entity type badge
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
@@ -529,7 +679,6 @@ private fun ValidationItemCard(
                     )
                 }
 
-                // Level dot + label
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
@@ -546,7 +695,6 @@ private fun ValidationItemCard(
                     )
                 }
 
-                // Domain badge
                 if (item.domain.isNotEmpty()) {
                     Text(
                         text = item.domain.replace("_", " ").replaceFirstChar { it.uppercase() },
@@ -555,18 +703,16 @@ private fun ValidationItemCard(
                     )
                 }
 
-                // SLA deadline badge
-                if (item.slaDeadline != null && item.slaDeadline.isNotEmpty()) {
+                // SLA deadline
+                if (!item.slaDeadline.isNullOrEmpty()) {
                     val deadlineMs = try { java.time.Instant.parse(item.slaDeadline).toEpochMilli() } catch (_: Exception) { 0L }
                     val now = System.currentTimeMillis()
                     val remainingHours = ((deadlineMs - now) / 3600_000).toInt()
                     val slaBg: Color
                     val slaFg: Color
-                    val slaText: String
-                    when {
-                        remainingHours < 0 -> { slaBg = Color(0xFFFFEBEE); slaFg = Color(0xFFC62828); slaText = "Overdue" }
-                        remainingHours < 24 -> { slaBg = Color(0xFFFFF3E0); slaFg = Color(0xFFE65100); slaText = "${remainingHours}h left" }
-                        else -> { slaBg = Color(0xFFE8F5E9); slaFg = Color(0xFF2E7D32); slaText = "${remainingHours}h left" }
+                    val slaText: String = when {
+                        remainingHours < 0 -> { slaBg = RedLight; slaFg = RedDark; stringResource(R.string.validation_overdue) }
+                        else -> { slaBg = if (remainingHours < 24) Color(0xFFFFF3E0) else GreenLight; slaFg = if (remainingHours < 24) OrangeColor else GreenDark; stringResource(R.string.validation_hours_left, remainingHours) }
                     }
                     Spacer(Modifier.width(6.dp))
                     Box(
@@ -582,7 +728,7 @@ private fun ValidationItemCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // ── Meta info: entity ID, created date ──
+            // ── Meta: entity ID + date ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -601,14 +747,13 @@ private fun ValidationItemCard(
                 }
             }
 
-            // ── Actions (only for pending items) ──
-            if (item.status.equals("PENDING", ignoreCase = true)) {
+            // ── Actions (only for pending items in TO_VALIDATE tab) ──
+            if (showActions && item.status.uppercase() in listOf("PENDING", "SUBMITTED", "IN_REVIEW")) {
                 Spacer(modifier = Modifier.height(8.dp))
                 HorizontalDivider()
                 Spacer(modifier = Modifier.height(8.dp))
 
                 if (isConfirming) {
-                    // Confirming state — show comment input + confirm/cancel
                     OutlinedTextField(
                         value = comment,
                         onValueChange = onCommentChange,
@@ -641,36 +786,23 @@ private fun ValidationItemCard(
                             ),
                         ) {
                             if (isPerformingAction) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = Color.White,
-                                )
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
                             } else {
-                                Text(
-                                    stringResource(R.string.confirm),
-                                    color = Color.White,
-                                )
+                                Text(stringResource(R.string.confirm), color = Color.White)
                             }
                         }
                     }
                 } else {
-                    // Action buttons row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Comment
-                        TextButton(
-                            onClick = onComment,
-                            contentPadding = PaddingValues(horizontal = 8.dp),
-                        ) {
+                        TextButton(onClick = onComment, contentPadding = PaddingValues(horizontal = 8.dp)) {
                             Icon(Icons.Default.ChatBubble, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Comment", style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(R.string.comment), style = MaterialTheme.typography.labelSmall)
                         }
-                        // Approve
                         TextButton(
                             onClick = onApprove,
                             colors = ButtonDefaults.textButtonColors(contentColor = GreenDark),
@@ -679,7 +811,6 @@ private fun ValidationItemCard(
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(stringResource(R.string.validation_approve), style = MaterialTheme.typography.labelMedium)
                         }
-                        // Reject
                         TextButton(
                             onClick = onReject,
                             colors = ButtonDefaults.textButtonColors(contentColor = RedDark),
@@ -688,7 +819,6 @@ private fun ValidationItemCard(
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(stringResource(R.string.validation_reject), style = MaterialTheme.typography.labelMedium)
                         }
-                        // Return
                         TextButton(
                             onClick = onReturn,
                             colors = ButtonDefaults.textButtonColors(contentColor = BlueDark),

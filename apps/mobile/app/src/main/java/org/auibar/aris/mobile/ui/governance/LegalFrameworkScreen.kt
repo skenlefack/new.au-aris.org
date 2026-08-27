@@ -104,7 +104,7 @@ fun LegalFrameworkScreen(
                 onValueChange = { viewModel.updateLawTitle(it) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("Enter law title") },
+                placeholder = { Text(stringResource(R.string.enter_law_title)) },
                 isError = state.errors.containsKey("lawTitle"),
                 supportingText = state.errors["lawTitle"]?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
             )
@@ -232,7 +232,7 @@ fun LegalFrameworkScreen(
                 onValueChange = { viewModel.updateImplementingBody(it) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("Enter implementing body") },
+                placeholder = { Text(stringResource(R.string.enter_implementing_body)) },
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -245,7 +245,7 @@ fun LegalFrameworkScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5,
-                placeholder = { Text("Additional observations...") },
+                placeholder = { Text(stringResource(R.string.additional_observations)) },
             )
 
             Spacer(modifier = Modifier.height(24.dp))

@@ -58,10 +58,11 @@ class AppBannerViewModel @Inject constructor(
 
     /** Returns true if the device has never completed an initial data sync. */
     fun needsInitialSync(): Boolean {
-        return cachePolicy.getLastRefresh(CachePolicy.KEY_MASTER_GEO) == 0L
+        return !cachePolicy.isInitialSyncDone()
     }
 
     fun logout() {
+        cachePolicy.clearAll()
         authRepository.logout()
     }
 }

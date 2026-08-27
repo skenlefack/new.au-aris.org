@@ -134,7 +134,7 @@ fun VetCapacityScreen(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
-                placeholder = { Text("Enter staff count") },
+                placeholder = { Text(stringResource(R.string.enter_staff_count)) },
                 isError = state.errors.containsKey("staffCount"),
                 supportingText = state.errors["staffCount"]?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
             )
@@ -217,7 +217,7 @@ fun VetCapacityScreen(
                         .fillMaxWidth()
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.locationExpanded) },
-                    placeholder = { Text("Select admin unit") },
+                    placeholder = { Text(stringResource(R.string.select_admin_unit)) },
                 )
                 ExposedDropdownMenu(
                     expanded = state.locationExpanded,
@@ -269,7 +269,7 @@ fun VetCapacityScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5,
-                placeholder = { Text("Additional observations...") },
+                placeholder = { Text(stringResource(R.string.additional_observations)) },
             )
 
             Spacer(modifier = Modifier.height(24.dp))

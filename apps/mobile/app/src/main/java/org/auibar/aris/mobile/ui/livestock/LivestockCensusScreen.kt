@@ -219,7 +219,7 @@ fun LivestockCensusScreen(
                         .fillMaxWidth()
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.geoExpanded) },
-                    placeholder = { Text("Select admin unit") },
+                    placeholder = { Text(stringResource(R.string.select_admin_unit)) },
                 )
                 ExposedDropdownMenu(
                     expanded = state.geoExpanded,
@@ -271,7 +271,7 @@ fun LivestockCensusScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5,
-                placeholder = { Text("Additional observations...") },
+                placeholder = { Text(stringResource(R.string.additional_observations)) },
             )
 
             Spacer(modifier = Modifier.height(24.dp))

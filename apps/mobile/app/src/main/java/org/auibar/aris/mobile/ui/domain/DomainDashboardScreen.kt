@@ -138,7 +138,13 @@ fun DomainDashboardScreen(
     }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val filteredCampaigns = remember(allCampaigns, selectedTabIndex) {
-        allCampaigns.filter { it.status.equals(tabs[selectedTabIndex].status, ignoreCase = true) }
+        allCampaigns
+            .filter { it.status.equals(tabs[selectedTabIndex].status, ignoreCase = true) }
+            .sortedWith(
+                compareByDescending<org.auibar.aris.mobile.data.repository.Campaign> {
+                    it.name.contains("AFADATA", ignoreCase = true)
+                }.thenByDescending { it.startDate }
+            )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

@@ -109,7 +109,7 @@ export function Footer() {
               </h4>
               <a
                 href="/aris-mobile.apk"
-                download="ARIS-v1.2.0.apk"
+                download="ARIS-v1.3.2.apk"
                 className="mt-2 inline-flex items-center gap-2 rounded-lg bg-[#3E2100]/90 px-4 py-2 text-sm font-medium text-[#E8C875] shadow-md transition-all hover:bg-[#3E2100] hover:shadow-lg"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">

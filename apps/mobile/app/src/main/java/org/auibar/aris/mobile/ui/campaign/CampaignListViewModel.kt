@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.cache.CampaignRefresher
@@ -34,11 +35,18 @@ class CampaignListViewModel @Inject constructor(
 
     val campaigns: StateFlow<List<Campaign>> = run {
         val userDomains = tokenManager.getUserDomainList()
-        if (userDomains.isEmpty()) {
+        val source = if (userDomains.isEmpty()) {
             campaignRepository.getActiveCampaigns()
         } else {
             val mobileDomains = userDomains.map { RoleConfig.backendToMobileKey(it) }
             campaignRepository.getActiveCampaignsByDomains(mobileDomains)
+        }
+        // Sort: AFADATA campaigns first, then by most recent start date
+        source.map { list ->
+            list.sortedWith(
+                compareByDescending<Campaign> { it.name.contains("AFADATA", ignoreCase = true) }
+                    .thenByDescending { it.startDate }
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

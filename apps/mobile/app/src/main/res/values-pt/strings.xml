@@ -605,6 +605,22 @@
     <string name="validation_page_info">P\u00e1gina %1$d de %2$d (%3$d itens)</string>
     <string name="validation_previous">Anterior</string>
     <string name="validation_next">Pr\u00f3ximo</string>
+    <string name="validation_tab_to_validate">A validar</string>
+    <string name="validation_tab_rejected">Rejeitados</string>
+    <string name="validation_tab_returned">Devolvidos</string>
+    <string name="validation_tab_validated">Validados</string>
+    <string name="validation_total_pending">Total pendente</string>
+    <string name="validation_total_approved">Total aprovados</string>
+    <string name="validation_total_rejected">Total rejeitados</string>
+    <string name="validation_sla_breaches">Viola\u00e7\u00f5es SLA</string>
+    <string name="validation_search_placeholder">Pesquisar submiss\u00f5es\u2026</string>
+    <string name="validation_select_all">Selecionar tudo</string>
+    <string name="validation_bulk_approve">Aprovar em massa</string>
+    <string name="validation_bulk_reject">Rejeitar em massa</string>
+    <string name="validation_bulk_return">Devolver em massa</string>
+    <string name="validation_selected_count">%1$d selecionado(s)</string>
+    <string name="validation_overdue">Atrasado</string>
+    <string name="validation_hours_left">%1$dh restantes</string>
 
     <!-- Stale Data -->
     <string name="stale_data_warning">Dados podem estar desatualizados (\u00faltima atualiza\u00e7\u00e3o h\u00e1 %s). Conecte-se para atualizar.</string>
@@ -691,4 +707,50 @@
     <string name="sync_completed">conclu\u00eddo</string>
     <string name="sync_once_hint">Isso s\u00f3 acontece uma vez. Os dados estar\u00e3o dispon\u00edveis offline.</string>
     <string name="sync_continue">Continuar</string>
+
+    <!-- i18n: TileDownloadScreen -->
+    <string name="tile_offline_maps_manager">Gestor de mapas offline</string>
+    <string name="tile_cache_status">Estado do cache</string>
+    <string name="tile_total_cache_size">Tamanho total do cache</string>
+    <string name="tile_tiles_cached">Blocos em cache</string>
+    <string name="tile_tiles_count">%d blocos</string>
+    <string name="tile_storage_quota">Quota de armazenamento: %1$s / %2$s</string>
+    <string name="tile_source">Fonte dos blocos</string>
+    <string name="tile_region_presets">Regi\u00f5es pr\u00e9-definidas</string>
+    <string name="tile_download_progress">Progresso do download</string>
+    <string name="tile_downloading_count">Baixando %1$d / %2$d blocos</string>
+    <string name="tile_prune_expired">Limpar expirados</string>
+    <string name="tile_clear_all_cache">Limpar todo o cache</string>
+    <string name="tile_cache_actions">A\u00e7\u00f5es do cache</string>
+    <string name="tile_clear_cache_title">Limpar todo o cache?</string>
+    <string name="tile_clear_cache_message">Isso excluir\u00e1 todos os blocos de mapa em cache. Voc\u00ea precisar\u00e1 baix\u00e1-los novamente para uso offline.</string>
+    <string name="tile_download_region">Baixar %s?</string>
+
+    <!-- i18n: Knowledge Hub -->
+    <string name="knowledge_hub">Centro de Conhecimento</string>
+    <string name="knowledge_article">Artigo</string>
+    <string name="knowledge_course">Curso</string>
+    <string name="knowledge_elearning">E-Learning</string>
+    <string name="knowledge_enroll">Inscrever-se</string>
+    <string name="knowledge_search">Pesquisar</string>
+    <string name="knowledge_search_placeholder">Pesquisar publica\u00e7\u00f5es\u2026</string>
+    <string name="knowledge_no_courses">Nenhum curso dispon\u00edvel ainda</string>
+
+    <!-- i18n: Form fields -->
+    <string name="clear">Limpar</string>
+    <string name="done">Conclu\u00eddo</string>
+    <string name="add_row">Adicionar linha</string>
+    <string name="enter_law_title">Insira o t\u00edtulo da lei</string>
+    <string name="enter_implementing_body">Insira o \u00f3rg\u00e3o executor</string>
+    <string name="enter_staff_count">Insira o n\u00famero de funcion\u00e1rios</string>
+    <string name="select_admin_unit">Selecione a unidade administrativa</string>
+
+    <!-- i18n: Misc screens -->
+    <string name="prune_old">Limpar antigos</string>
+    <string name="search_name_email">Pesquisar por nome ou email\u2026</string>
+    <string name="message_label">Mensagem</string>
+    <string name="delete_photo">Excluir foto</string>
+    <string name="delete_photo_confirm">Remover esta foto da submiss\u00e3o?</string>
+    <string name="comment">Coment\u00e1rio</string>
+    <string name="currency_usd_prefix">USD </string>
 </resources>

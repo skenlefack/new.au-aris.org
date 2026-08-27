@@ -7,11 +7,10 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import org.auibar.aris.mobile.data.remote.dto.ApiResponse
 import org.auibar.aris.mobile.data.remote.dto.SafeApiResponse
-import org.auibar.aris.mobile.data.remote.dto.ApiMeta
 import org.auibar.aris.mobile.data.remote.dto.DiseaseDto
 import org.auibar.aris.mobile.data.remote.dto.GeoDto
 import org.auibar.aris.mobile.data.remote.dto.SpeciesDto
@@ -37,49 +36,55 @@ class SyncApi @Inject constructor(
 
     /** Fetch ALL species by paginating through the backend (MAX_LIMIT=100). */
     suspend fun fetchAllSpecies(): List<SpeciesDto> {
-        return fetchAllPages { page ->
+        return fetchAllPages("species") { page ->
             client.get("/api/v1/master-data/species") {
                 parameter("page", page)
                 parameter("limit", PAGE_SIZE)
-            }.body<SafeApiResponse<List<SpeciesDto>>>()
+            }
         }
     }
 
     /** Fetch ALL diseases by paginating through the backend (MAX_LIMIT=100). */
     suspend fun fetchAllDiseases(): List<DiseaseDto> {
-        return fetchAllPages { page ->
+        return fetchAllPages("diseases") { page ->
             client.get("/api/v1/master-data/diseases") {
                 parameter("page", page)
                 parameter("limit", PAGE_SIZE)
-            }.body<SafeApiResponse<List<DiseaseDto>>>()
+            }
         }
     }
 
     /** Fetch ALL geo units by paginating through the backend (MAX_LIMIT=100). */
     suspend fun fetchAllGeoUnits(): List<GeoDto> {
-        return fetchAllPages { page ->
+        return fetchAllPages("geo") { page ->
             client.get("/api/v1/master-data/geo") {
                 parameter("page", page)
                 parameter("limit", PAGE_SIZE)
-            }.body<SafeApiResponse<List<GeoDto>>>()
+            }
         }
     }
 
     /**
      * Generic pagination helper: keeps fetching pages until all data is retrieved.
-     * Uses SafeApiResponse to handle error responses gracefully.
+     * Checks HTTP status before parsing JSON to avoid "unexpected JSON token" errors.
      */
-    private suspend fun <T> fetchAllPages(
-        fetcher: suspend (page: Int) -> SafeApiResponse<List<T>>,
+    private suspend inline fun <reified T> fetchAllPages(
+        label: String,
+        crossinline fetcher: suspend (page: Int) -> HttpResponse,
     ): List<T> {
         val allItems = mutableListOf<T>()
         var page = 1
         while (true) {
-            val response = fetcher(page)
+            val httpResponse = fetcher(page)
+            if (httpResponse.status.value !in 200..299) {
+                Log.w(TAG, "$label page $page → HTTP ${httpResponse.status.value}, stopping pagination")
+                break
+            }
+            val response: SafeApiResponse<List<T>> = httpResponse.body()
             val items = response.data ?: break
             allItems.addAll(items)
             val total = response.meta?.total ?: items.size
-            Log.d(TAG, "Page $page: ${items.size} items (total: $total, accumulated: ${allItems.size})")
+            Log.d(TAG, "$label page $page: ${items.size} items (total: $total, accumulated: ${allItems.size})")
             if (allItems.size >= total || items.size < PAGE_SIZE) break
             page++
         }

@@ -12,8 +12,10 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import org.auibar.aris.mobile.data.cache.CachePolicy
 import org.auibar.aris.mobile.data.cache.MasterDataRefresher
 import org.auibar.aris.mobile.data.repository.SyncRepository
+import org.auibar.aris.mobile.util.TokenManager
 import java.util.concurrent.TimeUnit
 
 @HiltWorker
@@ -22,13 +24,19 @@ class CacheRefreshWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val masterDataRefresher: MasterDataRefresher,
     private val syncRepository: SyncRepository,
+    private val tokenManager: TokenManager,
+    private val cachePolicy: CachePolicy,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
+        // Skip if user is not logged in or initial sync hasn't been done yet
+        if (!tokenManager.isLoggedIn || !cachePolicy.isInitialSyncDone()) {
+            Log.d(TAG, "Skipping cache refresh — not logged in or initial sync not done")
+            return Result.success()
+        }
         return try {
             Log.d(TAG, "Starting cache refresh...")
-            masterDataRefresher.forceRefreshAll()
-            // Cleanup synced submissions older than 30 days
+            masterDataRefresher.refreshIfNeeded()
             syncRepository.cleanupOldSubmissions()
             Log.d(TAG, "Cache refresh + cleanup complete")
             Result.success()

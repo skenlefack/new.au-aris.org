@@ -640,6 +640,22 @@
     <string name="validation_page_info">Page %1$d of %2$d (%3$d items)</string>
     <string name="validation_previous">Previous</string>
     <string name="validation_next">Next</string>
+    <string name="validation_tab_to_validate">To Validate</string>
+    <string name="validation_tab_rejected">Rejected</string>
+    <string name="validation_tab_returned">Returned</string>
+    <string name="validation_tab_validated">Validated</string>
+    <string name="validation_total_pending">Total Pending</string>
+    <string name="validation_total_approved">Total Approved</string>
+    <string name="validation_total_rejected">Total Rejected</string>
+    <string name="validation_sla_breaches">SLA Breaches</string>
+    <string name="validation_search_placeholder">Search submissions\u2026</string>
+    <string name="validation_select_all">Select All</string>
+    <string name="validation_bulk_approve">Bulk Approve</string>
+    <string name="validation_bulk_reject">Bulk Reject</string>
+    <string name="validation_bulk_return">Bulk Return</string>
+    <string name="validation_selected_count">%1$d selected</string>
+    <string name="validation_overdue">Overdue</string>
+    <string name="validation_hours_left">%1$dh left</string>
 
     <!-- Sync Status -->
     <string name="sync_status_online">Online</string>
@@ -726,4 +742,50 @@
     <string name="sync_completed">completed</string>
     <string name="sync_once_hint">This only happens once. Data will be available offline.</string>
     <string name="sync_continue">Continue</string>
+
+    <!-- i18n: TileDownloadScreen -->
+    <string name="tile_offline_maps_manager">Offline Maps Manager</string>
+    <string name="tile_cache_status">Cache Status</string>
+    <string name="tile_total_cache_size">Total Cache Size</string>
+    <string name="tile_tiles_cached">Tiles Cached</string>
+    <string name="tile_tiles_count">%d tiles</string>
+    <string name="tile_storage_quota">Storage Quota: %1$s / %2$s</string>
+    <string name="tile_source">Tile Source</string>
+    <string name="tile_region_presets">Region Presets</string>
+    <string name="tile_download_progress">Download Progress</string>
+    <string name="tile_downloading_count">Downloading %1$d / %2$d tiles</string>
+    <string name="tile_prune_expired">Prune Expired</string>
+    <string name="tile_clear_all_cache">Clear All Cache</string>
+    <string name="tile_cache_actions">Cache Actions</string>
+    <string name="tile_clear_cache_title">Clear All Cache?</string>
+    <string name="tile_clear_cache_message">This will delete all cached map tiles. You will need to re-download them for offline use.</string>
+    <string name="tile_download_region">Download %s?</string>
+
+    <!-- i18n: Knowledge Hub -->
+    <string name="knowledge_hub">Knowledge Hub</string>
+    <string name="knowledge_article">Article</string>
+    <string name="knowledge_course">Course</string>
+    <string name="knowledge_elearning">E-Learning</string>
+    <string name="knowledge_enroll">Enroll</string>
+    <string name="knowledge_search">Search</string>
+    <string name="knowledge_search_placeholder">Search publications\u2026</string>
+    <string name="knowledge_no_courses">No courses available yet</string>
+
+    <!-- i18n: Form fields -->
+    <string name="clear">Clear</string>
+    <string name="done">Done</string>
+    <string name="add_row">Add Row</string>
+    <string name="enter_law_title">Enter law title</string>
+    <string name="enter_implementing_body">Enter implementing body</string>
+    <string name="enter_staff_count">Enter staff count</string>
+    <string name="select_admin_unit">Select admin unit</string>
+
+    <!-- i18n: Misc screens -->
+    <string name="prune_old">Prune Old</string>
+    <string name="search_name_email">Search by name or email\u2026</string>
+    <string name="message_label">Message</string>
+    <string name="delete_photo">Delete Photo</string>
+    <string name="delete_photo_confirm">Remove this photo from the submission?</string>
+    <string name="comment">Comment</string>
+    <string name="currency_usd_prefix">USD </string>
 </resources>

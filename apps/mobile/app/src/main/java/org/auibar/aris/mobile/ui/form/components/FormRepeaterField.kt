@@ -22,8 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.ui.form.model.FormField
 import org.auibar.aris.mobile.ui.form.model.FormFieldType
 
@@ -188,7 +190,7 @@ fun FormRepeaterField(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                Text("Add Row")
+                Text(stringResource(R.string.add_row))
             }
         }
     }

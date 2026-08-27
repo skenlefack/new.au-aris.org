@@ -46,6 +46,16 @@ class CachePolicy @Inject constructor(
         prefs.edit().clear().apply()
     }
 
+    /** Mark initial sync as completed — only set by InitialSyncViewModel. */
+    fun markInitialSyncDone() {
+        prefs.edit().putBoolean(KEY_INITIAL_SYNC_DONE, true).apply()
+    }
+
+    /** Check if the initial sync has ever been completed successfully. */
+    fun isInitialSyncDone(): Boolean {
+        return prefs.getBoolean(KEY_INITIAL_SYNC_DONE, false)
+    }
+
     companion object {
         const val KEY_MASTER_SPECIES = "cache_master_species"
         const val KEY_MASTER_DISEASES = "cache_master_diseases"
@@ -54,6 +64,7 @@ class CachePolicy @Inject constructor(
         const val KEY_TEMPLATES = "cache_templates"
         const val KEY_KPI_HEALTH = "cache_kpi_health"
         const val KEY_KPI_CONTINENTAL = "cache_kpi_continental"
+        const val KEY_INITIAL_SYNC_DONE = "initial_sync_done"
         fun keyKpiDomain(domainKey: String) = "cache_kpi_domain_$domainKey"
     }
 }

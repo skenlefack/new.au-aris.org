@@ -269,7 +269,7 @@ fun ProductionRecordScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5,
-                placeholder = { Text("Additional observations...") },
+                placeholder = { Text(stringResource(R.string.additional_observations)) },
             )
 
             Spacer(modifier = Modifier.height(24.dp))

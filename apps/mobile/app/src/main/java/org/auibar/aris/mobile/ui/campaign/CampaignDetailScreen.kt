@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -221,21 +222,29 @@ fun CampaignDetailScreen(
                                 if (onViewSubmissions != null) {
                                     OutlinedButton(
                                         onClick = onViewSubmissions,
-                                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                                     ) {
                                         Icon(Icons.Default.Article, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(Modifier.width(4.dp))
-                                        Text("View All")
+                                        Text(stringResource(R.string.domain_view_all), maxLines = 1)
                                     }
                                 }
                                 if (uiState.status == "ACTIVE") {
                                     Button(
-                                        onClick = onNewSubmission,
-                                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                                        onClick = {
+                                            // Use first resolved template if available
+                                            val firstTemplate = uiState.templates.firstOrNull()
+                                            if (firstTemplate != null && onFillTemplate != null) {
+                                                onFillTemplate(campaignId, firstTemplate.id, "fill")
+                                            } else {
+                                                onNewSubmission()
+                                            }
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(Modifier.width(4.dp))
-                                        Text(stringResource(R.string.new_submission))
+                                        Text(stringResource(R.string.new_submission), maxLines = 1)
                                     }
                                 }
                             }

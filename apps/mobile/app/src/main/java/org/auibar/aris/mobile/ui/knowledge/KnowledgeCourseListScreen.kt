@@ -38,11 +38,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.remote.dto.KnowledgeCourseDto
 import org.auibar.aris.mobile.ui.theme.DomainKnowledge
 
@@ -64,7 +66,7 @@ fun KnowledgeCourseListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("E-Learning") },
+                title = { Text(stringResource(R.string.knowledge_elearning)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -128,7 +130,7 @@ fun KnowledgeCourseListScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "No courses available yet",
+                            text = stringResource(R.string.knowledge_no_courses),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -257,7 +259,7 @@ private fun CourseCard(
                         containerColor = DomainKnowledge,
                     ),
                 ) {
-                    Text("Enroll")
+                    Text(stringResource(R.string.knowledge_enroll))
                 }
             }
         }

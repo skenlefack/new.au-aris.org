@@ -605,6 +605,22 @@
     <string name="validation_page_info">Page %1$d sur %2$d (%3$d \u00e9l\u00e9ments)</string>
     <string name="validation_previous">Pr\u00e9c\u00e9dent</string>
     <string name="validation_next">Suivant</string>
+    <string name="validation_tab_to_validate">\u00c0 valider</string>
+    <string name="validation_tab_rejected">Rejet\u00e9s</string>
+    <string name="validation_tab_returned">Retourn\u00e9s</string>
+    <string name="validation_tab_validated">Valid\u00e9s</string>
+    <string name="validation_total_pending">Total en attente</string>
+    <string name="validation_total_approved">Total approuv\u00e9s</string>
+    <string name="validation_total_rejected">Total rejet\u00e9s</string>
+    <string name="validation_sla_breaches">D\u00e9passements SLA</string>
+    <string name="validation_search_placeholder">Rechercher des soumissions\u2026</string>
+    <string name="validation_select_all">Tout s\u00e9lectionner</string>
+    <string name="validation_bulk_approve">Approuver en masse</string>
+    <string name="validation_bulk_reject">Rejeter en masse</string>
+    <string name="validation_bulk_return">Retourner en masse</string>
+    <string name="validation_selected_count">%1$d s\u00e9lectionn\u00e9(s)</string>
+    <string name="validation_overdue">En retard</string>
+    <string name="validation_hours_left">%1$dh restantes</string>
 
     <!-- Stale Data -->
     <string name="stale_data_warning">Les données peuvent être obsolètes (dernière mise à jour il y a %s). Connectez-vous pour actualiser.</string>
@@ -691,4 +707,50 @@
     <string name="sync_completed">termin\u00e9</string>
     <string name="sync_once_hint">Cela ne se fait qu\'une seule fois. Les donn\u00e9es seront disponibles hors ligne.</string>
     <string name="sync_continue">Continuer</string>
+
+    <!-- i18n: TileDownloadScreen -->
+    <string name="tile_offline_maps_manager">Gestionnaire de cartes hors ligne</string>
+    <string name="tile_cache_status">\u00c9tat du cache</string>
+    <string name="tile_total_cache_size">Taille totale du cache</string>
+    <string name="tile_tiles_cached">Tuiles en cache</string>
+    <string name="tile_tiles_count">%d tuiles</string>
+    <string name="tile_storage_quota">Quota de stockage : %1$s / %2$s</string>
+    <string name="tile_source">Source des tuiles</string>
+    <string name="tile_region_presets">R\u00e9gions pr\u00e9d\u00e9finies</string>
+    <string name="tile_download_progress">Progression du t\u00e9l\u00e9chargement</string>
+    <string name="tile_downloading_count">T\u00e9l\u00e9chargement %1$d / %2$d tuiles</string>
+    <string name="tile_prune_expired">Purger les expir\u00e9es</string>
+    <string name="tile_clear_all_cache">Vider tout le cache</string>
+    <string name="tile_cache_actions">Actions du cache</string>
+    <string name="tile_clear_cache_title">Vider tout le cache ?</string>
+    <string name="tile_clear_cache_message">Cela supprimera toutes les tuiles de carte en cache. Vous devrez les ret\u00e9l\u00e9charger pour une utilisation hors ligne.</string>
+    <string name="tile_download_region">T\u00e9l\u00e9charger %s ?</string>
+
+    <!-- i18n: Knowledge Hub -->
+    <string name="knowledge_hub">Centre de connaissances</string>
+    <string name="knowledge_article">Article</string>
+    <string name="knowledge_course">Cours</string>
+    <string name="knowledge_elearning">E-Learning</string>
+    <string name="knowledge_enroll">S\'inscrire</string>
+    <string name="knowledge_search">Rechercher</string>
+    <string name="knowledge_search_placeholder">Rechercher des publications\u2026</string>
+    <string name="knowledge_no_courses">Aucun cours disponible pour le moment</string>
+
+    <!-- i18n: Form fields -->
+    <string name="clear">Effacer</string>
+    <string name="done">Termin\u00e9</string>
+    <string name="add_row">Ajouter une ligne</string>
+    <string name="enter_law_title">Entrez le titre de la loi</string>
+    <string name="enter_implementing_body">Entrez l\'organisme de mise en \u0153uvre</string>
+    <string name="enter_staff_count">Entrez le nombre d\'agents</string>
+    <string name="select_admin_unit">S\u00e9lectionnez l\'unit\u00e9 administrative</string>
+
+    <!-- i18n: Misc screens -->
+    <string name="prune_old">Purger anciennes</string>
+    <string name="search_name_email">Rechercher par nom ou email\u2026</string>
+    <string name="message_label">Message</string>
+    <string name="delete_photo">Supprimer la photo</string>
+    <string name="delete_photo_confirm">Retirer cette photo de la soumission ?</string>
+    <string name="comment">Commentaire</string>
+    <string name="currency_usd_prefix">USD </string>
 </resources>

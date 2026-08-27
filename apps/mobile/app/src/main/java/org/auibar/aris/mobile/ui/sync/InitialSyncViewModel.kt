@@ -82,6 +82,9 @@ class InitialSyncViewModel @Inject constructor(
             val totalSteps = _state.value.steps.size
             var completedCount = 0
 
+            // Brief delay to ensure auth tokens are loaded by Ktor bearer plugin
+            kotlinx.coroutines.delay(500)
+
             // Step 0: Geo (paginated — backend MAX_LIMIT=100)
             updateStep(0, StepStatus.IN_PROGRESS)
             try {
@@ -90,10 +93,10 @@ class InitialSyncViewModel @Inject constructor(
                 val entities = allGeo.map { dto ->
                     GeoEntity(
                         id = dto.id,
-                        name = dto.name,
+                        name = dto.resolvedName,
                         level = dto.level,
                         parentId = dto.parentId,
-                        isoCode = dto.isoCode,
+                        isoCode = dto.isoCode ?: dto.countryCode,
                         syncedAt = now,
                     )
                 }
@@ -103,7 +106,7 @@ class InitialSyncViewModel @Inject constructor(
                 completedCount++
                 Log.d(TAG, "Geo synced: ${entities.size}")
             } catch (e: Exception) {
-                updateStep(0, StepStatus.ERROR, errorMessage = e.message ?: "Network error")
+                updateStep(0, StepStatus.ERROR, errorMessage = e.message?.take(60) ?: "Network error")
                 Log.w(TAG, "Geo sync failed", e)
             }
             updateProgress(completedCount, totalSteps)
@@ -128,7 +131,7 @@ class InitialSyncViewModel @Inject constructor(
                 completedCount++
                 Log.d(TAG, "Species synced: ${entities.size}")
             } catch (e: Exception) {
-                updateStep(1, StepStatus.ERROR, errorMessage = e.message ?: "Network error")
+                updateStep(1, StepStatus.ERROR, errorMessage = e.message?.take(60) ?: "Network error")
                 Log.w(TAG, "Species sync failed", e)
             }
             updateProgress(completedCount, totalSteps)
@@ -154,7 +157,7 @@ class InitialSyncViewModel @Inject constructor(
                 completedCount++
                 Log.d(TAG, "Diseases synced: ${entities.size}")
             } catch (e: Exception) {
-                updateStep(2, StepStatus.ERROR, errorMessage = e.message ?: "Network error")
+                updateStep(2, StepStatus.ERROR, errorMessage = e.message?.take(60) ?: "Network error")
                 Log.w(TAG, "Diseases sync failed", e)
             }
             updateProgress(completedCount, totalSteps)
@@ -203,24 +206,28 @@ class InitialSyncViewModel @Inject constructor(
             }
             updateProgress(completedCount, totalSteps)
 
-            // Step 6: Dashboard & KPIs
+            // Step 6: Dashboard & KPIs (with 10s timeout to avoid blocking)
             updateStep(6, StepStatus.IN_PROGRESS)
             try {
-                val result = dashboardRepository.getKpis(forceRefresh = true)
-                val kpiCount = result.getOrNull()?.size ?: 0
-                // Also try continental KPIs
-                val continentalResult = dashboardRepository.getContinentalKpis(forceRefresh = true)
-                val totalKpis = kpiCount + (continentalResult.getOrNull()?.size ?: 0)
-                updateStep(6, StepStatus.DONE, totalKpis)
+                val kpiResult = kotlinx.coroutines.withTimeoutOrNull(10_000L) {
+                    val result = dashboardRepository.getKpis(forceRefresh = true)
+                    val kpiCount = result.getOrNull()?.size ?: 0
+                    val continentalResult = dashboardRepository.getContinentalKpis(forceRefresh = true)
+                    kpiCount + (continentalResult.getOrNull()?.size ?: 0)
+                }
+                updateStep(6, StepStatus.DONE, kpiResult ?: 0)
                 completedCount++
-                Log.d(TAG, "Dashboard KPIs synced: $totalKpis")
+                Log.d(TAG, "Dashboard KPIs synced: ${kpiResult ?: 0}")
             } catch (e: Exception) {
-                updateStep(6, StepStatus.ERROR, errorMessage = e.message ?: "Network error")
-                Log.w(TAG, "Dashboard sync failed", e)
+                // Dashboard is non-critical — mark as done with 0 to not block sync
+                updateStep(6, StepStatus.DONE, 0)
+                completedCount++
+                Log.w(TAG, "Dashboard sync skipped: ${e.message}")
             }
             updateProgress(completedCount, totalSteps)
 
-            // Mark complete
+            // Mark initial sync as done (dedicated flag, not affected by background workers)
+            cachePolicy.markInitialSyncDone()
             _state.update { it.copy(isComplete = true, overallProgress = 1f) }
         }
     }

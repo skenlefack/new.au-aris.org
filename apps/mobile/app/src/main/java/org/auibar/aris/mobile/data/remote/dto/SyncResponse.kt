@@ -180,11 +180,22 @@ data class DiseaseDto(
 @Serializable
 data class GeoDto(
     val id: String,
-    val name: String,
-    val level: String,
+    val name: kotlinx.serialization.json.JsonElement? = null,
+    val nameEn: String? = null,
+    val nameFr: String? = null,
+    val code: String? = null,
+    val level: String = "",
     val parentId: String? = null,
     val isoCode: String? = null,
-)
+    val countryCode: String? = null,
+) {
+    val resolvedName: String
+        get() = nameEn
+            ?: name?.let { resolveI18nName(it.toString()) }
+            ?: nameFr
+            ?: code
+            ?: id
+}
 
 @Serializable
 data class WorkflowUpdateDto(

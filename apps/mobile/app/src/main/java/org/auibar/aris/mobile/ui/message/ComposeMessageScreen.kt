@@ -99,7 +99,7 @@ fun ComposeMessageScreen(
                 value = state.searchQuery,
                 onValueChange = { viewModel.updateSearch(it) },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search by name or email...") },
+                placeholder = { Text(stringResource(R.string.search_name_email)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.cd_search)) },
                 singleLine = true,
             )
@@ -155,7 +155,7 @@ fun ComposeMessageScreen(
             // Message body
             if (state.selectedRecipientId.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
-                Text("Message", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.message_label), style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = state.messageBody,
