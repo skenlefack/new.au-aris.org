@@ -52,8 +52,8 @@ export const MapView: React.FC<MapViewProps> = ({
         map = L.map(mapRef.current).setView(center, zoom);
         leafletMapRef.current = map;
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors',
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; CARTO &copy; OSM contributors',
           maxZoom: 18,
         }).addTo(map as L.Map);
 

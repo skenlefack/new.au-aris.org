@@ -327,10 +327,10 @@ class MapTileManager @Inject constructor(
         private val servers: Array<String>,
     ) {
         OSM(
-            label = "OpenStreetMap",
-            sourceName = "Mapnik",
+            label = "CartoDB Light",
+            sourceName = "CartoLight",
             maxZoom = 19,
-            urlTemplate = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            urlTemplate = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
             servers = arrayOf("a", "b", "c"),
         ),
         TOPO(
@@ -341,11 +341,11 @@ class MapTileManager @Inject constructor(
             servers = arrayOf("a", "b", "c"),
         ),
         HUMANITARIAN(
-            label = "Humanitarian (HOT)",
-            sourceName = "HOT",
+            label = "CartoDB Voyager",
+            sourceName = "CartoVoyager",
             maxZoom = 19,
-            urlTemplate = "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
-            servers = arrayOf("a", "b"),
+            urlTemplate = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+            servers = arrayOf("a", "b", "c"),
         );
 
         /** Build a tile download URL using round-robin server selection. */

@@ -53,10 +53,9 @@ export function TranshumanceMap({
       mapInstanceRef.current = map;
 
       L.tileLayer(
-        process.env.NEXT_PUBLIC_MAP_TILE_URL ??
-          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
         {
-          attribution: '&copy; OpenStreetMap contributors',
+          attribution: '&copy; CARTO &copy; OSM contributors',
           maxZoom: 18,
         },
       ).addTo(map);
