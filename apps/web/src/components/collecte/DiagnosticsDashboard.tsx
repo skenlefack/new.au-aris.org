@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import type { CountryOutbreakData } from '@/components/dashboard/demo-data';
 import { AFRICA_COUNTRIES } from '@/components/dashboard/maps/africa-geo-data';
+import { useTranslations } from 'next-intl';
 
 /* Leaflet map — dynamic import (no SSR) */
 const ChoroplethMap = dynamic(
@@ -176,6 +177,7 @@ const PPR_STATUS_COLORS: Record<string, string> = {
 };
 
 export default function DiagnosticsDashboard({ campaignId }: { campaignId: string }) {
+  const { t } = useTranslations('collecte');
   const sQ = useCampaignSubmissions(campaignId, { limit: 100 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
@@ -247,7 +249,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
     const pmatMap = new Map<string, number>();
     for (const r of rows) {
       if (r.pmatStage >= 1 && r.pmatStage <= 4) {
-        const key = `Stade ${r.pmatStage}`;
+        const key = `${t('pmatStage')} ${r.pmatStage}`;
         pmatMap.set(key, (pmatMap.get(key) || 0) + 1);
       }
     }
@@ -323,7 +325,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
       notifEntries,
       allCountriesStatus,
     };
-  }, [rawSubs]);
+  }, [rawSubs, t]);
 
   const ACCENT = '#7C3AED';
 
@@ -334,11 +336,11 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
         <div className="flex items-center gap-2">
           <FlaskConical className="h-5 w-5 text-white/80" />
           <span className="text-sm font-bold tracking-wide text-white">
-            Programme PPR — Capacit&eacute; Diagnostique &amp; Kits HPPR-bELISA
+            {t('pprDiagnosticsTitle')}
           </span>
         </div>
         <span className="rounded bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">
-          {kpis.totalCountries} pays
+          {kpis.totalCountries} {t('countries')}
         </span>
       </div>
 
@@ -348,11 +350,11 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
           Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[72px]" />)
         ) : (
           [
-            { icon: Globe2, val: kpis.totalCountries, label: 'Pays enqu\u00EAt\u00E9s', color: '#7C3AED', bg: '#F5F3FF' },
-            { icon: Package, val: kpis.totalKits, label: 'Kits demand\u00E9s', color: '#EA580C', bg: '#FFF7ED' },
-            { icon: ShieldAlert, val: kpis.infectedCountries, label: 'Pays infect\u00E9s', color: '#DC2626', bg: '#FEF2F2' },
-            { icon: ShieldCheck, val: kpis.freeCountries, label: 'Pays indemnes', color: '#059669', bg: '#ECFDF5' },
-            { icon: Handshake, val: `${kpis.engagementRate}%`, label: "Taux d'engagement", color: '#1E40AF', bg: '#EFF6FF' },
+            { icon: Globe2, val: kpis.totalCountries, label: t('countriesSurveyed'), color: '#7C3AED', bg: '#F5F3FF' },
+            { icon: Package, val: kpis.totalKits, label: t('kitsRequested'), color: '#EA580C', bg: '#FFF7ED' },
+            { icon: ShieldAlert, val: kpis.infectedCountries, label: t('infectedCountries'), color: '#DC2626', bg: '#FEF2F2' },
+            { icon: ShieldCheck, val: kpis.freeCountries, label: t('freeCountries'), color: '#059669', bg: '#ECFDF5' },
+            { icon: Handshake, val: `${kpis.engagementRate}%`, label: t('engagementRate'), color: '#1E40AF', bg: '#EFF6FF' },
           ].map((k, i) => {
             const Icon = k.icon;
             return (
@@ -383,29 +385,30 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
             <div className="lg:col-span-3 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                 <Globe2 className="h-4 w-4 text-[#7C3AED]" />
-                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Carte PPR en Afrique</h3>
+                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">{t('pprMapAfrica')}</h3>
               </div>
               <div className="relative h-[480px]">
                 <ChoroplethMap title="" data={mapData} indicator="submissions" bare />
                 <div className="absolute bottom-3 left-3 z-[1000] rounded-lg bg-white/95 px-3 py-2.5 shadow-md backdrop-blur dark:bg-gray-900/95">
-                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">Statut PPR</p>
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">{t('pprStatusByCountry')}</p>
                   {[
-                    { label: 'Infect\u00E9', color: '#DC2626' },
-                    { label: 'Indemne', color: '#059669' },
-                    { label: '\u00C9radiqu\u00E9', color: '#1E40AF' },
-                    { label: 'Non enqu\u00EAt\u00E9', color: '#D1D5DB' },
+                    { key: 'infected' as const, color: '#DC2626' },
+                    { key: 'free' as const, color: '#059669' },
+                    { key: 'eradicated' as const, color: '#1E40AF' },
+                    { key: 'notSurveyed' as const, color: '#D1D5DB' },
                   ].map((s) => {
-                    const count = s.label === 'Non enqu\u00EAt\u00E9'
+                    const label = t(s.key);
+                    const count = s.key === 'notSurveyed'
                       ? allCountriesStatus.filter((c) => c.pprStatus === 'not_surveyed').length
-                      : s.label === 'Infect\u00E9'
+                      : s.key === 'infected'
                         ? allCountriesStatus.filter((c) => c.pprStatus === 'Infected').length
-                        : s.label === 'Indemne'
+                        : s.key === 'free'
                           ? allCountriesStatus.filter((c) => c.pprStatus.toLowerCase().includes('free')).length
                           : allCountriesStatus.filter((c) => c.pprStatus === 'Eradicated').length;
                     return (
-                      <div key={s.label} className="flex items-center gap-2 py-0.5">
+                      <div key={s.key} className="flex items-center gap-2 py-0.5">
                         <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: s.color }} />
-                        <span className="text-[11px] text-gray-600 dark:text-gray-300">{s.label} ({count})</span>
+                        <span className="text-[11px] text-gray-600 dark:text-gray-300">{label} ({count})</span>
                       </div>
                     );
                   })}
@@ -416,7 +419,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
             {/* Right — 3 charts */}
             <div className="lg:col-span-2 space-y-4">
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">Statut PPR par Pays</h3>
+                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('pprStatusByCountry')}</h3>
                 <PieChart
                   entries={pprStatusEntries}
                   colors={pprStatusEntries.map((e) => PPR_STATUS_COLORS[e.label] || '#9CA3AF')}
@@ -424,11 +427,11 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
                 />
               </div>
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">Stade PMAT</h3>
+                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('pmatStage')}</h3>
                 <PieChart entries={pmatEntries} colors={['#7C3AED', '#A78BFA', '#C4B5FD', '#DDD6FE']} size={140} />
               </div>
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">Tests Diagnostiques Utilis&eacute;s</h3>
+                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('diagnosticTestsUsed')}</h3>
                 <DonutChart
                   entries={testEntries}
                   colors={['#1E40AF', '#059669', '#EA580C', '#DC2626', '#D97706', '#0891B2', '#7C3AED', '#4F46E5']}
@@ -445,15 +448,15 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                 <ShieldAlert className="h-4 w-4 text-red-600" />
-                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Pays infect&eacute;s &amp; Kits demand&eacute;s ({infectedTable.length})</h3>
+                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">{t('infectedCountriesAndKits')} ({infectedTable.length})</h3>
               </div>
               <div className="overflow-auto max-h-[360px]">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800">
                     <tr className="text-[11px] uppercase tracking-wider text-gray-500">
-                      <th className="px-4 py-2 text-left font-semibold">Pays</th>
-                      <th className="px-4 py-2 text-left font-semibold">Statut PPR</th>
-                      <th className="px-4 py-2 text-right font-semibold">Kits</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('countries')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('pprStatusByCountry')}</th>
+                      <th className="px-4 py-2 text-right font-semibold">{t('kitsRequested')}</th>
                       <th className="px-4 py-2 text-center font-semibold">PMAT</th>
                     </tr>
                   </thead>
@@ -467,12 +470,12 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
                         <td className="px-4 py-2 text-right font-semibold text-gray-800 dark:text-gray-200">{r.kitsRequested}</td>
                         <td className="px-4 py-2 text-center">
                           <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/20 dark:text-purple-400">
-                            {r.pmatStage > 0 ? `Stade ${r.pmatStage}` : '—'}
+                            {r.pmatStage > 0 ? `${t('pmatStage')} ${r.pmatStage}` : '—'}
                           </span>
                         </td>
                       </tr>
                     ))}
-                    {infectedTable.length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400 italic">Aucune donn&eacute;e</td></tr>}
+                    {infectedTable.length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400 italic">{t('noData')}</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -482,16 +485,16 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                 <Thermometer className="h-4 w-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Conditions de stockage &amp; Engagement ({storageTable.length})</h3>
+                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">{t('storageAndEngagement')} ({storageTable.length})</h3>
               </div>
               <div className="overflow-auto max-h-[360px]">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800">
                     <tr className="text-[11px] uppercase tracking-wider text-gray-500">
-                      <th className="px-4 py-2 text-left font-semibold">Pays</th>
-                      <th className="px-4 py-2 text-left font-semibold">Stockage</th>
-                      <th className="px-4 py-2 text-center font-semibold">Endorsement</th>
-                      <th className="px-4 py-2 text-center font-semibold">Engagement</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('countries')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('storage')}</th>
+                      <th className="px-4 py-2 text-center font-semibold">{t('endorsement')}</th>
+                      <th className="px-4 py-2 text-center font-semibold">{t('engagement')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -503,17 +506,17 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
                         <td className="px-4 py-2 text-gray-600 dark:text-gray-400">{r.storageConditions || '—'}</td>
                         <td className="px-4 py-2 text-center">
                           {r.endorsement === 'yes'
-                            ? <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">Oui</span>
-                            : <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">Non</span>}
+                            ? <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">{t('yes')}</span>
+                            : <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">{t('no')}</span>}
                         </td>
                         <td className="px-4 py-2 text-center">
                           {r.commitment === 'yes'
-                            ? <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">Oui</span>
-                            : <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">Non</span>}
+                            ? <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">{t('yes')}</span>
+                            : <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">{t('no')}</span>}
                         </td>
                       </tr>
                     ))}
-                    {storageTable.length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400 italic">Aucune donn&eacute;e</td></tr>}
+                    {storageTable.length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400 italic">{t('noData')}</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -523,19 +526,19 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
           {/* ROW 3: Bar chart + Notification pie */}
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-              <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">Kits demand&eacute;s par pays</h3>
+              <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('kitsRequestedByCountry')}</h3>
               {kitsBarEntries.length > 0 ? (
                 <HBarChart entries={kitsBarEntries} color={ACCENT} />
               ) : (
-                <p className="text-sm text-gray-400 italic">Aucune donn&eacute;e</p>
+                <p className="text-sm text-gray-400 italic">{t('noData')}</p>
               )}
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-              <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">Syst&egrave;mes de notification</h3>
+              <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('notificationSystems')}</h3>
               {notifEntries.length > 0 ? (
                 <PieChart entries={notifEntries} colors={['#1E40AF', '#059669', '#EA580C', '#7C3AED', '#DC2626', '#D97706', '#0891B2', '#4F46E5']} size={140} />
               ) : (
-                <p className="text-sm text-gray-400 italic">Aucune donn&eacute;e</p>
+                <p className="text-sm text-gray-400 italic">{t('noData')}</p>
               )}
             </div>
           </div>
@@ -544,8 +547,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
 
       {/* FOOTER */}
       <div className="bg-[#7C3AED] px-4 py-1.5 text-[9px] leading-snug text-white/90">
-        <strong>Source :</strong> Enqu&ecirc;te &laquo; Tests Diagnostiques &amp; Kits HPPR-bELISA &raquo; —
-        Programme PPR, AU-IBAR. Donn&eacute;es issues de {kpis.totalCountries} r&eacute;ponses pays.
+        <strong>Source :</strong> {t('pprDiagnosticsTitle')} — AU-IBAR. {t('dataSourceFooter', { count: kpis.totalCountries })}
       </div>
     </div>
   );

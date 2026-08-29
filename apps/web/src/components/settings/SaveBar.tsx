@@ -3,6 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Save, X, Loader2 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface SaveBarProps {
   show: boolean;
@@ -17,8 +18,10 @@ export function SaveBar({
   saving = false,
   onSave,
   onDiscard,
-  message = 'You have unsaved changes',
+  message,
 }: SaveBarProps) {
+  const t = useTranslations('settings');
+  const displayMessage = message ?? t('unsavedChanges');
   return (
     <div
       className={cn(
@@ -30,7 +33,7 @@ export function SaveBar({
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <div className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-            {message}
+            {displayMessage}
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -40,7 +43,7 @@ export function SaveBar({
               className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <X className="h-4 w-4" />
-              Discard
+              {t('discardEdits')}
             </button>
             <button
               type="button"
@@ -53,7 +56,7 @@ export function SaveBar({
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? t('saving') : t('saveChanges')}
             </button>
           </div>
         </div>

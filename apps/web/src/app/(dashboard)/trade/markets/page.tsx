@@ -52,7 +52,7 @@ export default function MarketsPage() {
           </div>
         </div>
         <Link href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/trade/markets`} className="flex items-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700">
-          <Plus className="h-4 w-4" /> New Market Data
+          <Plus className="h-4 w-4" /> {t('newMarketData')}
         </Link>
       </div>
 
@@ -65,13 +65,13 @@ export default function MarketsPage() {
           <Filter className="h-4 w-4 text-gray-400" />
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-amber-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             <option value="">{t('allStatus')}</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="VALIDATED">Validated</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="DRAFT">Draft</option>
+            <option value="SUBMITTED">{t('statusSubmitted')}</option>
+            <option value="VALIDATED">{t('statusValidated')}</option>
+            <option value="REJECTED">{t('statusRejected')}</option>
+            <option value="DRAFT">{t('statusDraft')}</option>
           </select>
         </div>
-        <span className="text-xs text-gray-400">{filtered.length} entries</span>
+        <span className="text-xs text-gray-400">{filtered.length} {t('entries')}</span>
       </div>
 
       {isLoading ? (
@@ -80,7 +80,7 @@ export default function MarketsPage() {
         <div className="flex flex-col items-center py-16 text-center">
           <Store className="h-12 w-12 text-gray-200 dark:text-gray-600" />
           <p className="mt-4 text-sm text-gray-400">{t('noMarketsFound')}</p>
-          <Link href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/trade/markets`} className="mt-4 flex items-center gap-1 text-sm font-medium text-amber-600 hover:text-amber-700"><Plus className="h-4 w-4" /> New Market Data</Link>
+          <Link href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/trade/markets`} className="mt-4 flex items-center gap-1 text-sm font-medium text-amber-600 hover:text-amber-700"><Plus className="h-4 w-4" /> {t('newMarketData')}</Link>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -110,9 +110,9 @@ export default function MarketsPage() {
                 {breed && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{breed}</p>}
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  {price > 0 && <div><p className="text-lg font-bold text-gray-900 dark:text-white">${Number(price).toLocaleString()}</p><p className="text-[10px] text-gray-400">price</p></div>}
+                  {price > 0 && <div><p className="text-lg font-bold text-gray-900 dark:text-white">${Number(price).toLocaleString()}</p><p className="text-[10px] text-gray-400">{t('price')}</p></div>}
                   {weight > 0 && <div><p className="text-lg font-bold text-gray-900 dark:text-white">{Number(weight).toLocaleString()}</p><p className="text-[10px] text-gray-400">kg</p></div>}
-                  {demand > 0 && <div><p className="text-lg font-bold text-gray-900 dark:text-white">{Number(demand).toLocaleString()}</p><p className="text-[10px] text-gray-400">monthly demand (kg)</p></div>}
+                  {demand > 0 && <div><p className="text-lg font-bold text-gray-900 dark:text-white">{Number(demand).toLocaleString()}</p><p className="text-[10px] text-gray-400">{t('monthlyDemand')} (kg)</p></div>}
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">

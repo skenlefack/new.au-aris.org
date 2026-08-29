@@ -10,12 +10,14 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface CaptureTrendsChartProps {
   data: Array<{ year: number; marine: number; inland: number; aquaculture: number }>;
 }
 
 export default function CaptureTrendsChart({ data }: CaptureTrendsChartProps) {
+  const t = useTranslations('fisheries');
   return (
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={data}>
@@ -62,7 +64,7 @@ export default function CaptureTrendsChart({ data }: CaptureTrendsChartProps) {
           stroke="#006064"
           strokeWidth={2}
           fill="url(#marineGrad)"
-          name="Marine"
+          name={t('marine')}
         />
         <Area
           type="monotone"
@@ -71,7 +73,7 @@ export default function CaptureTrendsChart({ data }: CaptureTrendsChartProps) {
           stroke="#1B5E20"
           strokeWidth={2}
           fill="url(#inlandGrad)"
-          name="Inland"
+          name={t('inland')}
         />
         <Area
           type="monotone"
@@ -80,7 +82,7 @@ export default function CaptureTrendsChart({ data }: CaptureTrendsChartProps) {
           stroke="#E65100"
           strokeWidth={2}
           fill="url(#aquacultureGrad)"
-          name="Aquaculture"
+          name={t('aquaculture')}
         />
       </AreaChart>
     </ResponsiveContainer>

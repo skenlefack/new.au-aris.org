@@ -113,14 +113,14 @@ export default function AquaculturePage() {
             <p className="text-xl font-bold text-green-700 dark:text-green-300">{activeFarms.length}</p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-xs text-gray-400">Total Production</p>
+            <p className="text-xs text-gray-400">{t('totalProduction')}</p>
             <p className="text-xl font-bold text-gray-900 dark:text-white">
               {totalProduction.toLocaleString()}
-              <span className="ml-1 text-sm font-normal text-gray-400">tonnes</span>
+              <span className="ml-1 text-sm font-normal text-gray-400">{t('tonnes')}</span>
             </p>
           </div>
           <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 dark:border-cyan-800 dark:bg-cyan-900/20">
-            <p className="text-xs text-cyan-600 dark:text-cyan-400">Average Area</p>
+            <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('averageArea')}</p>
             <p className="text-xl font-bold text-cyan-700 dark:text-cyan-300">
               {avgArea.toFixed(1)}
               <span className="ml-1 text-sm font-normal text-cyan-400">ha</span>
@@ -149,10 +149,10 @@ export default function AquaculturePage() {
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
           >
             <option value="">{t('allStatus')}</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="VALIDATED">Validated</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="DRAFT">Draft</option>
+            <option value="SUBMITTED">{t('statusSubmitted')}</option>
+            <option value="VALIDATED">{t('statusValidated')}</option>
+            <option value="REJECTED">{t('statusRejected')}</option>
+            <option value="DRAFT">{t('statusDraft')}</option>
           </select>
         </div>
         <span className="text-xs text-gray-400">

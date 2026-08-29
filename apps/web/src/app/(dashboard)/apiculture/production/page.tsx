@@ -156,7 +156,7 @@ export default function ProductionPage() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('apiaryName')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Country</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('country')}</th>
                   <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('period')}</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('honeyKg')}</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('waxKg')}</th>
@@ -223,7 +223,7 @@ export default function ProductionPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="px-2 text-xs text-gray-600 dark:text-gray-400">
-                Page {page} of {totalPages || 1}
+                {t('pageOf', { page: String(page), total: String(totalPages || 1) })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

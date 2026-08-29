@@ -146,10 +146,10 @@ export default function CitesPermitsPage() {
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
             <option value="">{t('allStatus')}</option>
-            <option value="issued">Issued</option>
-            <option value="pending">Pending</option>
-            <option value="expired">Expired</option>
-            <option value="revoked">Revoked</option>
+            <option value="issued">{t('issued')}</option>
+            <option value="pending">{t('pending')}</option>
+            <option value="expired">{t('expired')}</option>
+            <option value="revoked">{t('revoked')}</option>
           </select>
         </div>
       </div>
@@ -232,7 +232,7 @@ export default function CitesPermitsPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="px-2 text-xs text-gray-600 dark:text-gray-400">
-                Page {page} of {totalPages || 1}
+                {t('pageOf', { page: String(page), total: String(totalPages || 1) })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

@@ -150,11 +150,11 @@ export default function SpeciesInventoryPage() {
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
             <option value="">{t('allClasses')}</option>
-            <option value="Mammals">Mammals</option>
-            <option value="Birds">Birds</option>
-            <option value="Reptiles">Reptiles</option>
-            <option value="Amphibians">Amphibians</option>
-            <option value="Fish">Fish</option>
+            <option value="Mammals">{t('mammals')}</option>
+            <option value="Birds">{t('birds')}</option>
+            <option value="Reptiles">{t('reptiles')}</option>
+            <option value="Amphibians">{t('amphibians')}</option>
+            <option value="Fish">{t('fish')}</option>
           </select>
           <select
             value={iucnFilter}
@@ -191,7 +191,7 @@ export default function SpeciesInventoryPage() {
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('protectedAreas')}</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('population')}</th>
                   <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('trend')}</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Year</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('year')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
@@ -247,7 +247,7 @@ export default function SpeciesInventoryPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="px-2 text-xs text-gray-600 dark:text-gray-400">
-                Page {page} of {totalPages || 1}
+                {t('pageOf', { page: String(page), total: String(totalPages || 1) })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

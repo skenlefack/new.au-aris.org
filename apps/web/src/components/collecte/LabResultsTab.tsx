@@ -18,6 +18,7 @@ import {
   useUpdateSubmission,
   type FormSubmissionListItem,
 } from '@/lib/api/form-builder-hooks';
+import { useTranslations } from 'next-intl';
 
 /* ────────────────────────────────────────────────────────────────
    Types
@@ -159,6 +160,7 @@ export function detectLabRepeaters(schema: { sections: TemplateSection[] }): Arr
    ──────────────────────────────────────────────────────────────── */
 
 export default function LabResultsTab({ campaignId, templateId, templateSchema, locale = 'en' }: LabResultsTabProps) {
+  const { t } = useTranslations('collecte');
   // Detect lab repeaters from template schema
   const labRepeaters = useMemo(() => detectLabRepeaters(templateSchema), [templateSchema]);
 
@@ -320,9 +322,9 @@ export default function LabResultsTab({ campaignId, templateId, templateSchema, 
     const lr = labRepeaters[0];
     if (!lr) return;
 
-    const headers = ['N°', 'Code Prélèvement', 'Fiche', 'Lieu', 'Enquêteur',
+    const headers = ['N°', t('csvSampleCode'), t('csvForm'), t('csvLocation'), t('csvSurveyor'),
       ...displayColumns.map((c) => i18n(c.label, locale)),
-      'Résultat',
+      t('result'),
     ];
 
     const rows = filteredSamples.map((s, i) => [
@@ -350,10 +352,10 @@ export default function LabResultsTab({ campaignId, templateId, templateSchema, 
       <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
         <FlaskConical className="h-10 w-10 text-gray-300 mx-auto mb-3" />
         <p className="text-sm text-gray-500">
-          Ce formulaire ne contient pas de section de prélèvements avec traitement laboratoire.
+          {t('noLabSection')}
         </p>
         <p className="text-xs text-gray-400 mt-1">
-          Pour activer cette fonctionnalité, ajoutez <code className="bg-gray-100 px-1 rounded">labProcessing</code> dans les propriétés du repeater.
+          {t('noLabSectionHint')} <code className="bg-gray-100 px-1 rounded">labProcessing</code>
         </p>
       </div>
     );
@@ -364,7 +366,7 @@ export default function LabResultsTab({ campaignId, templateId, templateSchema, 
       <div className="rounded-xl border border-gray-200 bg-white p-8 dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center justify-center gap-2 text-gray-400">
           <Loader2 className="h-5 w-5 animate-spin" />
-          Chargement des prélèvements...
+          {t('loadingSamples')}
         </div>
       </div>
     );
@@ -379,12 +381,12 @@ export default function LabResultsTab({ campaignId, templateId, templateSchema, 
             <FlaskConical className="h-5 w-5 text-orange-600" />
             <div>
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                Résultats Laboratoire
+                {t('labResults')}
               </h3>
               <p className="text-xs text-gray-500">
-                {totalSamples} prélèvement{totalSamples !== 1 ? 's' : ''} &middot;{' '}
-                <span className="text-green-600">{completedCount} traité{completedCount !== 1 ? 's' : ''}</span> &middot;{' '}
-                <span className="text-amber-600">{pendingCount} en attente</span>
+                {totalSamples} {t('samples')} &middot;{' '}
+                <span className="text-green-600">{completedCount} {t('processed')}</span> &middot;{' '}
+                <span className="text-amber-600">{pendingCount} {t('pending')}</span>
               </p>
             </div>
           </div>
@@ -395,7 +397,7 @@ export default function LabResultsTab({ campaignId, templateId, templateSchema, 
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Rechercher..."
+                placeholder={t('searchPlaceholder')}
                 className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 w-48 dark:bg-gray-800 dark:border-gray-700"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -415,7 +417,7 @@ export default function LabResultsTab({ campaignId, templateId, templateSchema, 
                       : 'text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800',
                   )}
                 >
-                  {f === 'all' ? 'Tous' : f === 'pending' ? 'En attente' : 'Traités'}
+                  {f === 'all' ? t('all') : f === 'pending' ? t('pendingFilter') : t('processedFilter')}
                 </button>
               ))}
             </div>
@@ -443,7 +445,7 @@ export default function LabResultsTab({ campaignId, templateId, templateSchema, 
               )}
             >
               {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saved ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
-              {saved ? 'Enregistré' : hasEdits ? `Enregistrer (${Object.keys(edits).length})` : 'Enregistrer'}
+              {saved ? t('saved') : hasEdits ? `${t('save')} (${Object.keys(edits).length})` : t('save')}
             </button>
           </div>
         </div>
@@ -453,7 +455,7 @@ export default function LabResultsTab({ campaignId, templateId, templateSchema, 
       {filteredSamples.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
           <p className="text-sm text-gray-500">
-            {totalSamples === 0 ? 'Aucun prélèvement soumis pour cette campagne' : 'Aucun résultat correspondant aux filtres'}
+            {totalSamples === 0 ? t('noSamplesSubmitted') : t('noResultsMatchFilter')}
           </p>
         </div>
       ) : (
@@ -463,16 +465,16 @@ export default function LabResultsTab({ campaignId, templateId, templateSchema, 
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                   <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">N°</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Code</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Fiche</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Lieu</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t('code')}</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t('form')}</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t('location')}</th>
                   {displayColumns.map((col) => (
                     <th key={col.code} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                       {i18n(col.label, locale)}
                     </th>
                   ))}
                   <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-700 dark:text-orange-400 uppercase tracking-wider bg-orange-50 dark:bg-orange-900/20">
-                    Résultat
+                    {t('result')}
                   </th>
                 </tr>
               </thead>

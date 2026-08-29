@@ -13,6 +13,7 @@ import { useWaterStress, type WaterStress } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const PLACEHOLDER_DATA: WaterStress[] = [
   { id: 'ws-1', country: 'Libya', countryCode: 'LY', region: 'Tripolitania', period: '2025-H2', index: 4.2, waterAvailability: 'Very Low', irrigatedAreaPct: 22.5, source: 'FAO AQUASTAT', severity: 'critical', createdAt: '2026-01-15T10:00:00Z', updatedAt: '2026-02-10T08:00:00Z' },
@@ -30,6 +31,7 @@ const SEVERITY_STYLES: Record<string, string> = {
 };
 
 export default function WaterStressPage() {
+  const t = useTranslations('climate');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
@@ -57,9 +59,9 @@ export default function WaterStressPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Water Stress</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('waterStressTitle')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Water availability and stress indices across Africa
+            {t('waterStressSubtitle')}
           </p>
         </div>
       </div>
@@ -70,7 +72,7 @@ export default function WaterStressPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by country or region..."
+            placeholder={t('searchPlaceholder')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200"
@@ -83,11 +85,11 @@ export default function WaterStressPage() {
             onChange={(e) => { setSeverityFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-teal-500 focus:outline-none"
           >
-            <option value="">All Severities</option>
-            <option value="low">Low</option>
-            <option value="moderate">Moderate</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
+            <option value="">{t('allSeverities')}</option>
+            <option value="low">{t('sevLow')}</option>
+            <option value="moderate">{t('sevModerate')}</option>
+            <option value="high">{t('sevHigh')}</option>
+            <option value="critical">{t('sevCritical')}</option>
           </select>
         </div>
       </div>
@@ -106,13 +108,13 @@ export default function WaterStressPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Location</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Period</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Stress Index</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Availability</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Irrigated %</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500">Severity</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Source</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colLocation')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colPeriod')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('colStressIndex')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colAvailability')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('colIrrigated')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500">{t('colSeverity')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colSource')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -137,7 +139,7 @@ export default function WaterStressPage() {
                 {records.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No water stress records found
+                      {t('noWaterStressRecords')}
                     </td>
                   </tr>
                 )}
@@ -148,7 +150,7 @@ export default function WaterStressPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {records.length} of {meta.total} records
+              {t('showingRecords', { count: records.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -159,7 +161,7 @@ export default function WaterStressPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="px-2 text-xs text-gray-600">
-                Page {page} of {totalPages || 1}
+                {t('pageOf', { page, total: totalPages || 1 })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

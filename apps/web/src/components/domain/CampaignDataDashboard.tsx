@@ -28,6 +28,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useCollectionCampaigns, useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
 
@@ -54,6 +55,7 @@ function analyseName(name: any): string {
 }
 
 export function CampaignDataDashboard({ domain, showMap, showStats, showCurve }: CampaignDataDashboardProps) {
+  const t = useTranslations('domain');
   const campaignsQuery = useCollectionCampaigns({ domain, limit: 50 });
   const campaigns: any[] = Array.isArray(campaignsQuery.data?.data) ? campaignsQuery.data.data : [];
 
@@ -181,9 +183,9 @@ export function CampaignDataDashboard({ domain, showMap, showStats, showCurve }:
             <Layers className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Campaign data source</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('campaignDataSource')}</p>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              {activeCampaign ? analyseName(activeCampaign.name) : 'No campaign selected'}
+              {activeCampaign ? analyseName(activeCampaign.name) : t('noCampaignSelected')}
             </p>
           </div>
         </div>
@@ -195,7 +197,7 @@ export function CampaignDataDashboard({ domain, showMap, showStats, showCurve }:
           >
             {sorted.map((c) => (
               <option key={c.id} value={c.id}>
-                {analyseName(c.name)} ({c.totalSubmissions ?? 0} submissions)
+                {analyseName(c.name)} ({c.totalSubmissions ?? 0} {t('submissions')})
               </option>
             ))}
           </select>
@@ -210,8 +212,8 @@ export function CampaignDataDashboard({ domain, showMap, showStats, showCurve }:
       ) : submissions.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center dark:border-gray-700 dark:bg-gray-900/30">
           <FileText className="mx-auto h-10 w-10 text-gray-300" />
-          <p className="mt-3 text-sm text-gray-400">No submissions yet for this campaign</p>
-          <p className="mt-1 text-xs text-gray-300">Data will appear here as field agents submit forms</p>
+          <p className="mt-3 text-sm text-gray-400">{t('noSubmissionsYet')}</p>
+          <p className="mt-1 text-xs text-gray-300">{t('noSubmissionsHint')}</p>
         </div>
       ) : (
         <>
@@ -220,16 +222,16 @@ export function CampaignDataDashboard({ domain, showMap, showStats, showCurve }:
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <div className="mb-4 flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-emerald-500" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Statistics</h3>
-                <span className="ml-auto text-xs text-gray-400">{submissions.length} submissions</span>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('statistics')}</h3>
+                <span className="ml-auto text-xs text-gray-400">{submissions.length} {t('submissions')}</span>
               </div>
 
               {/* Status breakdown */}
               <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <MiniStat icon={<FileText className="h-4 w-4" />} label="Total" value={submissions.length} color="#6366f1" />
-                <MiniStat icon={<CheckCircle2 className="h-4 w-4" />} label="Validated" value={statusBreakdown['VALIDATED'] ?? 0} color="#16a34a" />
-                <MiniStat icon={<Clock className="h-4 w-4" />} label="Pending" value={(statusBreakdown['SUBMITTED'] ?? 0) + (statusBreakdown['VALIDATING'] ?? 0)} color="#ca8a04" />
-                <MiniStat icon={<XCircle className="h-4 w-4" />} label="Rejected" value={statusBreakdown['REJECTED'] ?? 0} color="#dc2626" />
+                <MiniStat icon={<FileText className="h-4 w-4" />} label={t('total')} value={submissions.length} color="#6366f1" />
+                <MiniStat icon={<CheckCircle2 className="h-4 w-4" />} label={t('validated')} value={statusBreakdown['VALIDATED'] ?? 0} color="#16a34a" />
+                <MiniStat icon={<Clock className="h-4 w-4" />} label={t('pending')} value={(statusBreakdown['SUBMITTED'] ?? 0) + (statusBreakdown['VALIDATING'] ?? 0)} color="#ca8a04" />
+                <MiniStat icon={<XCircle className="h-4 w-4" />} label={t('rejected')} value={statusBreakdown['REJECTED'] ?? 0} color="#dc2626" />
               </div>
 
               {/* Numeric field aggregations */}
@@ -287,8 +289,8 @@ export function CampaignDataDashboard({ domain, showMap, showStats, showCurve }:
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <div className="mb-4 flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-blue-500" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Map</h3>
-                <span className="ml-auto text-xs text-gray-400">{gpsPoints.length} GPS points</span>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('map')}</h3>
+                <span className="ml-auto text-xs text-gray-400">{gpsPoints.length} {t('gpsPoints')}</span>
               </div>
 
               {gpsPoints.length > 0 ? (
@@ -312,15 +314,15 @@ export function CampaignDataDashboard({ domain, showMap, showStats, showCurve }:
                     </div>
                   </div>
                   <div className="absolute bottom-2 right-2 rounded bg-white/80 px-2 py-1 text-[10px] text-gray-500 backdrop-blur-sm">
-                    {gpsPoints.length} data points
+                    {gpsPoints.length} {t('dataPoints')}
                   </div>
                 </div>
               ) : (
                 <div className="flex h-48 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/30">
                   <div className="text-center">
                     <MapPin className="mx-auto h-8 w-8 text-gray-300" />
-                    <p className="mt-2 text-sm text-gray-400">No GPS data in submissions</p>
-                    <p className="text-[10px] text-gray-300">Add a geo-point field to the form template</p>
+                    <p className="mt-2 text-sm text-gray-400">{t('noGpsData')}</p>
+                    <p className="text-[10px] text-gray-300">{t('noGpsDataHint')}</p>
                   </div>
                 </div>
               )}
@@ -332,7 +334,7 @@ export function CampaignDataDashboard({ domain, showMap, showStats, showCurve }:
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <div className="mb-4 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-amber-500" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Submission Trend</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('submissionTrend')}</h3>
               </div>
 
               {timeSeries.length > 1 ? (
@@ -365,14 +367,14 @@ export function CampaignDataDashboard({ domain, showMap, showStats, showCurve }:
                 <div className="flex h-48 items-center justify-center text-center">
                   <div>
                     <p className="text-3xl font-bold text-gray-900 dark:text-white">{timeSeries[0].count}</p>
-                    <p className="text-sm text-gray-400">submissions on {timeSeries[0].date}</p>
+                    <p className="text-sm text-gray-400">{t('submissionsOn')} {timeSeries[0].date}</p>
                   </div>
                 </div>
               ) : (
                 <div className="flex h-48 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/30">
                   <div className="text-center">
                     <TrendingUp className="mx-auto h-8 w-8 text-gray-300" />
-                    <p className="mt-2 text-sm text-gray-400">No time data available</p>
+                    <p className="mt-2 text-sm text-gray-400">{t('noTimeData')}</p>
                   </div>
                 </div>
               )}

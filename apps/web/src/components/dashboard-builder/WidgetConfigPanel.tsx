@@ -818,7 +818,7 @@ function FormAggregationPicker({
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t('dbField')}
-            {aggregation === 'count' && <span className="ml-1 text-xs text-gray-400 font-normal">(optionnel pour count)</span>}
+            {aggregation === 'count' && <span className="ml-1 text-xs text-gray-400 font-normal">({t('dbFieldOptionalForCount')})</span>}
             {aggregation !== 'count' && <span className="ml-0.5 text-red-500">*</span>}
           </label>
 
@@ -889,7 +889,7 @@ function FormAggregationPicker({
                   <span className="text-xs text-blue-700 dark:text-blue-300">
                     <span className="font-medium">{selectedField.label}</span>
                     <span className="ml-1 font-mono text-blue-500">({selectedField.key})</span>
-                    <span className="ml-1">— {aggregation === 'count' ? 'count' : aggregation === 'sum' ? 'somme' : 'moyenne'}</span>
+                    <span className="ml-1">— {aggregation === 'count' ? t('dbCount') : aggregation === 'sum' ? t('dbAggSum') : t('dbAggAverage')}</span>
                   </span>
                 </div>
               )}

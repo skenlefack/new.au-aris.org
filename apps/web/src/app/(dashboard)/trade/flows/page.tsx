@@ -50,7 +50,7 @@ export default function TradeFlowsPage() {
           </div>
         </div>
         <Link href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/trade/flows`} className="flex items-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-sm font-semibold text-white hover:bg-green-800">
-          <Plus className="h-4 w-4" /> New Trade Flow
+          <Plus className="h-4 w-4" /> {t('newTradeFlow')}
         </Link>
       </div>
 
@@ -63,13 +63,13 @@ export default function TradeFlowsPage() {
           <Filter className="h-4 w-4 text-gray-400" />
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             <option value="">{t('allStatus')}</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="VALIDATED">Validated</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="DRAFT">Draft</option>
+            <option value="SUBMITTED">{t('statusSubmitted')}</option>
+            <option value="VALIDATED">{t('statusValidated')}</option>
+            <option value="REJECTED">{t('statusRejected')}</option>
+            <option value="DRAFT">{t('statusDraft')}</option>
           </select>
         </div>
-        <span className="text-xs text-gray-400">{filtered.length} entries</span>
+        <span className="text-xs text-gray-400">{filtered.length} {t('entries')}</span>
       </div>
 
       {isLoading ? (
@@ -78,7 +78,7 @@ export default function TradeFlowsPage() {
         <div className="flex flex-col items-center py-16 text-center">
           <ArrowRightLeft className="h-12 w-12 text-gray-200 dark:text-gray-600" />
           <p className="mt-4 text-sm text-gray-400">{t('noFlowsFound')}</p>
-          <Link href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/trade/flows`} className="mt-4 flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-700"><Plus className="h-4 w-4" /> New Trade Flow</Link>
+          <Link href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/trade/flows`} className="mt-4 flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-700"><Plus className="h-4 w-4" /> {t('newTradeFlow')}</Link>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

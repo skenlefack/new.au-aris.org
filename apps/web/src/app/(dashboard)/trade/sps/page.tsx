@@ -56,7 +56,7 @@ export default function SpsPage() {
           </div>
         </div>
         <Link href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/trade/sps`} className="flex items-center gap-2 rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">
-          <Plus className="h-4 w-4" /> New Assessment
+          <Plus className="h-4 w-4" /> {t('newAssessment')}
         </Link>
       </div>
 
@@ -64,15 +64,15 @@ export default function SpsPage() {
       {filtered.length > 0 && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-            <p className="text-xs text-blue-600 dark:text-blue-400">Total Assessments</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400">{t('totalAssessments')}</p>
             <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{totalCerts}</p>
           </div>
           <div className="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-            <p className="text-xs text-green-600 dark:text-green-400">Validated</p>
+            <p className="text-xs text-green-600 dark:text-green-400">{t('validatedCount')}</p>
             <p className="text-xl font-bold text-green-700 dark:text-green-300">{validated}</p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-xs text-gray-400">Validation Rate</p>
+            <p className="text-xs text-gray-400">{t('validationRate')}</p>
             <p className="text-xl font-bold text-gray-900 dark:text-white">{passRate}%</p>
           </div>
         </div>
@@ -87,13 +87,13 @@ export default function SpsPage() {
           <Filter className="h-4 w-4 text-gray-400" />
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             <option value="">{t('allStatus')}</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="VALIDATED">Validated</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="DRAFT">Draft</option>
+            <option value="SUBMITTED">{t('statusSubmitted')}</option>
+            <option value="VALIDATED">{t('statusValidated')}</option>
+            <option value="REJECTED">{t('statusRejected')}</option>
+            <option value="DRAFT">{t('statusDraft')}</option>
           </select>
         </div>
-        <span className="text-xs text-gray-400">{filtered.length} entries</span>
+        <span className="text-xs text-gray-400">{filtered.length} {t('entries')}</span>
       </div>
 
       {isLoading ? (
@@ -102,7 +102,7 @@ export default function SpsPage() {
         <div className="flex flex-col items-center py-16 text-center">
           <ShieldCheck className="h-12 w-12 text-gray-200 dark:text-gray-600" />
           <p className="mt-4 text-sm text-gray-400">{t('noCertificatesFound')}</p>
-          <Link href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/trade/sps`} className="mt-4 flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"><Plus className="h-4 w-4" /> New Assessment</Link>
+          <Link href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/trade/sps`} className="mt-4 flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"><Plus className="h-4 w-4" /> {t('newAssessment')}</Link>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -125,9 +125,9 @@ export default function SpsPage() {
                   {sub.submittedAt && <span className="flex items-center gap-1 text-[10px] text-gray-400"><Clock className="h-3 w-3" />{new Date(sub.submittedAt).toLocaleDateString()}</span>}
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2">
-                  <div><p className="text-lg font-bold text-green-600">{yesCount}</p><p className="text-[10px] text-gray-400">Compliant</p></div>
-                  <div><p className="text-lg font-bold text-red-600">{noCount}</p><p className="text-[10px] text-gray-400">Non-compliant</p></div>
-                  <div><p className="text-lg font-bold text-gray-900 dark:text-white">{complianceRate}%</p><p className="text-[10px] text-gray-400">Score</p></div>
+                  <div><p className="text-lg font-bold text-green-600">{yesCount}</p><p className="text-[10px] text-gray-400">{t('compliant')}</p></div>
+                  <div><p className="text-lg font-bold text-red-600">{noCount}</p><p className="text-[10px] text-gray-400">{t('nonCompliant')}</p></div>
+                  <div><p className="text-lg font-bold text-gray-900 dark:text-white">{complianceRate}%</p><p className="text-[10px] text-gray-400">{t('score')}</p></div>
                 </div>
                 <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
                   <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${complianceRate}%` }} />

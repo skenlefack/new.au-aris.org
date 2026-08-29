@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { cn } from '@/lib/utils';
 import type { CountryOutbreakData } from '@/components/dashboard/demo-data';
 import { AFRICA_COUNTRIES } from '@/components/dashboard/maps/africa-geo-data';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const ChoroplethMap = dynamic(
   () => import('@/components/dashboard/maps/ChoroplethMap').then((m) => m.ChoroplethMap),
@@ -34,29 +35,29 @@ function usePPRIndicators() {
 }
 
 /* ── Status badge ── */
-const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  on_watch: { bg: '#FEF3C7', text: '#D97706', label: 'On watch' },
-  behind: { bg: '#FEE2E2', text: '#DC2626', label: 'Behind' },
-  in_progress: { bg: '#DBEAFE', text: '#2563EB', label: 'In progress' },
-  on_track: { bg: '#D1FAE5', text: '#059669', label: 'On track' },
-  ready: { bg: '#D1FAE5', text: '#059669', label: 'Ready' },
-  partial: { bg: '#FEF3C7', text: '#D97706', label: 'Partial' },
-  priority: { bg: '#FEE2E2', text: '#DC2626', label: 'Priority' },
+const STATUS_COLORS: Record<string, { bg: string; text: string; labelKey: string }> = {
+  on_watch: { bg: '#FEF3C7', text: '#D97706', labelKey: 'pprStatusOnWatch' },
+  behind: { bg: '#FEE2E2', text: '#DC2626', labelKey: 'pprStatusBehind' },
+  in_progress: { bg: '#DBEAFE', text: '#2563EB', labelKey: 'pprStatusInProgress' },
+  on_track: { bg: '#D1FAE5', text: '#059669', labelKey: 'pprStatusOnTrack' },
+  ready: { bg: '#D1FAE5', text: '#059669', labelKey: 'pprStatusReady' },
+  partial: { bg: '#FEF3C7', text: '#D97706', labelKey: 'pprStatusPartial' },
+  priority: { bg: '#FEE2E2', text: '#DC2626', labelKey: 'pprStatusPriority' },
 };
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
   const s = STATUS_COLORS[status] ?? STATUS_COLORS.in_progress;
   return (
     <span className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: s.bg, color: s.text }}>
-      {s.label}
+      {t(s.labelKey)}
     </span>
   );
 }
 
 /* ── KPI Card (75% → 0% format) ── */
-function KpiTarget({ icon: Icon, title, baseline, target, current, unit, status, color }: {
+function KpiTarget({ icon: Icon, title, baseline, target, current, unit, status, color, t }: {
   icon: any; title: string; baseline: number | string; target: number | string; current?: number | string;
-  unit?: string; status: string; color: string;
+  unit?: string; status: string; color: string; t: (key: string) => string;
 }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 flex flex-col gap-2">
@@ -71,7 +72,7 @@ function KpiTarget({ icon: Icon, title, baseline, target, current, unit, status,
         <span className="text-gray-400 text-lg">→</span>
         <span className="text-2xl font-bold text-gray-800 dark:text-white">{target}{unit}</span>
       </div>
-      <StatusBadge status={status} />
+      <StatusBadge status={status} t={t} />
     </div>
   );
 }
@@ -90,8 +91,8 @@ function HBar({ label, value, color }: { label: string; value: number; color: st
 }
 
 /* ── Readiness ranking row ── */
-function RankingRow({ rank, country, rec, readiness, status }: {
-  rank: number; country: string; rec: string; readiness: number; status: string;
+function RankingRow({ rank, country, rec, readiness, status, t }: {
+  rank: number; country: string; rec: string; readiness: number; status: string; t: (key: string) => string;
 }) {
   const barColor = readiness >= 75 ? '#22c55e' : readiness >= 50 ? '#f59e0b' : '#ef4444';
   return (
@@ -109,7 +110,7 @@ function RankingRow({ rank, country, rec, readiness, status }: {
           </div>
         </div>
       </td>
-      <td className="py-2 pr-3 text-right"><StatusBadge status={status} /></td>
+      <td className="py-2 pr-3 text-right"><StatusBadge status={status} t={t} /></td>
     </tr>
   );
 }
@@ -151,6 +152,7 @@ function GaugeCircle({ value, label, color, delta }: { value: number; label: str
    ══════════════════════════════════════════════════════════════ */
 
 export default function PPRPerformanceDashboard() {
+  const { t } = useTranslations('collecte');
   // Map data
   const mapData: CountryOutbreakData[] = [
     { code: 'ZA', name: 'South Africa', outbreaks: 90, cases: 0, deaths: 0, vaccinations: 0, submissions: 90, rec: 'sadc' },
@@ -190,23 +192,23 @@ export default function PPRPerformanceDashboard() {
     <div className="space-y-5">
       {/* ── Header ── */}
       <div className="rounded-xl bg-[#e8f5e9] px-6 py-4">
-        <h1 className="text-xl font-bold text-[#2E7D32]">PPR Programme Performance Dashboard</h1>
-        <p className="text-sm text-[#4CAF50]">AU-IBAR | Continental Delivery Platform for PPR Eradication</p>
+        <h1 className="text-xl font-bold text-[#2E7D32]">{t('pprPerfTitle')}</h1>
+        <p className="text-sm text-[#4CAF50]">{t('pprPerfSubtitle')}</p>
         <div className="mt-2 flex flex-wrap gap-3">
-          <span className="rounded-full border border-[#4CAF50]/30 px-3 py-0.5 text-xs text-[#2E7D32]">Programme period: 2024–2026</span>
-          <span className="rounded-full border border-[#4CAF50]/30 px-3 py-0.5 text-xs text-[#2E7D32]">Reporting period: 2026</span>
-          <span className="rounded-full border border-[#4CAF50]/30 px-3 py-0.5 text-xs text-[#2E7D32]">Region: All</span>
+          <span className="rounded-full border border-[#4CAF50]/30 px-3 py-0.5 text-xs text-[#2E7D32]">{t('pprPerfProgrammePeriod')}</span>
+          <span className="rounded-full border border-[#4CAF50]/30 px-3 py-0.5 text-xs text-[#2E7D32]">{t('pprPerfReportingPeriod')}</span>
+          <span className="rounded-full border border-[#4CAF50]/30 px-3 py-0.5 text-xs text-[#2E7D32]">{t('pprPerfRegionAll')}</span>
         </div>
       </div>
 
       {/* ── Row 1: 6 KPI Cards ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <KpiTarget icon={Activity} title="PPR Prevalence" baseline="75%" target="0%" status="on_watch" color="#EA580C" />
-        <KpiTarget icon={Shield} title="WOAH Free Countries" baseline={6} target={49} status="behind" color="#DC2626" />
-        <KpiTarget icon={Users} title="Countries Ready" baseline={0} target={48} status="in_progress" color="#059669" />
-        <KpiTarget icon={Database} title="Data Systems" baseline={0} target={15} status="on_track" color="#0891B2" />
-        <KpiTarget icon={FlaskConical} title="Lab Capacity" baseline={0} target="25 labs" status="in_progress" color="#7C3AED" />
-        <KpiTarget icon={Syringe} title="Vaccine Readiness" baseline="" target="System readiness" status="in_progress" color="#1F4E79" />
+        <KpiTarget icon={Activity} title={t('pprKpiTitlePrevalence')} baseline="75%" target="0%" status="on_watch" color="#EA580C" t={t} />
+        <KpiTarget icon={Shield} title={t('pprKpiTitleWoahFree')} baseline={6} target={49} status="behind" color="#DC2626" t={t} />
+        <KpiTarget icon={Users} title={t('pprKpiTitleCountriesReady')} baseline={0} target={48} status="in_progress" color="#059669" t={t} />
+        <KpiTarget icon={Database} title={t('pprKpiTitleDataSystems')} baseline={0} target={15} status="on_track" color="#0891B2" t={t} />
+        <KpiTarget icon={FlaskConical} title={t('pprKpiTitleLabCapacity')} baseline={0} target={t('pprKpiTarget25Labs')} status="in_progress" color="#7C3AED" t={t} />
+        <KpiTarget icon={Syringe} title={t('pprKpiTitleVaccineReadiness')} baseline="" target={t('pprKpiTargetSystemReadiness')} status="in_progress" color="#1F4E79" t={t} />
       </div>
 
       {/* ── Row 2: Map + Ranking ── */}
@@ -214,18 +216,18 @@ export default function PPRPerformanceDashboard() {
         {/* Map */}
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700">
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Africa Readiness Map</h3>
-            <p className="text-[10px] text-gray-400">Countries colored by readiness to implement PPR eradication</p>
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">{t('pprPerfMapTitle')}</h3>
+            <p className="text-[10px] text-gray-400">{t('pprPerfMapSubtitle')}</p>
           </div>
           <div className="h-[350px]">
-            <ChoroplethMap title="Africa Readiness Map" data={mapData} indicator="submissions" bare />
+            <ChoroplethMap title={t('pprPerfMapTitle')} data={mapData} indicator="submissions" bare />
           </div>
           <div className="flex gap-4 px-5 py-2 border-t border-gray-100 dark:border-gray-700">
             {[
-              { color: '#22c55e', label: 'Ready' },
-              { color: '#f59e0b', label: 'Partial' },
-              { color: '#ef4444', label: 'Priority' },
-              { color: '#d1d5db', label: 'No data' },
+              { color: '#22c55e', label: t('pprStatusReady') },
+              { color: '#f59e0b', label: t('pprStatusPartial') },
+              { color: '#ef4444', label: t('pprStatusPriority') },
+              { color: '#d1d5db', label: t('pprLegendNoData') },
             ].map((l) => (
               <div key={l.label} className="flex items-center gap-1.5">
                 <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: l.color }} />
@@ -238,24 +240,24 @@ export default function PPRPerformanceDashboard() {
         {/* Ranking Table */}
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-700">
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Country Readiness Ranking</h3>
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">{t('pprPerfRankingTitle')}</h3>
             <button className="rounded-md bg-[#0891B2] px-3 py-1 text-[10px] font-medium text-white hover:bg-[#0e7490]">
-              View full ranking
+              {t('pprPerfViewFullRanking')}
             </button>
           </div>
           <table className="w-full text-left">
             <thead>
               <tr className="bg-[#e8f5e9] text-[#2E7D32] text-[10px] font-semibold uppercase tracking-wide">
                 <th className="py-2 pl-3 rounded-tl">#</th>
-                <th className="py-2">Country</th>
-                <th className="py-2">REC</th>
-                <th className="py-2">Readiness</th>
-                <th className="py-2 pr-3 text-right rounded-tr">Status</th>
+                <th className="py-2">{t('pprColCountry')}</th>
+                <th className="py-2">{t('pprColRec')}</th>
+                <th className="py-2">{t('pprColReadiness')}</th>
+                <th className="py-2 pr-3 text-right rounded-tr">{t('pprColStatus')}</th>
               </tr>
             </thead>
             <tbody>
               {rankings.map((r) => (
-                <RankingRow key={r.rank} {...r} />
+                <RankingRow key={r.rank} {...r} t={t} />
               ))}
             </tbody>
           </table>
@@ -268,29 +270,29 @@ export default function PPRPerformanceDashboard() {
         <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center gap-2 mb-4">
             <Target className="h-4 w-4 text-[#2E7D32]" />
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Governance & Coordination</h3>
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">{t('pprPerfGovernanceTitle')}</h3>
           </div>
           <div className="space-y-3">
-            <HBar label="Governance structure" value={75} color="#059669" />
-            <HBar label="Technical coordination" value={60} color="#1F4E79" />
-            <HBar label="Stakeholder platforms" value={70} color="#059669" />
-            <HBar label="Resource mobilization" value={35} color="#DC2626" />
+            <HBar label={t('pprGovStructure')} value={75} color="#059669" />
+            <HBar label={t('pprGovTechnicalCoord')} value={60} color="#1F4E79" />
+            <HBar label={t('pprGovStakeholderPlatforms')} value={70} color="#059669" />
+            <HBar label={t('pprGovResourceMobilization')} value={35} color="#DC2626" />
           </div>
-          <p className="mt-3 text-[10px] text-[#0891B2] font-medium cursor-pointer hover:underline">View details →</p>
+          <p className="mt-3 text-[10px] text-[#0891B2] font-medium cursor-pointer hover:underline">{t('pprViewDetails')} →</p>
         </div>
 
         {/* Top Risks */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="h-4 w-4 text-red-500" />
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Top Risks</h3>
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">{t('pprPerfTopRisks')}</h3>
           </div>
           <div className="space-y-3">
             {[
-              'Countries with weak surveillance/data systems',
-              'Delays in vaccine delivery partnerships',
-              'Incomplete WOAH disease-free evidence',
-              'Coordination platforms not yet fully operational',
+              t('pprPerfRisk1'),
+              t('pprPerfRisk2'),
+              t('pprPerfRisk3'),
+              t('pprPerfRisk4'),
             ].map((text, i) => (
               <div key={i} className="flex items-start gap-2.5">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-[10px] font-bold text-red-600">{i + 1}</span>
@@ -298,21 +300,21 @@ export default function PPRPerformanceDashboard() {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[10px] text-[#0891B2] font-medium cursor-pointer hover:underline">View all risks →</p>
+          <p className="mt-3 text-[10px] text-[#0891B2] font-medium cursor-pointer hover:underline">{t('pprViewAllRisks')} →</p>
         </div>
 
         {/* Management Actions */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center gap-2 mb-4">
             <CheckCircle className="h-4 w-4 text-green-600" />
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Management Actions</h3>
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">{t('pprPerfMgmtActions')}</h3>
           </div>
           <div className="space-y-3">
             {[
-              'Prioritize support to red countries',
-              'Finalize resource mobilization package',
-              'Accelerate AU-PANVAC capacity package',
-              'Follow up on missing surveillance reports',
+              t('pprMgmtAction1'),
+              t('pprMgmtAction2'),
+              t('pprMgmtAction3'),
+              t('pprMgmtAction4'),
             ].map((text, i) => (
               <div key={i} className="flex items-start gap-2.5">
                 <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#e8f5e9]" />
@@ -320,16 +322,16 @@ export default function PPRPerformanceDashboard() {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[10px] text-[#0891B2] font-medium cursor-pointer hover:underline">View action tracker →</p>
+          <p className="mt-3 text-[10px] text-[#0891B2] font-medium cursor-pointer hover:underline">{t('pprViewActionTracker')} →</p>
         </div>
       </div>
 
       {/* ── Row 4: 4 Capacity Gauges ── */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <GaugeCircle value={58} label="Surveillance & Data" color="#0891B2" delta="▲ 8 pts vs 2026" />
-        <GaugeCircle value={42} label="Laboratory Capacity" color="#7C3AED" delta="▲ 6 pts vs 2026" />
-        <GaugeCircle value={46} label="Vaccination System" color="#059669" delta="▲ 5 pts vs 2026" />
-        <GaugeCircle value={52} label="Evidence & Reporting" color="#EA580C" delta="▲ 7 pts vs 2026" />
+        <GaugeCircle value={58} label={t('pprGaugeSurveillance')} color="#0891B2" delta={t('pprGaugeDelta8')} />
+        <GaugeCircle value={42} label={t('pprGaugeLabCapacity')} color="#7C3AED" delta={t('pprGaugeDelta6')} />
+        <GaugeCircle value={46} label={t('pprGaugeVaccinationSystem')} color="#059669" delta={t('pprGaugeDelta5')} />
+        <GaugeCircle value={52} label={t('pprGaugeEvidenceReporting')} color="#EA580C" delta={t('pprGaugeDelta7')} />
       </div>
     </div>
   );

@@ -185,7 +185,7 @@ export default function VaccinationPage() {
                   stroke="#1B5E20"
                   strokeWidth={2}
                   fill="url(#coverageGrad)"
-                  name="Coverage"
+                  name={t('coverage')}
                 />
                 <Line
                   type="monotone"
@@ -194,7 +194,7 @@ export default function VaccinationPage() {
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
-                  name="Target"
+                  name={t('target')}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -360,7 +360,7 @@ export default function VaccinationPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="px-2 text-xs text-gray-600">
-                Page {page} of {totalPages || 1}
+                {t('pageOf', { page: String(page), total: String(totalPages || 1) })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

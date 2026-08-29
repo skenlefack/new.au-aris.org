@@ -12,6 +12,7 @@ import {
 import { useClimateData, type ClimateData } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const PLACEHOLDER_DATA: ClimateData[] = [
   { id: 'cd-1', country: 'Kenya', countryCode: 'KE', region: 'Nairobi', date: '2026-02-15', temperature: 24.5, rainfall: 45.2, humidity: 62, windSpeed: 12.3, source: 'KMD', createdAt: '2026-02-15T10:00:00Z', updatedAt: '2026-02-15T10:00:00Z' },
@@ -23,6 +24,7 @@ const PLACEHOLDER_DATA: ClimateData[] = [
 ];
 
 export default function ClimateDataPage() {
+  const t = useTranslations('climate');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
@@ -50,9 +52,9 @@ export default function ClimateDataPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Climate Data</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('dataTitle')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Temperature, rainfall, humidity, and wind observations
+            {t('dataSubtitle')}
           </p>
         </div>
       </div>
@@ -63,7 +65,7 @@ export default function ClimateDataPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by country or region..."
+            placeholder={t('searchPlaceholder')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200"
@@ -76,7 +78,7 @@ export default function ClimateDataPage() {
             onChange={(e) => { setSourceFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-teal-500 focus:outline-none"
           >
-            <option value="">All Sources</option>
+            <option value="">{t('allSources')}</option>
             <option value="KMD">KMD (Kenya)</option>
             <option value="NiMet">NiMet (Nigeria)</option>
             <option value="NMA Ethiopia">NMA (Ethiopia)</option>
@@ -101,13 +103,13 @@ export default function ClimateDataPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Location</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Date</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Temp (&deg;C)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Rainfall (mm)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Humidity (%)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Wind (km/h)</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Source</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colLocation')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colDate')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('colTemp')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('colRainfall')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('colHumidity')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('colWind')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colSource')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -138,7 +140,7 @@ export default function ClimateDataPage() {
                 {records.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No climate data records found
+                      {t('noDataRecords')}
                     </td>
                   </tr>
                 )}
@@ -149,7 +151,7 @@ export default function ClimateDataPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {records.length} of {meta.total} records
+              {t('showingRecords', { count: records.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -160,7 +162,7 @@ export default function ClimateDataPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="px-2 text-xs text-gray-600">
-                Page {page} of {totalPages || 1}
+                {t('pageOf', { page, total: totalPages || 1 })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

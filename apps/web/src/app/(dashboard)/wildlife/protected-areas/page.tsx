@@ -134,9 +134,9 @@ export default function ProtectedAreasPage() {
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
             <option value="">{t('allStatus')}</option>
-            <option value="active">Active</option>
-            <option value="proposed">Proposed</option>
-            <option value="degraded">Degraded</option>
+            <option value="active">{t('active')}</option>
+            <option value="proposed">{t('proposed')}</option>
+            <option value="degraded">{t('degraded')}</option>
           </select>
         </div>
       </div>
@@ -213,7 +213,7 @@ export default function ProtectedAreasPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="px-2 text-xs text-gray-600 dark:text-gray-400">
-                Page {page} of {totalPages || 1}
+                {t('pageOf', { page: String(page), total: String(totalPages || 1) })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface SectorPerformanceEditorProps {
   value: Record<string, number>;
@@ -9,13 +10,13 @@ interface SectorPerformanceEditorProps {
   disabled?: boolean;
 }
 
-const SECTOR_CONFIG: { key: string; label: string; color: string }[] = [
-  { key: 'vaccination', label: 'Vaccination Coverage', color: '#C62828' },
-  { key: 'fisheries', label: 'Fisheries & Aquaculture', color: '#00838F' },
-  { key: 'wildlife', label: 'Wildlife & Biodiversity', color: '#2E7D32' },
-  { key: 'governance', label: 'Governance & Capacities', color: '#6B21A8' },
-  { key: 'dataQuality', label: 'Data Quality', color: '#F57F17' },
-  { key: 'analytics', label: 'Analytics Readiness', color: '#1565C0' },
+const SECTOR_CONFIG: { key: string; labelKey: string; color: string }[] = [
+  { key: 'vaccination', labelKey: 'sectorVaccination', color: '#C62828' },
+  { key: 'fisheries', labelKey: 'sectorFisheries', color: '#00838F' },
+  { key: 'wildlife', labelKey: 'sectorWildlife', color: '#2E7D32' },
+  { key: 'governance', labelKey: 'sectorGovernance', color: '#6B21A8' },
+  { key: 'dataQuality', labelKey: 'sectorDataQuality', color: '#F57F17' },
+  { key: 'analytics', labelKey: 'sectorAnalytics', color: '#1565C0' },
 ];
 
 export function SectorPerformanceEditor({
@@ -23,6 +24,7 @@ export function SectorPerformanceEditor({
   onChange,
   disabled = false,
 }: SectorPerformanceEditorProps) {
+  const t = useTranslations('settings');
   const handleUpdate = (key: string, num: number) => {
     const clamped = Math.max(0, Math.min(100, num));
     onChange({ ...value, [key]: clamped });
@@ -31,16 +33,16 @@ export function SectorPerformanceEditor({
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        Sector Performance
+        {t('sectorPerformance')}
       </label>
       <div className="space-y-3">
-        {SECTOR_CONFIG.map(({ key, label, color }) => {
+        {SECTOR_CONFIG.map(({ key, labelKey, color }) => {
           const score = value[key] ?? 0;
           return (
             <div key={key} className="space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {label}
+                  {t(labelKey)}
                 </span>
                 <div className="flex items-center gap-2">
                   <input

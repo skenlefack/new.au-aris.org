@@ -3,6 +3,7 @@
 import React from 'react';
 import { FileText, CheckCircle2, Play, Clock, ArrowRight, Globe2, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { AFRICA_COUNTRIES } from '@/components/dashboard/maps/africa-geo-data';
 import type { DomainSummary } from '@/lib/api/domain-summary-hooks';
 
@@ -13,9 +14,9 @@ interface DomainActivityFeedProps {
 }
 
 const TYPE_CONFIG = {
-  submission: { icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30', ring: 'ring-blue-100 dark:ring-blue-800/40', label: 'Submission' },
-  validation: { icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30', ring: 'ring-emerald-100 dark:ring-emerald-800/40', label: 'Validation' },
-  campaign_start: { icon: Play, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/30', ring: 'ring-violet-100 dark:ring-violet-800/40', label: 'Campaign started' },
+  submission: { icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30', ring: 'ring-blue-100 dark:ring-blue-800/40', labelKey: 'activitySubmission' },
+  validation: { icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30', ring: 'ring-emerald-100 dark:ring-emerald-800/40', labelKey: 'activityValidation' },
+  campaign_start: { icon: Play, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/30', ring: 'ring-violet-100 dark:ring-violet-800/40', labelKey: 'activityCampaignStarted' },
 };
 
 const COUNTRY_MAP = new Map(AFRICA_COUNTRIES.map((c) => [c.code, c]));
@@ -68,6 +69,7 @@ function formatDate(dateStr: string): string {
 }
 
 export function DomainActivityFeed({ activities, loading, domainColor }: DomainActivityFeedProps) {
+  const t = useTranslations('domain');
   const accentColor = domainColor || '#1F4E79';
 
   if (loading) {
@@ -98,15 +100,15 @@ export function DomainActivityFeed({ activities, loading, domainColor }: DomainA
         <div className="border-b border-gray-100 dark:border-gray-800 px-5 py-4">
           <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
             <Activity className="h-4 w-4" style={{ color: accentColor }} />
-            Recent Activity
+            {t('recentActivity')}
           </h3>
         </div>
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 dark:bg-gray-800 mb-3">
             <Clock className="h-5 w-5 text-gray-300 dark:text-gray-600" />
           </div>
-          <p className="text-sm font-medium text-gray-400 dark:text-gray-500">No recent activity</p>
-          <p className="mt-1 text-xs text-gray-300 dark:text-gray-600">Activity will appear here once data is submitted</p>
+          <p className="text-sm font-medium text-gray-400 dark:text-gray-500">{t('noRecentActivity')}</p>
+          <p className="mt-1 text-xs text-gray-300 dark:text-gray-600">{t('noRecentActivityHint')}</p>
         </div>
       </div>
     );
@@ -118,7 +120,7 @@ export function DomainActivityFeed({ activities, loading, domainColor }: DomainA
       <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-5 py-4">
         <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
           <Activity className="h-4 w-4" style={{ color: accentColor }} />
-          Recent Activity
+          {t('recentActivity')}
           <span className="ml-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
             {activities.length}
           </span>
@@ -147,7 +149,7 @@ export function DomainActivityFeed({ activities, loading, domainColor }: DomainA
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                    {cfg.label}
+                    {t(cfg.labelKey)}
                   </span>
                   {country && (
                     <>

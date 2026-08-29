@@ -108,10 +108,10 @@ export default function VesselsPage() {
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-cyan-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
           >
             <option value="">{t('allStatus')}</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="VALIDATED">Validated</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="DRAFT">Draft</option>
+            <option value="SUBMITTED">{t('statusSubmitted')}</option>
+            <option value="VALIDATED">{t('statusValidated')}</option>
+            <option value="REJECTED">{t('statusRejected')}</option>
+            <option value="DRAFT">{t('statusDraft')}</option>
           </select>
         </div>
         <span className="text-xs text-gray-400">

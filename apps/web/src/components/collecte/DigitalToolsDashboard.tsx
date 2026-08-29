@@ -13,6 +13,7 @@ import {
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import { AFRICA_COUNTRIES } from '@/components/dashboard/maps/africa-geo-data';
+import { useTranslations } from 'next-intl';
 
 /* Custom map — dynamic import (no SSR, Leaflet needs window) */
 const DigitalToolsMap = dynamic(
@@ -149,6 +150,7 @@ function DonutChart({ entries, colors, size = 160, centerLabel }: {
 /* ================================================================== */
 
 export default function DigitalToolsDashboard({ campaignId }: { campaignId: string }) {
+  const { t } = useTranslations('collecte');
   const sQ = useCampaignSubmissions(campaignId, { limit: 100 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
@@ -201,7 +203,7 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
   }, [countriesInfo]);
 
   const statusColors: Record<DigitalStatus, string> = { uses_digital: '#059669', no_digital: '#DC2626', not_surveyed: '#D1D5DB' };
-  const statusLabels: Record<DigitalStatus, string> = { uses_digital: 'Utilise un outil numérique', no_digital: "Pas d'outil numérique", not_surveyed: 'Non enquêté' };
+  const statusLabels: Record<DigitalStatus, string> = { uses_digital: t('usesDigitalTool'), no_digital: t('noDigitalTool'), not_surveyed: t('notSurveyed') };
 
   // Error state
   if (error && rawSubs.length === 0) {
@@ -222,11 +224,11 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
         <div className="flex items-center gap-2">
           <Monitor className="h-5 w-5 text-white/80" />
           <span className="text-sm font-bold tracking-wide text-white">
-            Programme PPR — Utilisation des Outils Numériques
+            {t('pprDigitalToolsTitle')}
           </span>
         </div>
         <span className="rounded bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">
-          {kpis.surveyed} pays enquêtés
+          {kpis.surveyed} {t('countriesSurveyed')}
         </span>
       </div>
 
@@ -236,11 +238,11 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
           Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[72px]" />)
         ) : (
           [
-            { icon: ClipboardCheck, val: kpis.surveyed, label: 'Pays enquêtés', color: '#1E40AF', bg: '#EFF6FF' },
-            { icon: Monitor, val: kpis.withDigital, label: 'Utilisent les outils numériques', color: '#059669', bg: '#ECFDF5' },
-            { icon: Server, val: kpis.withOwnSystem, label: 'Ont leur propre système', color: '#7C3AED', bg: '#F5F3FF' },
-            { icon: MonitorOff, val: kpis.withoutDigital, label: 'Sans système numérique', color: '#DC2626', bg: '#FEF2F2' },
-            { icon: ShieldCheck, val: kpis.withSurveillance, label: 'Avec système de surveillance', color: '#EA580C', bg: '#FFF7ED' },
+            { icon: ClipboardCheck, val: kpis.surveyed, label: t('countriesSurveyed'), color: '#1E40AF', bg: '#EFF6FF' },
+            { icon: Monitor, val: kpis.withDigital, label: t('useDigitalTools'), color: '#059669', bg: '#ECFDF5' },
+            { icon: Server, val: kpis.withOwnSystem, label: t('haveOwnSystem'), color: '#7C3AED', bg: '#F5F3FF' },
+            { icon: MonitorOff, val: kpis.withoutDigital, label: t('noDigitalSystem'), color: '#DC2626', bg: '#FEF2F2' },
+            { icon: ShieldCheck, val: kpis.withSurveillance, label: t('withSurveillanceSystem'), color: '#EA580C', bg: '#FFF7ED' },
           ].map((k, i) => {
             const Icon = k.icon;
             return (
@@ -271,7 +273,7 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
             <div className="lg:col-span-3 flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900 min-h-[580px]">
               <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                 <Globe2 className="h-4 w-4 text-[#1E40AF]" />
-                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Carte des Outils Numériques en Afrique</h3>
+                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">{t('digitalToolsMap')}</h3>
               </div>
               <div className="relative flex-1 min-h-[500px]">
                 <DigitalToolsMap countries={allCountriesStatus} statusColors={statusColors} statusLabels={statusLabels} />
@@ -281,17 +283,17 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
             {/* Right — 3 charts */}
             <div className="lg:col-span-2 space-y-4">
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">Adoption des Outils Numériques</h3>
-                <PieChart entries={[{ label: 'Utilise un outil', value: kpis.withDigital }, { label: 'Sans outil', value: kpis.withoutDigital }]} colors={['#059669', '#DC2626']} size={140} />
+                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('digitalToolsAdoption')}</h3>
+                <PieChart entries={[{ label: t('usesDigitalTool'), value: kpis.withDigital }, { label: t('noDigitalTool'), value: kpis.withoutDigital }]} colors={['#059669', '#DC2626']} size={140} />
               </div>
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">Couverture de la Surveillance</h3>
-                <DonutChart entries={[{ label: 'Avec surveillance', value: kpis.withSurveillance }, { label: 'Sans surveillance', value: kpis.surveyed - kpis.withSurveillance }]}
+                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('surveillanceCoverage')}</h3>
+                <DonutChart entries={[{ label: t('withSurveillanceSystem'), value: kpis.withSurveillance }, { label: t('noSurveillanceSystem'), value: kpis.surveyed - kpis.withSurveillance }]}
                   colors={['#1E40AF', '#F59E0B']} size={140} centerLabel={`${Math.round((kpis.withSurveillance / (kpis.surveyed || 1)) * 100)}%`} />
               </div>
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">Type de Système Numérique</h3>
-                <DonutChart entries={[{ label: 'Système propre', value: kpis.withOwnSystem }, { label: 'Aucun système', value: kpis.surveyed - kpis.withOwnSystem }]}
+                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('digitalSystemType')}</h3>
+                <DonutChart entries={[{ label: t('haveOwnSystem'), value: kpis.withOwnSystem }, { label: t('noDigitalSystem'), value: kpis.surveyed - kpis.withOwnSystem }]}
                   colors={['#7C3AED', '#9CA3AF']} size={140} centerLabel={`${kpis.withOwnSystem}`} />
               </div>
             </div>
@@ -303,15 +305,15 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                 <Monitor className="h-4 w-4 text-green-600" />
-                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Pays utilisant les outils numériques ({digitalCountries.length})</h3>
+                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">{t('countriesUsingDigitalTools')} ({digitalCountries.length})</h3>
               </div>
               <div className="overflow-auto max-h-[360px]">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800">
                     <tr className="text-[11px] uppercase tracking-wider text-gray-500">
-                      <th className="px-4 py-2 text-left font-semibold">Pays</th>
-                      <th className="px-4 py-2 text-left font-semibold">Outil</th>
-                      <th className="px-4 py-2 text-left font-semibold">Développeur</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('countries')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('tool')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('developer')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -324,7 +326,7 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
                         <td className="px-4 py-2 text-gray-600 dark:text-gray-400">{c.toolDeveloper || '—'}</td>
                       </tr>
                     ))}
-                    {digitalCountries.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-400 italic">Aucune donnée</td></tr>}
+                    {digitalCountries.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-400 italic">{t('noData')}</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -334,15 +336,15 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                 <MonitorOff className="h-4 w-4 text-red-600" />
-                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Pays sans système numérique ({noDigitalCountries.length})</h3>
+                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">{t('countriesNoDigitalSystem')} ({noDigitalCountries.length})</h3>
               </div>
               <div className="overflow-auto max-h-[360px]">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800">
                     <tr className="text-[11px] uppercase tracking-wider text-gray-500">
-                      <th className="px-4 py-2 text-left font-semibold">Pays</th>
-                      <th className="px-4 py-2 text-left font-semibold">Institution</th>
-                      <th className="px-4 py-2 text-left font-semibold">Surveillance</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('countries')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('institution')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('surveillanceCoverage')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -354,12 +356,12 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
                         <td className="px-4 py-2 text-gray-600 dark:text-gray-400">{c.institution || '—'}</td>
                         <td className="px-4 py-2">
                           {c.hasSurveillance
-                            ? <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">Oui</span>
-                            : <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">Non</span>}
+                            ? <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">{t('yes')}</span>
+                            : <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">{t('no')}</span>}
                         </td>
                       </tr>
                     ))}
-                    {noDigitalCountries.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-400 italic">Aucune donnée</td></tr>}
+                    {noDigitalCountries.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-400 italic">{t('noData')}</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -370,13 +372,13 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
           <div className="grid gap-4 lg:grid-cols-2">
             {toolsByDeveloper.length > 0 && (
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">Outils par Développeur</h3>
+                <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('toolsByDeveloper')}</h3>
                 <PieChart entries={toolsByDeveloper} colors={['#1E40AF', '#059669', '#EA580C', '#7C3AED', '#DC2626', '#D97706', '#0891B2', '#4F46E5']} size={140} />
               </div>
             )}
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <h3 className="mb-3 text-sm font-bold text-gray-800 dark:text-gray-200">
-                Pays non enquêtés ({allCountriesStatus.filter((c) => c.status === 'not_surveyed').length})
+                {t('countriesNotSurveyed')} ({allCountriesStatus.filter((c) => c.status === 'not_surveyed').length})
               </h3>
               <div className="flex flex-wrap gap-1.5">
                 {allCountriesStatus.filter((c) => c.status === 'not_surveyed').sort((a, b) => a.nameFr.localeCompare(b.nameFr)).map((c) => (
@@ -392,8 +394,7 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
 
       {/* FOOTER */}
       <div className="bg-[#1E40AF] px-4 py-1.5 text-[9px] leading-snug text-white/90">
-        <strong>Source :</strong> Enquête « Systèmes de Surveillance et Outils Numériques en Santé Animale » —
-        Programme PPR, AU-IBAR. Données issues de {kpis.surveyed} réponses pays.
+        <strong>Source :</strong> {t('pprDigitalToolsTitle')} — AU-IBAR. {t('dataSourceFooter', { count: kpis.surveyed })}
       </div>
     </div>
   );

@@ -32,16 +32,18 @@ const PRODUCT_COLORS: Record<string, string> = {
   hides: '#E65100', honey: '#2E7D32', other: '#546E7A',
 };
 
-const PRODUCT_LABELS: Record<string, string> = {
-  milk: 'Milk', meat: 'Meat', eggs: 'Eggs', wool: 'Wool',
-  hides: 'Hides', honey: 'Honey', other: 'Other',
-};
+// PRODUCT_LABELS is built dynamically in the component using t() — see getProductLabels below
 
 export default function LivestockProductionPage() {
   const t = useTranslations('livestock');
   const [search, setSearch] = useState('');
   const [productFilter, setProductFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  const PRODUCT_LABELS: Record<string, string> = {
+    milk: t('productMilk'), meat: t('productMeat'), eggs: t('productEggs'), wool: t('productWool'),
+    hides: t('productHides'), honey: t('productHoney'), other: t('productOther'),
+  };
 
   const { data, isLoading } = useFormSubmissions(PRODUCTION_TEMPLATE_ID, { page: 1, limit: 100, status: statusFilter || undefined });
   const submissions: any[] = data?.data ?? [];
@@ -140,9 +142,9 @@ export default function LivestockProductionPage() {
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             <option value="">{t('allStatus')}</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="VALIDATED">Validated</option>
-            <option value="REJECTED">Rejected</option>
+            <option value="SUBMITTED">{t('statusSubmitted')}</option>
+            <option value="VALIDATED">{t('statusValidated')}</option>
+            <option value="REJECTED">{t('statusRejected')}</option>
           </select>
         </div>
         <span className="text-xs text-gray-400">{filtered.length} {t('entries')}</span>
@@ -184,7 +186,7 @@ export default function LivestockProductionPage() {
                 <div className="mt-3 flex items-end justify-between">
                   <div>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">{d.quantity ? Number(d.quantity).toLocaleString() : '—'}</p>
-                    <p className="text-[10px] text-gray-400">{d.unit ?? 'tonnes'}</p>
+                    <p className="text-[10px] text-gray-400">{d.unit ?? t('tonnes')}</p>
                   </div>
                   {d.market_value && (
                     <div className="text-right">

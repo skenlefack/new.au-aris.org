@@ -436,7 +436,7 @@ export function ExportDashboardDialog({
           <div className="flex gap-2">
             <button onClick={handleClose} disabled={isExporting}
               className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-              Cancel
+              {t('dbCancel')}
             </button>
             <button onClick={handleExport}
               disabled={isExporting || (scope === 'selected' && selectedCount === 0)}

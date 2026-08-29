@@ -89,7 +89,7 @@ function ExportCard({ title, description, icon, entity, color, t }: ExportCardPr
             onChange={(e) => setYear(e.target.value)}
             className="mt-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All</option>
+            <option value="">{t('all')}</option>
             <option value="2026">2026</option>
             <option value="2025">2025</option>
             <option value="2024">2024</option>
@@ -144,35 +144,35 @@ export default function ExportPage() {
   const entities = [
     {
       title: t('captures'),
-      description: 'Marine & inland capture records',
+      description: t('capturesDesc'),
       icon: <Fish className="h-5 w-5" />,
       entity: 'captures',
       color: 'bg-teal-100 text-teal-700',
     },
     {
       title: t('vesselRegistry'),
-      description: 'Registered fishing vessels and license data',
+      description: t('vesselDesc'),
       icon: <Ship className="h-5 w-5" />,
       entity: 'vessels',
       color: 'bg-blue-100 text-blue-700',
     },
     {
       title: t('aquaFarms'),
-      description: 'Aquaculture farm records and production data',
+      description: t('aquaDesc'),
       icon: <Warehouse className="h-5 w-5" />,
       entity: 'aquaculture-farms',
       color: 'bg-green-100 text-green-700',
     },
     {
       title: t('aquaProduction'),
-      description: 'Aquaculture production volumes',
+      description: t('aquaSubtitle'),
       icon: <Anchor className="h-5 w-5" />,
       entity: 'production',
       color: 'bg-orange-100 text-orange-700',
     },
     {
       title: t('efforts'),
-      description: 'Fishing effort records',
+      description: t('effortsDesc'),
       icon: <Activity className="h-5 w-5" />,
       entity: 'efforts',
       color: 'bg-purple-100 text-purple-700',

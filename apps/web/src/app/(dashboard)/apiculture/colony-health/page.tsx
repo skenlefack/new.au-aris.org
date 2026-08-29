@@ -167,7 +167,7 @@ export default function ColonyHealthPage() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('apiaryName')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Country</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('country')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('inspectionDate')}</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('inspected')}</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('infected')}</th>
@@ -198,7 +198,7 @@ export default function ColonyHealthPage() {
                     </td>
                     <td className="px-4 py-3">
                       <p className="italic text-gray-700 dark:text-gray-300">{r.pest}</p>
-                      <p className="text-xs text-gray-400">{r.pestPrevalence}% prevalence</p>
+                      <p className="text-xs text-gray-400">{r.pestPrevalence}% {t('prevalence')}</p>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={cn('text-xs font-medium capitalize', QUEEN_BADGE[r.queenStatus])}>
@@ -241,7 +241,7 @@ export default function ColonyHealthPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="px-2 text-xs text-gray-600 dark:text-gray-400">
-                Page {page} of {totalPages || 1}
+                {t('pageOf', { page: String(page), total: String(totalPages || 1) })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

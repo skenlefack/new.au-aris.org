@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import { BarChart3, Database, Calendar, Globe2, Hash } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /* ── Color palettes ── */
 const CHART_COLORS = [
@@ -138,6 +139,7 @@ export default function GenericCampaignDashboard({
   campaignId: string;
   campaignName: string;
 }) {
+  const { t } = useTranslations('collecte');
   const sQ = useCampaignSubmissions(campaignId, { limit: 100 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
@@ -248,7 +250,7 @@ export default function GenericCampaignDashboard({
           .sort((a, b) => b.value - a.value)
           .slice(0, 10);
         if (entries.length >= 2) {
-          charts.push({ key: nf.key, label: `${nf.label} par ${groupByField.label}`, type: 'bar', entries });
+          charts.push({ key: nf.key, label: `${nf.label} / ${groupByField.label}`, type: 'bar', entries });
         }
       } else {
         // No group field: show distribution as bar chart of top values
@@ -294,7 +296,7 @@ export default function GenericCampaignDashboard({
           <span className="text-sm font-bold tracking-wide text-white">{campaignName}</span>
         </div>
         <span className="rounded bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">
-          {analysis?.totalSubmissions ?? 0} soumissions
+          {analysis?.totalSubmissions ?? 0} {t('submissions')}
         </span>
       </div>
 
@@ -304,15 +306,15 @@ export default function GenericCampaignDashboard({
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[72px]" />)
         ) : (
           [
-            { icon: Hash, val: analysis?.totalSubmissions ?? 0, label: 'Total soumissions', color: '#1F4E79', bg: '#EFF6FF' },
-            { icon: Globe2, val: analysis?.distinctCountries ?? 0, label: 'Pays couverts', color: '#059669', bg: '#ECFDF5' },
-            { icon: BarChart3, val: `${analysis?.completionRate ?? 0}%`, label: 'Taux de compl\u00e9tion', color: '#7C3AED', bg: '#F5F3FF' },
+            { icon: Hash, val: analysis?.totalSubmissions ?? 0, label: t('totalSubmissions'), color: '#1F4E79', bg: '#EFF6FF' },
+            { icon: Globe2, val: analysis?.distinctCountries ?? 0, label: t('countriesCovered'), color: '#059669', bg: '#ECFDF5' },
+            { icon: BarChart3, val: `${analysis?.completionRate ?? 0}%`, label: t('completionRate'), color: '#7C3AED', bg: '#F5F3FF' },
             {
               icon: Calendar,
               val: analysis?.latestDate
-                ? new Date(analysis.latestDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+                ? new Date(analysis.latestDate).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
                 : '\u2014',
-              label: 'Derni\u00e8re soumission',
+              label: t('lastSubmission'),
               color: '#EA580C',
               bg: '#FFF7ED',
             },
@@ -340,7 +342,7 @@ export default function GenericCampaignDashboard({
         </div>
       ) : !analysis || analysis.totalSubmissions === 0 ? (
         <div className="flex items-center justify-center py-20">
-          <p className="text-gray-400 dark:text-gray-500 text-sm italic">Aucune soumission disponible pour cette campagne.</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm italic">{t('noSubmissionsAvailable')}</p>
         </div>
       ) : (
         <div className="flex-1 overflow-auto p-4 space-y-4">
@@ -376,7 +378,7 @@ export default function GenericCampaignDashboard({
               <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                 <Database className="h-4 w-4" style={{ color: HEADER_BG }} />
                 <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                  Donn\u00e9es de soumission ({analysis.totalSubmissions})
+                  {t('submissionData')} ({analysis.totalSubmissions})
                 </h3>
               </div>
               <div className="overflow-auto max-h-[420px]">
@@ -408,7 +410,7 @@ export default function GenericCampaignDashboard({
                     {rawSubs.length === 0 && (
                       <tr>
                         <td colSpan={analysis.tableColumns.length + 1} className="px-4 py-6 text-center text-gray-400 italic">
-                          Aucune donn\u00e9e
+                          {t('noData')}
                         </td>
                       </tr>
                     )}
@@ -416,7 +418,7 @@ export default function GenericCampaignDashboard({
                 </table>
                 {rawSubs.length > 100 && (
                   <div className="px-4 py-2 text-xs text-gray-400 text-center border-t border-gray-100 dark:border-gray-800">
-                    Affichage limit\u00e9 aux 100 premi\u00e8res lignes sur {rawSubs.length}
+                    {t('displayLimited', { count: 100, total: rawSubs.length })}
                   </div>
                 )}
               </div>
@@ -427,7 +429,7 @@ export default function GenericCampaignDashboard({
 
       {/* FOOTER */}
       <div className="px-4 py-1.5 text-[9px] leading-snug text-white/90" style={{ backgroundColor: HEADER_BG }}>
-        <strong>Source :</strong> {campaignName} — AU-IBAR ARIS 4.0. Donn\u00e9es issues de {analysis?.totalSubmissions ?? 0} soumissions.
+        <strong>Source :</strong> {campaignName} — AU-IBAR ARIS 4.0. {t('dataSourceFooter', { count: analysis?.totalSubmissions ?? 0 })}
       </div>
     </div>
   );

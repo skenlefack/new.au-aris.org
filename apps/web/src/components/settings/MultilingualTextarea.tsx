@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Loader2, Wand2 } from 'lucide-react';
 import { useTranslateToAll } from '@/lib/api/translation-hooks';
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 type LangCode = 'en' | 'fr' | 'pt' | 'ar' | 'es' | 'sw';
 
@@ -38,6 +39,7 @@ export function MultilingualTextarea({
   rows = 3,
   error,
 }: MultilingualTextareaProps) {
+  const t = useTranslations('settings');
   const locale = useLocaleStore((s) => s.locale);
   const userLang = (locale?.slice(0, 2) || 'en') as LangCode;
   const defaultLang = languages.includes(userLang) ? userLang : languages[0];
@@ -115,14 +117,14 @@ export function MultilingualTextarea({
             onClick={() => handleAutoTranslate(emptyLangs.length === 0)}
             disabled={translateMut.isPending}
             className="ml-auto mb-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-aris-primary-600 hover:bg-aris-primary-50 disabled:opacity-50 dark:text-aris-primary-400 dark:hover:bg-aris-primary-900/20"
-            title={emptyLangs.length > 0 ? 'Translate to empty languages' : 'Re-translate all languages'}
+            title={emptyLangs.length > 0 ? t('translateToEmpty') : t('retranslateAll')}
           >
             {translateMut.isPending ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
               <Wand2 className="h-3 w-3" />
             )}
-            {emptyLangs.length > 0 ? 'Auto' : 'Re-translate'}
+            {emptyLangs.length > 0 ? t('autoTranslate') : t('retranslate')}
           </button>
         )}
       </div>
@@ -131,7 +133,7 @@ export function MultilingualTextarea({
         value={value[activeLang] ?? ''}
         onChange={(e) => onChange({ ...value, [activeLang]: e.target.value })}
         onBlur={handleBlur}
-        placeholder={placeholder ?? `Enter ${LANG_NAMES[activeLang] || activeLang} translation...`}
+        placeholder={placeholder ?? `${LANG_NAMES[activeLang] || activeLang}...`}
         disabled={disabled}
         rows={rows}
         dir={activeLang === 'ar' ? 'rtl' : 'ltr'}

@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import { Maximize2, Minimize2, Download, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import type { DomainSummary } from '@/lib/api/domain-summary-hooks';
 
 // Lazy-load map to avoid SSR issues with Leaflet
@@ -52,13 +53,15 @@ function FullscreenModal({ open, onClose, title, children }: {
 }
 
 /* ── Widget Card wrapper with fullscreen + export buttons ── */
-function WidgetCard({ title, subtitle, children, onFullscreen, onExport, fullscreenContent }: {
+function WidgetCard({ title, subtitle, children, onFullscreen, onExport, fullscreenContent, exportLabel = 'Export', fullscreenLabel = 'Fullscreen' }: {
   title: string;
   subtitle: string;
   children: React.ReactNode;
   onFullscreen?: () => void;
   onExport?: () => void;
   fullscreenContent?: React.ReactNode;
+  exportLabel?: string;
+  fullscreenLabel?: string;
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -75,7 +78,7 @@ function WidgetCard({ title, subtitle, children, onFullscreen, onExport, fullscr
               <button
                 onClick={onExport}
                 className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors"
-                title="Exporter"
+                title={exportLabel}
               >
                 <Download className="h-3.5 w-3.5" />
               </button>
@@ -83,7 +86,7 @@ function WidgetCard({ title, subtitle, children, onFullscreen, onExport, fullscr
             <button
               onClick={() => setIsFullscreen(true)}
               className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors"
-              title="Plein ecran"
+              title={fullscreenLabel}
             >
               <Maximize2 className="h-3.5 w-3.5" />
             </button>
@@ -150,10 +153,12 @@ function exportChartAsPNG(chartRef: React.RefObject<HTMLDivElement | null>, file
 
 /* ── Sub-components for chart content (reusable at normal + fullscreen sizes) ── */
 
-function TrendChart({ data, domainColor, height = 280 }: {
+function TrendChart({ data, domainColor, height = 280, submissionsLabel = 'Submissions', monthLabel = 'Month' }: {
   data: DomainSummary['synthesis']['monthlyTrend'];
   domainColor: string;
   height?: number;
+  submissionsLabel?: string;
+  monthLabel?: string;
 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -175,8 +180,8 @@ function TrendChart({ data, domainColor, height = 280 }: {
         <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={35} />
         <Tooltip
           contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-          formatter={(value: number) => [value.toLocaleString(), 'Soumissions']}
-          labelFormatter={(label) => `Mois: ${label}`}
+          formatter={(value: number) => [value.toLocaleString(), submissionsLabel]}
+          labelFormatter={(label) => `${monthLabel}: ${label}`}
         />
         <Area type="monotone" dataKey="count" stroke={domainColor} strokeWidth={2.5} fill="url(#trendGradient)" />
       </AreaChart>
@@ -184,12 +189,13 @@ function TrendChart({ data, domainColor, height = 280 }: {
   );
 }
 
-function BreakdownChart({ data, height = 280 }: {
+function BreakdownChart({ data, height = 280, noDataLabel = 'No data' }: {
   data: Array<{ name: string; value: number; color: string }>;
   height?: number;
+  noDataLabel?: string;
 }) {
   if (data.length === 0) {
-    return <div className="flex items-center justify-center text-sm text-gray-400" style={{ height }}>Aucune donnee</div>;
+    return <div className="flex items-center justify-center text-sm text-gray-400" style={{ height }}>{noDataLabel}</div>;
   }
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -224,6 +230,7 @@ function BreakdownChart({ data, height = 280 }: {
 /* ── Main Component ── */
 
 export function DomainSynthesis({ synthesis, loading, domainColor = '#1F4E79' }: DomainSynthesisProps) {
+  const t = useTranslations('domain');
   const trendRef = useRef<HTMLDivElement>(null);
   const pieRef = useRef<HTMLDivElement>(null);
 
@@ -260,62 +267,68 @@ export function DomainSynthesis({ synthesis, loading, domainColor = '#1F4E79' }:
     <div className="grid gap-4 lg:grid-cols-3">
       {/* 1. Africa Choropleth Map */}
       <WidgetCard
-        title="Couverture geographique"
-        subtitle="Soumissions par pays"
+        title={t('geoTitle')}
+        subtitle={t('geoSubtitle')}
+        exportLabel={t('export')}
+        fullscreenLabel={t('fullscreen')}
         onExport={() => exportToCSV(
-          synthesis.countryDistribution.map((c) => ({ pays: c.code, soumissions: c.count })),
-          'couverture-geographique',
+          synthesis.countryDistribution.map((c) => ({ [t('csvCountry')]: c.code, [t('csvSubmissions')]: c.count })),
+          'geographic-coverage',
         )}
         fullscreenContent={
           <div className="h-[calc(92vh-130px)]">
-            <ChoroplethMap title="Couverture geographique" data={mapData} indicator="submissions" bare />
+            <ChoroplethMap title={t('geoTitle')} data={mapData} indicator="submissions" bare />
           </div>
         }
       >
         <div className="h-[400px]">
-          <ChoroplethMap title="Couverture geographique" data={mapData} indicator="submissions" bare />
+          <ChoroplethMap title={t('geoTitle')} data={mapData} indicator="submissions" bare />
         </div>
       </WidgetCard>
 
       {/* 2. Monthly Trend Area Chart */}
       <WidgetCard
-        title="Tendance mensuelle"
-        subtitle="12 derniers mois"
+        title={t('trendTitle')}
+        subtitle={t('trendSubtitle')}
+        exportLabel={t('export')}
+        fullscreenLabel={t('fullscreen')}
         onExport={() => {
           exportToCSV(
-            synthesis.monthlyTrend.map((t) => ({ mois: t.month, soumissions: t.count })),
-            'tendance-mensuelle',
+            synthesis.monthlyTrend.map((row) => ({ [t('csvMonth')]: row.month, [t('csvSubmissions')]: row.count })),
+            'monthly-trend',
           );
         }}
         fullscreenContent={
           <div ref={trendRef}>
-            <TrendChart data={synthesis.monthlyTrend} domainColor={domainColor} height={600} />
+            <TrendChart data={synthesis.monthlyTrend} domainColor={domainColor} height={600} submissionsLabel={t('submissions')} monthLabel={t('month')} />
           </div>
         }
       >
         <div ref={trendRef}>
-          <TrendChart data={synthesis.monthlyTrend} domainColor={domainColor} height={380} />
+          <TrendChart data={synthesis.monthlyTrend} domainColor={domainColor} height={380} submissionsLabel={t('submissions')} monthLabel={t('month')} />
         </div>
       </WidgetCard>
 
       {/* 3. Sub-domain Donut */}
       <WidgetCard
-        title="Repartition"
-        subtitle="Par formulaire / sous-domaine"
+        title={t('breakdownTitle')}
+        subtitle={t('breakdownSubtitle')}
+        exportLabel={t('export')}
+        fullscreenLabel={t('fullscreen')}
         onExport={() => {
           exportToCSV(
-            synthesis.subDomainBreakdown.map((s) => ({ sous_domaine: s.label || s.code, soumissions: s.count })),
-            'repartition-sous-domaines',
+            synthesis.subDomainBreakdown.map((s) => ({ sub_domain: s.label || s.code, [t('csvSubmissions')]: s.count })),
+            'subdomain-breakdown',
           );
         }}
         fullscreenContent={
           <div ref={pieRef}>
-            <BreakdownChart data={pieData} height={600} />
+            <BreakdownChart data={pieData} height={600} noDataLabel={t('noData')} />
           </div>
         }
       >
         <div ref={pieRef}>
-          <BreakdownChart data={pieData} height={380} />
+          <BreakdownChart data={pieData} height={380} noDataLabel={t('noData')} />
         </div>
       </WidgetCard>
     </div>
