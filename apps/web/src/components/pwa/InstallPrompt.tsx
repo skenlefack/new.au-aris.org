@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -10,6 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function InstallPrompt() {
+  const t = useTranslations('common');
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -69,16 +71,16 @@ export function InstallPrompt() {
       </div>
       <div>
         <p className="text-sm font-medium text-gray-900">
-          Install ARIS{(process.env.NEXT_PUBLIC_API_URL ?? '').includes('test.') ? ' (Staging)' : ''}
+          {t('installAris')}{(process.env.NEXT_PUBLIC_API_URL ?? '').includes('test.') ? ' (Staging)' : ''}
         </p>
-        <p className="text-xs text-gray-500">Quick access from your desktop</p>
+        <p className="text-xs text-gray-500">{t('installArisDesc')}</p>
       </div>
       <button
         onClick={handleInstall}
         className="ml-2 rounded-lg bg-aris-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-aris-primary-700"
         aria-label="Install ARIS application"
       >
-        Install
+        {t('installButton')}
       </button>
       <button
         onClick={handleDismiss}

@@ -12,6 +12,7 @@ import {
 import type { Indicator, IndicatorMeasurementMode } from '@/lib/api/indicator-hooks';
 import { Pagination } from '@/components/ui/Pagination';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   Loader2,
   Plus,
@@ -23,13 +24,6 @@ import {
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN']);
 
-const MODE_BADGES: Record<string, { bg: string; text: string; label: string }> = {
-  MANUAL_ENTRY:          { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', label: 'Manual' },
-  AUTO_FROM_FORM:        { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'Auto (form)' },
-  AUTO_FROM_KPI_SOURCE:  { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400', label: 'Auto (KPI)' },
-  COMPOSITE_FORMULA:     { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'Formula' },
-};
-
 export default function IndicatorsPage() {
   const user = useAuthStore((s) => s.user);
   if (!user || !ADMIN_ROLES.has(user.role)) return <ForbiddenPage />;
@@ -37,6 +31,7 @@ export default function IndicatorsPage() {
 }
 
 function IndicatorsList() {
+  const t = useTranslations('settings');
   const addToast = useRealtimeStore((s) => s.addToast);
 
   // Filters
@@ -63,16 +58,26 @@ function IndicatorsList() {
   const indicators = data?.data ?? [];
   const meta = data?.meta ?? { total: 0, page: 1, limit };
 
+  const modeBadges = (): Record<string, { bg: string; text: string; label: string }> => ({
+    MANUAL_ENTRY:         { bg: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-700 dark:text-blue-400',     label: t('modeManual') },
+    AUTO_FROM_FORM:       { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: t('modeAutoForm') },
+    AUTO_FROM_KPI_SOURCE: { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400', label: t('modeAutoKpi') },
+    COMPOSITE_FORMULA:    { bg: 'bg-amber-100 dark:bg-amber-900/30',  text: 'text-amber-700 dark:text-amber-400',   label: t('modeFormula') },
+  });
+
   const handleToggleActive = async (ind: Indicator) => {
+    const badges = modeBadges();
     try {
       await updateMutation.mutateAsync({ id: ind.id, active: !ind.active });
       addToast({
         type: 'success',
-        title: ind.active ? 'Indicator deactivated' : 'Indicator activated',
-        message: `${ind.code} ${ind.active ? 'deactivated' : 'activated'} successfully.`,
+        title: ind.active ? t('indicatorDeactivated') : t('indicatorActivated'),
+        message: ind.active
+          ? t('deactivatedMsg').replace('{code}', ind.code)
+          : t('activatedMsg').replace('{code}', ind.code),
       });
     } catch {
-      addToast({ type: 'error', title: 'Error', message: 'Failed to toggle status.' });
+      addToast({ type: 'error', title: t('error'), message: t('toggleStatusError') });
     }
   };
 
@@ -80,6 +85,8 @@ function IndicatorsList() {
     setter(value);
     setPage(1);
   };
+
+  const badges = modeBadges();
 
   return (
     <div className="space-y-6 pb-20">
@@ -90,9 +97,9 @@ function IndicatorsList() {
             <Activity className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Indicators</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('indicators')}</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {meta.total} indicator{meta.total !== 1 ? 's' : ''} configured
+              {meta.total} {t('indicatorsConfigured')}
             </p>
           </div>
         </div>
@@ -101,7 +108,7 @@ function IndicatorsList() {
           className="inline-flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#1F4E79]/90"
         >
           <Plus className="h-4 w-4" />
-          New indicator
+          {t('newIndicator')}
         </Link>
       </div>
 
@@ -113,31 +120,31 @@ function IndicatorsList() {
             type="text"
             value={search}
             onChange={(e) => updateFilter(setSearch)(e.target.value)}
-            placeholder="Search (code, name)..."
+            placeholder={t('searchIndicators')}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
 
         <select value={typeFilter} onChange={(e) => updateFilter(setTypeFilter)(e.target.value)}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-          <option value="">All types</option>
-          {types.map((t) => <option key={t.code} value={t.code}>{t.labelEn} ({t.code})</option>)}
+          <option value="">{t('allTypes')}</option>
+          {types.map((tp) => <option key={tp.code} value={tp.code}>{tp.labelEn} ({tp.code})</option>)}
         </select>
 
         <select value={modeFilter} onChange={(e) => updateFilter(setModeFilter)(e.target.value)}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-          <option value="">All modes</option>
-          <option value="MANUAL_ENTRY">Manual</option>
-          <option value="AUTO_FROM_FORM">Auto (form)</option>
-          <option value="AUTO_FROM_KPI_SOURCE">Auto (KPI)</option>
-          <option value="COMPOSITE_FORMULA">Formula</option>
+          <option value="">{t('allModes')}</option>
+          <option value="MANUAL_ENTRY">{t('modeManual')}</option>
+          <option value="AUTO_FROM_FORM">{t('modeAutoForm')}</option>
+          <option value="AUTO_FROM_KPI_SOURCE">{t('modeAutoKpi')}</option>
+          <option value="COMPOSITE_FORMULA">{t('modeFormula')}</option>
         </select>
 
         <select value={activeFilter} onChange={(e) => updateFilter(setActiveFilter)(e.target.value)}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-          <option value="">Active & inactive</option>
-          <option value="true">Active only</option>
-          <option value="false">Inactive only</option>
+          <option value="">{t('allActiveStatus')}</option>
+          <option value="true">{t('activeOnly')}</option>
+          <option value="false">{t('inactiveOnly')}</option>
         </select>
       </div>
 
@@ -153,26 +160,26 @@ function IndicatorsList() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Code</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Name (FR)</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Type</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Mode</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Unit</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Active</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Actions</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colCode')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colNameFr')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('indicatorType')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colMode')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('indicatorUnit')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colActive')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {indicators.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                        No indicators found.
+                        {t('noIndicators')}
                       </td>
                     </tr>
                   ) : (
                     indicators.map((ind) => {
-                      const typeObj = types.find((t) => t.code === ind.typeCode);
-                      const modeBadge = MODE_BADGES[ind.measurementMode ?? ''] ?? MODE_BADGES.MANUAL_ENTRY;
+                      const typeObj = types.find((tp) => tp.code === ind.typeCode);
+                      const modeBadge = badges[ind.measurementMode ?? ''] ?? badges.MANUAL_ENTRY;
                       return (
                         <tr key={ind.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60">
                           <td className="px-4 py-3">
@@ -207,7 +214,7 @@ function IndicatorsList() {
                               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
                                 ind.active ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                               }`}
-                              title={ind.active ? 'Deactivate' : 'Activate'}
+                              title={ind.active ? t('deactivateAction') : t('activateAction')}
                             >
                               <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${ind.active ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
@@ -216,12 +223,12 @@ function IndicatorsList() {
                             <div className="flex items-center gap-1">
                               <Link href={`/settings/indicators/${ind.id}`}
                                 className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                title="Edit">
+                                title={t('edit')}>
                                 <Pencil className="h-4 w-4" />
                               </Link>
                               <Link href={`/settings/indicators/${ind.id}?tab=values`}
                                 className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-[#1F4E79]/10 hover:text-[#1F4E79] dark:hover:bg-[#1F4E79]/20 dark:hover:text-[#1F4E79]"
-                                title="View values">
+                                title={t('viewValues')}>
                                 <Eye className="h-4 w-4" />
                               </Link>
                             </div>

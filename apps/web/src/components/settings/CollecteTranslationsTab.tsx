@@ -34,6 +34,7 @@ const LANGUAGES = [
   { code: 'pt', name: 'Portugu\u00eas', flag: '\uD83C\uDDF5\uD83C\uDDF9' },
   { code: 'ar', name: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629', flag: '\uD83C\uDDF8\uD83C\uDDE6' },
   { code: 'es', name: 'Espa\u00f1ol', flag: '\uD83C\uDDEA\uD83C\uDDF8' },
+  { code: 'sw', name: 'Kiswahili', flag: '\uD83C\uDDF0\uD83C\uDDEA' },
 ] as const;
 
 type SubTab = 'forms' | 'campaigns';
@@ -83,8 +84,8 @@ export function CollecteTranslationsTab() {
   const [subTab, setSubTab] = useState<SubTab>('forms');
 
   const subTabs: { id: SubTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'forms', label: t('collecteTransForms') !== 'collecteTransForms' ? t('collecteTransForms') : 'Formulaires', icon: <FileText className="h-3.5 w-3.5" /> },
-    { id: 'campaigns', label: t('collecteTransCampaigns') !== 'collecteTransCampaigns' ? t('collecteTransCampaigns') : 'Campagnes', icon: <Megaphone className="h-3.5 w-3.5" /> },
+    { id: 'forms', label: t('collecteTransForms'), icon: <FileText className="h-3.5 w-3.5" /> },
+    { id: 'campaigns', label: t('collecteTransCampaigns'), icon: <Megaphone className="h-3.5 w-3.5" /> },
   ];
 
   return (
@@ -376,9 +377,9 @@ function FormsSubTab() {
       }
 
       setEdits({});
-      toast.success(t('collecteTransSaved') !== 'collecteTransSaved' ? t('collecteTransSaved') : 'Traductions sauvegardées');
+      toast.success(t('collecteTransSaved'));
     } catch (err: any) {
-      toast.error('Erreur', { description: err?.message });
+      toast.error(t('collecteTransError'), { description: err?.message });
     } finally {
       setSaving(false);
     }
@@ -417,12 +418,12 @@ function FormsSubTab() {
 
       if (Object.keys(newEdits).length > 0) {
         setEdits((prev) => ({ ...prev, ...newEdits }));
-        toast.success(`${Object.keys(newEdits).length} traductions générées`);
+        toast.success(t('collecteTransGenerated', { count: Object.keys(newEdits).length }));
       } else {
-        toast.info('Aucune traduction manquante');
+        toast.info(t('noMissingTranslations'));
       }
     } catch (err: any) {
-      toast.error('Erreur de traduction', { description: err?.message });
+      toast.error(t('translationError'), { description: err?.message });
     } finally {
       setAutoTranslating(null);
     }
@@ -474,7 +475,7 @@ function FormsSubTab() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('collecteTransSearch') !== 'collecteTransSearch' ? t('collecteTransSearch') : 'Rechercher un champ, label...'}
+            placeholder={t('collecteTransSearch')}
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
@@ -484,7 +485,7 @@ function FormsSubTab() {
           onChange={(e) => setFilterDomain(e.target.value)}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
         >
-          <option value="">{t('allDomains') !== 'allDomains' ? t('allDomains') : 'Tous les domaines'}</option>
+          <option value="">{t('allDomains')}</option>
           {domains.map((d) => (
             <option key={d} value={d}>{d.replace(/_/g, ' ')}</option>
           ))}
@@ -506,13 +507,13 @@ function FormsSubTab() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700',
               )}
             >
-              {status === '' ? (t('all') !== 'all' ? t('all') : 'Tous') : status === 'complete' ? (t('translationComplete') !== 'translationComplete' ? t('translationComplete') : 'Complets') : (t('translationMissing') !== 'translationMissing' ? t('translationMissing') : 'Manquants')}
+              {status === '' ? t('all') : status === 'complete' ? t('translationComplete') : t('translationMissing')}
             </button>
           ))}
         </div>
 
         <span className="text-xs text-gray-400">
-          {totalRows} champs &middot; {filteredGroups.length} formulaires
+          {t('collecteTransFieldsInfo', { count: totalRows, forms: filteredGroups.length })}
         </span>
 
         {/* Save bar */}
@@ -520,7 +521,7 @@ function FormsSubTab() {
           <div className="ml-auto flex items-center gap-2">
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
               <Pencil className="h-2.5 w-2.5" />
-              {editCount} modification{editCount > 1 ? 's' : ''}
+              {t('collecteTransModifications', { count: editCount })}
             </span>
             <button
               onClick={handleSave}
@@ -528,13 +529,13 @@ function FormsSubTab() {
               className="inline-flex items-center gap-1 rounded-lg bg-aris-primary-600 px-3 py-1 text-[10px] font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+              {saving ? t('saving') : t('save')}
             </button>
             <button
               onClick={() => setEdits({})}
               className="rounded-lg border border-gray-200 px-2.5 py-1 text-[10px] font-medium text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
             >
-              Annuler
+              {t('cancel')}
             </button>
           </div>
         )}
@@ -560,7 +561,7 @@ function FormsSubTab() {
                 </span>
                 <span className="text-[10px] text-gray-400">{group.domain.replace(/_/g, ' ')}</span>
                 <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                  {group.rows.length} champs
+                  {t('collecteTransFieldsCount', { count: group.rows.length })}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -597,7 +598,7 @@ function FormsSubTab() {
                     className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                   >
                     {autoTranslating === group.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
-                    Traduire les vides
+                    {t('translateEmpty')}
                   </button>
                 </div>
 
@@ -605,7 +606,7 @@ function FormsSubTab() {
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
                       <tr>
-                        <th className="px-4 py-2 text-left font-medium text-gray-500 w-[22%]">Champ</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-500 w-[22%]">{t('collecteTransFieldHeader')}</th>
                         {LANGUAGES.map((lang) => (
                           <th key={lang.code} className="px-2 py-2 text-left font-medium text-gray-500">
                             {lang.flag} {lang.code.toUpperCase()}
@@ -678,7 +679,7 @@ function FormsSubTab() {
                                       ? 'text-gray-700 dark:text-gray-300'
                                       : 'text-red-400 italic',
                                 )}
-                                title={filled ? `${val}\nCliquer pour modifier` : 'Cliquer pour ajouter'}
+                                title={filled ? `${val}\n${t('clickToEdit')}` : t('collecteTransClickAdd')}
                               >
                                 <span className="flex items-center gap-1">
                                   {filled ? val : '\u2014'}
@@ -703,7 +704,7 @@ function FormsSubTab() {
         {filteredGroups.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-gray-400">
             <AlertTriangle className="h-8 w-8 mb-2" />
-            <p className="text-sm">Aucun formulaire trouvé</p>
+            <p className="text-sm">{t('collecteTransNoForms')}</p>
           </div>
         )}
       </div>
@@ -748,7 +749,7 @@ function CampaignsSubTab() {
       const nameObj = typeof c.name === 'object' && c.name !== null ? c.name : { en: String(c.name ?? '') };
       fields.push({
         key: `camp:${c.id}:name`,
-        label: 'Nom',
+        label: t('collecteTransNameLabel'),
         values: nameObj,
         prop: 'name',
       });
@@ -758,7 +759,7 @@ function CampaignsSubTab() {
         const descObj = typeof c.description === 'object' && c.description !== null ? c.description : { en: String(c.description ?? '') };
         fields.push({
           key: `camp:${c.id}:desc`,
-          label: 'Description',
+          label: t('collecteTransDescLabel'),
           values: descObj,
           prop: 'description',
         });
@@ -768,7 +769,7 @@ function CampaignsSubTab() {
     }
 
     return result;
-  }, [campaigns]);
+  }, [campaigns, t]);
 
   const editCount = Object.keys(edits).length;
 
@@ -885,9 +886,9 @@ function CampaignsSubTab() {
       }
 
       setEdits({});
-      toast.success('Traductions des campagnes sauvegardées');
+      toast.success(t('collecteTransCampaignsSaved'));
     } catch (err: any) {
-      toast.error('Erreur', { description: err?.message });
+      toast.error(t('collecteTransError'), { description: err?.message });
     } finally {
       setSaving(false);
     }
@@ -916,12 +917,12 @@ function CampaignsSubTab() {
       }
       if (Object.keys(newEdits).length > 0) {
         setEdits((prev) => ({ ...prev, ...newEdits }));
-        toast.success(`${Object.keys(newEdits).length} traductions générées`);
+        toast.success(t('collecteTransGenerated', { count: Object.keys(newEdits).length }));
       } else {
-        toast.info('Aucune traduction manquante');
+        toast.info(t('noMissingTranslations'));
       }
     } catch (err: any) {
-      toast.error('Erreur', { description: err?.message });
+      toast.error(t('collecteTransError'), { description: err?.message });
     } finally {
       setAutoTranslating(false);
     }
@@ -940,7 +941,7 @@ function CampaignsSubTab() {
       <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/10">
         <div className="flex items-center gap-2 text-sm text-red-700 dark:text-red-400">
           <AlertTriangle className="h-4 w-4" />
-          <span>Erreur de chargement des campagnes: {(error as Error)?.message || 'Erreur inconnue'}</span>
+          <span>{t('collecteTransLoadError')}: {(error as Error)?.message || t('collecteTransUnknownError')}</span>
         </div>
       </div>
     );
@@ -984,7 +985,7 @@ function CampaignsSubTab() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher une campagne..."
+            placeholder={t('collecteTransSearchCampaign')}
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
@@ -1005,12 +1006,12 @@ function CampaignsSubTab() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700',
               )}
             >
-              {status === '' ? 'Tous' : status === 'complete' ? 'Complets' : 'Manquants'}
+              {status === '' ? t('all') : status === 'complete' ? t('translationComplete') : t('translationMissing')}
             </button>
           ))}
         </div>
 
-        <span className="text-xs text-gray-400">{filteredRows.length} campagne{filteredRows.length > 1 ? 's' : ''}</span>
+        <span className="text-xs text-gray-400">{t('collecteTransCampaignsCount', { count: filteredRows.length })}</span>
 
         {/* Auto-translate all */}
         <button
@@ -1019,7 +1020,7 @@ function CampaignsSubTab() {
           className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
         >
           {autoTranslating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
-          Traduire les vides
+          {t('translateEmpty')}
         </button>
 
         {/* Save bar */}
@@ -1027,7 +1028,7 @@ function CampaignsSubTab() {
           <div className="ml-auto flex items-center gap-2">
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
               <Pencil className="h-2.5 w-2.5" />
-              {editCount} modification{editCount > 1 ? 's' : ''}
+              {t('collecteTransModifications', { count: editCount })}
             </span>
             <button
               onClick={handleSave}
@@ -1035,13 +1036,13 @@ function CampaignsSubTab() {
               className="inline-flex items-center gap-1 rounded-lg bg-aris-primary-600 px-3 py-1 text-[10px] font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+              {saving ? t('saving') : t('save')}
             </button>
             <button
               onClick={() => setEdits({})}
               className="rounded-lg border border-gray-200 px-2.5 py-1 text-[10px] font-medium text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
             >
-              Annuler
+              {t('cancel')}
             </button>
           </div>
         )}
@@ -1053,8 +1054,8 @@ function CampaignsSubTab() {
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
               <tr>
-                <th className="px-4 py-2 text-left font-medium text-gray-500 w-[14%]">Campagne</th>
-                <th className="px-2 py-2 text-left font-medium text-gray-500 w-[8%]">Champ</th>
+                <th className="px-4 py-2 text-left font-medium text-gray-500 w-[14%]">{t('collecteTransCampaignHeader')}</th>
+                <th className="px-2 py-2 text-left font-medium text-gray-500 w-[8%]">{t('collecteTransFieldHeader')}</th>
                 {LANGUAGES.map((lang) => (
                   <th key={lang.code} className="px-2 py-2 text-left font-medium text-gray-500">
                     {lang.flag} {lang.code.toUpperCase()}
@@ -1132,7 +1133,7 @@ function CampaignsSubTab() {
                                 ? 'text-gray-700 dark:text-gray-300'
                                 : 'text-red-400 italic',
                           )}
-                          title={filled ? `${val}\nCliquer pour modifier` : 'Cliquer pour ajouter'}
+                          title={filled ? `${val}\n${t('clickToEdit')}` : t('collecteTransClickAdd')}
                         >
                           <span className="flex items-center gap-1">
                             {filled ? val : '\u2014'}
@@ -1154,7 +1155,7 @@ function CampaignsSubTab() {
         {filteredRows.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-gray-400">
             <AlertTriangle className="h-8 w-8 mb-2" />
-            <p className="text-sm">Aucune campagne trouvée</p>
+            <p className="text-sm">{t('collecteTransNoCampaigns')}</p>
           </div>
         )}
       </div>

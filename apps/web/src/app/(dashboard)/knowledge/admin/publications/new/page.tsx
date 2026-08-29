@@ -16,6 +16,7 @@ import {
 } from '@/lib/api/knowledge-hub-hooks';
 import { uploadFile, detectAttachmentKind, type UploadedFile } from '@/lib/api/drive-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const LOCALES = ['en', 'fr', 'pt', 'ar', 'es', 'sw'] as const;
 type Locale = (typeof LOCALES)[number];
@@ -38,6 +39,7 @@ interface PendingAttachment extends UploadedFile {
 }
 
 export default function NewPublicationPage() {
+  const t = useTranslations('knowledge');
   const router = useRouter();
   const userLocale = (useAuthStore((s) => s.user?.locale) ?? 'en').slice(0, 2) as Locale;
 
@@ -88,7 +90,7 @@ export default function NewPublicationPage() {
       setCoverImageId(uploaded.id);
     } catch (err) {
       setCoverPreview(null);
-      setError(err instanceof Error ? err.message : 'Cover upload failed');
+      setError(err instanceof Error ? err.message : t('pubErrCoverUpload'));
     } finally {
       setCoverUploading(false);
       e.target.value = '';
@@ -109,7 +111,7 @@ export default function NewPublicationPage() {
         ]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : t('pubErrUpload'));
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -136,28 +138,28 @@ export default function NewPublicationPage() {
 
   const handleSaveDraft = async () => {
     setError(null);
-    if (!categoryId) return setError('Please pick a category');
-    if (!title[userLocale]) return setError('Title is required');
-    if (!content[userLocale]) return setError('Content is required');
+    if (!categoryId) return setError(t('pubErrCategory'));
+    if (!title[userLocale]) return setError(t('pubErrTitle'));
+    if (!content[userLocale]) return setError(t('pubErrContent'));
     try {
       const result = await createMut.mutateAsync(buildPayload());
       router.push(`/knowledge/admin/publications/${result.data.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : t('pubErrSave'));
     }
   };
 
   const handleSubmitForReview = async () => {
     setError(null);
-    if (!categoryId) return setError('Please pick a category');
-    if (!title[userLocale]) return setError('Title is required');
-    if (!content[userLocale]) return setError('Content is required');
+    if (!categoryId) return setError(t('pubErrCategory'));
+    if (!title[userLocale]) return setError(t('pubErrTitle'));
+    if (!content[userLocale]) return setError(t('pubErrContent'));
     try {
       const result = await createMut.mutateAsync(buildPayload());
       await submitMut.mutateAsync(result.data.id);
       router.push('/knowledge/admin/mine');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit');
+      setError(err instanceof Error ? err.message : t('pubErrSubmit'));
     }
   };
 
@@ -168,9 +170,9 @@ export default function NewPublicationPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">New publication</h1>
+          <h1 className="text-2xl font-bold">{t('pubNewTitle')}</h1>
           <p className="text-sm text-muted-foreground">
-            Create and publish content to the Knowledge Hub
+            {t('pubNewSubtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -235,21 +237,21 @@ export default function NewPublicationPage() {
               disabled={createMut.isPending}
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
             >
-              <Save className="h-4 w-4" /> Save draft
+              <Save className="h-4 w-4" /> {t('pubSaveDraft')}
             </button>
             <button
               onClick={handleSubmitForReview}
               disabled={createMut.isPending || submitMut.isPending}
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              <Send className="h-4 w-4" /> Submit
+              <Send className="h-4 w-4" /> {t('pubSubmit')}
             </button>
           </div>
 
           {/* Featured image */}
           <div className="rounded-lg border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              <ImagePlus className="mr-1 inline h-3.5 w-3.5" /> Featured image
+              <ImagePlus className="mr-1 inline h-3.5 w-3.5" /> {t('pubFeaturedImage')}
             </h2>
             {coverPreview ? (
               <div className="group relative">
@@ -263,14 +265,14 @@ export default function NewPublicationPage() {
                 </div>
                 <div className="mt-2 flex gap-2">
                   <label className="inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
-                    <Upload className="h-3 w-3" /> Replace
+                    <Upload className="h-3 w-3" /> {t('pubReplace')}
                     <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={coverUploading} />
                   </label>
                   <button
                     onClick={() => { setCoverImageId(null); setCoverPreview(null); }}
                     className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                   >
-                    <Trash2 className="h-3 w-3" /> Remove
+                    <Trash2 className="h-3 w-3" /> {t('pubRemove')}
                   </button>
                 </div>
               </div>
@@ -279,13 +281,13 @@ export default function NewPublicationPage() {
                 {coverUploading ? (
                   <div className="flex flex-col items-center gap-2">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-                    <span className="text-xs text-muted-foreground">Uploading...</span>
+                    <span className="text-xs text-muted-foreground">{t('pubUploading')}</span>
                   </div>
                 ) : (
                   <>
                     <ImagePlus className="mb-2 h-10 w-10 text-gray-400" strokeWidth={1.2} />
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Click to upload</span>
-                    <span className="mt-1 text-xs text-muted-foreground">JPG, PNG or WebP (recommended 1200x630)</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('pubClickToUpload')}</span>
+                    <span className="mt-1 text-xs text-muted-foreground">{t('pubImageHint')}</span>
                   </>
                 )}
                 <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={coverUploading} />
@@ -295,16 +297,16 @@ export default function NewPublicationPage() {
 
           {/* Settings card */}
           <div className="rounded-lg border bg-card p-5">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Settings</h2>
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">{t('pubSettings')}</h2>
             <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-medium">Category</label>
+                <label className="mb-1 block text-xs font-medium">{t('pubCategory')}</label>
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
                   className="w-full rounded-md border px-3 py-2 text-sm"
                 >
-                  <option value="">-- pick a category --</option>
+                  <option value="">{t('pubPickCategory')}</option>
                   {Object.entries(groupedCats).map(([groupKey, list]) => (
                     <optgroup key={groupKey} label={groupKey}>
                       {list.map((c) => (
@@ -317,14 +319,14 @@ export default function NewPublicationPage() {
                 </select>
                 {cats.data?.data?.length === 0 && (
                   <p className="mt-1 text-xs text-amber-600">
-                    No publishable categories. Propose one in{' '}
+                    {t('pubNoCategoriesHint')}{' '}
                     <Link href="/knowledge/admin/categories" className="underline">Categories</Link>.
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium">Type</label>
+                <label className="mb-1 block text-xs font-medium">{t('pubType')}</label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as PublicationType)}
@@ -337,23 +339,23 @@ export default function NewPublicationPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium">Visibility</label>
+                <label className="mb-1 block text-xs font-medium">{t('pubVisibility')}</label>
                 <select
                   value={visibility}
                   onChange={(e) => setVisibility(e.target.value as Visibility)}
                   className="w-full rounded-md border px-3 py-2 text-sm"
                 >
-                  <option value="PUBLIC">Public (no login required)</option>
-                  <option value="PRIVATE">Private (authenticated users only)</option>
+                  <option value="PUBLIC">{t('pubVisibilityPublic')}</option>
+                  <option value="PRIVATE">{t('pubVisibilityPrivate')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium">Authors</label>
+                <label className="mb-1 block text-xs font-medium">{t('pubAuthors')}</label>
                 <input
                   value={authors}
                   onChange={(e) => setAuthors(e.target.value)}
-                  placeholder="Jane Doe, John Smith"
+                  placeholder={t('pubAuthorsPlaceholder')}
                   className="w-full rounded-md border px-3 py-2 text-sm"
                 />
               </div>
@@ -362,7 +364,7 @@ export default function NewPublicationPage() {
 
           {/* Tags card */}
           <div className="rounded-lg border bg-card p-5">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Tags</h2>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">{t('pubTags')}</h2>
             <div className="flex flex-wrap gap-1.5 rounded-md border p-2">
               {currentTags.map((tag) => (
                 <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
@@ -393,7 +395,7 @@ export default function NewPublicationPage() {
                     if (val) setTags(tags.endsWith(',') ? tags + ' ' : tags + ', ');
                   }
                 }}
-                placeholder={currentTags.length ? 'Add more...' : 'Type or pick below...'}
+                placeholder={currentTags.length ? t('pubAddMore') : t('pubTypeOrPick')}
                 className="min-w-[80px] flex-1 bg-transparent text-sm outline-none"
               />
             </div>
@@ -422,16 +424,16 @@ export default function NewPublicationPage() {
           <div className="rounded-lg border bg-card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                <Paperclip className="mr-1 inline h-3 w-3" /> Attachments ({attachments.length})
+                <Paperclip className="mr-1 inline h-3 w-3" /> {t('pubAttachments')} ({attachments.length})
               </h2>
               <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-accent">
                 <Upload className="h-3 w-3" />
-                {uploading ? 'Uploading...' : 'Upload'}
+                {uploading ? t('pubUploading') : t('pubUpload')}
                 <input type="file" multiple className="hidden" onChange={handleAttachmentUpload} disabled={uploading} />
               </label>
             </div>
             {attachments.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No attachments yet.</p>
+              <p className="text-xs text-muted-foreground">{t('pubNoAttachments')}</p>
             ) : (
               <ul className="space-y-2">
                 {attachments.map((a, i) => (

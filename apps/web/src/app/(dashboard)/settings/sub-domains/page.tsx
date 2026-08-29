@@ -14,6 +14,7 @@ import {
 import type { SubDomainType } from '@/lib/stores/domain-store';
 import { Pagination } from '@/components/ui/Pagination';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   Loader2,
   Plus,
@@ -30,13 +31,6 @@ import {
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN']);
 
-const TYPE_BADGES: Record<SubDomainType, { bg: string; text: string; label: string }> = {
-  VALUE_CHAIN: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'Value Chain' },
-  ORGANIZATIONAL: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', label: 'Organizational' },
-  PATHOLOGY: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', label: 'Pathology' },
-  OTHER: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-400', label: 'Other' },
-};
-
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -48,7 +42,15 @@ export default function SubDomainsListPage() {
 }
 
 function SubDomainsList() {
+  const t = useTranslations('settings');
   const addToast = useRealtimeStore((s) => s.addToast);
+
+  const TYPE_BADGES: Record<SubDomainType, { bg: string; text: string; label: string }> = {
+    VALUE_CHAIN:    { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: t('typeValueChain') },
+    ORGANIZATIONAL: { bg: 'bg-blue-100 dark:bg-blue-900/30',     text: 'text-blue-700 dark:text-blue-400',       label: t('typeOrganizational') },
+    PATHOLOGY:      { bg: 'bg-red-100 dark:bg-red-900/30',        text: 'text-red-700 dark:text-red-400',         label: t('typePathology') },
+    OTHER:          { bg: 'bg-gray-100 dark:bg-gray-700',         text: 'text-gray-600 dark:text-gray-400',       label: t('typeOther') },
+  };
 
   // Filters & pagination
   const [page, setPage] = useState(1);
@@ -59,7 +61,6 @@ function SubDomainsList() {
   const [activeFilter, setActiveFilter] = useState('');
   const [vcFilter, setVcFilter] = useState('');
 
-  // Data — all filtering + pagination is server-side
   const { data: domainsData } = useAllDomains();
   const { data: vcData } = useAllValueChainCodes();
   const { data, isLoading } = useAdminSubDomains({
@@ -88,11 +89,13 @@ function SubDomainsList() {
       await updateMutation.mutateAsync({ id: sd.id, active: !sd.active });
       addToast({
         type: 'success',
-        title: sd.active ? 'Sous-domaine desactive' : 'Sous-domaine active',
-        message: `${sd.code} a ete ${sd.active ? 'desactive' : 'active'} avec succes.`,
+        title: sd.active ? t('subDomainDeactivated') : t('subDomainActivated'),
+        message: sd.active
+          ? t('deactivatedMsg').replace('{code}', sd.code)
+          : t('activatedMsg').replace('{code}', sd.code),
       });
     } catch {
-      addToast({ type: 'error', title: 'Erreur', message: 'Impossible de modifier le statut.' });
+      addToast({ type: 'error', title: t('error'), message: t('subDomainStatusError') });
     }
   };
 
@@ -101,13 +104,13 @@ function SubDomainsList() {
     setDeleteError(null);
     try {
       await deleteMutation.mutateAsync(deletingId);
-      addToast({ type: 'success', title: 'Supprime', message: 'Sous-domaine supprime avec succes.' });
+      addToast({ type: 'success', title: t('subDomainDeleted'), message: t('subDomainDeletedMsg') });
       setDeletingId(null);
     } catch (err: any) {
       if (err?.statusCode === 409) {
-        setDeleteError(err.message || 'Ce sous-domaine est utilise par des entites existantes.');
+        setDeleteError(err.message || t('subDomainUsedByEntities'));
       } else {
-        addToast({ type: 'error', title: 'Erreur', message: 'Impossible de supprimer le sous-domaine.' });
+        addToast({ type: 'error', title: t('error'), message: t('subDomainDeleteError') });
         setDeletingId(null);
       }
     }
@@ -115,7 +118,6 @@ function SubDomainsList() {
 
   const deletingSubDomain = subDomains.find((sd) => sd.id === deletingId);
 
-  // Debounced search: reset page on filter change
   const updateFilter = (setter: (v: string) => void) => (value: string) => {
     setter(value);
     setPage(1);
@@ -131,10 +133,10 @@ function SubDomainsList() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Sous-domaines
+              {t('subDomainsTitle')}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {meta.total} sous-domaine{meta.total !== 1 ? 's' : ''} configure{meta.total !== 1 ? 's' : ''}
+              {t('subDomainsConfigured').replace('{count}', String(meta.total))}
             </p>
           </div>
         </div>
@@ -143,7 +145,7 @@ function SubDomainsList() {
           className="inline-flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#1F4E79]/90"
         >
           <Plus className="h-4 w-4" />
-          Nouveau sous-domaine
+          {t('btnNewSubDomain')}
         </Link>
       </div>
 
@@ -156,37 +158,37 @@ function SubDomainsList() {
             name="search"
             value={search}
             onChange={(e) => updateFilter(setSearch)(e.target.value)}
-            placeholder="Rechercher (code, label)..."
+            placeholder={t('searchSubDomains')}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
 
         <select value={domainFilter} onChange={(e) => updateFilter(setDomainFilter)(e.target.value)}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-          <option value="">Tous les domaines</option>
+          <option value="">{t('allDomainsFilter')}</option>
           {domains.map((d) => <option key={d.code} value={d.code}>{d.name?.en ?? d.code}</option>)}
         </select>
 
         <select value={typeFilter} onChange={(e) => updateFilter(setTypeFilter)(e.target.value)}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-          <option value="">Tous les types</option>
-          <option value="VALUE_CHAIN">Value Chain</option>
-          <option value="ORGANIZATIONAL">Organizational</option>
-          <option value="PATHOLOGY">Pathology</option>
-          <option value="OTHER">Other</option>
+          <option value="">{t('allTypesFilter')}</option>
+          <option value="VALUE_CHAIN">{t('typeValueChain')}</option>
+          <option value="ORGANIZATIONAL">{t('typeOrganizational')}</option>
+          <option value="PATHOLOGY">{t('typePathology')}</option>
+          <option value="OTHER">{t('typeOther')}</option>
         </select>
 
         <select value={vcFilter} onChange={(e) => updateFilter(setVcFilter)(e.target.value)}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-          <option value="">Toutes les chaines</option>
+          <option value="">{t('allChainsFilter')}</option>
           {valueChainCodes.map((vc) => <option key={vc.code} value={vc.code}>{vc.labelFr || vc.labelEn}</option>)}
         </select>
 
         <select value={activeFilter} onChange={(e) => updateFilter(setActiveFilter)(e.target.value)}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-          <option value="">Actifs et inactifs</option>
-          <option value="true">Actifs uniquement</option>
-          <option value="false">Inactifs uniquement</option>
+          <option value="">{t('allActiveInactive')}</option>
+          <option value="true">{t('activeOnly2')}</option>
+          <option value="false">{t('inactiveOnly2')}</option>
         </select>
       </div>
 
@@ -202,21 +204,21 @@ function SubDomainsList() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Code</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Domaine parent</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Label (FR)</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Type</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Chaine de valeur</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Actif</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Ordre</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Actions</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('code')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colParentDomain')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colLabelFrTable')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('indicatorType')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colValueChain')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colActive')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colOrderTable')}</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {subDomains.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                        Aucun sous-domaine trouve.
+                        {t('noSubDomainsFound')}
                       </td>
                     </tr>
                   ) : (
@@ -255,7 +257,7 @@ function SubDomainsList() {
                               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
                                 sd.active ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                               }`}
-                              title={sd.active ? 'Desactiver' : 'Activer'}
+                              title={sd.active ? t('deactivateAction') : t('activateAction')}
                             >
                               <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${sd.active ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
@@ -265,13 +267,13 @@ function SubDomainsList() {
                             <div className="flex items-center gap-1">
                               <Link href={`/settings/sub-domains/${sd.id}`}
                                 className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                title="Editer">
+                                title={t('edit')}>
                                 <Pencil className="h-4 w-4" />
                               </Link>
                               <button type="button"
                                 onClick={() => { setDeletingId(sd.id); setDeleteError(null); }}
                                 className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                                title="Supprimer">
+                                title={t('delete')}>
                                 <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
@@ -284,7 +286,6 @@ function SubDomainsList() {
               </table>
             </div>
 
-            {/* Modern Pagination */}
             {meta.total > 0 && (
               <Pagination
                 page={page}
@@ -308,10 +309,11 @@ function SubDomainsList() {
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Supprimer le sous-domaine</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('deleteSubDomain')}</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Voulez-vous vraiment supprimer <strong>{deletingSubDomain.code}</strong> ({deletingSubDomain.labelFr}) ?
-                  Cette action est irreversible.
+                  {t('deleteSubDomainConfirm')
+                    .replace('{code}', deletingSubDomain.code)
+                    .replace('{label}', deletingSubDomain.labelFr)}
                 </p>
                 {deleteError && (
                   <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
@@ -323,12 +325,12 @@ function SubDomainsList() {
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" onClick={() => { setDeletingId(null); setDeleteError(null); }}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                Annuler
+                {t('cancel')}
               </button>
               <button type="button" onClick={handleDelete} disabled={deleteMutation.isPending}
                 className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50">
                 {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Supprimer
+                {t('delete')}
               </button>
             </div>
           </div>

@@ -13,17 +13,11 @@ import {
 import type { SubDomainType } from '@/lib/stores/domain-store';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
 import { IconPicker, ICON_MAP } from '@/components/ui/IconPicker';
+import { useTranslations } from '@/lib/i18n/translations';
 import { Loader2, ArrowLeft, Check, Circle } from 'lucide-react';
 import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN']);
-
-const TYPE_OPTIONS: { value: SubDomainType; label: string; desc: string }[] = [
-  { value: 'VALUE_CHAIN', label: 'Chaine de valeur', desc: 'Filiere economique (Dairy, Red Meat...)' },
-  { value: 'ORGANIZATIONAL', label: 'Organisationnel', desc: 'Structure institutionnelle (Cliniques, Labos...)' },
-  { value: 'PATHOLOGY', label: 'Pathologie', desc: 'Maladie specifique (PPR, FMD, ASF...)' },
-  { value: 'OTHER', label: 'Autre', desc: 'Classification libre' },
-];
 
 const CODE_REGEX = /^[A-Z][A-Z0-9_]*$/;
 
@@ -34,6 +28,7 @@ export default function NewSubDomainPage() {
 }
 
 function SubDomainForm() {
+  const t = useTranslations('settings');
   const router = useRouter();
   const addToast = useRealtimeStore((s) => s.addToast);
   const createMutation = useCreateSubDomain();
@@ -42,6 +37,13 @@ function SubDomainForm() {
 
   const domains = domainsData?.data ?? [];
   const valueChainCodes = vcData?.data ?? [];
+
+  const typeOptions: { value: SubDomainType; label: string; desc: string }[] = [
+    { value: 'VALUE_CHAIN',    label: t('typeValueChain'),    desc: t('typeValueChainDesc') },
+    { value: 'ORGANIZATIONAL', label: t('typeOrganizational'), desc: t('typeOrganizationalDesc') },
+    { value: 'PATHOLOGY',      label: t('typePathology'),      desc: t('typePathologyDesc') },
+    { value: 'OTHER',          label: t('typeOther'),          desc: t('typeOtherDesc') },
+  ];
 
   const [code, setCode] = useState('');
   const [domainCode, setDomainCode] = useState('');
@@ -68,11 +70,11 @@ function SubDomainForm() {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!code.trim()) e.code = 'Le code est requis.';
-    else if (!CODE_REGEX.test(code)) e.code = 'Format: UPPERCASE_SNAKE_CASE (ex: DAIRY, RED_MEAT).';
-    if (!domainCode) e.domainCode = 'Le domaine parent est requis.';
-    if (!labelFr.trim()) e.labelFr = 'Le label FR est requis.';
-    if (!labelEn.trim()) e.labelEn = 'Le label EN est requis.';
+    if (!code.trim()) e.code = t('subDomainCodeRequired');
+    else if (!CODE_REGEX.test(code)) e.code = t('codeFormatSubDomain');
+    if (!domainCode) e.domainCode = t('parentDomainRequired');
+    if (!labelFr.trim()) e.labelFr = t('subDomainLabelFrRequired');
+    if (!labelEn.trim()) e.labelEn = t('subDomainLabelEnRequired');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -98,7 +100,7 @@ function SubDomainForm() {
         icon: icon || null,
         color: color || null,
       });
-      addToast({ type: 'success', title: 'Sous-domaine cree', message: `${code} a ete cree avec succes.` });
+      addToast({ type: 'success', title: t('subDomainCreated'), message: t('subDomainCreatedMsg').replace('{code}', code) });
       router.push('/settings/sub-domains');
     } catch (err: any) {
       if (err?.errors?.length) {
@@ -106,7 +108,7 @@ function SubDomainForm() {
         for (const fe of err.errors) fieldErrors[fe.field] = fe.message;
         setErrors(fieldErrors);
       }
-      addToast({ type: 'error', title: 'Erreur', message: err?.message || 'Erreur lors de la creation.' });
+      addToast({ type: 'error', title: t('error'), message: err?.message || t('subDomainCreateError') });
     }
   };
 
@@ -119,8 +121,8 @@ function SubDomainForm() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Nouveau sous-domaine</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Creer un nouveau sous-domaine dans le systeme ARIS.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('newSubDomainTitle')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('newSubDomainDesc')}</p>
         </div>
       </div>
 
@@ -130,7 +132,7 @@ function SubDomainForm() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Code <span className="text-red-500">*</span>
+              {t('code')} <span className="text-red-500">*</span>
             </label>
             <input type="text" name="code" value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))}
@@ -142,13 +144,13 @@ function SubDomainForm() {
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Domaine parent <span className="text-red-500">*</span>
+              {t('labelParentDomain')} <span className="text-red-500">*</span>
             </label>
             <select name="domainCode" value={domainCode} onChange={(e) => setDomainCode(e.target.value)}
               className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 dark:bg-gray-900 dark:text-white ${
                 errors.domainCode ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#1F4E79] focus:ring-[#1F4E79] dark:border-gray-700'
               }`}>
-              <option value="">-- Selectionner un domaine --</option>
+              <option value="">{t('selectParentDomain')}</option>
               {domains.map((d) => <option key={d.code} value={d.code}>{d.name?.en ?? d.code}</option>)}
             </select>
             {errors.domainCode && <p className="text-xs text-red-600">{errors.domainCode}</p>}
@@ -158,10 +160,10 @@ function SubDomainForm() {
         {/* Row 2: Type (radio grid) */}
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Type <span className="text-red-500">*</span>
+            {t('labelTypeEnum')} <span className="text-red-500">*</span>
           </label>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {TYPE_OPTIONS.map((opt) => (
+            {typeOptions.map((opt) => (
               <label key={opt.value}
                 className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
                   typeEnum === opt.value
@@ -184,17 +186,17 @@ function SubDomainForm() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Code chaine de valeur <span className="text-xs text-gray-400">(optionnel)</span>
+              {t('labelValueChainCode')} <span className="text-xs text-gray-400">{t('optional')}</span>
             </label>
             <select name="valueChainCode" value={valueChainCode} onChange={(e) => setValueChainCode(e.target.value)}
               disabled={typeEnum !== 'VALUE_CHAIN'}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-              <option value="">-- Aucun --</option>
+              <option value="">{t('noValueChain')}</option>
               {valueChainCodes.map((vc) => <option key={vc.code} value={vc.code}>{vc.labelFr || vc.labelEn} ({vc.code})</option>)}
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ordre d'affichage</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelDisplayOrderField')}</label>
             <input type="number" min={0} value={displayOrder} onChange={(e) => setDisplayOrder(parseInt(e.target.value, 10) || 0)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
           </div>
@@ -203,7 +205,9 @@ function SubDomainForm() {
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${active ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
               <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${active ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
-            <span className="text-sm text-gray-700 dark:text-gray-300">{active ? 'Actif' : 'Inactif'}</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              {active ? t('statusActive') : t('statusInactive')}
+            </span>
           </div>
         </div>
 
@@ -211,18 +215,18 @@ function SubDomainForm() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Icone <span className="text-xs text-gray-400">(optionnel)</span>
+              {t('labelIcon')} <span className="text-xs text-gray-400">{t('optional')}</span>
             </label>
             <button type="button" onClick={() => setIconPickerOpen(true)}
               className="inline-flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700">
               {React.createElement(ICON_MAP[icon] ?? Circle, { className: 'h-5 w-5', style: { color } })}
               <span className="text-gray-700 dark:text-gray-300">{icon}</span>
-              <span className="text-xs text-[#1F4E79]">Changer</span>
+              <span className="text-xs text-[#1F4E79]">{t('btnChangeIcon')}</span>
             </button>
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Couleur <span className="text-xs text-gray-400">(optionnel)</span>
+              {t('labelColorField')} <span className="text-xs text-gray-400">{t('optional')}</span>
             </label>
             <div className="flex items-center gap-3">
               <input type="color" value={color} onChange={(e) => setColor(e.target.value)}
@@ -237,26 +241,26 @@ function SubDomainForm() {
         {/* Row 4: Labels (4 cols) */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label FR <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelLabelFr')} <span className="text-red-500">*</span></label>
             <input type="text" name="labelFr" value={labelFr} onChange={(e) => setLabelFr(e.target.value)} onBlur={handleBlur} placeholder="Ex: Produits laitiers"
               className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 dark:bg-gray-900 dark:text-white ${
                 errors.labelFr ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#1F4E79] focus:ring-[#1F4E79] dark:border-gray-700'}`} />
             {errors.labelFr && <p className="text-xs text-red-600">{errors.labelFr}</p>}
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label EN <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelLabelEn')} <span className="text-red-500">*</span></label>
             <input type="text" name="labelEn" value={labelEn} onChange={(e) => setLabelEn(e.target.value)} onBlur={handleBlur} placeholder="Ex: Dairy"
               className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 dark:bg-gray-900 dark:text-white ${
                 errors.labelEn ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#1F4E79] focus:ring-[#1F4E79] dark:border-gray-700'}`} />
             {errors.labelEn && <p className="text-xs text-red-600">{errors.labelEn}</p>}
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label AR <span className="text-xs text-gray-400">(optionnel)</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelLabelAr')} <span className="text-xs text-gray-400">{t('optional')}</span></label>
             <input type="text" name="labelAr" value={labelAr} onChange={(e) => setLabelAr(e.target.value)} onBlur={handleBlur} dir="rtl"
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label PT <span className="text-xs text-gray-400">(optionnel)</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelLabelPt')} <span className="text-xs text-gray-400">{t('optional')}</span></label>
             <input type="text" name="labelPt" value={labelPt} onChange={(e) => setLabelPt(e.target.value)} onBlur={handleBlur}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
           </div>
@@ -264,8 +268,10 @@ function SubDomainForm() {
 
         {/* Row 5: Description (full width) */}
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description <span className="text-xs text-gray-400">(optionnel)</span></label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Description du sous-domaine..."
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {t('labelDescription')} <span className="text-xs text-gray-400">{t('optional')}</span>
+          </label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
         </div>
 
@@ -273,12 +279,12 @@ function SubDomainForm() {
         <div className="flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">
           <Link href="/settings/sub-domains"
             className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-            Annuler
+            {t('cancel')}
           </Link>
           <button type="submit" disabled={createMutation.isPending}
             className="inline-flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1F4E79]/90 disabled:opacity-50">
             {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            Creer
+            {t('btnCreate')}
           </button>
         </div>
       </form>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft, Layers, MapPin, Globe, BarChart3 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 import { cn } from '@/lib/utils';
 import type { OutbreakMarker } from '@/components/maps/AfricaMap';
 import { useOutbreakMarkers } from '@/lib/api/hooks';
@@ -32,23 +33,26 @@ const GEO_MARKERS: OutbreakMarker[] = [
   { id: 'geo-12', lat: 12.639, lng: -8.003, disease: 'PPR', country: 'Mali', severity: 'high', cases: 98, status: 'confirmed' },
 ];
 
-const LAYER_OPTIONS = [
-  { id: 'outbreaks', label: 'Disease Events', icon: MapPin, active: true },
-  { id: 'risk', label: 'Risk Zones', icon: Layers, active: false },
-  { id: 'coverage', label: 'Vaccination Coverage', icon: Globe, active: false },
-  { id: 'density', label: 'Livestock Density', icon: BarChart3, active: false },
+const LAYER_OPTIONS_CONFIG = [
+  { id: 'outbreaks', labelKey: 'layerDiseaseEvents', icon: MapPin, active: true },
+  { id: 'risk', labelKey: 'layerRiskZones', icon: Layers, active: false },
+  { id: 'coverage', labelKey: 'layerVaccinationCoverage', icon: Globe, active: false },
+  { id: 'density', labelKey: 'layerLivestockDensity', icon: BarChart3, active: false },
 ];
 
-const REGION_STATS = [
-  { region: 'East Africa', events: 18, critical: 3, countries: 8 },
-  { region: 'West Africa', events: 12, critical: 2, countries: 15 },
-  { region: 'Southern Africa', events: 8, critical: 1, countries: 10 },
-  { region: 'Central Africa', events: 5, critical: 0, countries: 8 },
-  { region: 'North Africa', events: 4, critical: 1, countries: 6 },
+const REGION_STATS_CONFIG = [
+  { regionKey: 'regionEastAfrica', events: 18, critical: 3, countries: 8 },
+  { regionKey: 'regionWestAfrica', events: 12, critical: 2, countries: 15 },
+  { regionKey: 'regionSouthernAfrica', events: 8, critical: 1, countries: 10 },
+  { regionKey: 'regionCentralAfrica', events: 5, critical: 0, countries: 8 },
+  { regionKey: 'regionNorthAfrica', events: 4, critical: 1, countries: 6 },
 ];
 
 export default function GeoAnalysisPage() {
-  const [layers, setLayers] = useState(LAYER_OPTIONS);
+  const t = useTranslations('analytics');
+  const [layers, setLayers] = useState(
+    LAYER_OPTIONS_CONFIG.map((l) => ({ ...l, label: t(l.labelKey) })),
+  );
   const { data, isLoading, isError, error, refetch } = useOutbreakMarkers();
   const markers: OutbreakMarker[] = data?.data?.length ? data.data : GEO_MARKERS;
 
@@ -71,10 +75,10 @@ export default function GeoAnalysisPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Geographic Analysis
+              {t('geoTitle')}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Spatial analysis, risk layers, and choropleth maps
+              {t('geoSubtitleDetailed')}
             </p>
           </div>
         </div>
@@ -115,23 +119,23 @@ export default function GeoAnalysisPage() {
       {/* Legend */}
       <div className="flex items-center gap-6 text-xs text-gray-500 dark:text-gray-400">
         <span className="font-medium text-gray-700 dark:text-gray-300">
-          {markers.length} events
+          {markers.length} {t('geoEvents')}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#2E7D32]" />
-          Low
+          {t('geoLow')}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#F57F17]" />
-          Medium
+          {t('geoMedium')}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#E65100]" />
-          High
+          {t('geoHigh')}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#C62828]" />
-          Critical
+          {t('geoCritical')}
         </span>
       </div>
 
@@ -139,17 +143,17 @@ export default function GeoAnalysisPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
           <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Events by Region
+            {t('geoEventsByRegion')}
           </h3>
           <div className="space-y-3">
-            {REGION_STATS.map((r) => (
-              <div key={r.region} className="flex items-center justify-between">
+            {REGION_STATS_CONFIG.map((r) => (
+              <div key={r.regionKey} className="flex items-center justify-between">
                 <div className="min-w-0">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {r.region}
+                    {t(r.regionKey)}
                   </span>
                   <span className="ml-2 text-xs text-gray-400">
-                    {r.countries} countries
+                    {r.countries} {t('geoCountries')}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -166,7 +170,7 @@ export default function GeoAnalysisPage() {
                   </div>
                   {r.critical > 0 && (
                     <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                      {r.critical} critical
+                      {r.critical} {t('geoCriticalLabel')}
                     </span>
                   )}
                 </div>
@@ -177,39 +181,39 @@ export default function GeoAnalysisPage() {
 
         <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
           <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Map Layers
+            {t('geoMapLayers')}
           </h3>
           <div className="space-y-3">
             <div className="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900/50 dark:bg-green-900/20">
               <p className="text-sm font-medium text-green-800 dark:text-green-300">
-                Disease Events
+                {t('layerDiseaseEvents')}
               </p>
               <p className="mt-0.5 text-xs text-green-600 dark:text-green-400">
-                Active outbreaks and surveillance points from all Member States
+                {t('layerDiseaseEventsDesc')}
               </p>
             </div>
             <div className="rounded-lg border border-gray-200 p-3 opacity-60 dark:border-gray-700">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Risk Zones
+                {t('layerRiskZones')}
               </p>
               <p className="mt-0.5 text-xs text-gray-400">
-                Coming soon — Climate-based disease risk modelling
+                {t('layerRiskZonesDesc')}
               </p>
             </div>
             <div className="rounded-lg border border-gray-200 p-3 opacity-60 dark:border-gray-700">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Vaccination Coverage
+                {t('layerVaccinationCoverage')}
               </p>
               <p className="mt-0.5 text-xs text-gray-400">
-                Coming soon — Choropleth of vaccination rates by admin level
+                {t('layerVaccinationCoverageDesc')}
               </p>
             </div>
             <div className="rounded-lg border border-gray-200 p-3 opacity-60 dark:border-gray-700">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Livestock Density
+                {t('layerLivestockDensity')}
               </p>
               <p className="mt-0.5 text-xs text-gray-400">
-                Coming soon — Heatmap from census denominators
+                {t('layerLivestockDensityDesc')}
               </p>
             </div>
           </div>

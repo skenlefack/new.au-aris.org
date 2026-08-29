@@ -6,6 +6,7 @@ import {
   TrendingUp, TrendingDown, Minus, Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface KpiItem {
   label: string;
@@ -118,6 +119,7 @@ function AnimatedKpiCard({ item, index }: { item: KpiItem; index: number }) {
 }
 
 export function DomainKpiBar({ kpis, loading }: DomainKpiBarProps) {
+  const t = useTranslations('domain');
   if (loading) {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -143,7 +145,7 @@ export function DomainKpiBar({ kpis, loading }: DomainKpiBarProps) {
 
   const items: KpiItem[] = [
     {
-      label: 'Soumissions',
+      label: t('totalSubmissions'),
       value: kpis.totalSubmissions,
       displayValue: kpis.totalSubmissions.toLocaleString(),
       icon: <FileText className="h-4 w-4" />,
@@ -152,7 +154,7 @@ export function DomainKpiBar({ kpis, loading }: DomainKpiBarProps) {
       gradient: 'linear-gradient(90deg, #2563eb, #60a5fa)',
     },
     {
-      label: 'Pays actifs',
+      label: t('activeCountries'),
       value: kpis.activeCountries,
       displayValue: String(kpis.activeCountries),
       icon: <Globe className="h-4 w-4" />,
@@ -161,7 +163,7 @@ export function DomainKpiBar({ kpis, loading }: DomainKpiBarProps) {
       gradient: 'linear-gradient(90deg, #0891b2, #67e8f9)',
     },
     {
-      label: 'Campagnes actives',
+      label: t('activeCampaigns'),
       value: kpis.activeCampaigns,
       displayValue: String(kpis.activeCampaigns),
       icon: <Activity className="h-4 w-4" />,
@@ -169,7 +171,7 @@ export function DomainKpiBar({ kpis, loading }: DomainKpiBarProps) {
       gradient: 'linear-gradient(90deg, #7c3aed, #a78bfa)',
     },
     {
-      label: 'Taux de completion',
+      label: t('completionRate'),
       value: kpis.completionRate,
       displayValue: `${kpis.completionRate}%`,
       icon: <Target className="h-4 w-4" />,
@@ -177,7 +179,7 @@ export function DomainKpiBar({ kpis, loading }: DomainKpiBarProps) {
       gradient: 'linear-gradient(90deg, #16a34a, #4ade80)',
     },
     {
-      label: 'Qualite des donnees',
+      label: t('qualityScore'),
       value: kpis.qualityScore,
       displayValue: `${kpis.qualityScore}%`,
       icon: <Shield className="h-4 w-4" />,
@@ -185,7 +187,7 @@ export function DomainKpiBar({ kpis, loading }: DomainKpiBarProps) {
       gradient: 'linear-gradient(90deg, #ea580c, #fb923c)',
     },
     {
-      label: 'Tendance',
+      label: t('trend'),
       value: Math.abs(delta),
       displayValue: delta > 0 ? `+${delta}%` : delta < 0 ? `${delta}%` : '0%',
       icon: delta > 0 ? <TrendingUp className="h-4 w-4" /> : delta < 0 ? <TrendingDown className="h-4 w-4" /> : <Minus className="h-4 w-4" />,

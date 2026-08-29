@@ -3,20 +3,27 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useRealtimeStore, type ConnectionStatus } from '@/lib/realtime/realtime-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
-const STATUS_CONFIG: Record<
-  ConnectionStatus,
-  { label: string; dotColor: string }
-> = {
-  connected: { label: 'Live', dotColor: 'bg-green-500' },
-  connecting: { label: 'Connecting', dotColor: 'bg-amber-500 animate-pulse' },
-  disconnected: { label: 'Offline', dotColor: 'bg-gray-400' },
-  error: { label: 'Reconnecting', dotColor: 'bg-amber-500 animate-pulse' },
+const STATUS_DOT_COLORS: Record<ConnectionStatus, string> = {
+  connected: 'bg-green-500',
+  connecting: 'bg-amber-500 animate-pulse',
+  disconnected: 'bg-gray-400',
+  error: 'bg-amber-500 animate-pulse',
 };
 
 export function ConnectionIndicator() {
+  const t = useTranslations('common');
   const status = useRealtimeStore((s) => s.connectionStatus);
-  const config = STATUS_CONFIG[status];
+
+  const STATUS_LABELS: Record<ConnectionStatus, string> = {
+    connected: t('statusLive'),
+    connecting: t('statusConnecting'),
+    disconnected: t('statusOffline'),
+    error: t('statusReconnecting'),
+  };
+
+  const config = { label: STATUS_LABELS[status], dotColor: STATUS_DOT_COLORS[status] };
 
   // Only show the indicator prominently when not connected
   if (status === 'connected') {

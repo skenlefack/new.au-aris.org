@@ -2,6 +2,7 @@
 
 import { type ReactNode } from 'react';
 import { usePublicPlatformConfig } from '@/hooks/usePlatformConfig';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function AuthLayout({
   children,
@@ -9,6 +10,7 @@ export default function AuthLayout({
   children: ReactNode;
 }) {
   const { name, fullName } = usePublicPlatformConfig();
+  const t = useTranslations('auth');
 
   return (
     <div className="flex min-h-screen">
@@ -22,21 +24,20 @@ export default function AuthLayout({
             </p>
           </div>
           <p className="text-aris-primary-100 leading-relaxed">
-            AU-IBAR Continental Digital Infrastructure for Animal Resources
-            across 55 Member States and 8 Regional Economic Communities.
+            {t('continentalInfraDesc')}
           </p>
           <div className="mt-10 grid grid-cols-3 gap-4 text-center">
             <div className="rounded-lg bg-white/10 p-3">
               <p className="text-2xl font-bold">55</p>
-              <p className="text-xs text-aris-primary-200">Member States</p>
+              <p className="text-xs text-aris-primary-200">{t('memberStates')}</p>
             </div>
             <div className="rounded-lg bg-white/10 p-3">
               <p className="text-2xl font-bold">8</p>
-              <p className="text-xs text-aris-primary-200">RECs</p>
+              <p className="text-xs text-aris-primary-200">{t('recs')}</p>
             </div>
             <div className="rounded-lg bg-white/10 p-3">
               <p className="text-2xl font-bold">9</p>
-              <p className="text-xs text-aris-primary-200">Domains</p>
+              <p className="text-xs text-aris-primary-200">{t('domains')}</p>
             </div>
           </div>
         </div>

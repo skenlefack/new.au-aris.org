@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   useHistoricalDatasets,
   useDashboardKpis,
@@ -46,6 +47,8 @@ const YEAR_OPTIONS = Array.from({ length: 18 }, (_, i) => 2025 - i);
 /* ------------------------------------------------------------------ */
 
 export default function HistoricalDashboardPage() {
+  const t = useTranslations('historical');
+
   // Fetch all READY datasets in animal_health domain
   const { data: allDatasetsRes } = useHistoricalDatasets({ limit: 100, status: 'READY' });
   const allDatasets = allDatasetsRes?.data ?? [];
@@ -168,11 +171,11 @@ export default function HistoricalDashboardPage() {
               </svg>
             </Link>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Historical Analytics Dashboard
+              {t('analyticsDashboard')}
             </h1>
           </div>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Continental disease surveillance trends (2008-2025) — {allDatasets.length} datasets, {allDatasets.reduce((s, d) => s + d.rowCount, 0).toLocaleString()} records
+            {t('dashboardSubtitle')} — {allDatasets.length} {t('totalDatasets').toLowerCase()}, {allDatasets.reduce((s, d) => s + d.rowCount, 0).toLocaleString()} {t('rows').toLowerCase()}
           </p>
         </div>
 
@@ -182,7 +185,7 @@ export default function HistoricalDashboardPage() {
           onChange={(e) => setSelectedYear(e.target.value === '' ? null : Number(e.target.value))}
           className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
         >
-          <option value="">All Years (2008-2025)</option>
+          <option value="">{t('allYearsRange')}</option>
           {YEAR_OPTIONS.map((y) => (
             <option key={y} value={y}>{y}</option>
           ))}
@@ -193,28 +196,28 @@ export default function HistoricalDashboardPage() {
       {isReady && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <KpiCard
-            label="Disease Reports"
+            label={t('diseaseReports')}
             value={kpis?.totalReports ?? 0}
             change={kpis?.pctChangeReports ?? 0}
             loading={kpisLoading}
             color="#2e75b6"
           />
           <KpiCard
-            label="Total Outbreaks"
+            label={t('totalOutbreaks')}
             value={kpis?.totalOutbreaks ?? 0}
             change={kpis?.pctChangeOutbreaks ?? 0}
             loading={kpisLoading}
             color="#e67e22"
           />
           <KpiCard
-            label="Diseases Reported"
+            label={t('diseasesReported')}
             value={kpis?.uniqueDiseases ?? 0}
             change={kpis?.pctChangeDiseases ?? 0}
             loading={kpisLoading}
             color="#27ae60"
           />
           <KpiCard
-            label="Locations"
+            label={t('locations')}
             value={kpis?.uniqueLocations ?? 0}
             change={kpis?.pctChangeLocations ?? 0}
             loading={kpisLoading}
@@ -229,14 +232,14 @@ export default function HistoricalDashboardPage() {
         <div className="xl:col-span-2 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/50">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Epidemic Curve {selectedDisease && `— ${resolveDiseaseLabel(selectedDisease, diseaseMap)}`}
+              {t('epidemicCurve')} {selectedDisease && `— ${resolveDiseaseLabel(selectedDisease, diseaseMap)}`}
             </h2>
             <select
               value={selectedDisease}
               onChange={(e) => setSelectedDisease(e.target.value)}
               className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none"
             >
-              <option value="">All Diseases</option>
+              <option value="">{t('allDiseases')}</option>
               {diseaseOptions.map((d) => (
                 <option key={d.value} value={d.value}>{d.label}</option>
               ))}
@@ -256,7 +259,7 @@ export default function HistoricalDashboardPage() {
         {/* Top 10 Diseases */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/50">
           <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
-            Top 15 Diseases ({selectedYear ?? '2008-2025'})
+            {t('topDiseasesTitle', { year: String(selectedYear ?? '2008-2025') })}
           </h2>
           <div className="h-[320px]">
             {topDiseases.isPending ? (
@@ -275,7 +278,7 @@ export default function HistoricalDashboardPage() {
         {/* Country Distribution */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/50">
           <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
-            Reports by Country/Location ({selectedYear ?? '2008-2025'})
+            {t('reportsByCountryTitle', { year: String(selectedYear ?? '2008-2025') })}
           </h2>
           <div className="h-[350px]">
             {countryDistribution.isPending ? (
@@ -291,7 +294,7 @@ export default function HistoricalDashboardPage() {
         {/* Disease Pie Chart */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/50">
           <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
-            Disease Distribution ({selectedYear ?? '2008-2025'})
+            {t('diseaseDistributionTitle', { year: String(selectedYear ?? '2008-2025') })}
           </h2>
           <div className="h-[350px]">
             {topDiseases.isPending ? (
@@ -309,7 +312,7 @@ export default function HistoricalDashboardPage() {
       <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/50">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-            Country / Location Comparator
+            {t('countryComparator')}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -322,7 +325,7 @@ export default function HistoricalDashboardPage() {
               }}
               className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none"
             >
-              <option value="">+ Add country...</option>
+              <option value="">{t('addCountry')}</option>
               {countryOptions
                 .filter((c) => !compareCountries.includes(c))
                 .map((c) => (
@@ -340,7 +343,7 @@ export default function HistoricalDashboardPage() {
         <div className="h-[300px]">
           {compareCountries.length === 0 ? (
             <div className="flex h-full items-center justify-center text-sm text-slate-400">
-              Select up to 5 countries/locations to compare their disease report trends
+              {t('selectCountriesToCompare')}
             </div>
           ) : comparatorQuery.isPending ? (
             <LoadingChart />
@@ -355,16 +358,16 @@ export default function HistoricalDashboardPage() {
       {/* Datasets Summary Table */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/50">
         <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
-          Datasets in this Dashboard
+          {t('datasetsInDashboard')}
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 dark:border-slate-700">
               <tr>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Name</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Domain</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500 text-right">Rows</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Status</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('name')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('domain')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500 text-right">{t('rows')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('status')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -403,6 +406,7 @@ function KpiCard({ label, value, change, loading, color }: {
   loading: boolean;
   color: string;
 }) {
+  const t = useTranslations('historical');
   const isUp = change > 0;
   const isDown = change < 0;
   return (
@@ -417,7 +421,7 @@ function KpiCard({ label, value, change, loading, color }: {
             {isUp && <span className="text-red-500">+{change}%</span>}
             {isDown && <span className="text-emerald-500">{change}%</span>}
             {!isUp && !isDown && <span className="text-slate-400">0%</span>}
-            <span className="text-slate-400">vs. previous year</span>
+            <span className="text-slate-400">{t('vsLastYear')}</span>
           </div>
         </>
       )}
@@ -588,9 +592,10 @@ function LoadingChart() {
 }
 
 function EmptyChart() {
+  const t = useTranslations('historical');
   return (
     <div className="flex h-full items-center justify-center text-sm text-slate-400">
-      No data available
+      {t('noData')}
     </div>
   );
 }

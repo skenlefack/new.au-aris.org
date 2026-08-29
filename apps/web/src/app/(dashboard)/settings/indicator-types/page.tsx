@@ -11,6 +11,7 @@ import {
 } from '@/lib/api/indicator-hooks';
 import type { IndicatorType } from '@/lib/api/indicator-hooks';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   Loader2,
   Plus,
@@ -76,6 +77,7 @@ function TypeFormModal({
   onSave: (data: TypeFormData) => void;
   isPending: boolean;
 }) {
+  const t = useTranslations('settings');
   const [form, setForm] = useState<TypeFormData>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -93,10 +95,10 @@ function TypeFormModal({
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!form.code.trim()) e.code = 'Code is required.';
-    else if (!/^[A-Z][A-Z0-9_]*$/.test(form.code)) e.code = 'Format: UPPERCASE_SNAKE (e.g. PERFORMANCE).';
-    if (!form.labelFr.trim()) e.labelFr = 'Label FR is required.';
-    if (!form.labelEn.trim()) e.labelEn = 'Label EN is required.';
+    if (!form.code.trim()) e.code = t('codeRequired');
+    else if (!/^[A-Z][A-Z0-9_]*$/.test(form.code)) e.code = t('codeFormatError');
+    if (!form.labelFr.trim()) e.labelFr = t('labelFrRequired');
+    if (!form.labelEn.trim()) e.labelEn = t('labelEnRequired');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -121,7 +123,7 @@ function TypeFormModal({
       >
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {isEdit ? 'Edit Indicator Type' : 'New Indicator Type'}
+            {isEdit ? t('editIndicatorTypeTitle') : t('newIndicatorTypeTitle')}
           </h3>
           <button type="button" onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
             <X className="h-5 w-5" />
@@ -131,7 +133,7 @@ function TypeFormModal({
         {/* Code */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Code <span className="text-red-500">*</span>
+            {t('code')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -148,7 +150,7 @@ function TypeFormModal({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Label FR <span className="text-red-500">*</span>
+              {t('labelLabelFr')} <span className="text-red-500">*</span>
             </label>
             <input type="text" value={form.labelFr} onChange={(e) => setForm({ ...form, labelFr: e.target.value })} onBlur={handleBlur}
               placeholder="Performance" className={inputCls('labelFr')} />
@@ -156,7 +158,7 @@ function TypeFormModal({
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Label EN <span className="text-red-500">*</span>
+              {t('labelLabelEn')} <span className="text-red-500">*</span>
             </label>
             <input type="text" value={form.labelEn} onChange={(e) => setForm({ ...form, labelEn: e.target.value })} onBlur={handleBlur}
               placeholder="Performance" className={inputCls('labelEn')} />
@@ -168,14 +170,14 @@ function TypeFormModal({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Label AR <span className="text-xs text-gray-400">(optional)</span>
+              {t('labelLabelAr')} <span className="text-xs text-gray-400">{t('optional')}</span>
             </label>
             <input type="text" value={form.labelAr} onChange={(e) => setForm({ ...form, labelAr: e.target.value })} onBlur={handleBlur}
               dir="rtl" className={inputCls('labelAr')} />
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Label PT <span className="text-xs text-gray-400">(optional)</span>
+              {t('labelLabelPt')} <span className="text-xs text-gray-400">{t('optional')}</span>
             </label>
             <input type="text" value={form.labelPt} onChange={(e) => setForm({ ...form, labelPt: e.target.value })} onBlur={handleBlur}
               className={inputCls('labelPt')} />
@@ -185,7 +187,7 @@ function TypeFormModal({
         {/* Color + Icon + Order */}
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Color</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelColor')}</label>
             <div className="flex items-center gap-2">
               <input type="color" value={form.color || '#1F4E79'}
                 onChange={(e) => setForm({ ...form, color: e.target.value })}
@@ -195,13 +197,13 @@ function TypeFormModal({
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Icon name</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelIconName')}</label>
             <input type="text" value={form.iconName} onChange={(e) => setForm({ ...form, iconName: e.target.value })}
-              placeholder="bar-chart-3"
+              placeholder={t('iconNamePlaceholder')}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Display order</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelDisplayOrder')}</label>
             <input type="number" min={0} value={form.displayOrder}
               onChange={(e) => setForm({ ...form, displayOrder: parseInt(e.target.value, 10) || 0 })}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
@@ -211,7 +213,7 @@ function TypeFormModal({
         {/* Description */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Description <span className="text-xs text-gray-400">(optional)</span>
+            {t('labelDescription')} <span className="text-xs text-gray-400">{t('optional')}</span>
           </label>
           <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
             rows={2} placeholder="Description of this indicator type..."
@@ -222,12 +224,12 @@ function TypeFormModal({
         <div className="flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">
           <button type="button" onClick={onClose}
             className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-            Cancel
+            {t('cancel')}
           </button>
           <button type="submit" disabled={isPending}
             className="inline-flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1F4E79]/90 disabled:opacity-50">
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {isEdit ? 'Update' : 'Create'}
+            {isEdit ? t('btnUpdate') : t('btnCreate')}
           </button>
         </div>
       </form>
@@ -240,6 +242,7 @@ function TypeFormModal({
 /* ------------------------------------------------------------------ */
 
 function IndicatorTypesList() {
+  const t = useTranslations('settings');
   const addToast = useRealtimeStore((s) => s.addToast);
   const { data, isLoading } = useIndicatorTypes();
   const createMutation = useCreateIndicatorType();
@@ -266,10 +269,10 @@ function IndicatorTypesList() {
         iconName: formData.iconName || undefined,
         displayOrder: formData.displayOrder,
       });
-      addToast({ type: 'success', title: 'Type created', message: `${formData.code} created successfully.` });
+      addToast({ type: 'success', title: t('indicatorTypeCreated'), message: t('indicatorTypeCreatedMsg').replace('{code}', formData.code) });
       setShowForm(false);
     } catch (err: any) {
-      addToast({ type: 'error', title: 'Error', message: err?.message || 'Failed to create type.' });
+      addToast({ type: 'error', title: t('error'), message: err?.message || t('indicatorTypeCreateError') });
     }
   };
 
@@ -286,23 +289,25 @@ function IndicatorTypesList() {
         iconName: formData.iconName || undefined,
         displayOrder: formData.displayOrder,
       });
-      addToast({ type: 'success', title: 'Type updated', message: `${formData.code} updated successfully.` });
+      addToast({ type: 'success', title: t('indicatorTypeUpdated'), message: t('indicatorTypeUpdatedMsg').replace('{code}', formData.code) });
       setEditingType(null);
     } catch (err: any) {
-      addToast({ type: 'error', title: 'Error', message: err?.message || 'Failed to update type.' });
+      addToast({ type: 'error', title: t('error'), message: err?.message || t('indicatorTypeUpdateError') });
     }
   };
 
-  const handleToggleActive = async (t: IndicatorType) => {
+  const handleToggleActive = async (tp: IndicatorType) => {
     try {
-      await updateMutation.mutateAsync({ code: t.code, active: !t.active });
+      await updateMutation.mutateAsync({ code: tp.code, active: !tp.active });
       addToast({
         type: 'success',
-        title: t.active ? 'Type deactivated' : 'Type activated',
-        message: `${t.code} ${t.active ? 'deactivated' : 'activated'} successfully.`,
+        title: tp.active ? t('indicatorTypeDeactivated') : t('indicatorTypeActivated'),
+        message: tp.active
+          ? t('deactivatedMsg').replace('{code}', tp.code)
+          : t('activatedMsg').replace('{code}', tp.code),
       });
     } catch {
-      addToast({ type: 'error', title: 'Error', message: 'Failed to toggle status.' });
+      addToast({ type: 'error', title: t('error'), message: t('typeToggleError') });
     }
   };
 
@@ -310,15 +315,15 @@ function IndicatorTypesList() {
     if (!deletingCode) return;
     try {
       await deleteMutation.mutateAsync(deletingCode);
-      addToast({ type: 'success', title: 'Deleted', message: `${deletingCode} deleted successfully.` });
+      addToast({ type: 'success', title: t('indicatorTypeDeleted'), message: t('indicatorTypeDeletedMsg').replace('{code}', deletingCode) });
       setDeletingCode(null);
     } catch (err: any) {
-      addToast({ type: 'error', title: 'Error', message: err?.message || 'Failed to delete type.' });
+      addToast({ type: 'error', title: t('error'), message: err?.message || t('indicatorTypeDeleteError') });
       setDeletingCode(null);
     }
   };
 
-  const deletingType = sortedTypes.find((t) => t.code === deletingCode);
+  const deletingType = sortedTypes.find((tp) => tp.code === deletingCode);
 
   return (
     <div className="space-y-6 pb-20">
@@ -329,9 +334,9 @@ function IndicatorTypesList() {
             <BarChart3 className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Indicator Types</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('indicatorTypesTitle')}</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {sortedTypes.length} type{sortedTypes.length !== 1 ? 's' : ''} configured
+              {t('indicatorTypesConfigured').replace('{count}', String(sortedTypes.length))}
             </p>
           </div>
         </div>
@@ -340,7 +345,7 @@ function IndicatorTypesList() {
           className="inline-flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#1F4E79]/90"
         >
           <Plus className="h-4 w-4" />
-          New type
+          {t('btnNewType')}
         </button>
       </div>
 
@@ -355,38 +360,38 @@ function IndicatorTypesList() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Code</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Label FR</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Label EN</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Color</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Active</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Order</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Actions</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('code')}</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colLabelFr')}</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colLabelEn')}</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colColor')}</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colActive')}</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colOrder')}</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {sortedTypes.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No indicator types found. Click &quot;New type&quot; to create one.
+                      {t('noIndicatorTypes')}
                     </td>
                   </tr>
                 ) : (
-                  sortedTypes.map((t) => (
-                    <tr key={t.code} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60">
+                  sortedTypes.map((tp) => (
+                    <tr key={tp.code} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60">
                       <td className="px-4 py-3">
                         <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                          {t.code}
+                          {tp.code}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{t.labelFr}</td>
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{t.labelEn}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{tp.labelFr}</td>
+                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{tp.labelEn}</td>
                       <td className="px-4 py-3">
-                        {t.color ? (
+                        {tp.color ? (
                           <span className="inline-flex items-center gap-1.5">
                             <span className="h-4 w-4 rounded-full border border-gray-200 dark:border-gray-600"
-                              style={{ backgroundColor: t.color }} />
-                            <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{t.color}</span>
+                              style={{ backgroundColor: tp.color }} />
+                            <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{tp.color}</span>
                           </span>
                         ) : (
                           <span className="text-gray-300 dark:text-gray-600">&mdash;</span>
@@ -395,29 +400,29 @@ function IndicatorTypesList() {
                       <td className="px-4 py-3">
                         <button
                           type="button"
-                          onClick={() => handleToggleActive(t)}
+                          onClick={() => handleToggleActive(tp)}
                           disabled={updateMutation.isPending}
                           className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                            t.active ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
+                            tp.active ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                           }`}
-                          title={t.active ? 'Deactivate' : 'Activate'}
+                          title={tp.active ? t('deactivateAction') : t('activateAction')}
                         >
-                          <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${t.active ? 'translate-x-4' : 'translate-x-0'}`} />
+                          <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tp.active ? 'translate-x-4' : 'translate-x-0'}`} />
                         </button>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{t.displayOrder}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{tp.displayOrder}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <button type="button"
-                            onClick={() => setEditingType(t)}
+                            onClick={() => setEditingType(tp)}
                             className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                            title="Edit">
+                            title={t('edit')}>
                             <Pencil className="h-4 w-4" />
                           </button>
                           <button type="button"
-                            onClick={() => setDeletingCode(t.code)}
+                            onClick={() => setDeletingCode(tp.code)}
                             className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                            title="Delete">
+                            title={t('delete')}>
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -451,6 +456,8 @@ function IndicatorTypesList() {
             labelEn: editingType.labelEn,
             labelAr: editingType.labelAr ?? '',
             labelPt: editingType.labelPt ?? '',
+            labelEs: '',
+            labelSw: '',
             description: editingType.description ?? '',
             color: editingType.color ?? '#1F4E79',
             iconName: editingType.iconName ?? '',
@@ -472,22 +479,23 @@ function IndicatorTypesList() {
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete indicator type</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('deleteIndicatorType')}</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Are you sure you want to delete <strong>{deletingType.code}</strong> ({deletingType.labelEn})?
-                  This action cannot be undone.
+                  {t('deleteIndicatorTypeConfirm')
+                    .replace('{code}', deletingType.code)
+                    .replace('{label}', deletingType.labelEn)}
                 </p>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" onClick={() => setDeletingCode(null)}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                Cancel
+                {t('cancel')}
               </button>
               <button type="button" onClick={handleDelete} disabled={deleteMutation.isPending}
                 className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50">
                 {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Delete
+                {t('delete')}
               </button>
             </div>
           </div>

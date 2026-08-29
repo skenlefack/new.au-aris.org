@@ -16,17 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSubmission, type QualityGateStatus } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
-
-const GATE_LABELS: Record<string, string> = {
-  completeness: 'Completeness',
-  temporal_consistency: 'Temporal Consistency',
-  geographic_consistency: 'Geographic Consistency',
-  codes_vocabularies: 'Codes & Vocabularies',
-  units: 'Units',
-  deduplication: 'Deduplication',
-  auditability: 'Auditability',
-  confidence_score: 'Confidence Score',
-};
+import { useTranslations } from '@/lib/i18n/translations';
 
 function GateIcon({ status }: { status: QualityGateStatus['status'] }) {
   switch (status) {
@@ -42,9 +32,21 @@ function GateIcon({ status }: { status: QualityGateStatus['status'] }) {
 }
 
 export default function SubmissionDetailPage() {
+  const t = useTranslations('collecte');
   const params = useParams();
   const id = params.id as string;
   const { data, isLoading } = useSubmission(id);
+
+  const GATE_LABELS: Record<string, string> = {
+    completeness: t('gateCompleteness'),
+    temporal_consistency: t('gateTemporal'),
+    geographic_consistency: t('gateGeographic'),
+    codes_vocabularies: t('gateCodes'),
+    units: t('gateUnits'),
+    deduplication: t('gateDeduplication'),
+    auditability: t('gateAuditability'),
+    confidence_score: t('gateConfidenceScore'),
+  };
 
   if (isLoading) return <DetailSkeleton />;
 
@@ -57,10 +59,10 @@ export default function SubmissionDetailPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Campaigns
+          {t('backToCampaigns')}
         </Link>
         <div className="rounded-card border border-gray-200 bg-white p-8 text-center text-gray-400">
-          Submission not found
+          {t('submissionNotFound')}
         </div>
       </div>
     );
@@ -124,7 +126,7 @@ export default function SubmissionDetailPage() {
           </span>
           <span className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-gray-400" />
-            Workflow Level {submission.workflowLevel}
+            {t('workflowLevel', { level: String(submission.workflowLevel) })}
           </span>
         </div>
       </div>
@@ -132,7 +134,7 @@ export default function SubmissionDetailPage() {
       {/* Quality Report */}
       <div>
         <h2 className="mb-3 text-lg font-semibold text-gray-900">
-          Quality Report
+          {t('qualityReport')}
         </h2>
 
         <div
@@ -154,7 +156,7 @@ export default function SubmissionDetailPage() {
                 <AlertTriangle className="h-5 w-5" />
               )}
               <span className="font-semibold">
-                Overall:{' '}
+                {t('qualityOverall')}:{' '}
                 {submission.qualityResult.charAt(0).toUpperCase() +
                   submission.qualityResult.slice(1)}
               </span>
@@ -169,9 +171,9 @@ export default function SubmissionDetailPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                <th className="px-4 py-3">Gate</th>
-                <th className="px-4 py-3">Result</th>
-                <th className="px-4 py-3">Details</th>
+                <th className="px-4 py-3">{t('colGate')}</th>
+                <th className="px-4 py-3">{t('colResult')}</th>
+                <th className="px-4 py-3">{t('colDetails')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -200,7 +202,7 @@ export default function SubmissionDetailPage() {
                     colSpan={3}
                     className="px-4 py-8 text-center text-gray-400"
                   >
-                    No quality gate results
+                    {t('noQualityGateResults')}
                   </td>
                 </tr>
               )}
@@ -213,17 +215,17 @@ export default function SubmissionDetailPage() {
       {(submission.corrections ?? []).length > 0 && (
         <div>
           <h2 className="mb-3 text-lg font-semibold text-gray-900">
-            Corrections
+            {t('corrections')}
           </h2>
           <div className="rounded-card border border-gray-200 bg-white overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                  <th className="px-4 py-3">Field</th>
-                  <th className="px-4 py-3">Old Value</th>
-                  <th className="px-4 py-3">New Value</th>
-                  <th className="px-4 py-3">Corrected By</th>
-                  <th className="px-4 py-3">Reason</th>
+                  <th className="px-4 py-3">{t('colField')}</th>
+                  <th className="px-4 py-3">{t('colOldValue')}</th>
+                  <th className="px-4 py-3">{t('colNewValue')}</th>
+                  <th className="px-4 py-3">{t('colCorrectedBy')}</th>
+                  <th className="px-4 py-3">{t('colReason')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -254,7 +256,7 @@ export default function SubmissionDetailPage() {
       {(submission.timeline ?? []).length > 0 && (
         <div>
           <h2 className="mb-3 text-lg font-semibold text-gray-900">
-            Timeline
+            {t('timeline')}
           </h2>
           <div className="rounded-card border border-gray-200 bg-white p-5">
             <div className="space-y-4">
@@ -285,7 +287,7 @@ export default function SubmissionDetailPage() {
 
       {/* Raw form data */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Form Data</h2>
+        <h2 className="mb-3 text-lg font-semibold text-gray-900">{t('formData')}</h2>
         <div className="rounded-card border border-gray-200 bg-white p-5">
           <pre className="overflow-auto text-xs text-gray-600">
             {JSON.stringify(submission.data, null, 2)}

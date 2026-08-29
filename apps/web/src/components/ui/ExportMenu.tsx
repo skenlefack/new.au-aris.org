@@ -11,6 +11,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface ExportMenuProps {
   onExportCsv?: () => void | Promise<void>;
@@ -34,6 +35,7 @@ export function ExportMenu({
   onExportZip,
   disabled = false,
 }: ExportMenuProps) {
+  const t = useTranslations('export');
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -44,7 +46,7 @@ export function ExportMenu({
   if (onExportCsv) {
     options.push({
       key: 'csv',
-      label: 'Export as CSV',
+      label: t('exportAsCsv'),
       icon: FileSpreadsheet,
       handler: onExportCsv,
     });
@@ -53,7 +55,7 @@ export function ExportMenu({
   if (onExportPdf) {
     options.push({
       key: 'pdf',
-      label: 'Export as PDF',
+      label: t('exportAsPdf'),
       icon: FileText,
       handler: onExportPdf,
     });
@@ -62,7 +64,7 @@ export function ExportMenu({
   if (onExportPng) {
     options.push({
       key: 'png',
-      label: 'Export as PNG',
+      label: t('exportAsPng'),
       icon: Image,
       handler: onExportPng,
     });
@@ -71,7 +73,7 @@ export function ExportMenu({
   if (onExportZip) {
     options.push({
       key: 'zip',
-      label: 'Export as ZIP',
+      label: t('exportAsZip'),
       icon: Archive,
       handler: onExportZip,
     });
@@ -157,7 +159,7 @@ export function ExportMenu({
         ) : (
           <Download className="h-4 w-4" />
         )}
-        <span>Export</span>
+        <span>{t('exportButton')}</span>
         <ChevronDown
           className={cn(
             'h-3.5 w-3.5 transition-transform',

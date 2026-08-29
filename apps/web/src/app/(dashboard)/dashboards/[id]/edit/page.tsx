@@ -14,6 +14,7 @@ import {
   type DashboardWidget,
   type DashboardSection,
 } from '@/lib/api/dashboard-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 import { DashboardEditor } from '@/components/dashboard-builder/DashboardEditor';
 import { WidgetConfigPanel } from '@/components/dashboard-builder/WidgetConfigPanel';
 import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
@@ -21,6 +22,7 @@ import { ShareDashboardDialog } from '@/components/dashboard-builder/ShareDashbo
 import type { GlobalFilters } from '@/components/dashboard-builder/GlobalFilterBar';
 
 export default function DashboardEditPage() {
+  const t = useTranslations('dashboard');
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -375,7 +377,7 @@ export default function DashboardEditPage() {
   if (!dashboard) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <p className="text-gray-500">Dashboard not found</p>
+        <p className="text-gray-500">{t('dashboardNotFound')}</p>
       </div>
     );
   }
@@ -392,7 +394,7 @@ export default function DashboardEditPage() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            {title || 'Untitled Dashboard'}
+            {(title as any)?.en || (title as any)?.fr || (typeof title === 'string' ? title : '') || t('untitledDashboard')}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -401,19 +403,19 @@ export default function DashboardEditPage() {
             className="flex items-center gap-1.5 rounded-lg border border-[#C9A227]/30 bg-gradient-to-r from-[#1F4E79]/5 to-[#C9A227]/5 px-3 py-1.5 text-sm font-medium text-[#1F4E79] hover:from-[#1F4E79]/10 hover:to-[#C9A227]/10 transition-all dark:text-[#C9A227] dark:border-[#C9A227]/20"
           >
             <Sparkles className="h-4 w-4" style={{ color: '#C9A227' }} />
-            Suggest with AI
+            {t('suggestWithAi')}
           </button>
           <button
             onClick={handleCancel}
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             <X className="h-4 w-4" />
-            Cancel
+            {t('cancel')}
           </button>
           <button
             onClick={handleUndo}
             disabled={historyIndex <= 0}
-            title="Undo (Ctrl+Z)"
+            title={t('undoTooltip')}
             className="rounded-lg border border-gray-200 dark:border-gray-700 p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <Undo2 className="h-4 w-4" />
@@ -421,7 +423,7 @@ export default function DashboardEditPage() {
           <button
             onClick={handleRedo}
             disabled={historyIndex >= history.length - 1}
-            title="Redo (Ctrl+Shift+Z)"
+            title={t('redoTooltip')}
             className="rounded-lg border border-gray-200 dark:border-gray-700 p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <Redo2 className="h-4 w-4" />
@@ -431,7 +433,7 @@ export default function DashboardEditPage() {
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             <Share2 className="h-4 w-4" />
-            Share
+            {t('share')}
           </button>
           <button
             onClick={handleSave}
@@ -439,7 +441,7 @@ export default function DashboardEditPage() {
             className="flex items-center gap-1.5 rounded-lg bg-[#1F4E79] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#163a5c] disabled:opacity-50 transition-colors"
           >
             <Save className="h-4 w-4" />
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? t('saving') : t('save')}
           </button>
         </div>
       </div>

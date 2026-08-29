@@ -15,6 +15,7 @@ import {
 import type { SubDomainType } from '@/lib/stores/domain-store';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
 import { IconPicker, ICON_MAP } from '@/components/ui/IconPicker';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   Loader2,
   ArrowLeft,
@@ -31,20 +32,6 @@ import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN']);
 
-const TYPE_BADGES: Record<SubDomainType, { bg: string; text: string; label: string }> = {
-  VALUE_CHAIN: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'Value Chain' },
-  ORGANIZATIONAL: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', label: 'Organizational' },
-  PATHOLOGY: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', label: 'Pathology' },
-  OTHER: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-400', label: 'Other' },
-};
-
-const TYPE_OPTIONS: { value: SubDomainType; label: string; desc: string }[] = [
-  { value: 'VALUE_CHAIN', label: 'Chaine de valeur', desc: 'Filiere economique' },
-  { value: 'ORGANIZATIONAL', label: 'Organisationnel', desc: 'Structure institutionnelle' },
-  { value: 'PATHOLOGY', label: 'Pathologie', desc: 'Maladie specifique' },
-  { value: 'OTHER', label: 'Autre', desc: 'Classification libre' },
-];
-
 export default function SubDomainDetailPage() {
   const user = useAuthStore((s) => s.user);
   if (!user || !ADMIN_ROLES.has(user.role)) return <ForbiddenPage />;
@@ -52,6 +39,7 @@ export default function SubDomainDetailPage() {
 }
 
 function SubDomainDetail() {
+  const t = useTranslations('settings');
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -92,6 +80,20 @@ function SubDomainDetail() {
     { en: (v) => setLabelEn(v), fr: (v) => setLabelFr(v), pt: (v) => setLabelPt(v), ar: (v) => setLabelAr(v) },
   );
 
+  const typeOptions: { value: SubDomainType; label: string; desc: string }[] = [
+    { value: 'VALUE_CHAIN',    label: t('typeValueChain'),    desc: t('typeValueChainDesc') },
+    { value: 'ORGANIZATIONAL', label: t('typeOrganizational'), desc: t('typeOrganizationalDesc') },
+    { value: 'PATHOLOGY',      label: t('typePathology'),      desc: t('typePathologyDesc') },
+    { value: 'OTHER',          label: t('typeOther'),          desc: t('typeOtherDesc') },
+  ];
+
+  const typeBadges: Record<SubDomainType, { bg: string; text: string; label: string }> = {
+    VALUE_CHAIN:    { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: t('typeValueChain') },
+    ORGANIZATIONAL: { bg: 'bg-blue-100 dark:bg-blue-900/30',     text: 'text-blue-700 dark:text-blue-400',       label: t('typeOrganizational') },
+    PATHOLOGY:      { bg: 'bg-red-100 dark:bg-red-900/30',        text: 'text-red-700 dark:text-red-400',         label: t('typePathology') },
+    OTHER:          { bg: 'bg-gray-100 dark:bg-gray-700',         text: 'text-gray-600 dark:text-gray-400',       label: t('typeOther') },
+  };
+
   useEffect(() => {
     if (sd) {
       setLabelFr(sd.labelFr);
@@ -109,8 +111,8 @@ function SubDomainDetail() {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!labelFr.trim()) e.labelFr = 'Le label FR est requis.';
-    if (!labelEn.trim()) e.labelEn = 'Le label EN est requis.';
+    if (!labelFr.trim()) e.labelFr = t('subDomainLabelFrRequired');
+    if (!labelEn.trim()) e.labelEn = t('subDomainLabelEnRequired');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -127,10 +129,10 @@ function SubDomainDetail() {
         displayOrder, description: description.trim() || null,
         icon: icon || null, color: color || null,
       });
-      addToast({ type: 'success', title: 'Mis a jour', message: `${sd?.code} a ete modifie avec succes.` });
+      addToast({ type: 'success', title: t('subDomainUpdated'), message: t('subDomainUpdatedMsg').replace('{code}', sd?.code ?? '') });
       setEditing(false);
     } catch (err: any) {
-      addToast({ type: 'error', title: 'Erreur', message: err?.message || 'Impossible de sauvegarder.' });
+      addToast({ type: 'error', title: t('error'), message: err?.message || t('subDomainUpdateError') });
     }
   };
 
@@ -138,9 +140,15 @@ function SubDomainDetail() {
     if (!sd) return;
     try {
       await updateMutation.mutateAsync({ id, active: !sd.active });
-      addToast({ type: 'success', title: sd.active ? 'Desactive' : 'Active', message: `${sd.code} a ete ${sd.active ? 'desactive' : 'active'}.` });
+      addToast({
+        type: 'success',
+        title: sd.active ? t('subDomainDeactivated') : t('subDomainActivated'),
+        message: sd.active
+          ? t('deactivatedMsg').replace('{code}', sd.code)
+          : t('activatedMsg').replace('{code}', sd.code),
+      });
     } catch {
-      addToast({ type: 'error', title: 'Erreur', message: 'Impossible de modifier le statut.' });
+      addToast({ type: 'error', title: t('error'), message: t('subDomainStatusError') });
     }
   };
 
@@ -148,13 +156,13 @@ function SubDomainDetail() {
     setDeleteError(null);
     try {
       await deleteMutation.mutateAsync(id);
-      addToast({ type: 'success', title: 'Supprime', message: 'Sous-domaine supprime.' });
+      addToast({ type: 'success', title: t('subDomainDeleted'), message: t('subDomainDeletedMsg') });
       router.push('/settings/sub-domains');
     } catch (err: any) {
       if (err?.statusCode === 409) {
-        setDeleteError(err.message || 'Ce sous-domaine est utilise par des entites existantes.');
+        setDeleteError(err.message || t('subDomainUsedByEntities'));
       } else {
-        addToast({ type: 'error', title: 'Erreur', message: 'Impossible de supprimer.' });
+        addToast({ type: 'error', title: t('error'), message: t('subDomainDeleteError') });
         setShowDeleteModal(false);
       }
     }
@@ -167,13 +175,15 @@ function SubDomainDetail() {
   if (error || !sd) {
     return (
       <div className="py-12 text-center">
-        <p className="text-gray-500">Sous-domaine non trouve.</p>
-        <Link href="/settings/sub-domains" className="mt-4 inline-block text-sm text-[#1F4E79] hover:underline">Retour a la liste</Link>
+        <p className="text-gray-500">{t('subDomainNotFound')}</p>
+        <Link href="/settings/sub-domains" className="mt-4 inline-block text-sm text-[#1F4E79] hover:underline">
+          {t('backToList')}
+        </Link>
       </div>
     );
   }
 
-  const badge = TYPE_BADGES[sd.typeEnum] ?? TYPE_BADGES.OTHER;
+  const badge = typeBadges[sd.typeEnum] ?? typeBadges.OTHER;
   const parentDomain = domains.find((d) => d.code === sd.domainCode);
 
   return (
@@ -191,7 +201,7 @@ function SubDomainDetail() {
               <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${badge.bg} ${badge.text}`}>{badge.label}</span>
               <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                 sd.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-              }`}>{sd.active ? 'Actif' : 'Inactif'}</span>
+              }`}>{sd.active ? t('statusActive') : t('statusInactive')}</span>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">{sd.labelFr} &mdash; {parentDomain?.name?.en ?? sd.domainCode}</p>
           </div>
@@ -200,18 +210,18 @@ function SubDomainDetail() {
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => setEditing(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-              <Pencil className="h-3.5 w-3.5" /> Editer
+              <Pencil className="h-3.5 w-3.5" /> {t('btnEdit')}
             </button>
             <button type="button" onClick={handleToggleActive} disabled={updateMutation.isPending}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 sd.active ? 'border border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400' : 'border border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400'
               }`}>
               {sd.active ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
-              {sd.active ? 'Desactiver' : 'Activer'}
+              {sd.active ? t('deactivateAction') : t('activateAction')}
             </button>
             <button type="button" onClick={() => { setShowDeleteModal(true); setDeleteError(null); }}
               className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400">
-              <Trash2 className="h-3.5 w-3.5" /> Supprimer
+              <Trash2 className="h-3.5 w-3.5" /> {t('delete')}
             </button>
           </div>
         )}
@@ -224,28 +234,28 @@ function SubDomainDetail() {
             {/* Info banner */}
             <div className="flex items-center gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
               <Info className="h-4 w-4 shrink-0" />
-              Le code (<strong>{sd.code}</strong>) et le domaine parent ne peuvent pas etre modifies.
+              {t('codeAndDomainReadOnly').replace('{code}', sd.code)}
             </div>
 
             {/* Type + Value Chain + Order (3 cols) */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelTypeEnum')}</label>
                 <select value={typeEnum} onChange={(e) => { setTypeEnum(e.target.value as SubDomainType); if (e.target.value !== 'VALUE_CHAIN') setValueChainCode(''); }}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-                  {TYPE_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  {typeOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Code chaine de valeur</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelValueChainCode')}</label>
                 <select value={valueChainCode} onChange={(e) => setValueChainCode(e.target.value)} disabled={typeEnum !== 'VALUE_CHAIN'}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-                  <option value="">-- Aucun --</option>
+                  <option value="">{t('noValueChain')}</option>
                   {valueChainCodes.map((vc) => <option key={vc.code} value={vc.code}>{vc.labelFr || vc.labelEn} ({vc.code})</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ordre d'affichage</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelDisplayOrderField')}</label>
                 <input type="number" min={0} value={displayOrder} onChange={(e) => setDisplayOrder(parseInt(e.target.value, 10) || 0)}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
               </div>
@@ -254,24 +264,24 @@ function SubDomainDetail() {
             {/* Labels (4 cols) */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label FR *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelLabelFr')} *</label>
                 <input type="text" value={labelFr} onChange={(e) => setLabelFr(e.target.value)} onBlur={handleBlur}
                   className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 dark:bg-gray-900 dark:text-white ${errors.labelFr ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#1F4E79] focus:ring-[#1F4E79] dark:border-gray-700'}`} />
                 {errors.labelFr && <p className="text-xs text-red-600">{errors.labelFr}</p>}
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label EN *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelLabelEn')} *</label>
                 <input type="text" value={labelEn} onChange={(e) => setLabelEn(e.target.value)} onBlur={handleBlur}
                   className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 dark:bg-gray-900 dark:text-white ${errors.labelEn ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#1F4E79] focus:ring-[#1F4E79] dark:border-gray-700'}`} />
                 {errors.labelEn && <p className="text-xs text-red-600">{errors.labelEn}</p>}
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label AR</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelLabelAr')}</label>
                 <input type="text" value={labelAr} onChange={(e) => setLabelAr(e.target.value)} onBlur={handleBlur} dir="rtl"
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label PT</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelLabelPt')}</label>
                 <input type="text" value={labelPt} onChange={(e) => setLabelPt(e.target.value)} onBlur={handleBlur}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
               </div>
@@ -279,7 +289,7 @@ function SubDomainDetail() {
 
             {/* Description */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelDescription')}</label>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
             </div>
@@ -287,16 +297,16 @@ function SubDomainDetail() {
             {/* Icon + Color */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Icone</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelIcon')}</label>
                 <button type="button" onClick={() => setIconPickerOpen(true)}
                   className="inline-flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700">
                   {React.createElement(ICON_MAP[icon] ?? Circle, { className: 'h-5 w-5', style: { color } })}
                   <span className="text-gray-700 dark:text-gray-300">{icon}</span>
-                  <span className="text-xs text-[#1F4E79]">Changer</span>
+                  <span className="text-xs text-[#1F4E79]">{t('btnChangeIcon')}</span>
                 </button>
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Couleur</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelColorField')}</label>
                 <div className="flex items-center gap-3">
                   <input type="color" value={color} onChange={(e) => setColor(e.target.value)}
                     className="h-10 w-14 cursor-pointer rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-900" />
@@ -311,39 +321,39 @@ function SubDomainDetail() {
             <div className="flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">
               <button type="button" onClick={() => setEditing(false)}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                Annuler
+                {t('cancel')}
               </button>
               <button type="button" onClick={handleSave} disabled={updateMutation.isPending}
                 className="inline-flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1F4E79]/90 disabled:opacity-50">
                 {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                Sauvegarder
+                {t('btnSave')}
               </button>
             </div>
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            <DetailRow label="Code" value={sd.code} mono />
-            <DetailRow label="Domaine parent" value={parentDomain?.name?.en ?? sd.domainCode} />
-            <DetailRow label="Type">
+            <DetailRow label={t('detailCode')} value={sd.code} mono />
+            <DetailRow label={t('detailParentDomain')} value={parentDomain?.name?.en ?? sd.domainCode} />
+            <DetailRow label={t('detailType')}>
               <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${badge.bg} ${badge.text}`}>{badge.label}</span>
             </DetailRow>
             {sd.valueChainCode && (
-              <DetailRow label="Chaine de valeur">
+              <DetailRow label={t('detailValueChain')}>
                 <span className="inline-flex rounded-full bg-[#C9A227]/10 px-2 py-0.5 text-[11px] font-semibold text-[#C9A227]">{sd.valueChainCode}</span>
               </DetailRow>
             )}
-            <DetailRow label="Label FR" value={sd.labelFr} />
-            <DetailRow label="Label EN" value={sd.labelEn} />
-            {sd.labelAr && <DetailRow label="Label AR" value={sd.labelAr} dir="rtl" />}
-            {sd.labelPt && <DetailRow label="Label PT" value={sd.labelPt} />}
-            <DetailRow label="Ordre d'affichage" value={String(sd.displayOrder)} />
-            <DetailRow label="Statut">
+            <DetailRow label={t('detailLabelFr')} value={sd.labelFr} />
+            <DetailRow label={t('detailLabelEn')} value={sd.labelEn} />
+            {sd.labelAr && <DetailRow label={t('detailLabelAr')} value={sd.labelAr} dir="rtl" />}
+            {sd.labelPt && <DetailRow label={t('detailLabelPt')} value={sd.labelPt} />}
+            <DetailRow label={t('detailDisplayOrder')} value={String(sd.displayOrder)} />
+            <DetailRow label={t('detailStatus')}>
               <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                 sd.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-              }`}>{sd.active ? 'Actif' : 'Inactif'}</span>
+              }`}>{sd.active ? t('statusActive') : t('statusInactive')}</span>
             </DetailRow>
             {sd.icon && (
-              <DetailRow label="Icone">
+              <DetailRow label={t('detailIcon')}>
                 <div className="flex items-center gap-2">
                   {React.createElement(ICON_MAP[sd.icon] ?? Circle, { className: 'h-5 w-5', style: { color: sd.color ?? '#1F4E79' } })}
                   <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-sm text-gray-900 dark:bg-gray-700 dark:text-white">{sd.icon}</span>
@@ -351,14 +361,14 @@ function SubDomainDetail() {
               </DetailRow>
             )}
             {sd.color && (
-              <DetailRow label="Couleur">
+              <DetailRow label={t('detailColor')}>
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-5 w-5 rounded-full border border-gray-200 dark:border-gray-600" style={{ backgroundColor: sd.color }} />
                   <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-sm text-gray-900 dark:bg-gray-700 dark:text-white">{sd.color}</span>
                 </div>
               </DetailRow>
             )}
-            {sd.description && <DetailRow label="Description" value={sd.description} />}
+            {sd.description && <DetailRow label={t('detailDescription')} value={sd.description} />}
           </div>
         )}
       </div>
@@ -374,9 +384,11 @@ function SubDomainDetail() {
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Supprimer le sous-domaine</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('deleteSubDomain')}</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Voulez-vous vraiment supprimer <strong>{sd.code}</strong> ({sd.labelFr}) ?
+                  {t('deleteSubDomainConfirm')
+                    .replace('{code}', sd.code)
+                    .replace('{label}', sd.labelFr)}
                 </p>
                 {deleteError && (
                   <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">{deleteError}</div>
@@ -386,12 +398,12 @@ function SubDomainDetail() {
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" onClick={() => setShowDeleteModal(false)}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                Annuler
+                {t('cancel')}
               </button>
               <button type="button" onClick={handleDelete} disabled={deleteMutation.isPending}
                 className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50">
                 {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Supprimer
+                {t('delete')}
               </button>
             </div>
           </div>

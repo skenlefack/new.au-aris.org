@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { analyticsClient } from '@/lib/api/client';
+import { useTranslations } from '@/lib/i18n/translations';
 import { AFRICA_COUNTRIES } from '@/components/dashboard/maps/africa-geo-data';
 import type { CountryOutbreakData } from '@/components/dashboard/demo-data';
 
@@ -146,7 +147,7 @@ function DonutChart({ data, title }: { data: { name: string; value: number }[]; 
 }
 
 /* ── Year Trend Chart (vertical bar histogram + outbreak curve) ── */
-function YearTrend({ data }: { data: { year: number; reports: number; outbreaks: number }[] }) {
+function YearTrend({ data, yearTrendTitle, reportsLabel, outbreaksLabel }: { data: { year: number; reports: number; outbreaks: number }[]; yearTrendTitle: string; reportsLabel: string; outbreaksLabel: string }) {
   if (!data.length) return null;
   const filtered = data.filter((d) => d.year >= 2007 && d.year <= 2025);
   const maxReports = Math.max(...filtered.map((d) => d.reports), 1);
@@ -161,7 +162,7 @@ function YearTrend({ data }: { data: { year: number; reports: number; outbreaks:
     <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800 flex flex-col">
       <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
         <TrendingUp className="h-4 w-4 text-gray-400" />
-        Rapports et foyers par année (2007–2025)
+        {yearTrendTitle}
       </h3>
 
       {/* Chart area — fills available height */}
@@ -181,7 +182,7 @@ function YearTrend({ data }: { data: { year: number; reports: number; outbreaks:
             return (
               <g key={d.year}>
                 <rect x={x} y={y} width={w} height={h} rx="0.4" fill="#1F4E79" opacity="0.75">
-                  <title>{d.year}: {d.reports.toLocaleString()} rapports</title>
+                  <title>{d.year}: {d.reports.toLocaleString()} {reportsLabel}</title>
                 </rect>
               </g>
             );
@@ -205,7 +206,7 @@ function YearTrend({ data }: { data: { year: number; reports: number; outbreaks:
             const y = 88 - (d.outbreaks / maxOutbreaks) * 88;
             return (
               <circle key={`dot-${d.year}`} cx={x} cy={y} r="2" fill="#DC2626" stroke="white" strokeWidth="1" vectorEffect="non-scaling-stroke">
-                <title>{d.year}: {d.outbreaks.toLocaleString()} foyers</title>
+                <title>{d.year}: {d.outbreaks.toLocaleString()} {outbreaksLabel}</title>
               </circle>
             );
           })}
@@ -224,8 +225,8 @@ function YearTrend({ data }: { data: { year: number; reports: number; outbreaks:
 
       {/* Legend */}
       <div className="mt-2 flex items-center gap-5 text-[11px] text-gray-500 dark:text-gray-400">
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-[#1F4E79]/75" /> Rapports sanitaires</span>
-        <span className="flex items-center gap-1.5"><span className="h-[3px] w-5 bg-[#DC2626] rounded-full" /><span className="h-2 w-2 rounded-full bg-[#DC2626]" /> Foyers déclarés</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-[#1F4E79]/75" /> {reportsLabel}</span>
+        <span className="flex items-center gap-1.5"><span className="h-[3px] w-5 bg-[#DC2626] rounded-full" /><span className="h-2 w-2 rounded-full bg-[#DC2626]" /> {outbreaksLabel}</span>
       </div>
     </div>
   );
@@ -236,6 +237,7 @@ function YearTrend({ data }: { data: { year: number; reports: number; outbreaks:
    ══════════════════════════════════════════════════════════════════ */
 
 export default function HistoricalHealthDashboard({ campaignId }: { campaignId: string }) {
+  const t = useTranslations('historical');
   const { data, isLoading } = useCampaignStats(campaignId);
 
   if (isLoading) {
@@ -247,7 +249,7 @@ export default function HistoricalHealthDashboard({ campaignId }: { campaignId: 
   }
 
   if (!data || !data.kpis) {
-    return <p className="text-sm text-gray-400 text-center py-8">Aucune donnée disponible</p>;
+    return <p className="text-sm text-gray-400 text-center py-8">{t('healthNoData')}</p>;
   }
 
   const { kpis, diseaseDistribution, countryDistribution, yearlyTrend, outbreakStatus, outbreakType, countryMapData } = data;
@@ -264,14 +266,14 @@ export default function HistoricalHealthDashboard({ campaignId }: { campaignId: 
     <div className="space-y-6">
       {/* KPI Row */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <Kpi icon={FileText} label="Rapports sanitaires" value={kpis.totalReports} color="#1F4E79" />
-        <Kpi icon={Globe2} label="Pays rapporteurs" value={kpis.countries} color="#059669" />
-        <Kpi icon={Bug} label="Maladies surveillées" value={kpis.diseases} color="#7C3AED" />
-        <Kpi icon={ShieldAlert} label="Total foyers déclarés" value={kpis.totalOutbreaks} color="#DC2626" />
-        <Kpi icon={BarChart3} label="Rapports avec foyer" value={kpis.reportsWithOutbreak} color="#EA580C" />
-        <Kpi icon={Syringe} label="Rapports avec vaccination" value={kpis.reportsWithVaccination} color="#0891B2" />
-        <Kpi icon={Calendar} label="Date début" value={kpis.earliestDate ? new Date(kpis.earliestDate).toLocaleDateString('fr') : '-'} color="#6D28D9" />
-        <Kpi icon={Calendar} label="Date fin" value={kpis.latestDate ? new Date(kpis.latestDate).toLocaleDateString('fr') : '-'} color="#6D28D9" />
+        <Kpi icon={FileText} label={t('healthReports')} value={kpis.totalReports} color="#1F4E79" />
+        <Kpi icon={Globe2} label={t('healthCountries')} value={kpis.countries} color="#059669" />
+        <Kpi icon={Bug} label={t('healthDiseases')} value={kpis.diseases} color="#7C3AED" />
+        <Kpi icon={ShieldAlert} label={t('healthOutbreaks')} value={kpis.totalOutbreaks} color="#DC2626" />
+        <Kpi icon={BarChart3} label={t('healthReportsWithOutbreak')} value={kpis.reportsWithOutbreak} color="#EA580C" />
+        <Kpi icon={Syringe} label={t('healthReportsWithVaccination')} value={kpis.reportsWithVaccination} color="#0891B2" />
+        <Kpi icon={Calendar} label={t('healthStartDate')} value={kpis.earliestDate ? new Date(kpis.earliestDate).toLocaleDateString() : '-'} color="#6D28D9" />
+        <Kpi icon={Calendar} label={t('healthEndDate')} value={kpis.latestDate ? new Date(kpis.latestDate).toLocaleDateString() : '-'} color="#6D28D9" />
       </div>
 
       {/* Map + Country distribution */}
@@ -279,30 +281,30 @@ export default function HistoricalHealthDashboard({ campaignId }: { campaignId: 
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <Globe2 className="h-4 w-4 text-gray-400" /> Couverture géographique
+              <Globe2 className="h-4 w-4 text-gray-400" /> {t('healthGeoTitle')}
             </h3>
           </div>
           <div className="h-[350px]">
             {mapData.length > 0 ? (
-              <ChoroplethMap title="Couverture géographique" data={mapData} indicator="submissions" bare />
+              <ChoroplethMap title={t('healthGeoTitle')} data={mapData} indicator="submissions" bare />
             ) : (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Carte non disponible</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('healthMapUnavailable')}</div>
             )}
           </div>
         </div>
-        <HBar data={countryDistribution ?? []} title="Top 15 pays — Nombre de rapports" color="#1F4E79" />
+        <HBar data={countryDistribution ?? []} title={t('healthTop15Countries')} color="#1F4E79" />
       </div>
 
       {/* Disease distribution + Yearly trend */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <HBar data={diseaseDistribution ?? []} title="Top 12 maladies — Nombre de rapports" color="#DC2626" />
-        <YearTrend data={yearlyTrend ?? []} />
+        <HBar data={diseaseDistribution ?? []} title={t('healthTop12Diseases')} color="#DC2626" />
+        <YearTrend data={yearlyTrend ?? []} yearTrendTitle={t('healthYearTrend')} reportsLabel={t('healthReportLegend')} outbreaksLabel={t('healthOutbreakLegend')} />
       </div>
 
       {/* Outbreak status + Type */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <DonutChart data={outbreakStatus ?? []} title="Statut des foyers" />
-        <DonutChart data={outbreakType ?? []} title="Nouveaux vs Suivi" />
+        <DonutChart data={outbreakStatus ?? []} title={t('healthOutbreakStatus')} />
+        <DonutChart data={outbreakType ?? []} title={t('healthOutbreakTypeTitle')} />
       </div>
     </div>
   );

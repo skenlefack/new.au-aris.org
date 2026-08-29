@@ -21,6 +21,7 @@ import { useSettingsDomains } from '@/lib/api/settings-hooks';
 import { useAdminSubDomains } from '@/lib/api/sub-domain-hooks';
 import { Pagination } from '@/components/ui/Pagination';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   Loader2,
   ArrowLeft,
@@ -32,21 +33,6 @@ import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN']);
 
-const SCOPE_OPTIONS: { value: IndicatorScope; label: string }[] = [
-  { value: 'CONTINENTAL', label: 'Continental' },
-  { value: 'REGIONAL', label: 'Regional' },
-  { value: 'NATIONAL', label: 'National' },
-  { value: 'SUB_NATIONAL', label: 'Sub-national' },
-  { value: 'CROSS_CUTTING', label: 'Cross-cutting' },
-];
-
-const MODE_OPTIONS: { value: IndicatorMeasurementMode; label: string; desc: string }[] = [
-  { value: 'MANUAL_ENTRY', label: 'Manual entry', desc: 'Values entered manually' },
-  { value: 'AUTO_FROM_FORM', label: 'Auto (from form)', desc: 'From form submissions' },
-  { value: 'AUTO_FROM_KPI_SOURCE', label: 'Auto (KPI source)', desc: 'External KPI source' },
-  { value: 'COMPOSITE_FORMULA', label: 'Composite formula', desc: 'Calculated from others' },
-];
-
 export default function IndicatorDetailPage() {
   const user = useAuthStore((s) => s.user);
   if (!user || !ADMIN_ROLES.has(user.role)) return <ForbiddenPage />;
@@ -54,6 +40,7 @@ export default function IndicatorDetailPage() {
 }
 
 function IndicatorDetail() {
+  const t = useTranslations('settings');
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -67,13 +54,13 @@ function IndicatorDetail() {
   const updateMutation = useUpdateIndicator();
 
   const indicator = indicatorData?.data;
-  const types = (typesData?.data ?? []).filter((t) => t.active);
+  const types = (typesData?.data ?? []).filter((tp) => tp.active);
   const domains = (domainsData as any)?.data ?? [];
 
   const [tab, setTab] = useState(initialTab);
   const [editing, setEditing] = useState(false);
 
-  // Form state — populated from indicator
+  // Form state
   const [typeCode, setTypeCode] = useState('');
   const [nameFr, setNameFr] = useState('');
   const [nameEn, setNameEn] = useState('');
@@ -137,18 +124,32 @@ function IndicatorDetail() {
     setBetterIsHigher(indicator.betterIsHigher ?? true);
     setDescriptionFr(indicator.descriptionFr ?? '');
     setDescriptionEn(indicator.descriptionEn ?? '');
-    // Resolve domain code for sub-domains cascade
     if (indicator.domainId) {
       const dom = domains.find((d: any) => d.id === indicator.domainId);
       if (dom) setSelectedDomainCode(dom.code);
     }
   }, [indicator, domains]);
 
+  const scopeOptions: { value: IndicatorScope; label: string }[] = [
+    { value: 'CONTINENTAL',  label: t('scopeContinental') },
+    { value: 'REGIONAL',     label: t('scopeRegional') },
+    { value: 'NATIONAL',     label: t('scopeNational') },
+    { value: 'SUB_NATIONAL', label: t('scopeSubNational') },
+    { value: 'CROSS_CUTTING',label: t('scopeCrossCutting') },
+  ];
+
+  const modeOptions: { value: IndicatorMeasurementMode; label: string; desc: string }[] = [
+    { value: 'MANUAL_ENTRY',         label: t('modeManualEntryLabel'), desc: t('modeManualEntryDesc') },
+    { value: 'AUTO_FROM_FORM',        label: t('modeAutoFormLabel'),    desc: t('modeAutoFormDesc') },
+    { value: 'AUTO_FROM_KPI_SOURCE',  label: t('modeAutoKpiLabel'),     desc: t('modeAutoKpiDesc') },
+    { value: 'COMPOSITE_FORMULA',     label: t('modeFormulaLabel'),     desc: t('modeFormulaDesc') },
+  ];
+
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!typeCode) e.typeCode = 'Type is required.';
-    if (!nameFr.trim()) e.nameFr = 'Name FR is required.';
-    if (!nameEn.trim()) e.nameEn = 'Name EN is required.';
+    if (!typeCode) e.typeCode = t('typeRequired');
+    if (!nameFr.trim()) e.nameFr = t('nameFrRequired');
+    if (!nameEn.trim()) e.nameEn = t('nameEnRequired');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -175,10 +176,10 @@ function IndicatorDetail() {
         targetValue: targetValue ? parseFloat(targetValue) : undefined,
         betterIsHigher,
       });
-      addToast({ type: 'success', title: 'Indicator updated', message: 'Indicator updated successfully.' });
+      addToast({ type: 'success', title: t('indicatorUpdated'), message: t('indicatorUpdatedMsg') });
       setEditing(false);
     } catch (err: any) {
-      addToast({ type: 'error', title: 'Error', message: err?.message || 'Failed to update indicator.' });
+      addToast({ type: 'error', title: t('error'), message: err?.message || t('indicatorUpdateError') });
     }
   };
 
@@ -213,7 +214,7 @@ function IndicatorDetail() {
 
   if (!indicator) {
     return (
-      <div className="py-24 text-center text-gray-400">Indicator not found.</div>
+      <div className="py-24 text-center text-gray-400">{t('indicatorNotFound')}</div>
     );
   }
 
@@ -235,7 +236,7 @@ function IndicatorDetail() {
           <button onClick={() => setEditing(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#1F4E79]/90">
             <Pencil className="h-4 w-4" />
-            Edit
+            {t('btnEdit')}
           </button>
         )}
       </div>
@@ -248,7 +249,7 @@ function IndicatorDetail() {
               ? 'border-b-2 border-[#1F4E79] text-[#1F4E79]'
               : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
           }`}>
-          Details
+          {t('tabDetails')}
         </button>
         <button onClick={() => setTab('values')}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
@@ -256,7 +257,7 @@ function IndicatorDetail() {
               ? 'border-b-2 border-[#1F4E79] text-[#1F4E79]'
               : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
           }`}>
-          Values ({valuesMeta.total})
+          {t('tabValues').replace('{count}', String(valuesMeta.total))}
         </button>
       </div>
 
@@ -266,17 +267,17 @@ function IndicatorDetail() {
           {/* Row: Code (readonly) + Type */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Code</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('indicatorCode')}</label>
               <input type="text" value={indicator.code} disabled
                 className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-sm opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
             </div>
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Type <span className="text-red-500">*</span>
+                {t('indicatorType')} <span className="text-red-500">*</span>
               </label>
               <select value={typeCode} onChange={(e) => setTypeCode(e.target.value)} disabled={!editing} className={selectCls('typeCode')}>
-                <option value="">-- Select type --</option>
-                {types.map((t) => <option key={t.code} value={t.code}>{t.labelEn} ({t.code})</option>)}
+                <option value="">{t('selectType')}</option>
+                {types.map((tp) => <option key={tp.code} value={tp.code}>{tp.labelEn} ({tp.code})</option>)}
               </select>
               {errors.typeCode && <p className="text-xs text-red-600">{errors.typeCode}</p>}
             </div>
@@ -286,7 +287,7 @@ function IndicatorDetail() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Name FR <span className="text-red-500">*</span>
+                {t('nameFr')} <span className="text-red-500">*</span>
               </label>
               <input type="text" value={nameFr} onChange={(e) => setNameFr(e.target.value)} onBlur={handleNameBlur} disabled={!editing}
                 className={inputCls('nameFr')} />
@@ -294,7 +295,7 @@ function IndicatorDetail() {
             </div>
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Name EN <span className="text-red-500">*</span>
+                {t('nameEn')} <span className="text-red-500">*</span>
               </label>
               <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} onBlur={handleNameBlur} disabled={!editing}
                 className={inputCls('nameEn')} />
@@ -305,12 +306,12 @@ function IndicatorDetail() {
           {/* Names AR / PT */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name AR</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('nameAr')}</label>
               <input type="text" value={nameAr} onChange={(e) => setNameAr(e.target.value)} onBlur={handleNameBlur} disabled={!editing}
                 dir="rtl" className={inputCls('nameAr')} />
             </div>
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name PT</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('namePt')}</label>
               <input type="text" value={namePt} onChange={(e) => setNamePt(e.target.value)} onBlur={handleNameBlur} disabled={!editing}
                 className={inputCls('namePt')} />
             </div>
@@ -319,18 +320,18 @@ function IndicatorDetail() {
           {/* Domain / Sub-domain */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Domain</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('domain')}</label>
               <select value={domainId} onChange={(e) => handleDomainChange(e.target.value)} disabled={!editing} className={selectCls('domainId')}>
-                <option value="">-- No specific domain --</option>
+                <option value="">{t('noSpecificDomain')}</option>
                 {domains.map((d: any) => <option key={d.id} value={d.id}>{d.name?.en ?? d.code}</option>)}
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Sub-domain</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelSubDomain')}</label>
               <select value={subDomainId} onChange={(e) => setSubDomainId(e.target.value)}
                 disabled={!editing || !domainId}
                 className={`${selectCls('subDomainId')} ${!domainId ? 'cursor-not-allowed opacity-50' : ''}`}>
-                <option value="">-- None --</option>
+                <option value="">{t('noSubDomain2')}</option>
                 {subDomains.map((sd: any) => <option key={sd.id} value={sd.id}>{sd.labelEn || sd.labelFr} ({sd.code})</option>)}
               </select>
             </div>
@@ -338,9 +339,9 @@ function IndicatorDetail() {
 
           {/* Scope */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Scope</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelScope')}</label>
             <div className="flex flex-wrap gap-3">
-              {SCOPE_OPTIONS.map((opt) => (
+              {scopeOptions.map((opt) => (
                 <label key={opt.value}
                   className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
                     scope === opt.value
@@ -357,9 +358,9 @@ function IndicatorDetail() {
 
           {/* Measurement mode */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Measurement mode</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelMeasurementMode')}</label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {MODE_OPTIONS.map((opt) => (
+              {modeOptions.map((opt) => (
                 <label key={opt.value}
                   className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
                     measurementMode === opt.value
@@ -380,18 +381,18 @@ function IndicatorDetail() {
           {/* Unit + Decimals + Target + Direction */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Unit</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelUnit')}</label>
               <input type="text" value={unit} onChange={(e) => setUnit(e.target.value)} disabled={!editing}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
             </div>
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Decimal places</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelDecimalPlaces')}</label>
               <input type="number" min={0} max={6} value={decimalPlaces}
                 onChange={(e) => setDecimalPlaces(parseInt(e.target.value, 10) || 0)} disabled={!editing}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
             </div>
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Target value</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelTargetValue')}</label>
               <input type="number" step="any" value={targetValue}
                 onChange={(e) => setTargetValue(e.target.value)} disabled={!editing}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
@@ -403,19 +404,21 @@ function IndicatorDetail() {
                 } ${betterIsHigher ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
                 <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${betterIsHigher ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
-              <span className="text-sm text-gray-700 dark:text-gray-300">{betterIsHigher ? 'Higher is better' : 'Lower is better'}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {betterIsHigher ? t('labelBetterIsHigher') : t('labelBetterIsLower')}
+              </span>
             </div>
           </div>
 
           {/* Description */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description FR</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelDescriptionFr')}</label>
               <textarea value={descriptionFr} onChange={(e) => setDescriptionFr(e.target.value)} onBlur={handleDescBlur} disabled={!editing} rows={3}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
             </div>
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description EN</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelDescriptionEn')}</label>
               <textarea value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} onBlur={handleDescBlur} disabled={!editing} rows={3}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
             </div>
@@ -426,12 +429,12 @@ function IndicatorDetail() {
             <div className="flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">
               <button type="button" onClick={() => setEditing(false)}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                Cancel
+                {t('cancel')}
               </button>
               <button type="submit" disabled={updateMutation.isPending}
                 className="inline-flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1F4E79]/90 disabled:opacity-50">
                 {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                Save changes
+                {t('btnSaveChanges')}
               </button>
             </div>
           )}
@@ -451,19 +454,19 @@ function IndicatorDetail() {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Year</th>
-                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Country</th>
-                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">REC</th>
-                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Value</th>
-                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Source</th>
-                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Date</th>
+                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colYear')}</th>
+                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colCountry')}</th>
+                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colRec')}</th>
+                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colValue')}</th>
+                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colSource')}</th>
+                      <th className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">{t('colDate')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {values.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                          No values recorded for this indicator.
+                          {t('noValuesForIndicator')}
                         </td>
                       </tr>
                     ) : (
@@ -474,7 +477,7 @@ function IndicatorDetail() {
                             {v.countryCode || <span className="text-gray-300 dark:text-gray-600">&mdash;</span>}
                           </td>
                           <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                            {v.recCode || (v.isContinental ? 'Continental' : <span className="text-gray-300 dark:text-gray-600">&mdash;</span>)}
+                            {v.recCode || (v.isContinental ? t('continental') : <span className="text-gray-300 dark:text-gray-600">&mdash;</span>)}
                           </td>
                           <td className="px-4 py-3 font-mono font-medium text-gray-900 dark:text-white">
                             {v.value.toLocaleString(undefined, { maximumFractionDigits: indicator.decimalPlaces ?? 2 })}

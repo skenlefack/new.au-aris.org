@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { useTenantId } from '@/lib/api/hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 /* ─── Types ────────────────────────────────────────────────────────────────── */
 
@@ -93,10 +94,10 @@ const QUALITY_STYLES = {
   failure: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300',
 };
 
-const DEVICE_STATUS_STYLES = {
-  ONLINE: { color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/30', label: 'Online' },
-  IDLE: { color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30', label: 'Idle' },
-  OFFLINE: { color: 'text-gray-500 dark:text-gray-400', bg: 'bg-gray-50 dark:bg-gray-800', label: 'Offline' },
+const DEVICE_STATUS_COLORS = {
+  ONLINE: { color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/30' },
+  IDLE: { color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30' },
+  OFFLINE: { color: 'text-gray-500 dark:text-gray-400', bg: 'bg-gray-50 dark:bg-gray-800' },
 };
 
 /* ─── Hooks ────────────────────────────────────────────────────────────────── */
@@ -170,6 +171,7 @@ function useSyncConflicts() {
 /* ─── Main Page ────────────────────────────────────────────────────────────── */
 
 export default function SyncMonitoringPage() {
+  const t = useTranslations('settings');
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -184,6 +186,12 @@ export default function SyncMonitoringPage() {
   const totalPages = Math.max(1, Math.ceil(meta.total / limit));
   const devices = devicesData?.data ?? [];
   const conflicts = conflictsData?.data ?? [];
+
+  const deviceStatusLabels: Record<string, string> = {
+    ONLINE: t('deviceStatusOnline'),
+    IDLE: t('deviceStatusIdle'),
+    OFFLINE: t('deviceStatusOffline'),
+  };
 
   // Group devices by user
   const devicesByUser = useMemo(() => {
@@ -203,12 +211,12 @@ export default function SyncMonitoringPage() {
           <RefreshCw className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sync Monitoring</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Real-time sync status, device activity, and conflict management</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('syncMonitoringTitle')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('syncMonitoringDesc')}</p>
         </div>
         <div className="ml-auto flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
           <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-          Auto-refresh 30s
+          {t('autoRefresh30s')}
         </div>
       </div>
 
@@ -223,10 +231,10 @@ export default function SyncMonitoringPage() {
           </>
         ) : (
           <>
-            <KpiCard icon={Activity} label="Syncs Today" value={status?.totalSyncsToday ?? 0} color="blue" />
-            <KpiCard icon={Smartphone} label="Active Devices" value={status?.activeDevices ?? 0} color="green" pulse />
-            <KpiCard icon={Clock} label="Pending Submissions" value={status?.pendingSubmissions ?? 0} color="amber" />
-            <KpiCard icon={AlertTriangle} label="Conflict Rate" value={`${(status?.conflictRate ?? 0).toFixed(1)}%`} color="red" />
+            <KpiCard icon={Activity} label={t('kpiSyncsToday')} value={status?.totalSyncsToday ?? 0} color="blue" />
+            <KpiCard icon={Smartphone} label={t('kpiActiveDevices')} value={status?.activeDevices ?? 0} color="green" pulse />
+            <KpiCard icon={Clock} label={t('kpiPendingSubmissions')} value={status?.pendingSubmissions ?? 0} color="amber" />
+            <KpiCard icon={AlertTriangle} label={t('kpiConflictRate')} value={`${(status?.conflictRate ?? 0).toFixed(1)}%`} color="red" />
           </>
         )}
       </div>
@@ -236,7 +244,7 @@ export default function SyncMonitoringPage() {
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           <ArrowUpDown className="h-3.5 w-3.5" />
-          Recent Sync Activity
+          {t('sectionRecentSync')}
           {meta.total > 0 && <span className="rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-[10px] font-semibold tabular-nums">{meta.total}</span>}
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </h2>
@@ -245,29 +253,29 @@ export default function SyncMonitoringPage() {
           {logsLoading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
-              <p className="text-sm text-gray-400">Loading sync logs...</p>
+              <p className="text-sm text-gray-400">{t('loadingSyncLogs')}</p>
             </div>
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                 <RefreshCw className="h-7 w-7 text-gray-300 dark:text-gray-600" />
               </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">No sync activity yet</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Sync logs will appear here when devices sync</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{t('noSyncActivity')}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('noSyncActivityDesc')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/50">
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">User</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Device</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Submitted</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Accepted</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Rejected</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Conflicts</th>
-                    <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Duration</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('colUser')}</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('colDevice')}</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('colTime')}</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('colSubmitted')}</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('colAccepted')}</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('colRejected')}</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('colConflicts')}</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('colDuration')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
@@ -340,7 +348,10 @@ export default function SyncMonitoringPage() {
         {meta.total > limit && (
           <div className="mt-3 flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 px-4 py-3">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {(page - 1) * limit + 1}-{Math.min(page * limit, meta.total)} of {meta.total}
+              {t('paginationShowing')
+                .replace('{from}', String((page - 1) * limit + 1))
+                .replace('{to}', String(Math.min(page * limit, meta.total)))
+                .replace('{total}', String(meta.total))}
             </p>
             <div className="flex items-center gap-1">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
@@ -362,7 +373,7 @@ export default function SyncMonitoringPage() {
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           <HardDrive className="h-3.5 w-3.5" />
-          Device Status
+          {t('sectionDeviceStatus')}
           {devices.length > 0 && <span className="rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-[10px] font-semibold tabular-nums">{devices.length}</span>}
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </h2>
@@ -376,8 +387,8 @@ export default function SyncMonitoringPage() {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
               <Smartphone className="h-7 w-7 text-gray-300 dark:text-gray-600" />
             </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">No devices registered</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Devices will appear after their first sync</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{t('noDevicesRegistered')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('noDevicesRegisteredDesc')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -386,11 +397,14 @@ export default function SyncMonitoringPage() {
                 <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/50 px-4 py-2">
                   <User className="h-3.5 w-3.5 text-gray-400" />
                   <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{userKey}</span>
-                  <span className="rounded-full bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 tabular-nums">{userDevices.length} device{userDevices.length > 1 ? 's' : ''}</span>
+                  <span className="rounded-full bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 tabular-nums">
+                    {t('pendingBadge').replace('{count}', String(userDevices.length))}
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 gap-px bg-gray-100 dark:bg-gray-800 sm:grid-cols-2 lg:grid-cols-3">
                   {userDevices.map(device => {
-                    const ds = DEVICE_STATUS_STYLES[device.status] ?? DEVICE_STATUS_STYLES.OFFLINE;
+                    const ds = DEVICE_STATUS_COLORS[device.status] ?? DEVICE_STATUS_COLORS.OFFLINE;
+                    const statusLabel = deviceStatusLabels[device.status] ?? device.status;
                     return (
                       <div key={device.deviceId} className="bg-white dark:bg-gray-900/50 p-3">
                         <div className="flex items-start justify-between">
@@ -406,14 +420,14 @@ export default function SyncMonitoringPage() {
                             </div>
                           </div>
                           <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold uppercase', ds.bg, ds.color)}>
-                            {ds.label}
+                            {statusLabel}
                           </span>
                         </div>
                         <div className="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                           <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{timeAgo(device.lastSyncAt)}</span>
                           {device.pendingCount > 0 && (
                             <span className="rounded-full bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
-                              {device.pendingCount} pending
+                              {t('pendingBadge').replace('{count}', String(device.pendingCount))}
                             </span>
                           )}
                         </div>
@@ -433,7 +447,7 @@ export default function SyncMonitoringPage() {
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
             <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-            Conflicts Pending Resolution
+            {t('sectionConflictsPending')}
             {conflicts.length > 0 && <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300 tabular-nums">{conflicts.length}</span>}
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           </h2>
@@ -441,7 +455,7 @@ export default function SyncMonitoringPage() {
           {conflictsLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
-              <p className="text-sm text-gray-400">Loading conflicts...</p>
+              <p className="text-sm text-gray-400">{t('loadingConflicts')}</p>
             </div>
           ) : (
             <div className="rounded-xl border border-amber-200 dark:border-amber-800/50 overflow-hidden">
@@ -472,7 +486,7 @@ export default function SyncMonitoringPage() {
                       </div>
                     </div>
                     <button className="shrink-0 rounded-lg bg-amber-100 dark:bg-amber-900/30 px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors">
-                      Resolve
+                      {t('btnResolve')}
                     </button>
                   </div>
                 ))}

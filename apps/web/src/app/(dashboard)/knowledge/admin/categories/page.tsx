@@ -41,6 +41,7 @@ import {
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { RecCountryPicker } from '@/components/knowledge/RecCountryPicker';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'KNOWLEDGE_MANAGER']);
 
@@ -129,6 +130,7 @@ function flattenTree(
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function CategoriesAdminPage() {
+  const t = useTranslations('knowledge');
   const user = useAuthStore((s) => s.user);
   const isReviewer = !!user?.roles?.some((r) => REVIEWER_ROLES.has(r));
   const isContinental = user?.tenantLevel === 'CONTINENTAL';
@@ -187,25 +189,25 @@ export default function CategoriesAdminPage() {
 
   const handleDelete = async (cat: KnowledgeCategory) => {
     if ((cat.publicationCount ?? 0) > 0) {
-      toast.error('Cannot delete this category', {
-        description: `It still contains ${cat.publicationCount} publication(s). Move or remove them first.`,
+      toast.error(t('catDeleteHasPublications'), {
+        description: t('catDeleteHasPublicationsDesc', { count: String(cat.publicationCount ?? 0) }),
         icon: <AlertCircle className="h-4 w-4" />,
       });
       return;
     }
     if (cat.isSystem) {
-      toast.error('System category', {
-        description: 'Default categories shipped with ARIS cannot be deleted.',
+      toast.error(t('catDeleteSystem'), {
+        description: t('catDeleteSystemDesc'),
       });
       return;
     }
-    const ok = window.confirm(`Delete category "${cat.nameEn}"? This action cannot be undone.`);
+    const ok = window.confirm(t('catDeleteConfirm', { name: cat.nameEn }));
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(cat.id);
-      toast.success('Category deleted', { description: `"${cat.nameEn}" has been removed.` });
+      toast.success(t('catDeleteSuccess'), { description: t('catDeleteSuccessDesc', { name: cat.nameEn }) });
     } catch (err) {
-      toast.error('Delete failed', {
+      toast.error(t('catDeleteFailed'), {
         description: err instanceof Error ? err.message : 'Unknown error',
       });
     }
@@ -215,22 +217,22 @@ export default function CategoriesAdminPage() {
     try {
       if (editing) {
         await updateMut.mutateAsync({ id: editing.id, ...input });
-        toast.success('Category updated', { description: `"${input.nameEn ?? editing.nameEn}" saved.` });
+        toast.success(t('catUpdateSuccess'), { description: `"${input.nameEn ?? editing.nameEn}" saved.` });
       } else {
         await createMut.mutateAsync(input);
         toast.success(
-          isManager ? 'Category created' : 'Proposal submitted',
+          isManager ? t('catCreateSuccess') : t('catProposeSuccess'),
           {
             description: isManager
               ? `"${input.nameEn}" is now available.`
-              : 'Your proposal will be reviewed by the continental knowledge manager.',
+              : t('catProposeSuccessDesc'),
           },
         );
       }
       backToList();
     } catch (err) {
-      toast.error('Save failed', {
-        description: err instanceof Error ? err.message : 'Please review the form and try again.',
+      toast.error(t('catSaveFailed'), {
+        description: err instanceof Error ? err.message : t('catSaveFailedDesc'),
       });
       throw err;
     }
@@ -287,18 +289,18 @@ export default function CategoriesAdminPage() {
             className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-accent"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to categories
+            {t('catBackToList')}
           </button>
           <div>
             <h1 className="text-2xl font-bold">
-              {editing ? 'Edit category' : isManager ? 'New category' : 'Propose new category'}
+              {editing ? t('catEditTitle') : isManager ? t('catNewTitle') : t('catProposeTitle')}
             </h1>
             <p className="text-sm text-muted-foreground">
               {editing
-                ? `Editing "${editing.nameEn}"`
+                ? t('catEditDesc', { name: editing.nameEn })
                 : isManager
-                ? 'Create a category that publishers can use immediately.'
-                : 'Your proposal will be reviewed by the continental knowledge manager.'}
+                ? t('catNewDesc')
+                : t('catProposeDesc')}
             </p>
           </div>
         </div>
@@ -321,11 +323,9 @@ export default function CategoriesAdminPage() {
       {/* ── Header ── */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Knowledge categories</h1>
+          <h1 className="text-2xl font-bold">{t('catPageTitle')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {isManager
-              ? 'Manage and validate the taxonomy used across the Knowledge Hub.'
-              : 'Browse the categories at your level and propose new ones.'}
+            {isManager ? t('catPageDesc') : t('catPageDescLimited')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -335,7 +335,7 @@ export default function CategoriesAdminPage() {
               className="inline-flex items-center gap-2 rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
             >
               <ClipboardCheck className="h-4 w-4" />
-              Review queue ({queue.data!.data.length})
+              {t('catReviewQueue')} ({queue.data!.data.length})
             </Link>
           )}
           <button
@@ -343,7 +343,7 @@ export default function CategoriesAdminPage() {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
-            {isManager ? 'New category' : 'Propose category'}
+            {isManager ? t('catNewCategory') : t('catProposeCategory')}
           </button>
         </div>
       </div>
@@ -352,11 +352,9 @@ export default function CategoriesAdminPage() {
         <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
           <Shield className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
-            <p className="font-medium">Scoped view</p>
+            <p className="font-medium">{t('catScopedView')}</p>
             <p className="mt-0.5 text-blue-800">
-              You see and manage only categories at your{' '}
-              {user?.tenantLevel === 'REC' ? 'REC' : 'country'} level. Proposed categories will be
-              reviewed by the continental knowledge manager before becoming usable.
+              {t('catScopedDesc', { level: user?.tenantLevel === 'REC' ? 'REC' : 'country' })}
             </p>
           </div>
         </div>
@@ -369,7 +367,7 @@ export default function CategoriesAdminPage() {
           type="text"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Search categories…"
+          placeholder={t('catSearchPlaceholder')}
           className="w-full rounded-md border bg-card py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
       </div>
@@ -380,31 +378,31 @@ export default function CategoriesAdminPage() {
           <thead className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="w-14 px-4 py-3 text-left"></th>
-              <th className="px-2 py-3 text-left font-semibold">Category</th>
-              <th className="px-2 py-3 text-left font-semibold">Scope</th>
-              <th className="px-2 py-3 text-left font-semibold">Publications</th>
-              <th className="px-2 py-3 text-left font-semibold">Status</th>
-              <th className="w-32 px-4 py-3 text-right font-semibold">Actions</th>
+              <th className="px-2 py-3 text-left font-semibold">{t('catColCategory')}</th>
+              <th className="px-2 py-3 text-left font-semibold">{t('catColScope')}</th>
+              <th className="px-2 py-3 text-left font-semibold">{t('catColPublications')}</th>
+              <th className="px-2 py-3 text-left font-semibold">{t('catColStatus')}</th>
+              <th className="w-32 px-4 py-3 text-right font-semibold">{t('catColActions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {tree.isLoading ? (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                  Loading categories…
+                  {t('catLoading')}
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center">
                   <FolderTree className="mx-auto mb-2 h-10 w-10 text-muted-foreground/40" />
-                  <p className="text-sm font-medium">No categories yet</p>
+                  <p className="text-sm font-medium">{t('catEmpty')}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {search
-                      ? 'No categories match your search.'
+                      ? t('catEmptySearch')
                       : isManager
-                      ? 'Create your first category to get started.'
-                      : 'Propose a category to get started.'}
+                      ? t('catEmptyCreate')
+                      : t('catEmptyPropose')}
                   </p>
                 </td>
               </tr>
@@ -508,7 +506,7 @@ export default function CategoriesAdminPage() {
         {totalRows > 0 && (
           <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 sm:flex-row">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Show</span>
+              <span>{t('catShowPerPage')}</span>
               <select
                 value={pageSize}
                 onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
@@ -518,7 +516,7 @@ export default function CategoriesAdminPage() {
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
-              <span>per page</span>
+              <span>{t('catPerPage')}</span>
               <span className="ml-2 text-xs">
                 ({(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, totalRows)} of {totalRows})
               </span>
@@ -530,7 +528,7 @@ export default function CategoriesAdminPage() {
                 disabled={safePage <= 1}
                 className="rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
               >
-                First
+                {t('catFirst')}
               </button>
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -578,7 +576,7 @@ export default function CategoriesAdminPage() {
                 disabled={safePage >= totalPages}
                 className="rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Last
+                {t('catLast')}
               </button>
             </div>
           </div>
@@ -607,6 +605,7 @@ function CategoryForm({
   onCancel: () => void;
   onSave: (input: any) => Promise<void>;
 }) {
+  const t = useTranslations('knowledge');
   const [slug, setSlug] = useState(initial?.slug ?? '');
   const [name, setName] = useState<Record<string, string>>({
     en: initial?.nameEn ?? '', fr: initial?.nameFr ?? '',
@@ -626,11 +625,11 @@ function CategoryForm({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!(name.en || name.fr || '').trim()) {
-      toast.error('Name is required');
+      toast.error(t('catNameRequired'));
       return;
     }
     if (!initial && !slug.trim()) {
-      toast.error('Slug is required');
+      toast.error(t('catSlugRequired'));
       return;
     }
     setBusy(true);
@@ -666,9 +665,9 @@ function CategoryForm({
       className="space-y-6 rounded-xl border bg-card p-6 shadow-sm"
     >
       {/* ── Identity ── */}
-      <FormSection title="Identity" description="Slug, multilingual names and visual style">
+      <FormSection title={t('catIdentity')} description={t('catIdentityDesc')}>
         {!initial && (
-          <Field label="Slug" required hint="URL-safe identifier — lowercase letters, digits, dashes">
+          <Field label={t('catSlugLabel')} required hint={t('catSlugHint')}>
             <input
               value={slug}
               onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
@@ -679,14 +678,14 @@ function CategoryForm({
         )}
 
         <MultilingualInput
-          label="Category Name"
+          label={t('catNameLabel')}
           value={name}
           onChange={setName}
           required
         />
 
         <div className="grid gap-4 md:grid-cols-[1fr_auto_auto]">
-          <Field label="Icon (Lucide name)" hint="e.g. Heart, Activity, FlaskConical">
+          <Field label={t('catIconLabel')} hint="e.g. Heart, Activity, FlaskConical">
             <input
               value={icon}
               onChange={(e) => setIcon(e.target.value)}
@@ -694,7 +693,7 @@ function CategoryForm({
               className={INPUT_CLS}
             />
           </Field>
-          <Field label="Color">
+          <Field label={t('catColorLabel')}>
             <input
               type="color"
               value={color}
@@ -702,7 +701,7 @@ function CategoryForm({
               className="h-10 w-16 cursor-pointer rounded-md border bg-card"
             />
           </Field>
-          <Field label="Preview">
+          <Field label={t('catPreviewLabel')}>
             <CategoryIcon name={icon || null} color={color || null} />
           </Field>
         </div>
@@ -711,11 +710,11 @@ function CategoryForm({
       {/* ── Hierarchy ── */}
       <section className="space-y-4" style={{ overflow: 'visible' }}>
         <div className="border-b pb-2">
-          <h2 className="text-base font-semibold">Hierarchy</h2>
-          <p className="text-xs text-muted-foreground">Optionally nest this category under a parent</p>
+          <h2 className="text-base font-semibold">{t('catHierarchy')}</h2>
+          <p className="text-xs text-muted-foreground">{t('catHierarchyDesc')}</p>
         </div>
         <div className="space-y-4">
-        <Field label="Parent category" hint="Leave empty for a top-level category">
+        <Field label={t('catParentLabel')} hint={t('catParentHint')}>
           <CategoryTreePicker
             categories={allCategories}
             value={parentId}
@@ -728,10 +727,10 @@ function CategoryForm({
 
       {/* ── Scope ── */}
       {!initial && (
-        <FormSection title="Scope" description="Who this category applies to">
+        <FormSection title={t('catScope')} description={t('catScopeDesc')}>
           {isManager ? (
             <>
-              <Field label="Scope">
+              <Field label={t('catScopeLabel')}>
                 <select
                   value={scope}
                   onChange={(e) => {
@@ -744,9 +743,9 @@ function CategoryForm({
                   }}
                   className={INPUT_CLS}
                 >
-                  <option value="CONTINENTAL">Continental (AU-IBAR)</option>
-                  <option value="REC">Regional (REC)</option>
-                  <option value="COUNTRY">National (Country)</option>
+                  <option value="CONTINENTAL">{t('catScopeContinent')}</option>
+                  <option value="REC">{t('catScopeRec')}</option>
+                  <option value="COUNTRY">{t('catScopeCountry')}</option>
                 </select>
               </Field>
               {scope === 'REC' && (
@@ -791,14 +790,14 @@ function CategoryForm({
           onClick={onCancel}
           className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
         >
-          Cancel
+          {t('catCancel')}
         </button>
         <button
           type="submit"
           disabled={busy}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
         >
-          {busy ? 'Saving…' : initial ? 'Save changes' : isManager ? 'Create category' : 'Submit proposal'}
+          {busy ? t('catSaving') : initial ? t('catSaveChanges') : isManager ? t('catCreateCategory') : t('catSubmitProposal')}
         </button>
       </div>
 

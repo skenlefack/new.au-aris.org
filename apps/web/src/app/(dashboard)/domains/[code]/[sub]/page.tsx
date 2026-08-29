@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic';
 import { DashboardSection } from '@/components/domain/DashboardSection';
 import { PlanningsSection } from '@/components/domain/PlanningsSection';
 import type { DashboardScope } from '@/lib/api/dashboard-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const PPRPerformanceDashboard = dynamic(
   () => import('@/components/collecte/PPRPerformanceDashboard'),
@@ -29,23 +30,11 @@ const PPRFrameworkDashboard = dynamic(
 
 /* ── Type badge config ──────────────────────────────── */
 
-const TYPE_BADGES: Record<SubDomainType, { label: string; classes: string }> = {
-  VALUE_CHAIN: {
-    label: 'Chaine de valeur',
-    classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  },
-  ORGANIZATIONAL: {
-    label: 'Organisationnel',
-    classes: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  },
-  PATHOLOGY: {
-    label: 'Pathologie',
-    classes: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  },
-  OTHER: {
-    label: 'Autre',
-    classes: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
-  },
+const TYPE_BADGE_CLASSES: Record<SubDomainType, string> = {
+  VALUE_CHAIN: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  ORGANIZATIONAL: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  PATHOLOGY: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  OTHER: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
 };
 
 const DOMAIN_COLORS: Record<string, string> = {
@@ -69,11 +58,12 @@ function resolveScope(role?: string, tenantLevel?: string): DashboardScope {
 }
 
 function PPRDashboardTabs() {
+  const t = useTranslations('domain');
   const [activeTab, setActiveTab] = useState<'performance' | 'annual' | 'framework'>('performance');
   const tabs = [
-    { key: 'performance' as const, labelFr: 'Performance', icon: '📊' },
-    { key: 'annual' as const, labelFr: 'Rapport Annuel 2026', icon: '📋' },
-    { key: 'framework' as const, labelFr: 'Cadre de Resultats', icon: '🗂️' },
+    { key: 'performance' as const, label: t('pprPerformance'), icon: '📊' },
+    { key: 'annual' as const, label: t('pprAnnual'), icon: '📋' },
+    { key: 'framework' as const, label: t('pprFramework'), icon: '🗂️' },
   ];
   return (
     <div className="space-y-4">
@@ -89,7 +79,7 @@ function PPRDashboardTabs() {
                 : 'text-gray-500 hover:text-gray-700 dark:text-gray-400',
             )}
           >
-            {tab.icon} {tab.labelFr}
+            {tab.icon} {tab.label}
           </button>
         ))}
       </div>
@@ -101,6 +91,7 @@ function PPRDashboardTabs() {
 }
 
 export default function SubDomainPage() {
+  const t = useTranslations('domain');
   const params = useParams<{ code: string; sub: string }>();
   const domainCode = params.code;
   const subCode = params.sub;
@@ -125,7 +116,15 @@ export default function SubDomainPage() {
   const subDomainName = subDomain?.labelEn || subDomain?.labelFr || subCode.replace(/-/g, ' ');
   const color = DOMAIN_COLORS[domainCode] ?? '#1F4E79';
   const scope = resolveScope(user?.role, user?.tenantLevel);
-  const typeBadge = TYPE_BADGES[subDomain?.typeEnum ?? 'OTHER'];
+  const typeEnum = subDomain?.typeEnum ?? 'OTHER';
+  const typeBadgeClasses = TYPE_BADGE_CLASSES[typeEnum];
+  const TYPE_BADGE_LABELS: Record<SubDomainType, string> = {
+    VALUE_CHAIN: t('typeValueChain'),
+    ORGANIZATIONAL: t('typeOrganizational'),
+    PATHOLOGY: t('typePathology'),
+    OTHER: t('typeOther'),
+  };
+  const typeBadgeLabel = TYPE_BADGE_LABELS[typeEnum];
 
   return (
     <div className="space-y-6">
@@ -150,8 +149,8 @@ export default function SubDomainPage() {
                 {subDomainName}
               </h1>
               <div className="mt-1.5 flex items-center gap-2">
-                <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', typeBadge.classes)}>
-                  {typeBadge.label}
+                <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', typeBadgeClasses)}>
+                  {typeBadgeLabel}
                 </span>
                 {subDomain?.valueChainCode && (
                   <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
@@ -191,17 +190,17 @@ export default function SubDomainPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-                Vue transverse de la chaine de valeur
+                {t('valueCrossTitle')}
               </h3>
               <p className="mt-0.5 text-xs text-emerald-600 dark:text-emerald-400">
-                Voir tous les sous-domaines lies a la chaine &quot;{subDomain.valueChainCode}&quot; a travers les domaines
+                {t('valueCrossDesc', { code: subDomain.valueChainCode })}
               </p>
             </div>
             <Link
               href={`/value-chains/${subDomain.valueChainCode}`}
               className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
             >
-              Explorer <ExternalLink className="h-3 w-3" />
+              {t('valueCrossExplore')} <ExternalLink className="h-3 w-3" />
             </Link>
           </div>
         </div>

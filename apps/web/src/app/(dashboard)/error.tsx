@@ -3,6 +3,7 @@
 import React from 'react';
 import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function DashboardError({
   error,
@@ -11,6 +12,8 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations('errors');
+
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-6">
       <div className="max-w-md text-center">
@@ -18,10 +21,10 @@ export default function DashboardError({
           <AlertTriangle className="h-7 w-7 text-red-600" />
         </div>
         <h2 className="mt-4 text-lg font-semibold text-gray-900">
-          Something went wrong
+          {t('somethingWentWrong')}
         </h2>
         <p className="mt-2 text-sm text-gray-500">
-          An unexpected error occurred while loading this page.
+          {t('unexpectedErrorPage')}
           {error.message && (
             <span className="mt-1 block text-xs text-gray-400">
               {error.message}
@@ -34,14 +37,14 @@ export default function DashboardError({
             className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-aris-primary-700"
           >
             <RotateCcw className="h-4 w-4" />
-            Try again
+            {t('tryAgain')}
           </button>
           <Link
             href="/home"
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <Home className="h-4 w-4" />
-            Dashboard
+            {t('dashboard')}
           </Link>
         </div>
       </div>

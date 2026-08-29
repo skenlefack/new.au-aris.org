@@ -8,6 +8,7 @@ import type { SubDomainType } from '@/lib/stores/domain-store';
 import { ICON_MAP } from '@/components/ui/IconPicker';
 import { useSubDomains } from '@/hooks/use-sub-domains';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface SubDomainsGridProps {
   domainCode: string;
@@ -97,6 +98,7 @@ function useSubDomainStats(domainCode: string) {
 }
 
 export function SubDomainsGrid({ domainCode }: SubDomainsGridProps) {
+  const t = useTranslations('domain');
   const subDomains = useSubDomains(domainCode);
   const { data: stats } = useSubDomainStats(domainCode);
 
@@ -113,7 +115,7 @@ export function SubDomainsGrid({ domainCode }: SubDomainsGridProps) {
             S
           </div>
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-            Sous-domaines
+            {t('subDomainsTitle')}
           </h2>
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">
             {subDomains.length}
@@ -161,21 +163,21 @@ export function SubDomainsGrid({ domainCode }: SubDomainsGridProps) {
                   <span className="text-sm font-bold text-blue-700 dark:text-blue-300">{sdStats.campaigns}</span>
                   <div className="flex items-center gap-1 mt-0.5">
                     <ClipboardList className="h-3 w-3 text-blue-500 dark:text-blue-400" />
-                    <span className="text-[10px] text-blue-500 dark:text-blue-400">Campagnes</span>
+                    <span className="text-[10px] text-blue-500 dark:text-blue-400">{t('campaigns')}</span>
                   </div>
                 </div>
                 <div className="flex flex-col items-center rounded-md bg-emerald-50 dark:bg-emerald-900/20 px-1 py-1.5">
                   <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{sdStats.forms}</span>
                   <div className="flex items-center gap-1 mt-0.5">
                     <FileText className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
-                    <span className="text-[10px] text-emerald-500 dark:text-emerald-400">Formulaires</span>
+                    <span className="text-[10px] text-emerald-500 dark:text-emerald-400">{t('forms')}</span>
                   </div>
                 </div>
                 <div className="flex flex-col items-center rounded-md bg-amber-50 dark:bg-amber-900/20 px-1 py-1.5">
                   <span className="text-sm font-bold text-amber-700 dark:text-amber-300">{sdStats.submissions}</span>
                   <div className="flex items-center gap-1 mt-0.5">
                     <Database className="h-3 w-3 text-amber-500 dark:text-amber-400" />
-                    <span className="text-[10px] text-amber-500 dark:text-amber-400">Donnees</span>
+                    <span className="text-[10px] text-amber-500 dark:text-amber-400">{t('data')}</span>
                   </div>
                 </div>
               </div>

@@ -9,8 +9,10 @@ import Link from 'next/link';
 import { CheckCircle2, XCircle, MessageSquare } from 'lucide-react';
 import { useReviewQueue, useReviewPublication, usePublishPublication, pickLocale } from '@/lib/api/knowledge-hub-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function ReviewQueuePage() {
+  const t = useTranslations('knowledge');
   const locale = useAuthStore((s) => s.user?.locale ?? 'en');
   const queue = useReviewQueue();
   const reviewMut = useReviewPublication();
@@ -35,9 +37,9 @@ export default function ReviewQueuePage() {
     <div className="grid h-screen grid-cols-12 gap-0">
       <aside className="col-span-4 overflow-y-auto border-r bg-card">
         <header className="border-b p-4">
-          <h1 className="text-lg font-semibold">Review queue</h1>
+          <h1 className="text-lg font-semibold">{t('reviewQueueTitle')}</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            {queue.data?.data.length ?? 0} publication(s) awaiting validation
+            {t('reviewQueueDesc', { count: String(queue.data?.data.length ?? 0) })}
           </p>
         </header>
         <ul className="divide-y">
@@ -57,7 +59,7 @@ export default function ReviewQueuePage() {
             </li>
           ))}
           {(queue.data?.data?.length ?? 0) === 0 && (
-            <li className="p-6 text-center text-sm text-muted-foreground">Queue is empty 🎉</li>
+            <li className="p-6 text-center text-sm text-muted-foreground">{t('reviewQueueEmpty')}</li>
           )}
         </ul>
       </aside>
@@ -75,7 +77,7 @@ export default function ReviewQueuePage() {
 
             {active.attachments && active.attachments.length > 0 && (
               <div className="mt-6 rounded-lg border bg-card p-4">
-                <h3 className="mb-2 text-sm font-semibold">Attachments</h3>
+                <h3 className="mb-2 text-sm font-semibold">{t('reviewAttachments')}</h3>
                 <ul className="space-y-1">
                   {active.attachments.map((a) => (
                     <li key={a.id} className="text-sm">
@@ -91,7 +93,7 @@ export default function ReviewQueuePage() {
             {(active.reviews?.length ?? 0) > 0 && (
               <div className="mt-6 rounded-lg border bg-card p-4">
                 <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
-                  <MessageSquare className="h-4 w-4" /> Review history
+                  <MessageSquare className="h-4 w-4" /> {t('reviewHistory')}
                 </h3>
                 <ul className="space-y-2">
                   {active.reviews!.map((r) => (
@@ -112,7 +114,7 @@ export default function ReviewQueuePage() {
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Reviewer comment (sent to author)…"
+                placeholder={t('reviewCommentPlaceholder')}
                 rows={3}
                 className="mb-3 w-full rounded-md border px-3 py-2 text-sm"
               />
@@ -122,28 +124,28 @@ export default function ReviewQueuePage() {
                   disabled={reviewMut.isPending || publishMut.isPending}
                   className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  <CheckCircle2 className="h-4 w-4" /> Approve & publish
+                  <CheckCircle2 className="h-4 w-4" /> {t('reviewApprove')}
                 </button>
                 <button
                   onClick={() => decide('REQUEST_CHANGES')}
                   disabled={reviewMut.isPending}
                   className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm hover:bg-accent disabled:opacity-50"
                 >
-                  <MessageSquare className="h-4 w-4" /> Request changes
+                  <MessageSquare className="h-4 w-4" /> {t('reviewRequestChanges')}
                 </button>
                 <button
                   onClick={() => decide('REJECTED')}
                   disabled={reviewMut.isPending}
                   className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                 >
-                  <XCircle className="h-4 w-4" /> Reject
+                  <XCircle className="h-4 w-4" /> {t('reviewReject')}
                 </button>
               </div>
             </div>
           </article>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Select a publication from the queue to review
+            {t('reviewSelectHint')}
           </div>
         )}
       </section>
