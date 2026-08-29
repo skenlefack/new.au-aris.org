@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import { BarChart3, Database, Calendar, Globe2, Hash } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useTranslations } from '@/lib/i18n/translations';
 
 /* ── Color palettes ── */
 const CHART_COLORS = [

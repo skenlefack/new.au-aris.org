@@ -18,7 +18,7 @@ import {
   useUpdateSubmission,
   type FormSubmissionListItem,
 } from '@/lib/api/form-builder-hooks';
-import { useTranslations } from 'next-intl';
+import { useTranslations } from '@/lib/i18n/translations';
 
 /* ────────────────────────────────────────────────────────────────
    Types

@@ -13,7 +13,7 @@ import {
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import { AFRICA_COUNTRIES } from '@/components/dashboard/maps/africa-geo-data';
-import { useTranslations } from 'next-intl';
+import { useTranslations } from '@/lib/i18n/translations';
 
 /* Custom map — dynamic import (no SSR, Leaflet needs window) */
 const DigitalToolsMap = dynamic(
