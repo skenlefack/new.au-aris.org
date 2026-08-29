@@ -22,7 +22,7 @@ function ResetPasswordForm() {
       <>
         <div className="mb-8 lg:hidden">
           <h1 className="text-2xl font-bold text-aris-primary-600">ARIS</h1>
-          <p className="text-sm text-gray-500">Animal Resources Information System</p>
+          <p className="text-sm text-gray-500">{t('appSubtitle')}</p>
         </div>
 
         <div className="text-center">
@@ -49,7 +49,7 @@ function ResetPasswordForm() {
       <>
         <div className="mb-8 lg:hidden">
           <h1 className="text-2xl font-bold text-aris-primary-600">ARIS</h1>
-          <p className="text-sm text-gray-500">Animal Resources Information System</p>
+          <p className="text-sm text-gray-500">{t('appSubtitle')}</p>
         </div>
 
         <div className="text-center">
@@ -88,7 +88,7 @@ function ResetPasswordForm() {
     <>
       <div className="mb-8 lg:hidden">
         <h1 className="text-2xl font-bold text-aris-primary-600">ARIS</h1>
-        <p className="text-sm text-gray-500">Animal Resources Information System</p>
+        <p className="text-sm text-gray-500">{t('appSubtitle')}</p>
       </div>
 
       <div>
@@ -119,7 +119,7 @@ function ResetPasswordForm() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm shadow-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
-            placeholder="At least 8 characters"
+            placeholder={t('passwordMinLengthPlaceholder')}
           />
         </div>
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Save, Loader2 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 import { cn } from '@/lib/utils';
 import {
   useRefDataItem,
@@ -31,6 +32,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
   const router = useRouter();
   const config = getTypeConfig(type);
   const user = useAuthStore((s) => s.user);
+  const t = useTranslations('masterData.form');
 
   const { data: itemData, isLoading: loadingItem } = useRefDataItem(type, mode === 'edit' ? itemId : undefined);
   const createMutation = useCreateRefData(type);
@@ -183,7 +185,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
   }, [mode, itemData]);
 
   if (!config) {
-    return <div className="py-20 text-center text-gray-500">Unknown type: {type}</div>;
+    return <div className="py-20 text-center text-gray-500">{t('unknownType', { type })}</div>;
   }
 
   const Icon = config.icon;
@@ -384,7 +386,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            {mode === 'create' ? 'New' : 'Edit'} {config.label.replace(/s$/, '')}
+            {mode === 'create' ? t('newRecord') : t('editRecord')} {config.label.replace(/s$/, '')}
           </h1>
           <p className="text-xs text-gray-500">{config.labelFr}</p>
         </div>
@@ -400,14 +402,14 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-          <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Common Fields</h2>
+          <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{t('commonFields')}</h2>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Left column */}
             <div className="space-y-4">
               {/* Code */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Code <span className="text-red-500">*</span>
+                  {t('code')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -421,7 +423,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
 
               {/* Name (multilingual) */}
               <MultilingualInput
-                label="Name"
+                label={t('name')}
                 value={name as Record<string, string>}
                 onChange={(v) => setName(v)}
                 required
@@ -430,7 +432,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
               {/* Sort order + Active */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Sort Order</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('sortOrder')}</label>
                   <input
                     type="number"
                     value={sortOrder}
@@ -446,7 +448,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
                       onChange={(e) => setIsActive(e.target.checked)}
                       className="h-4 w-4 rounded border-gray-300 text-aris-primary-600 focus:ring-aris-primary-500"
                     />
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Active</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{t('active')}</span>
                   </label>
                 </div>
               </div>
@@ -456,7 +458,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
             <div className="space-y-4">
               {/* Description (multilingual) */}
               <MultilingualTextarea
-                label="Description"
+                label={t('description')}
                 value={description as Record<string, string>}
                 onChange={(v) => setDescription(v)}
               />
@@ -473,7 +475,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
             href={`/master-data/${type}`}
             className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            Cancel
+            {t('cancel')}
           </Link>
           <button
             type="submit"
@@ -485,7 +487,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {mode === 'create' ? 'Create' : 'Save Changes'}
+            {mode === 'create' ? t('create') : t('saveChanges')}
           </button>
         </div>
       </form>
@@ -498,7 +500,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Species Groups
     if (type === 'species-groups') {
       fields.push(
-        <Field key="icon" label="Icon" hint="Lucide icon name (e.g., beef, fish, egg)">
+        <Field key="icon" label={t('icon')} hint={t('iconHint')}>
           <input type="text" value={icon} onChange={(e) => setIcon(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
         </Field>
@@ -510,13 +512,13 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
       fields.push(
         <div key="species-fields" className="space-y-4">
           <CascadeSelect
-            label="Species Group"
+            label={t('speciesGroup')}
             type="species-groups"
             value={groupId}
             onChange={(v) => setGroupId(v as string)}
             required
           />
-          <Field label="Scientific Name">
+          <Field label={t('scientificName')}>
             <input type="text" value={scientificName} onChange={(e) => setScientificName(e.target.value)}
               placeholder="e.g., Bos taurus"
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm italic dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
@@ -530,18 +532,18 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
       fields.push(
         <div key="age-fields" className="space-y-4">
           <CascadeSelect
-            label="Species"
+            label={t('species')}
             type="species"
             value={speciesId}
             onChange={(v) => setSpeciesId(v as string)}
             required
           />
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Min Months">
+            <Field label={t('minMonths')}>
               <input type="number" value={minMonths} onChange={(e) => setMinMonths(e.target.value)} min="0"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Max Months">
+            <Field label={t('maxMonths')}>
               <input type="number" value={maxMonths} onChange={(e) => setMaxMonths(e.target.value)} min="0"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
@@ -555,20 +557,20 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
       fields.push(
         <div key="disease-fields" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Field label="OIE/WOAH Code">
+            <Field label={t('oieWoahCode')}>
               <input type="text" value={oieCode} onChange={(e) => setOieCode(e.target.value)}
                 placeholder="e.g., A010"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Category">
+            <Field label={t('category')}>
               <select value={category} onChange={(e) => setCategory(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-                <option value="">Select category</option>
-                <option value="viral">Viral</option>
-                <option value="bacterial">Bacterial</option>
-                <option value="parasitic">Parasitic</option>
-                <option value="fungal">Fungal</option>
-                <option value="prion">Prion</option>
+                <option value="">{t('selectCategory')}</option>
+                <option value="viral">{t('catViral')}</option>
+                <option value="bacterial">{t('catBacterial')}</option>
+                <option value="parasitic">{t('catParasitic')}</option>
+                <option value="fungal">{t('catFungal')}</option>
+                <option value="prion">{t('catPrion')}</option>
               </select>
             </Field>
           </div>
@@ -576,12 +578,12 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={isNotifiable} onChange={(e) => setIsNotifiable(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500" />
-              <span className="font-medium text-gray-700 dark:text-gray-300">Notifiable (WOAH)</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{t('notifiableWoah')}</span>
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={isZoonotic} onChange={(e) => setIsZoonotic(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
-              <span className="font-medium text-gray-700 dark:text-gray-300">Zoonotic</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{t('zoonotic')}</span>
             </label>
           </div>
           {/* Susceptible Species multi-select */}
@@ -598,20 +600,20 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
       fields.push(
         <div key="sign-fields" className="space-y-4">
           <CascadeSelect
-            label="Disease"
+            label={t('disease')}
             type="diseases"
             value={diseaseId}
             onChange={(v) => setDiseaseId(v as string)}
             required
           />
-          <Field label="Severity">
+          <Field label={t('severity')}>
             <select value={severity} onChange={(e) => setSeverity(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select severity</option>
-              <option value="low">Low</option>
-              <option value="moderate">Moderate</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
+              <option value="">{t('selectSeverity')}</option>
+              <option value="low">{t('sevLow')}</option>
+              <option value="moderate">{t('sevModerate')}</option>
+              <option value="high">{t('sevHigh')}</option>
+              <option value="critical">{t('sevCritical')}</option>
             </select>
           </Field>
         </div>
@@ -623,20 +625,20 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
       fields.push(
         <div key="measure-fields" className="space-y-4">
           <CascadeSelect
-            label="Disease (optional)"
+            label={t('diseaseOptional')}
             type="diseases"
             value={diseaseId}
             onChange={(v) => setDiseaseId(v as string)}
           />
-          <Field label="Type">
+          <Field label={t('type')}>
             <select value={fieldType} onChange={(e) => setFieldType(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select type</option>
-              <option value="prevention">Prevention</option>
-              <option value="containment">Containment</option>
-              <option value="eradication">Eradication</option>
-              <option value="surveillance">Surveillance</option>
-              <option value="treatment">Treatment</option>
+              <option value="">{t('selectType')}</option>
+              <option value="prevention">{t('ctrlPrevention')}</option>
+              <option value="containment">{t('ctrlContainment')}</option>
+              <option value="eradication">{t('ctrlEradication')}</option>
+              <option value="surveillance">{t('ctrlSurveillance')}</option>
+              <option value="treatment">{t('ctrlTreatment')}</option>
             </select>
           </Field>
         </div>
@@ -646,7 +648,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Seizure Reasons / Contamination Sources
     if (['seizure-reasons', 'contamination-sources'].includes(type)) {
       fields.push(
-        <Field key="category" label="Category">
+        <Field key="category" label={t('category')}>
           <input type="text" value={category} onChange={(e) => setCategory(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
         </Field>
@@ -657,17 +659,17 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     if (type === 'sample-types') {
       fields.push(
         <div key="sample-fields" className="grid grid-cols-2 gap-4">
-          <Field label="Category">
+          <Field label={t('category')}>
             <select value={category} onChange={(e) => setCategory(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select category</option>
+              <option value="">{t('selectCategory')}</option>
               <option value="liquid">Liquid</option>
               <option value="solid">Solid</option>
               <option value="swab">Swab</option>
               <option value="environmental">Environmental</option>
             </select>
           </Field>
-          <Field label="Storage Temperature">
+          <Field label={t('storageTemperature')}>
             <input type="text" value={storageTemp} onChange={(e) => setStorageTemp(e.target.value)}
               placeholder="e.g., 2-8C, -20C"
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
@@ -679,10 +681,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Production Systems
     if (type === 'production-systems') {
       fields.push(
-        <Field key="category" label="Category">
+        <Field key="category" label={t('category')}>
           <select value={category} onChange={(e) => setCategory(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-            <option value="">Select category</option>
+            <option value="">{t('selectCategory')}</option>
             <option value="extensive">Extensive</option>
             <option value="mixed">Mixed</option>
             <option value="semi_intensive">Semi-Intensive</option>
@@ -696,16 +698,16 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     if (type === 'breeds') {
       fields.push(
         <div key="breed-fields" className="space-y-4">
-          <CascadeSelect label="Species" type="species" value={speciesId} onChange={(v) => setSpeciesId(v as string)} required />
+          <CascadeSelect label={t('species')} type="species" value={speciesId} onChange={(v) => setSpeciesId(v as string)} required />
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Origin">
+            <Field label={t('origin')}>
               <input type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="e.g., East Africa"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Purpose">
+            <Field label={t('purpose')}>
               <select value={purpose} onChange={(e) => setPurpose(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-                <option value="">Select purpose</option>
+                <option value="">{t('selectPurpose')}</option>
                 <option value="meat">Meat</option>
                 <option value="dairy">Dairy</option>
                 <option value="dual">Dual Purpose</option>
@@ -722,28 +724,28 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     if (type === 'vaccine-types') {
       fields.push(
         <div key="vaccine-fields" className="space-y-4">
-          <CascadeSelect label="Disease" type="diseases" value={diseaseId} onChange={(v) => setDiseaseId(v as string)} required />
+          <CascadeSelect label={t('disease')} type="diseases" value={diseaseId} onChange={(v) => setDiseaseId(v as string)} required />
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Vaccine Class">
+            <Field label={t('vaccineClass')}>
               <select value={vaccineClass} onChange={(e) => setVaccineClass(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-                <option value="">Select class</option>
+                <option value="">{t('selectClass')}</option>
                 <option value="live">Live Attenuated</option>
                 <option value="inactivated">Inactivated</option>
                 <option value="subunit">Subunit</option>
                 <option value="vectored">Vectored</option>
               </select>
             </Field>
-            <Field label="Manufacturer">
+            <Field label={t('manufacturer')}>
               <input type="text" value={manufacturer} onChange={(e) => setManufacturer(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Route of Administration">
+            <Field label={t('routeOfAdministration')}>
               <select value={routeOfAdmin} onChange={(e) => setRouteOfAdmin(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-                <option value="">Select route</option>
+                <option value="">{t('selectRoute')}</option>
                 <option value="subcutaneous">Subcutaneous</option>
                 <option value="intramuscular">Intramuscular</option>
                 <option value="intranasal">Intranasal</option>
@@ -752,7 +754,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
                 <option value="in-water">In Water</option>
               </select>
             </Field>
-            <Field label="Doses Required">
+            <Field label={t('dosesRequired')}>
               <input type="number" value={dosesRequired} onChange={(e) => setDosesRequired(e.target.value)} min="1"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
@@ -765,10 +767,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     if (type === 'test-types') {
       fields.push(
         <div key="test-fields" className="grid grid-cols-2 gap-4">
-          <Field label="Test Category">
+          <Field label={t('testCategory')}>
             <select value={testCategory} onChange={(e) => setTestCategory(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select category</option>
+              <option value="">{t('selectCategory')}</option>
               <option value="serology">Serology</option>
               <option value="pcr">PCR</option>
               <option value="antigen">Antigen Detection</option>
@@ -777,7 +779,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
               <option value="rapid">Rapid Test</option>
             </select>
           </Field>
-          <Field label="Turnaround (days)">
+          <Field label={t('turnaroundDays')}>
             <input type="number" value={turnaroundDays} onChange={(e) => setTurnaroundDays(e.target.value)} min="0"
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
           </Field>
@@ -790,51 +792,51 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
       fields.push(
         <div key="lab-fields" className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
-            <Field label="Lab Level">
+            <Field label={t('labLevel')}>
               <select value={labLevel} onChange={(e) => setLabLevel(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-                <option value="">Select level</option>
+                <option value="">{t('selectLevel')}</option>
                 <option value="field">Field</option>
                 <option value="regional">Regional</option>
                 <option value="national">National</option>
                 <option value="reference">Reference</option>
               </select>
             </Field>
-            <Field label="BSL Level">
+            <Field label={t('bslLevel')}>
               <select value={bslLevel} onChange={(e) => setBslLevel(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-                <option value="">Select BSL</option>
+                <option value="">{t('selectBsl')}</option>
                 <option value="1">BSL-1</option>
                 <option value="2">BSL-2</option>
                 <option value="3">BSL-3</option>
                 <option value="4">BSL-4</option>
               </select>
             </Field>
-            <Field label="Accreditation">
+            <Field label={t('accreditation')}>
               <input type="text" value={accreditation} onChange={(e) => setAccreditation(e.target.value)} placeholder="e.g., ISO 17025"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Latitude">
+            <Field label={t('latitude')}>
               <input type="number" step="any" value={latitude} onChange={(e) => setLatitude(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Longitude">
+            <Field label={t('longitude')}>
               <input type="number" step="any" value={longitude} onChange={(e) => setLongitude(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
           </div>
-          <Field label="Address">
+          <Field label={t('address')}>
             <input type="text" value={address} onChange={(e) => setAddress(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
           </Field>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Contact Name">
+            <Field label={t('contactName')}>
               <input type="text" value={contactName} onChange={(e) => setContactName(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Contact Phone">
+            <Field label={t('contactPhone')}>
               <input type="text" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
@@ -846,7 +848,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Livestock Products
     if (type === 'livestock-products') {
       fields.push(
-        <Field key="product-cat" label="Product Category">
+        <Field key="product-cat" label={t('productCategory')}>
           <select value={productCategory} onChange={(e) => setProductCategory(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
             <option value="">Select category</option>
@@ -866,10 +868,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Census Methodologies
     if (type === 'census-methodologies') {
       fields.push(
-        <Field key="method-type" label="Method Type">
+        <Field key="method-type" label={t('methodType')}>
           <select value={methodType} onChange={(e) => setMethodType(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-            <option value="">Select method</option>
+            <option value="">{t('selectMethod')}</option>
             <option value="census">Full Census</option>
             <option value="survey">Sample Survey</option>
             <option value="estimate">Estimate</option>
@@ -883,10 +885,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Gear Types
     if (type === 'gear-types') {
       fields.push(
-        <Field key="gear-cat" label="Gear Category">
+        <Field key="gear-cat" label={t('gearCategory')}>
           <select value={gearCategory} onChange={(e) => setGearCategory(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-            <option value="">Select category</option>
+            <option value="">{t('selectCategory')}</option>
             <option value="trawl">Trawl</option>
             <option value="net">Net</option>
             <option value="line">Line</option>
@@ -901,16 +903,16 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     if (type === 'vessel-types') {
       fields.push(
         <div key="vessel-fields" className="grid grid-cols-2 gap-4">
-          <Field label="Length Category">
+          <Field label={t('lengthCategory')}>
             <select value={lengthCategory} onChange={(e) => setLengthCategory(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select size</option>
+              <option value="">{t('selectSize')}</option>
               <option value="small">Small (&lt;12m)</option>
               <option value="medium">Medium (12-24m)</option>
               <option value="large">Large (&gt;24m)</option>
             </select>
           </Field>
-          <Field label="Propulsion Type">
+          <Field label={t('propulsionType')}>
             <input type="text" value={propulsionType} onChange={(e) => setPropulsionType(e.target.value)} placeholder="e.g., diesel, outboard"
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
           </Field>
@@ -922,19 +924,19 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     if (type === 'aquaculture-farm-types') {
       fields.push(
         <div key="aqua-fields" className="grid grid-cols-2 gap-4">
-          <Field label="Water Type">
+          <Field label={t('waterType')}>
             <select value={waterType} onChange={(e) => setWaterType(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select water type</option>
+              <option value="">{t('selectWaterType')}</option>
               <option value="freshwater">Freshwater</option>
               <option value="marine">Marine</option>
               <option value="brackish">Brackish</option>
             </select>
           </Field>
-          <Field label="Culture System">
+          <Field label={t('cultureSystem')}>
             <select value={cultureSystem} onChange={(e) => setCultureSystem(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select system</option>
+              <option value="">{t('selectSystem')}</option>
               <option value="pond">Pond</option>
               <option value="cage">Cage</option>
               <option value="raceway">Raceway</option>
@@ -951,26 +953,26 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
       fields.push(
         <div key="landing-fields" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Latitude">
+            <Field label={t('latitude')}>
               <input type="number" step="any" value={latitude} onChange={(e) => setLatitude(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Longitude">
+            <Field label={t('longitude')}>
               <input type="number" step="any" value={longitude} onChange={(e) => setLongitude(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Admin Level 1">
+            <Field label={t('adminLevel1')}>
               <input type="text" value={adminLevel1} onChange={(e) => setAdminLevel1(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Capacity">
+            <Field label={t('capacity')}>
               <input type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} min="0"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
           </div>
-          <Field label="Address">
+          <Field label={t('address')}>
             <input type="text" value={address} onChange={(e) => setAddress(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
           </Field>
@@ -981,10 +983,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Conservation Statuses
     if (type === 'conservation-statuses') {
       fields.push(
-        <Field key="iucn" label="IUCN Code">
+        <Field key="iucn" label={t('iucnCode')}>
           <select value={iucnCode} onChange={(e) => setIucnCode(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-            <option value="">Select IUCN code</option>
+            <option value="">{t('selectIucn')}</option>
             <option value="LC">LC - Least Concern</option>
             <option value="NT">NT - Near Threatened</option>
             <option value="VU">VU - Vulnerable</option>
@@ -1000,10 +1002,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Habitat Types
     if (type === 'habitat-types') {
       fields.push(
-        <Field key="biome" label="Biome">
+        <Field key="biome" label={t('biome')}>
           <select value={biome} onChange={(e) => setBiome(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-            <option value="">Select biome</option>
+            <option value="">{t('selectBiome')}</option>
             <option value="forest">Forest</option>
             <option value="savanna">Savanna</option>
             <option value="wetland">Wetland</option>
@@ -1019,10 +1021,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Crime Types
     if (type === 'crime-types') {
       fields.push(
-        <Field key="crime-cat" label="Crime Category">
+        <Field key="crime-cat" label={t('crimeCategory')}>
           <select value={crimeCategory} onChange={(e) => setCrimeCategory(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-            <option value="">Select category</option>
+            <option value="">{t('selectCategory')}</option>
             <option value="poaching">Poaching</option>
             <option value="trafficking">Trafficking</option>
             <option value="illegal-trade">Illegal Trade</option>
@@ -1037,14 +1039,14 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     if (type === 'commodities') {
       fields.push(
         <div key="commodity-fields" className="grid grid-cols-2 gap-4">
-          <Field label="HS Code">
+          <Field label={t('hsCode')}>
             <input type="text" value={hsCode} onChange={(e) => setHsCode(e.target.value)} placeholder="e.g., 0102"
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
           </Field>
-          <Field label="Commodity Group">
+          <Field label={t('commodityGroup')}>
             <select value={commodityGroup} onChange={(e) => setCommodityGroup(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select group</option>
+              <option value="">{t('selectGroup')}</option>
               <option value="live-animals">Live Animals</option>
               <option value="meat">Meat</option>
               <option value="dairy">Dairy</option>
@@ -1061,10 +1063,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Hive Types
     if (type === 'hive-types') {
       fields.push(
-        <Field key="hive-cat" label="Hive Category">
+        <Field key="hive-cat" label={t('hiveCategory')}>
           <select value={hiveCategory} onChange={(e) => setHiveCategory(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-            <option value="">Select category</option>
+            <option value="">{t('selectCategory')}</option>
             <option value="langstroth">Langstroth</option>
             <option value="top-bar">Top-Bar</option>
             <option value="traditional">Traditional</option>
@@ -1079,20 +1081,20 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     if (type === 'bee-diseases') {
       fields.push(
         <div key="bee-disease-fields" className="grid grid-cols-2 gap-4">
-          <Field label="Pathogen Type">
+          <Field label={t('pathogenType')}>
             <select value={pathogenType} onChange={(e) => setPathogenType(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select type</option>
+              <option value="">{t('selectType')}</option>
               <option value="virus">Virus</option>
               <option value="bacteria">Bacteria</option>
               <option value="parasite">Parasite</option>
               <option value="fungal">Fungal</option>
             </select>
           </Field>
-          <Field label="Affected Caste">
+          <Field label={t('affectedCaste')}>
             <select value={affectedCaste} onChange={(e) => setAffectedCaste(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select caste</option>
+              <option value="">{t('selectType')}</option>
               <option value="worker">Worker</option>
               <option value="queen">Queen</option>
               <option value="brood">Brood</option>
@@ -1107,19 +1109,19 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     if (type === 'floral-sources') {
       fields.push(
         <div key="floral-fields" className="grid grid-cols-2 gap-4">
-          <Field label="Flowering Season">
+          <Field label={t('floweringSeason')}>
             <select value={floweringSeason} onChange={(e) => setFloweringSeason(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select season</option>
+              <option value="">{t('selectSeason')}</option>
               <option value="dry">Dry Season</option>
               <option value="wet">Wet Season</option>
               <option value="all-year">All Year</option>
             </select>
           </Field>
-          <Field label="Nectar Type">
+          <Field label={t('nectarType')}>
             <select value={nectarType} onChange={(e) => setNectarType(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-              <option value="">Select type</option>
+              <option value="">{t('selectType')}</option>
               <option value="monofloral">Monofloral</option>
               <option value="polyfloral">Polyfloral</option>
             </select>
@@ -1131,10 +1133,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Legal Framework Types
     if (type === 'legal-framework-types') {
       fields.push(
-        <Field key="fw-cat" label="Framework Category">
+        <Field key="fw-cat" label={t('frameworkCategory')}>
           <select value={frameworkCategory} onChange={(e) => setFrameworkCategory(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-            <option value="">Select category</option>
+            <option value="">{t('selectCategory')}</option>
             <option value="law">Law/Act</option>
             <option value="regulation">Regulation</option>
             <option value="decree">Decree/Order</option>
@@ -1149,10 +1151,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     // Stakeholder Types
     if (type === 'stakeholder-types') {
       fields.push(
-        <Field key="sector" label="Sector">
+        <Field key="sector" label={t('sector')}>
           <select value={sector} onChange={(e) => setSector(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-            <option value="">Select sector</option>
+            <option value="">{t('selectType')}</option>
             <option value="public">Public</option>
             <option value="private">Private</option>
             <option value="ngo">NGO</option>
@@ -1168,60 +1170,60 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
     if (['abattoirs', 'markets', 'checkpoints'].includes(type)) {
       fields.push(
         <div key="location-fields" className="space-y-4">
-          <Field label="Type">
+          <Field label={t('type')}>
             <TypeSelect entityType={type} value={fieldType} onChange={setFieldType} />
           </Field>
           {type !== 'checkpoints' && (
-            <Field label="Capacity">
+            <Field label={t('capacity')}>
               <input type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} min="0"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
           )}
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Latitude">
+            <Field label={t('latitude')}>
               <input type="number" step="any" value={latitude} onChange={(e) => setLatitude(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Longitude">
+            <Field label={t('longitude')}>
               <input type="number" step="any" value={longitude} onChange={(e) => setLongitude(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
           </div>
-          <Field label="Address">
+          <Field label={t('address')}>
             <input type="text" value={address} onChange={(e) => setAddress(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
           </Field>
           <div className="grid grid-cols-3 gap-4">
-            <Field label="Admin Level 1">
+            <Field label={t('adminLevel1')}>
               <input type="text" value={adminLevel1} onChange={(e) => setAdminLevel1(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Admin Level 2">
+            <Field label={t('adminLevel2')}>
               <input type="text" value={adminLevel2} onChange={(e) => setAdminLevel2(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Admin Level 3">
+            <Field label={t('adminLevel3')}>
               <input type="text" value={adminLevel3} onChange={(e) => setAdminLevel3(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Contact Name">
+            <Field label={t('contactName')}>
               <input type="text" value={contactName} onChange={(e) => setContactName(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
-            <Field label="Contact Phone">
+            <Field label={t('contactPhone')}>
               <input type="text" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
             </Field>
           </div>
           {type === 'abattoirs' && (
             <div className="grid grid-cols-2 gap-4">
-              <Field label="License Number">
+              <Field label={t('licenseNumber')}>
                 <input type="text" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
               </Field>
-              <Field label="License Expiry">
+              <Field label={t('licenseExpiry')}>
                 <input type="date" value={licenseExpiry} onChange={(e) => setLicenseExpiry(e.target.value)}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
               </Field>
@@ -1229,20 +1231,20 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
           )}
           {type === 'markets' && (
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Frequency">
+              <Field label={t('frequency')}>
                 <select value={frequency} onChange={(e) => setFrequency(e.target.value)}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-                  <option value="">Select frequency</option>
+                  <option value="">{t('selectFrequency')}</option>
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="bi-weekly">Bi-weekly</option>
                   <option value="monthly">Monthly</option>
                 </select>
               </Field>
-              <Field label="Market Day">
+              <Field label={t('marketDay')}>
                 <select value={marketDay} onChange={(e) => setMarketDay(e.target.value)}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-                  <option value="">Select day</option>
+                  <option value="">{t('selectDay')}</option>
                   <option value="monday">Monday</option>
                   <option value="tuesday">Tuesday</option>
                   <option value="wednesday">Wednesday</option>
@@ -1256,12 +1258,12 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
           )}
           {type === 'checkpoints' && (
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Border With (ISO2)">
+              <Field label={t('borderWith')}>
                 <input type="text" value={borderWith} onChange={(e) => setBorderWith(e.target.value.toUpperCase())} maxLength={2}
                   placeholder="e.g., TZ, UG"
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono uppercase dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
               </Field>
-              <Field label="Operating Hours">
+              <Field label={t('operatingHours')}>
                 <input type="text" value={operatingHours} onChange={(e) => setOperatingHours(e.target.value)}
                   placeholder="e.g., 06:00-18:00"
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500" />
@@ -1323,7 +1325,7 @@ function TypeSelect({ entityType, value, onChange }: { entityType: string; value
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
       className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500">
-      <option value="">Select type</option>
+      <option value="">--</option>
       {opts.map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
@@ -1340,6 +1342,7 @@ function DiseaseSpeciesSelect({
   selectedIds: string[];
   onChange: (ids: string[]) => void;
 }) {
+  const t = useTranslations('masterData.form');
   const { data, isLoading } = useRefDataForSelect('species' as RefDataType);
   const allSpecies = React.useMemo(() => {
     if (!data?.data) return [];
@@ -1372,8 +1375,8 @@ function DiseaseSpeciesSelect({
   return (
     <div>
       <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-        Susceptible Species
-        <span className="ml-2 text-xs font-normal text-gray-400">({selectedIds.length} selected)</span>
+        {t('susceptibleSpecies')}
+        <span className="ml-2 text-xs font-normal text-gray-400">({t('selectedCount', { count: selectedIds.length })})</span>
       </label>
       <div className="rounded-lg border border-gray-200 dark:border-gray-700">
         {/* Search + actions */}
@@ -1382,18 +1385,18 @@ function DiseaseSpeciesSelect({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search species..."
+            placeholder={t('searchSpecies')}
             className="flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400 dark:text-gray-300"
           />
-          <button type="button" onClick={selectAll} className="text-xs text-aris-primary-600 hover:underline">All</button>
-          <button type="button" onClick={clearAll} className="text-xs text-gray-400 hover:underline">Clear</button>
+          <button type="button" onClick={selectAll} className="text-xs text-aris-primary-600 hover:underline">{t('selectAll')}</button>
+          <button type="button" onClick={clearAll} className="text-xs text-gray-400 hover:underline">{t('clearAll')}</button>
         </div>
         {/* Scrollable checkbox list */}
         <div className="max-h-48 overflow-y-auto p-2">
           {isLoading ? (
-            <p className="py-4 text-center text-xs text-gray-400">Loading species...</p>
+            <p className="py-4 text-center text-xs text-gray-400">{t('loadingSpecies')}</p>
           ) : filtered.length === 0 ? (
-            <p className="py-4 text-center text-xs text-gray-400">No species found</p>
+            <p className="py-4 text-center text-xs text-gray-400">{t('noSpeciesFound')}</p>
           ) : (
             <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-3">
               {filtered.map((s) => (

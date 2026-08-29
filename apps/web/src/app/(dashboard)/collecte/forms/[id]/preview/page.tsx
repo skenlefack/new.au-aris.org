@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from '@/lib/i18n/translations';
 import { ArrowLeft, Monitor, Smartphone, Layers, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFormBuilderTemplate, useResolvedForm } from '@/lib/api/form-builder-hooks';
@@ -14,6 +15,7 @@ export default function FormPreviewPage() {
   const params = useParams();
   const router = useRouter();
   const formId = params?.id as string;
+  const t = useTranslations('collecte');
   const [mode, setMode] = useState<'desktop' | 'mobile'>('desktop');
   const [showResolved, setShowResolved] = useState(false);
 
@@ -99,7 +101,7 @@ export default function FormPreviewPage() {
   if (!template) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <p className="text-sm text-gray-500">Form not found</p>
+        <p className="text-sm text-gray-500">{t('formNotFoundMsg')}</p>
       </div>
     );
   }
@@ -117,7 +119,7 @@ export default function FormPreviewPage() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              Preview: {template.name}
+              {t('previewTitle', { name: template.name })}
             </h1>
             <p className="text-xs text-gray-500">v{template.version} — {template.status}</p>
           </div>
@@ -135,7 +137,7 @@ export default function FormPreviewPage() {
                     : 'text-gray-500',
                 )}
               >
-                <Eye className="h-3.5 w-3.5" /> Continental only
+                <Eye className="h-3.5 w-3.5" /> {t('continentalOnly')}
               </button>
               <button
                 onClick={() => setShowResolved(true)}
@@ -146,7 +148,7 @@ export default function FormPreviewPage() {
                     : 'text-gray-500',
                 )}
               >
-                <Layers className="h-3.5 w-3.5" /> With tenant fields
+                <Layers className="h-3.5 w-3.5" /> {t('withTenantFields')}
                 {resolvedLoading && (
                   <div className="ml-1 h-3 w-3 animate-spin rounded-full border border-indigo-500 border-t-transparent" />
                 )}
@@ -187,11 +189,11 @@ export default function FormPreviewPage() {
         <div className="flex items-center gap-4 rounded-lg border border-indigo-100 bg-indigo-50/50 px-4 py-2 dark:border-indigo-800 dark:bg-indigo-900/10">
           <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
             <span className="inline-block h-3 w-1 rounded-full bg-gray-300" />
-            Continental fields
+            {t('continentalFieldsLegend')}
           </div>
           <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
             <span className="inline-block h-3 w-1 rounded-full bg-indigo-500" />
-            Custom tenant fields
+            {t('customTenantFieldsLegend')}
           </div>
         </div>
       )}

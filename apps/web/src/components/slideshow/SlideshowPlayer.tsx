@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { SectionList } from '@/components/dashboard-builder/SectionList';
 import { useDashboard, useDashboardRender } from '@/lib/api/dashboard-hooks';
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 // ════════════════════════���═════════════════════════��════════════════════
 //  Theme Colors
@@ -129,6 +130,7 @@ function computeScrollFromElements(sections: HTMLElement[], container: HTMLEleme
 }
 
 function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onReady, scrollMode }: { dashboard: any; durationMs: number; onReady?: () => void; scrollMode?: string }) {
+  const t = useTranslations('slideshow');
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const readyCalledRef = useRef(false);
@@ -242,7 +244,7 @@ function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onRe
   if (!sections.length) {
     return (
       <div className="flex items-center justify-center h-full text-white/40">
-        <p className="text-sm">Dashboard introuvable</p>
+        <p className="text-sm">{t('dashboardNotFound')}</p>
       </div>
     );
   }
@@ -255,6 +257,7 @@ function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onRe
 }
 
 function DashboardSlideRenderer({ dashboardId, durationMs, onReady, scrollMode }: { dashboardId: string; durationMs: number; onReady?: () => void; scrollMode?: string }) {
+  const t = useTranslations('slideshow');
   const { data: dashboardData, isLoading: loadingDash } = useDashboard(dashboardId);
   const { data: renderData, isLoading: loadingRender } = useDashboardRender(dashboardId);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -326,7 +329,7 @@ function DashboardSlideRenderer({ dashboardId, durationMs, onReady, scrollMode }
             <div className="absolute inset-0 rounded-full border-2 border-white/10 animate-pulse" />
             <div className="absolute inset-1 rounded-full border-2 border-transparent border-t-white/40 animate-spin" />
           </div>
-          <p className="text-xs text-white/40 font-light tracking-wide">Chargement...</p>
+          <p className="text-xs text-white/40 font-light tracking-wide">{t('loading')}</p>
         </div>
       </div>
     );
@@ -335,7 +338,7 @@ function DashboardSlideRenderer({ dashboardId, durationMs, onReady, scrollMode }
   if (!dashboard) {
     return (
       <div className="flex items-center justify-center h-full text-white/40">
-        <p className="text-sm">Dashboard introuvable</p>
+        <p className="text-sm">{t('dashboardNotFound')}</p>
       </div>
     );
   }
@@ -365,6 +368,7 @@ function SmartTicker({ dashboardId, accentColor, isDark, isPublic, preRendered }
   const { data: renderData } = useDashboardRender(fetchId);
   const { data: dashboardData } = useDashboard(fetchId);
   const locale = useLocaleStore((s) => s.locale);
+  const tSlideshow = useTranslations('slideshow');
 
   const messages = useMemo(() => {
     const msgs: string[] = [];
@@ -372,7 +376,7 @@ function SmartTicker({ dashboardId, accentColor, isDark, isPublic, preRendered }
     // Use pre-rendered data in public mode, live data otherwise
     const renderedWidgets = preRendered?.renderedWidgets ?? (renderData?.data as any)?.renderedWidgets;
 
-    if (!renderedWidgets && !dashboard && !preRendered) return ['ARIS - Animal Resources Information System - African Union Inter-African Bureau for Animal Resources'];
+    if (!renderedWidgets && !dashboard && !preRendered) return [`ARIS - ${tSlideshow('loading')}`];
 
     const title = locale === 'en'
       ? ((dashboard as any)?.titleEn || dashboard?.title || preRendered?.dashboard?.title_en)
@@ -412,9 +416,9 @@ function SmartTicker({ dashboardId, accentColor, isDark, isPublic, preRendered }
       }
     }
 
-    if (msgs.length === 0) msgs.push('AU-IBAR ARIS - Systeme continental d\'information sur les ressources animales');
+    if (msgs.length === 0) msgs.push('AU-IBAR ARIS');
     return msgs;
-  }, [renderData, dashboardData, preRendered, locale]);
+  }, [renderData, dashboardData, preRendered, locale, tSlideshow]);
 
   const tickerText = messages.join('        \u2726        ');
   const doubledText = `${tickerText}        \u2726        ${tickerText}`;
@@ -641,12 +645,14 @@ export function SlideshowPlayer({
     }
   }, [showLangMenu, showColorMenu]);
 
+  const tSlideshow = useTranslations('slideshow');
+
   if (!effectiveSlides.length) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-[#0a1628] via-[#0d1f3c] to-[#0a1628]">
         <div className="text-center text-white/50">
           <Presentation className="w-12 h-12 mx-auto mb-4 opacity-30" />
-          <p className="text-lg font-light">Aucun tableau de bord selectionne</p>
+          <p className="text-lg font-light">{tSlideshow('noSlides')}</p>
         </div>
       </div>
     );
@@ -733,11 +739,11 @@ export function SlideshowPlayer({
               'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 mr-1',
               isDark ? 'bg-white/[0.06]' : 'bg-gray-100',
             )}>
-              <Btn isDark={isDark} onClick={goPrev} tip="Precedent"><ChevronLeft className="w-3.5 h-3.5" /></Btn>
-              <Btn isDark={isDark} onClick={() => setIsPlaying(!isPlaying)} tip={isPlaying ? 'Pause (P)' : 'Lecture (P)'}>
+              <Btn isDark={isDark} onClick={goPrev} tip={tSlideshow('previous')}><ChevronLeft className="w-3.5 h-3.5" /></Btn>
+              <Btn isDark={isDark} onClick={() => setIsPlaying(!isPlaying)} tip={isPlaying ? tSlideshow('pausePlay') : tSlideshow('play')}>
                 {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
               </Btn>
-              <Btn isDark={isDark} onClick={goNext} tip="Suivant"><ChevronRight className="w-3.5 h-3.5" /></Btn>
+              <Btn isDark={isDark} onClick={goNext} tip={tSlideshow('next')}><ChevronRight className="w-3.5 h-3.5" /></Btn>
               <span className={cn('text-[10px] font-mono px-1', isDark ? 'text-white/30' : 'text-gray-400')}>
                 {currentIndex + 1}/{effectiveSlides.length}
               </span>
@@ -746,7 +752,7 @@ export function SlideshowPlayer({
 
           {/* Language */}
           <div className="relative">
-            <Btn isDark={isDark} onClick={() => { setShowColorMenu(false); setShowLangMenu(!showLangMenu); }} tip="Langue">
+            <Btn isDark={isDark} onClick={() => { setShowColorMenu(false); setShowLangMenu(!showLangMenu); }} tip={tSlideshow('language')}>
               <Globe className="w-4 h-4" />
             </Btn>
             {showLangMenu && (
@@ -775,7 +781,7 @@ export function SlideshowPlayer({
 
           {/* Color theme */}
           <div className="relative">
-            <Btn isDark={isDark} onClick={() => { setShowLangMenu(false); setShowColorMenu(!showColorMenu); }} tip="Couleur">
+            <Btn isDark={isDark} onClick={() => { setShowLangMenu(false); setShowColorMenu(!showColorMenu); }} tip={tSlideshow('color')}>
               <Palette className="w-4 h-4" />
             </Btn>
             {showColorMenu && (
@@ -815,12 +821,12 @@ export function SlideshowPlayer({
           </div>
 
           {/* Dark/Light */}
-          <Btn isDark={isDark} onClick={() => setIsDark(!isDark)} tip="Theme (D)">
+          <Btn isDark={isDark} onClick={() => setIsDark(!isDark)} tip={tSlideshow('theme')}>
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Btn>
 
           {/* Share */}
-          <Btn isDark={isDark} onClick={handleShare} tip="Partager">
+          <Btn isDark={isDark} onClick={handleShare} tip={tSlideshow('share')}>
             {copied ? (
               <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             ) : (
@@ -829,7 +835,7 @@ export function SlideshowPlayer({
           </Btn>
 
           {/* Fullscreen */}
-          <Btn isDark={isDark} onClick={toggleFullscreen} tip="Plein ecran (F)">
+          <Btn isDark={isDark} onClick={toggleFullscreen} tip={tSlideshow('fullscreen')}>
             {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </Btn>
         </div>
@@ -852,7 +858,7 @@ export function SlideshowPlayer({
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-sm text-white/30">Chargement...</p>
+              <p className="text-sm text-white/30">{tSlideshow('loading')}</p>
             </div>
           )}
         </div>

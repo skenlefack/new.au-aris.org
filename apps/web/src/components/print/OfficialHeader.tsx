@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface OfficialHeaderProps {
   title: string;
@@ -9,12 +10,14 @@ interface OfficialHeaderProps {
 }
 
 export function OfficialHeader({ title, subtitle, classification }: OfficialHeaderProps) {
+  const t = useTranslations('print');
+
   return (
     <div className="print-header mb-6 border-b-2 border-gray-900 pb-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
-            African Union — Interafrican Bureau for Animal Resources
+            {t('auIbar')}
           </p>
           <h1 className="mt-1 text-2xl font-bold text-gray-900">{title}</h1>
           {subtitle && (
@@ -30,11 +33,12 @@ export function OfficialHeader({ title, subtitle, classification }: OfficialHead
       </div>
       {classification && (
         <p className="mt-2 text-xs font-medium text-gray-500">
-          Data Classification: {classification}
+          {t('dataClassification')} {classification}
         </p>
       )}
       <p className="mt-1 text-xs text-gray-400">
-        Generated: {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
+        {t('generatedLabel')}{' '}
+        {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
         {' '}&mdash;{' '}
         {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
       </p>

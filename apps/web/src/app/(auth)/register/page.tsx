@@ -10,25 +10,31 @@ import { UserPlus } from 'lucide-react';
 import { useRegister } from '@/lib/api/hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-const registerSchema = z
-  .object({
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
-    email: z.string().email('Enter a valid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  });
-
-type RegisterForm = z.infer<typeof registerSchema>;
+type RegisterForm = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
 
 export default function RegisterPage() {
   const router = useRouter();
   const registerMutation = useRegister();
   const t = useTranslations('auth');
+
+  const registerSchema = z
+    .object({
+      firstName: z.string().min(1, t('firstNameRequired')),
+      lastName: z.string().min(1, t('lastNameRequired')),
+      email: z.string().email(t('enterValidEmail')),
+      password: z.string().min(8, t('passwordMinLength')),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t('passwordsDoNotMatch'),
+      path: ['confirmPassword'],
+    });
 
   const {
     register,
@@ -57,7 +63,7 @@ export default function RegisterPage() {
       <div className="mb-8 lg:hidden">
         <h1 className="text-2xl font-bold text-aris-primary-600">ARIS</h1>
         <p className="text-sm text-gray-500">
-          Animal Resources Information System
+          {t('appSubtitle')}
         </p>
       </div>
 
@@ -132,7 +138,7 @@ export default function RegisterPage() {
             autoComplete="email"
             {...register('email')}
             className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm shadow-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
-            placeholder="you@au-aris.org"
+            placeholder={t('emailPlaceholder')}
           />
           {errors.email && (
             <p className="mt-1 text-xs text-red-600">

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   ArrowLeft,
   Lock,
@@ -72,6 +73,7 @@ export default function FormCustomizePage() {
   const router = useRouter();
   const formId = params?.id as string;
 
+  const t = useTranslations('collecte');
   const user = useAuthStore((s) => s.user);
   const selectedTenant = useTenantStore((s) => s.selectedTenant);
   const tenantId = user?.tenantId ?? selectedTenant?.id ?? '';
@@ -129,7 +131,7 @@ export default function FormCustomizePage() {
   if (!template) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <p className="text-sm text-gray-500">Form not found</p>
+        <p className="text-sm text-gray-500">{t('formNotFoundMsg')}</p>
       </div>
     );
   }
@@ -139,13 +141,13 @@ export default function FormCustomizePage() {
       <div className="flex h-[60vh] flex-col items-center justify-center gap-3">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Only published forms can be customized.
+          {t('onlyPublishedCanBeCustomized')}
         </p>
         <button
           onClick={() => router.push('/collecte/forms')}
           className="text-sm text-indigo-600 underline"
         >
-          Back to forms
+          {t('backToForms')}
         </button>
       </div>
     );
@@ -202,9 +204,9 @@ export default function FormCustomizePage() {
         });
       }
       setAddingField(null);
-      showToast('Custom field added successfully');
+      showToast(t('customFieldAddedSuccess'));
     } catch (err) {
-      showToast('Failed to add field');
+      showToast(t('failedToAddField'));
     }
   }
 
@@ -223,16 +225,16 @@ export default function FormCustomizePage() {
         fieldOverrides: updatedOverrides,
       });
       setEditingFieldId(null);
-      showToast('Custom field updated');
+      showToast(t('customFieldUpdated'));
     } catch {
-      showToast('Failed to update field');
+      showToast(t('failedToUpdateField'));
     }
   }
 
   // ── Delete field handler ──
   async function handleDeleteField(fieldId: string) {
     if (!existingOverlay) return;
-    if (!confirm('Remove this custom field?')) return;
+    if (!confirm(t('removeCustomField'))) return;
 
     const updatedOverrides = existingOverlay.fieldOverrides.filter(
       (o) => o.fieldId !== fieldId,
@@ -251,9 +253,9 @@ export default function FormCustomizePage() {
           fieldOverrides: updatedOverrides,
         });
       }
-      showToast('Custom field removed');
+      showToast(t('customFieldRemoved'));
     } catch {
-      showToast('Failed to remove field');
+      showToast(t('failedToRemoveField'));
     }
   }
 
@@ -289,15 +291,17 @@ export default function FormCustomizePage() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              Customize: {template.name}
+              {t('customizeTitle', { name: template.name })}
             </h1>
             <p className="text-xs text-gray-500">
-              Add custom fields for{' '}
+              {t('customizeSubtitle')}{' '}
               <span className="font-medium text-indigo-600">{tenantName}</span>
               {' '}({tenantLevel})
               {existingOverlay && (
                 <span className="ml-2 text-green-600">
-                  &middot; {customFields.length} custom field{customFields.length !== 1 ? 's' : ''}
+                  &middot; {customFields.length !== 1
+                    ? t('customFieldsCountPlural', { count: customFields.length })
+                    : t('customFieldsCount', { count: customFields.length })}
                 </span>
               )}
             </p>
@@ -306,7 +310,7 @@ export default function FormCustomizePage() {
         {existingOverlay?.needsReview && (
           <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-1.5 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
             <AlertTriangle className="h-4 w-4" />
-            Base template was updated — review your custom fields
+            {t('baseTemplateUpdated')}
           </div>
         )}
       </div>
@@ -341,7 +345,7 @@ export default function FormCustomizePage() {
           {customFieldsBySection['__unassigned'] && (
             <div className="rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/30 p-4 dark:border-indigo-800 dark:bg-indigo-900/10">
               <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-400">
-                Unassigned Custom Fields
+                {t('unassignedCustomFields')}
               </h3>
               {customFieldsBySection['__unassigned'].map((cf) => (
                 <CustomFieldCard
@@ -366,10 +370,10 @@ export default function FormCustomizePage() {
           style={{ flex: '0 0 28%' }}
         >
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-            Add Custom Field
+            {t('addCustomField')}
           </h2>
           <p className="text-xs text-gray-500">
-            Pick a field type and assign it to a section.
+            {t('pickFieldType')}
           </p>
 
           {/* Category tabs */}
@@ -446,6 +450,7 @@ function SectionPreview({
   onCancelAdd: () => void;
   isMutating: boolean;
 }) {
+  const t = useTranslations('collecte');
   const sectionName = ml(section.name);
   const continentalFields = [...section.fields]
     .filter((f) => !f.hidden)
@@ -470,8 +475,8 @@ function SectionPreview({
           {sectionName}
         </h2>
         <span className="text-[10px] text-gray-400">
-          {continentalFields.length} continental
-          {customFields.length > 0 && ` + ${customFields.length} custom`}
+          {continentalFields.length} {t('continentalFieldsLegend').toLowerCase()}
+          {customFields.length > 0 && ` + ${customFields.length} ${t('customTenantFieldsLegend').toLowerCase()}`}
         </span>
       </div>
 
@@ -629,6 +634,7 @@ function AddFieldInline({
   onCancel: () => void;
   isMutating: boolean;
 }) {
+  const t = useTranslations('collecte');
   const ftDef = FIELD_TYPES.find((ft) => ft.type === fieldType);
   const [label, setLabel] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });
   const [required, setRequired] = useState(false);
@@ -680,7 +686,7 @@ function AddFieldInline({
         <div className="flex items-center gap-2">
           {ftDef?.icon && <ftDef.icon className="h-4 w-4 text-indigo-500" />}
           <span className="text-sm font-semibold text-gray-800 dark:text-white">
-            Add {ftDef?.label ?? fieldType} Field
+            {t('addFieldToSection', { type: ftDef?.label ?? fieldType })}
           </span>
         </div>
         <button
@@ -695,7 +701,7 @@ function AddFieldInline({
         {/* Label EN */}
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
-            Label (English) <span className="text-red-400">*</span>
+            {t('labelEnglish')} <span className="text-red-400">*</span>
           </label>
           <MultilingualInput
             label=""
@@ -709,7 +715,7 @@ function AddFieldInline({
         {/* Auto-generated code */}
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
-            Code
+            {t('codeLabel')}
           </label>
           <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-700">
             custom_{code}
@@ -724,14 +730,14 @@ function AddFieldInline({
             onChange={(e) => setRequired(e.target.checked)}
             className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
           />
-          <span className="text-gray-700 dark:text-gray-300">Required</span>
+          <span className="text-gray-700 dark:text-gray-300">{t('requiredField')}</span>
         </label>
 
         {/* Options for select/radio/checkbox */}
         {needsOptions && (
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
-              Options
+              {t('options')}
             </label>
             {options.map((opt, i) => (
               <div
@@ -758,7 +764,7 @@ function AddFieldInline({
                 value={newOptLabel}
                 onChange={(e) => setNewOptLabel(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addOption())}
-                placeholder="Option label..."
+                placeholder={t('optionLabelPlaceholder')}
                 className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
               <button
@@ -766,7 +772,7 @@ function AddFieldInline({
                 onClick={addOption}
                 className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
               >
-                Add
+                {t('addOption')}
               </button>
             </div>
           </div>
@@ -776,14 +782,14 @@ function AddFieldInline({
         {needsMasterData && (
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
-              Master Data Type
+              {t('masterDataType')}
             </label>
             <select
               value={masterDataType}
               onChange={(e) => setMasterDataType(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             >
-              <option value="">Select a type...</option>
+              <option value="">{t('selectMasterDataType')}</option>
               {MASTER_DATA_TYPES.map((mdt) => (
                 <option key={mdt.value} value={mdt.value}>
                   {mdt.label}
@@ -800,12 +806,12 @@ function AddFieldInline({
             onClick={onCancel}
             className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!labelEn.trim() || isMutating}
+            disabled={!(label.en || label.fr || '').trim() || isMutating}
             className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
             {isMutating ? (
@@ -813,7 +819,7 @@ function AddFieldInline({
             ) : (
               <Plus className="h-3 w-3" />
             )}
-            Add Field
+            {t('addField')}
           </button>
         </div>
       </div>
@@ -834,6 +840,7 @@ function EditFieldInline({
   onCancel: () => void;
   isMutating: boolean;
 }) {
+  const t = useTranslations('collecte');
   const data = override.data;
   const existingLabel = data.label as MultilingualText | undefined;
   const [label, setLabel] = useState<Record<string, string>>({
@@ -857,7 +864,7 @@ function EditFieldInline({
     <div className="rounded-lg border-2 border-amber-300 bg-amber-50/30 p-4 dark:border-amber-600 dark:bg-amber-900/10">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-semibold text-gray-800 dark:text-white">
-          Edit Custom Field
+          {t('editCustomField')}
         </span>
         <button
           onClick={onCancel}
@@ -869,7 +876,7 @@ function EditFieldInline({
 
       <div className="space-y-3">
         <MultilingualInput
-          label="Label"
+          label={t('labelEnglish')}
           value={label}
           onChange={setLabel}
           required
@@ -881,7 +888,7 @@ function EditFieldInline({
             onChange={(e) => setRequired(e.target.checked)}
             className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
           />
-          <span className="text-gray-700 dark:text-gray-300">Required</span>
+          <span className="text-gray-700 dark:text-gray-300">{t('requiredField')}</span>
         </label>
         <div className="flex items-center justify-end gap-2 pt-2">
           <button
@@ -889,12 +896,12 @@ function EditFieldInline({
             onClick={onCancel}
             className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!labelEn.trim() || isMutating}
+            disabled={!(label.en || label.fr || '').trim() || isMutating}
             className="inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
           >
             {isMutating ? (
@@ -902,7 +909,7 @@ function EditFieldInline({
             ) : (
               <Check className="h-3 w-3" />
             )}
-            Save
+            {t('saveChanges')}
           </button>
         </div>
       </div>
@@ -921,6 +928,7 @@ function FieldTypeButton({
   sections: FormSection[];
   onSelect: (sectionId: string) => void;
 }) {
+  const t = useTranslations('collecte');
   const [open, setOpen] = useState(false);
 
   return (
@@ -943,7 +951,7 @@ function FieldTypeButton({
       {open && (
         <div className="ml-7 mt-1 space-y-0.5 rounded-md border border-gray-200 bg-gray-50 p-2 dark:border-gray-600 dark:bg-gray-700">
           <p className="mb-1 text-[10px] font-medium text-gray-500 dark:text-gray-400">
-            Add to section:
+            {t('addToSection')}
           </p>
           {sections.map((sec) => (
             <button

@@ -12,23 +12,13 @@ import {
   User,
   FileText,
 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 import { cn } from '@/lib/utils';
 import { useQualityReport, type QualityGateStatus } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { PrintButton } from '@/components/ui/PrintButton';
 import { OfficialHeader } from '@/components/print/OfficialHeader';
 import { OfficialFooter } from '@/components/print/OfficialFooter';
-
-const GATE_LABELS: Record<string, string> = {
-  completeness: 'Completeness',
-  temporal_consistency: 'Temporal Consistency',
-  geographic_consistency: 'Geographic Consistency',
-  codes_vocabularies: 'Codes & Vocabularies',
-  units: 'Units',
-  deduplication: 'Deduplication',
-  auditability: 'Auditability',
-  confidence_score: 'Confidence Score',
-};
 
 function GateIcon({ status }: { status: QualityGateStatus['status'] }) {
   switch (status) {
@@ -46,7 +36,19 @@ function GateIcon({ status }: { status: QualityGateStatus['status'] }) {
 export default function QualityReportDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const t = useTranslations('quality');
   const { data, isLoading } = useQualityReport(id);
+
+  const GATE_LABELS: Record<string, string> = {
+    completeness: t('gateCompleteness'),
+    temporal_consistency: t('gateTemporal'),
+    geographic_consistency: t('gateGeographic'),
+    codes_vocabularies: t('gateCodes'),
+    units: t('gateUnits'),
+    deduplication: t('gateDeduplication'),
+    auditability: t('gateAuditability'),
+    confidence_score: t('gateConfidenceScore'),
+  };
 
   if (isLoading) return <DetailSkeleton />;
 
@@ -59,10 +61,10 @@ export default function QualityReportDetailPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Reports
+          {t('backToReports')}
         </Link>
         <div className="rounded-card border border-gray-200 bg-white p-8 text-center text-gray-400">
-          Report not found
+          {t('reportNotFound')}
         </div>
       </div>
     );
@@ -98,7 +100,7 @@ export default function QualityReportDetailPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Reports
+          {t('backToReports')}
         </Link>
         <div className="mt-2 flex items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900">
@@ -135,12 +137,12 @@ export default function QualityReportDetailPage() {
           </span>
           <span className="flex items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
-            Submitted by: {report.submittedBy}
+            {t('submittedBy')}: {report.submittedBy}
           </span>
           {report.reviewedBy && (
             <span className="flex items-center gap-2">
               <User className="h-4 w-4 text-gray-400" />
-              Reviewed by: {report.reviewedBy}
+              {t('reviewedBy')}: {report.reviewedBy}
             </span>
           )}
           <span className="flex items-center gap-2">
@@ -160,13 +162,13 @@ export default function QualityReportDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-semibold">
-              Overall Result:{' '}
+              {t('overallResult')}:{' '}
               {report.overallResult.charAt(0).toUpperCase() +
                 report.overallResult.slice(1)}
             </p>
             <p className="mt-1 text-sm opacity-80">
-              {passCount} passed, {failCount} failed, {warningCount} warnings
-              out of {report.gateResults.length} gates
+              {passCount} {t('passed')}, {failCount} {t('failed')}, {warningCount} {t('warnings')}{' '}
+              {t('outOf', { total: report.gateResults.length })}
             </p>
           </div>
           <span
@@ -189,7 +191,7 @@ export default function QualityReportDetailPage() {
       {/* Per-gate results */}
       <div>
         <h2 className="mb-3 text-lg font-semibold text-gray-900">
-          Quality Gate Results
+          {t('gateResults')}
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {report.gateResults.map((gate) => (
@@ -226,17 +228,17 @@ export default function QualityReportDetailPage() {
       {report.violations.length > 0 && (
         <div>
           <h2 className="mb-3 text-lg font-semibold text-gray-900">
-            Violations ({report.violations.length})
+            {t('violations')} ({report.violations.length})
           </h2>
           <div className="rounded-card border border-gray-200 bg-white overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                  <th className="px-4 py-3">Severity</th>
-                  <th className="px-4 py-3">Gate</th>
-                  <th className="px-4 py-3">Field</th>
-                  <th className="px-4 py-3">Message</th>
-                  <th className="px-4 py-3">Suggestion</th>
+                  <th className="px-4 py-3">{t('severityHeader')}</th>
+                  <th className="px-4 py-3">{t('gateHeader')}</th>
+                  <th className="px-4 py-3">{t('fieldHeader')}</th>
+                  <th className="px-4 py-3">{t('messageHeader')}</th>
+                  <th className="px-4 py-3">{t('suggestionHeader')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

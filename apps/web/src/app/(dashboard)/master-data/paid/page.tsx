@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from '@/lib/i18n/translations';
 import { ArrowLeft, Plus, Pencil, Trash2, Search, Save, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { COUNTRIES } from '@/data/countries-config';
@@ -17,6 +18,7 @@ function SearchableDropdown({ value, onChange, options, placeholder, required, c
   required?: boolean;
   className?: string;
 }) {
+  const tc = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -60,14 +62,14 @@ function SearchableDropdown({ value, onChange, options, placeholder, required, c
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder={`${tc('search')}...`}
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm focus:border-fuchsia-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 autoFocus
               />
             </div>
           </div>
           {filtered.length === 0 ? (
-            <div className="px-3 py-4 text-center text-xs text-gray-400">No results</div>
+            <div className="px-3 py-4 text-center text-xs text-gray-400">{tc('noData')}</div>
           ) : filtered.map((o) => (
             <button
               key={o.value}
@@ -251,6 +253,8 @@ function CountrySelectField({ value, onChange, multiple }: {
   onChange: (value: string[]) => void;
   multiple: boolean;
 }) {
+  const t = useTranslations('paid');
+  const tc = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -314,7 +318,7 @@ function CountrySelectField({ value, onChange, multiple }: {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder={`${tc('search')}...`}
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm focus:border-fuchsia-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 autoFocus
               />
@@ -343,10 +347,10 @@ function CountrySelectField({ value, onChange, multiple }: {
       </div>
 
       {!multiple && (
-        <p className="mt-1 text-[10px] text-gray-400">Single country project — select one country</p>
+        <p className="mt-1 text-[10px] text-gray-400">{t('singleCountryHint')}</p>
       )}
       {multiple && (
-        <p className="mt-1 text-[10px] text-gray-400">Multiple countries project — select all implementation countries</p>
+        <p className="mt-1 text-[10px] text-gray-400">{t('multipleCountriesHint')}</p>
       )}
     </div>
   );
@@ -408,11 +412,13 @@ function PaidEntitySelect({ fieldKey, value, onChange, required, formValues }: {
 
 // ─── Inline Form (Create / Edit) ─────────────────────────────────────────────
 
-function InlineForm({ entity, item, onBack }: {
+function InlineForm({ entity, entityLabel, item, onBack }: {
   entity: EntityDef;
+  entityLabel: string;
   item: PaidReferentialItem | null;
   onBack: () => void;
 }) {
+  const t = useTranslations('paid');
   const isEdit = !!item;
   const createMut = useCreatePaidRef(entity.category);
   const updateMut = useUpdatePaidRef(entity.category);
@@ -460,10 +466,12 @@ function InlineForm({ entity, item, onBack }: {
         </button>
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {isEdit ? 'Edit' : 'New'} {entity.label}
+            {isEdit ? t('editRecordBtn') : t('newRecord', { entity: entityLabel })}
           </h2>
           <p className="text-xs text-gray-400">
-            {isEdit ? `Editing: ${entity.displayLabel(item!).slice(0, 60)}` : `Create a new ${entity.label.toLowerCase()} record`}
+            {isEdit
+              ? t('editingRecord', { label: entity.displayLabel(item!).slice(0, 60) })
+              : t('createNewRecord', { entity: entityLabel.toLowerCase() })}
           </p>
         </div>
       </div>
@@ -479,7 +487,7 @@ function InlineForm({ entity, item, onBack }: {
               span === 3 && 'sm:col-span-3',
             )}>
               <label className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                {f.label}
+                {FIELD_LABEL_KEYS[f.key] ? t(FIELD_LABEL_KEYS[f.key] as Parameters<typeof t>[0]) : f.label}
                 {f.required && <span className="ml-0.5 text-red-500">*</span>}
               </label>
               {f.type === 'select' ? (
@@ -490,7 +498,11 @@ function InlineForm({ entity, item, onBack }: {
                   className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
                   <option value="">-- Select --</option>
-                  {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {f.options?.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {OPTION_LABEL_KEYS[o.value] ? t(OPTION_LABEL_KEYS[o.value] as Parameters<typeof t>[0]) : o.label}
+                    </option>
+                  ))}
                 </select>
               ) : f.type === 'country-select' ? (
                 <CountrySelectField
@@ -531,7 +543,7 @@ function InlineForm({ entity, item, onBack }: {
                     onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.checked }))}
                     className="h-4 w-4 rounded border-gray-300 text-fuchsia-600 focus:ring-fuchsia-500"
                   />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Yes</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{t('yes')}</span>
                 </label>
               ) : (
                 <input
@@ -555,7 +567,7 @@ function InlineForm({ entity, item, onBack }: {
             onClick={onBack}
             className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
           >
-            Cancel
+            {t('cancelBtn')}
           </button>
           <button
             type="submit"
@@ -563,7 +575,7 @@ function InlineForm({ entity, item, onBack }: {
             className="flex items-center gap-2 rounded-lg bg-fuchsia-600 px-5 py-2 text-sm font-medium text-white hover:bg-fuchsia-700 disabled:opacity-50 transition-colors"
           >
             <Save className="h-4 w-4" />
-            {isPending ? 'Saving...' : isEdit ? 'Update' : 'Create'}
+            {isPending ? t('saving') : isEdit ? t('updateBtn') : t('createBtn')}
           </button>
         </div>
       </form>
@@ -575,11 +587,13 @@ function InlineForm({ entity, item, onBack }: {
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
-function EntityListView({ entity, onEdit, onCreate }: {
+function EntityListView({ entity, entityLabel, onEdit, onCreate }: {
   entity: EntityDef;
+  entityLabel: string;
   onEdit: (item: PaidReferentialItem) => void;
   onCreate: () => void;
 }) {
+  const t = useTranslations('paid');
   const [search, setSearch] = useState('');
   const [parentFilter, setParentFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -621,7 +635,7 @@ function EntityListView({ entity, onEdit, onCreate }: {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Search ${entity.label.toLowerCase()}...`}
+            placeholder={t('searchEntity', { entity: entityLabel.toLowerCase() })}
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-3 text-sm focus:border-fuchsia-400 focus:ring-1 focus:ring-fuchsia-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
@@ -630,17 +644,19 @@ function EntityListView({ entity, onEdit, onCreate }: {
             type="text"
             value={parentFilter}
             onChange={(e) => setParentFilter(e.target.value)}
-            placeholder={`Filter by ${entity.parentFilterLabel}...`}
+            placeholder={t('filterByParent', { label: entity.parentFilterLabel ?? '' })}
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white w-48"
           />
         )}
-        <span className="text-xs text-gray-400">{total} record{total !== 1 ? 's' : ''}</span>
+        <span className="text-xs text-gray-400">
+          {total !== 1 ? t('recordCountPlural', { count: total }) : t('recordCount', { count: total })}
+        </span>
         <button
           onClick={onCreate}
           className="ml-auto flex items-center gap-1.5 rounded-lg bg-fuchsia-600 px-3 py-2 text-xs font-medium text-white hover:bg-fuchsia-700 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
-          Add {entity.label}
+          {t('addRecord', { entity: entityLabel })}
         </button>
       </div>
 
@@ -654,21 +670,21 @@ function EntityListView({ entity, onEdit, onCreate }: {
           </div>
         ) : items.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-sm text-gray-400">No {entity.label.toLowerCase()} found</p>
+            <p className="text-sm text-gray-400">{t('noRecordsFound', { entity: entityLabel.toLowerCase() })}</p>
             <button
               onClick={onCreate}
               className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-fuchsia-600 hover:text-fuchsia-700"
             >
-              <Plus className="h-4 w-4" /> Create first {entity.label.toLowerCase()}
+              <Plus className="h-4 w-4" /> {t('createFirst', { entity: entityLabel.toLowerCase() })}
             </button>
           </div>
         ) : (
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-800/50">
-                <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500">{entity.label}</th>
-                <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500">Details</th>
-                <th className="w-24 px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
+                <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500">{entityLabel}</th>
+                <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('detailsHeader')}</th>
+                <th className="w-24 px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">{t('actionsHeader')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -712,7 +728,7 @@ function EntityListView({ entity, onEdit, onCreate }: {
       {total > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
           <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-            <span>Show</span>
+            <span>{t('show')}</span>
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
@@ -720,7 +736,7 @@ function EntityListView({ entity, onEdit, onCreate }: {
             >
               {PAGE_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
-            <span>of {total} records</span>
+            <span>{t('ofRecords', { total })}</span>
           </div>
 
           <div className="flex items-center gap-1">
@@ -729,7 +745,7 @@ function EntityListView({ entity, onEdit, onCreate }: {
               disabled={page <= 1}
               className="rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
             >
-              First
+              {t('firstPage')}
             </button>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -778,12 +794,12 @@ function EntityListView({ entity, onEdit, onCreate }: {
               disabled={page >= totalPages}
               className="rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
             >
-              Last
+              {t('lastPage')}
             </button>
           </div>
 
           <span className="text-xs text-gray-400">
-            Page {page} of {totalPages}
+            {t('pageInfo', { page, total: totalPages })}
           </span>
         </div>
       )}
@@ -795,7 +811,52 @@ function EntityListView({ entity, onEdit, onCreate }: {
 
 type ViewMode = { type: 'list' } | { type: 'create' } | { type: 'edit'; item: PaidReferentialItem };
 
+const OPTION_LABEL_KEYS: Record<string, string> = {
+  single_country: 'typeSingleCountry',
+  multiple_countries: 'typeMultipleCountries',
+  number: 'typeNumber',
+  text: 'typeText',
+  textarea: 'typeTextarea',
+  select: 'typeSelect',
+  select_multiple: 'typeSelectMultiple',
+  date: 'typeDate',
+};
+
+const FIELD_LABEL_KEYS: Record<string, string> = {
+  code: 'fieldCode',
+  title: 'fieldTitle',
+  type: 'fieldType',
+  countries: 'fieldCountries',
+  project_code: 'fieldProject',
+  label: 'fieldLabel',
+  logframe_code: 'fieldLogFrame',
+  activity_code: 'fieldActivity',
+  subactivity_code: 'fieldSubActivity',
+  paid_activity_code: 'fieldPaidActivity',
+  unit_of_measure: 'fieldUnitOfMeasure',
+  field_code: 'fieldFieldCode',
+  field_label: 'fieldFieldLabel',
+  field_type: 'fieldFieldType',
+  sort_order: 'fieldSortOrder',
+  is_required: 'fieldRequired',
+  name: 'fieldName',
+  country_code: 'fieldCountry',
+};
+
+const ENTITY_LABEL_KEYS: Record<string, string> = {
+  projects: 'entityProjects',
+  logframes: 'entityLogframes',
+  'lf-activities': 'entityActivities',
+  subactivities: 'entitySubActivities',
+  'paid-activities': 'entityPaidActivities',
+  'breakdown-fields': 'entityBreakdownFields',
+  'executive-partners': 'entityExecPartners',
+  'impl-partners-intl': 'entityIntlPartners',
+  'impl-partners-national': 'entityNationalPartners',
+};
+
 export default function PaidMasterDataPage() {
+  const t = useTranslations('paid');
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'projects';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -817,13 +878,13 @@ export default function PaidMasterDataPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Master Data
+          {t('backToMasterData')}
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-          PAID Programme — Reference Data
+          {t('referenceDataTitle')}
         </h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Manage LICS projects, log frames (AMERT), activities, PAID activities, breakdown fields and partners.
+          {t('referenceDataSubtitle')}
         </p>
       </div>
 
@@ -841,7 +902,7 @@ export default function PaidMasterDataPage() {
             )}
           >
             <span>{e.icon}</span>
-            {e.label}
+            {ENTITY_LABEL_KEYS[e.key] ? t(ENTITY_LABEL_KEYS[e.key] as Parameters<typeof t>[0]) : e.label}
           </button>
         ))}
       </div>
@@ -851,6 +912,7 @@ export default function PaidMasterDataPage() {
         <EntityListView
           key={entity.key}
           entity={entity}
+          entityLabel={ENTITY_LABEL_KEYS[entity.key] ? t(ENTITY_LABEL_KEYS[entity.key] as Parameters<typeof t>[0]) : entity.label}
           onEdit={(item) => setView({ type: 'edit', item })}
           onCreate={() => setView({ type: 'create' })}
         />
@@ -860,6 +922,7 @@ export default function PaidMasterDataPage() {
         <InlineForm
           key={`create-${entity.key}`}
           entity={entity}
+          entityLabel={ENTITY_LABEL_KEYS[entity.key] ? t(ENTITY_LABEL_KEYS[entity.key] as Parameters<typeof t>[0]) : entity.label}
           item={null}
           onBack={() => setView({ type: 'list' })}
         />
@@ -869,6 +932,7 @@ export default function PaidMasterDataPage() {
         <InlineForm
           key={`edit-${view.item.id}`}
           entity={entity}
+          entityLabel={ENTITY_LABEL_KEYS[entity.key] ? t(ENTITY_LABEL_KEYS[entity.key] as Parameters<typeof t>[0]) : entity.label}
           item={view.item}
           onBack={() => setView({ type: 'list' })}
         />
