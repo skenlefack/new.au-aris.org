@@ -713,7 +713,7 @@ export function SlideshowPlayer({
             className="rounded-lg"
           />
           <div className={cn('w-px h-5', isDark ? 'bg-white/10' : 'bg-gray-200')} />
-          <span className={cn('text-sm font-semibold truncate max-w-[300px]', isDark ? 'text-white/80' : 'text-gray-700')}>
+          <span className={cn('text-sm font-semibold', isDark ? 'text-white/80' : 'text-gray-700')}>
             {displayTitle}
           </span>
 
@@ -724,7 +724,7 @@ export function SlideshowPlayer({
               isDark ? 'border-white/10' : 'border-gray-200',
             )}>
               <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: themeColor.accent }} />
-              <span className={cn('text-[11px] truncate max-w-[200px]', isDark ? 'text-white/40' : 'text-gray-400')}>
+              <span className={cn('text-[11px]', isDark ? 'text-white/40' : 'text-gray-400')}>
                 {currentDashboardTitle}
               </span>
             </div>
