@@ -160,7 +160,7 @@ export function detectLabRepeaters(schema: { sections: TemplateSection[] }): Arr
    ──────────────────────────────────────────────────────────────── */
 
 export default function LabResultsTab({ campaignId, templateId, templateSchema, locale = 'en' }: LabResultsTabProps) {
-  const { t } = useTranslations('collecte');
+  const t = useTranslations('collecte');
   // Detect lab repeaters from template schema
   const labRepeaters = useMemo(() => detectLabRepeaters(templateSchema), [templateSchema]);
 

@@ -177,7 +177,7 @@ const PPR_STATUS_COLORS: Record<string, string> = {
 };
 
 export default function DiagnosticsDashboard({ campaignId }: { campaignId: string }) {
-  const { t } = useTranslations('collecte');
+  const t = useTranslations('collecte');
   const sQ = useCampaignSubmissions(campaignId, { limit: 100 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;

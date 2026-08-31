@@ -152,7 +152,7 @@ function GaugeCircle({ value, label, color, delta }: { value: number; label: str
    ══════════════════════════════════════════════════════════════ */
 
 export default function PPRPerformanceDashboard() {
-  const { t } = useTranslations('collecte');
+  const t = useTranslations('collecte');
   // Map data
   const mapData: CountryOutbreakData[] = [
     { code: 'ZA', name: 'South Africa', outbreaks: 90, cases: 0, deaths: 0, vaccinations: 0, submissions: 90, rec: 'sadc' },

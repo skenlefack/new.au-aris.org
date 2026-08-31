@@ -96,7 +96,7 @@ interface SlideshowEditorProps {
 
 export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
   const router = useRouter();
-  const { t } = useTranslations();
+  const t = useTranslations('slideshow');
   const { locale } = useLocaleStore();
   const isFr = locale === 'fr';
 
