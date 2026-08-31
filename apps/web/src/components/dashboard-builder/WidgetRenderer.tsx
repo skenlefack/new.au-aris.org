@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import type { DashboardWidget } from '@/lib/api/dashboard-hooks';
 import { useViewerFilters } from './DashboardViewerContext';
 import { KpiCardWidget } from './widgets/KpiCardWidget';
@@ -226,24 +227,42 @@ function normalizeResolvedData(
   return resolved;
 }
 
+/** Pick the best widget title for the current locale (reactive). */
+function pickWidgetTitle(w: any, locale: string): string {
+  switch (locale) {
+    case 'en': return w.titleEn || w.title_en || w.titleFr || w.title_fr || w.title || '';
+    case 'pt': return w.titlePt || w.title_pt || w.titleFr || w.title_fr || w.title || '';
+    case 'ar': return w.titleAr || w.title_ar || w.titleFr || w.title_fr || w.title || '';
+    case 'es': return w.titleEs || w.title_es || w.titleFr || w.title_fr || w.title || '';
+    case 'sw': return w.titleSw || w.title_sw || w.titleEn || w.title_en || w.title || '';
+    default:   return w.titleFr || w.title_fr || w.title || w.titleEn || w.title_en || '';
+  }
+}
+
 export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererProps) {
   const t = useTranslations('dashboard');
+  const locale = useLocaleStore((s) => s.locale);
   const { filters } = useViewerFilters();
   if (loading) return <WidgetSkeleton />;
   if (error) return <WidgetError message={error} />;
 
+  // Resolve title reactively based on current locale
+  const resolvedTitle = pickWidgetTitle(widget, locale);
+  const localizedWidget = { ...widget, title: resolvedTitle };
+
   const DEFAULT_WIDGET_CONFIGS = getDefaultWidgetConfigs(t);
   // Normalize analytics query / grouped data into widget-expected format
-  const normalizedData = data ? normalizeResolvedData(widget.type, widget.config, data) : {};
-  const cfg = { ...DEFAULT_WIDGET_CONFIGS[widget.type], ...widget.config, ...normalizedData } as Record<string, any>;
+  const normalizedData = data ? normalizeResolvedData(localizedWidget.type, localizedWidget.config, data) : {};
+  const cfg = { ...DEFAULT_WIDGET_CONFIGS[localizedWidget.type], ...localizedWidget.config, ...normalizedData } as Record<string, any>;
 
-  switch (widget.type) {
+  const w = localizedWidget;
+  switch (w.type) {
     case 'KPI_CARD':
       if (cfg.value == null) return <WidgetEmpty label={t('dbNoData')} />;
       return (
         <KpiCardWidget
           value={cfg.value}
-          label={cfg.label ?? widget.title}
+          label={cfg.label ?? w.title}
           labels={cfg.labels}
           trend={cfg.trend}
           thresholds={cfg.thresholds}
@@ -265,13 +284,11 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
     case 'AREA_CHART':
       if (!Array.isArray(cfg.data) || cfg.data.length === 0) return <WidgetEmpty label={t('dbNoData')} />;
       {
-        // Merge root-level colors into chartConfig (PIE charts store colors at cfg.colors)
         const chartConfig = { ...cfg.chartConfig };
         if (Array.isArray(cfg.colors) && !chartConfig.colors) {
           chartConfig.colors = cfg.colors;
         }
-        // Normalize backend type names (BAR_CHART→BAR, PIE_CHART→PIE, etc.)
-        const chartType = widget.type.replace('_CHART', '') as any;
+        const chartType = w.type.replace('_CHART', '') as any;
         return (
           <ChartWidget
             type={chartType}
@@ -283,7 +300,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
 
     case 'MAP':
     case 'MAP_AFRICA':
-      return <MapWidget title={widget.title} config={cfg} data={cfg.data} />;
+      return <MapWidget title={w.title} config={cfg} data={cfg.data} />;
 
     case 'TABLE':
       return (
@@ -301,34 +318,24 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
         <GaugeWidget
           value={cfg.value}
           target={cfg.target}
-          label={cfg.label ?? widget.title}
+          label={cfg.label ?? w.title}
           unit={cfg.unit}
           variant={cfg.variant}
         />
       );
 
     case 'TEXT_BLOCK':
-      return (
-        <TextBlockWidget
-          content={cfg.content ?? ''}
-          format={cfg.format}
-        />
-      );
+      return <TextBlockWidget content={cfg.content ?? ''} format={cfg.format} />;
 
     case 'ALERT_FEED':
-      return (
-        <AlertFeedWidget
-          alerts={cfg.alerts ?? []}
-          maxItems={cfg.maxItems}
-        />
-      );
+      return <AlertFeedWidget alerts={cfg.alerts ?? []} maxItems={cfg.maxItems} />;
 
     case 'STAT_CARD':
       return (
         <StatCardWidget
           value={cfg.value ?? 0}
           previousValue={cfg.previousValue}
-          label={cfg.label ?? widget.title}
+          label={cfg.label ?? w.title}
           icon={cfg.icon}
           color={cfg.color}
         />
@@ -339,79 +346,35 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
         <ProgressBarWidget
           value={cfg.value ?? 0}
           target={cfg.target ?? 100}
-          label={cfg.label ?? widget.title}
+          label={cfg.label ?? w.title}
           color={cfg.color}
           showPercentage={cfg.showPercentage}
         />
       );
 
     case 'DIVIDER':
-      return (
-        <DividerWidget
-          style={cfg.style}
-          label={cfg.label}
-        />
-      );
+      return <DividerWidget style={cfg.style} label={cfg.label} />;
 
     case 'IMAGE':
-      return (
-        <ImageWidget
-          src={cfg.src ?? ''}
-          alt={cfg.alt ?? ''}
-          caption={cfg.caption}
-          fit={cfg.fit}
-        />
-      );
+      return <ImageWidget src={cfg.src ?? ''} alt={cfg.alt ?? ''} caption={cfg.caption} fit={cfg.fit} />;
 
     case 'IFRAME':
-      return (
-        <IframeWidget
-          url={cfg.url ?? ''}
-          title={cfg.title ?? widget.title}
-        />
-      );
+      return <IframeWidget url={cfg.url ?? ''} title={cfg.title ?? w.title} />;
 
     case 'LIST':
-      return (
-        <ListWidget
-          items={cfg.items ?? []}
-          ordered={cfg.ordered}
-        />
-      );
+      return <ListWidget items={cfg.items ?? []} ordered={cfg.ordered} />;
 
     case 'HEATMAP':
-      return (
-        <HeatmapWidget
-          rows={cfg.rows ?? []}
-          columns={cfg.columns ?? []}
-          colorScale={cfg.colorScale}
-        />
-      );
+      return <HeatmapWidget rows={cfg.rows ?? []} columns={cfg.columns ?? []} colorScale={cfg.colorScale} />;
 
     case 'RANKED_LIST':
-      return (
-        <RankedListWidget
-          items={cfg.items ?? []}
-          maxItems={cfg.maxItems}
-          unit={cfg.unit}
-        />
-      );
+      return <RankedListWidget items={cfg.items ?? []} maxItems={cfg.maxItems} unit={cfg.unit} />;
 
     case 'ACTIVITY_FEED':
-      return (
-        <ActivityFeedWidget
-          activities={cfg.activities ?? []}
-          maxItems={cfg.maxItems}
-        />
-      );
+      return <ActivityFeedWidget activities={cfg.activities ?? []} maxItems={cfg.maxItems} />;
 
     case 'EPI_CURVE':
-      return (
-        <EpiCurveWidget
-          data={cfg.data ?? []}
-          title={cfg.title ?? widget.title}
-        />
-      );
+      return <EpiCurveWidget data={cfg.data ?? []} title={cfg.title ?? w.title} />;
 
     case 'DUAL_AXIS':
       return (
@@ -427,7 +390,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
       return (
         <CounterWidget
           value={cfg.value ?? 0}
-          label={cfg.label ?? widget.title}
+          label={cfg.label ?? w.title}
           icon={cfg.icon}
           color={cfg.color}
           format={cfg.format}
@@ -446,7 +409,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
     default:
       return (
         <div className="flex h-full items-center justify-center p-4 text-sm text-gray-400">
-          {t('dbUnknownWidgetType', { type: widget.type })}
+          {t('dbUnknownWidgetType', { type: w.type })}
         </div>
       );
   }

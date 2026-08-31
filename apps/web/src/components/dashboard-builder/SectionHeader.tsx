@@ -5,6 +5,7 @@ import { GripVertical, Trash2, ChevronDown, ChevronRight, Copy } from 'lucide-re
 import type { DashboardSection } from '@/lib/api/dashboard-hooks';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 const SECTION_LANGS = ['fr', 'en', 'pt', 'ar', 'es', 'sw'] as const;
 
@@ -32,6 +33,7 @@ export function SectionHeader({
   onDuplicate,
 }: SectionHeaderProps) {
   const t = useTranslations('dashboard');
+  const locale = useLocaleStore((s) => s.locale);
   const [activeLang, setActiveLang] = useState<string>('fr');
   const inputRef = useRef<HTMLInputElement>(null);
   const titlesRef = useRef<Record<string, string>>({
@@ -139,7 +141,16 @@ export function SectionHeader({
         </div>
       ) : (
         <span className="flex-1 min-w-0 text-[13px] font-bold text-gray-700 dark:text-gray-200 truncate tracking-tight pl-1">
-          {section.title || section.titleFr || section.titleEn || ''}
+          {(() => {
+            switch (locale) {
+              case 'en': return section.titleEn || section.titleFr || section.title || '';
+              case 'pt': return (section as any).titlePt || section.titleFr || section.title || '';
+              case 'ar': return (section as any).titleAr || section.titleFr || section.title || '';
+              case 'es': return (section as any).titleEs || section.titleFr || section.title || '';
+              case 'sw': return (section as any).titleSw || section.titleEn || section.title || '';
+              default:   return section.titleFr || section.title || section.titleEn || '';
+            }
+          })()}
         </span>
       )}
 
