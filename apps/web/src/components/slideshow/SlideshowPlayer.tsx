@@ -145,10 +145,17 @@ function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onRe
     const wd: Record<string, Record<string, unknown>> = {};
     const widgets = rw.map((w: any) => {
       if (w.data) wd[w.widgetId] = w.data;
+      const titleObj = typeof w.title === 'object' ? w.title : null;
       return {
         id: w.widgetId,
         type: w.type,
-        title: typeof w.title === 'object' ? (w.title?.fr || w.title?.en || '') : (w.title || ''),
+        title: titleObj ? (titleObj.fr || titleObj.en || '') : (w.title || ''),
+        titleFr: titleObj?.fr ?? w.title_fr ?? w.titleFr ?? '',
+        titleEn: titleObj?.en ?? w.title_en ?? w.titleEn ?? '',
+        titlePt: titleObj?.pt ?? w.title_pt ?? w.titlePt ?? '',
+        titleAr: titleObj?.ar ?? w.title_ar ?? w.titleAr ?? '',
+        titleEs: titleObj?.es ?? w.title_es ?? w.titleEs ?? '',
+        titleSw: titleObj?.sw ?? w.title_sw ?? w.titleSw ?? '',
         config: w.config ?? {},
         grid: w.grid ?? { x: 0, y: 0, w: 6, h: 4 },
         dataSource: w.dataSource,
@@ -180,7 +187,11 @@ function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onRe
         title: meta ? (meta.title_fr || meta.title_en || meta.title || '') : (id === 'default' ? '' : id),
         titleFr: meta?.title_fr ?? '',
         titleEn: meta?.title_en ?? '',
-        collapsed: false,
+        titlePt: meta?.title_pt ?? '',
+        titleAr: meta?.title_ar ?? '',
+        titleEs: meta?.title_es ?? '',
+        titleSw: meta?.title_sw ?? '',
+        isCollapsed: false,
         columnCount: meta?.column_count ?? meta?.columnCount ?? 1,
         sortOrder: meta?.sort_order ?? meta?.sortOrder ?? 0,
         config: meta?.config ?? {},
