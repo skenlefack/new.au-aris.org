@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 interface DomainCampaignsSectionProps {
   domain: string;
@@ -14,6 +15,7 @@ interface DomainCampaignsSectionProps {
 
 export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) {
   const t = useTranslations('shared');
+  const locale = useLocaleStore((s) => s.locale);
   const { data, isLoading, isError } = useCollectionCampaigns({
     domain,
     status: 'ACTIVE',
@@ -79,7 +81,7 @@ export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) 
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 line-clamp-1 dark:text-gray-100">
-                      {typeof campaign.name === 'object' ? (campaign.name?.en ?? campaign.name?.fr ?? Object.values(campaign.name)[0]) : campaign.name}
+                      {typeof campaign.name === 'object' ? (campaign.name?.[locale] ?? campaign.name?.en ?? campaign.name?.fr ?? Object.values(campaign.name)[0]) : campaign.name}
                     </p>
                     <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
                       {campaign.totalSubmissions ?? 0}
