@@ -5,6 +5,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { GripVertical, Settings, Trash2, Copy, Download, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import type { DashboardWidget } from '@/lib/api/dashboard-hooks';
 import { WidgetRenderer } from './WidgetRenderer';
 
@@ -62,7 +63,21 @@ export function DraggableWidget({
   onDuplicate,
 }: DraggableWidgetProps) {
   const t = useTranslations('dashboard');
+  const locale = useLocaleStore((s) => s.locale);
   const widgetRef = React.useRef<HTMLDivElement>(null);
+
+  // Resolve widget title reactively based on locale
+  const displayTitle = (() => {
+    const w = widget as any;
+    switch (locale) {
+      case 'en': return w.titleEn || w.title_en || w.titleFr || w.title_fr || w.title || '';
+      case 'pt': return w.titlePt || w.title_pt || w.titleFr || w.title_fr || w.title || '';
+      case 'ar': return w.titleAr || w.title_ar || w.titleFr || w.title_fr || w.title || '';
+      case 'es': return w.titleEs || w.title_es || w.titleFr || w.title_fr || w.title || '';
+      case 'sw': return w.titleSw || w.title_sw || w.titleEn || w.title_en || w.title || '';
+      default:   return w.titleFr || w.title_fr || w.title || w.titleEn || w.title_en || '';
+    }
+  })();
 
   const handleExportCsv = React.useCallback(() => {
     if (!data) return;
@@ -80,7 +95,7 @@ export function DraggableWidget({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${widget.title || 'widget'}.csv`;
+    a.download = `${displayTitle || 'widget'}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }, [data, widget.title]);
@@ -94,7 +109,7 @@ export function DraggableWidget({
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${widget.title || 'widget'}.png`;
+      a.download = `${displayTitle || 'widget'}.png`;
       a.click();
     } catch {
       // html2canvas not available — fallback: copy SVG if present
@@ -105,7 +120,7 @@ export function DraggableWidget({
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${widget.title || 'widget'}.svg`;
+        a.download = `${displayTitle || 'widget'}.svg`;
         a.click();
         URL.revokeObjectURL(url);
       }
@@ -167,7 +182,7 @@ export function DraggableWidget({
               </button>
             )}
             <h3 className="truncate text-[12px] font-semibold text-gray-600 dark:text-gray-300 tracking-tight">
-              {widget.title}
+              {displayTitle}
             </h3>
           </div>
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">

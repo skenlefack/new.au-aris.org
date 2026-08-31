@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useAnimatedCounter } from './useAnimatedCounter';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -54,16 +55,9 @@ interface KpiCardWidgetProps {
   color?: string;
 }
 
-function resolveLabel(label: string, labels?: Record<string, string>): string {
+function resolveLabel(label: string, labels?: Record<string, string>, locale = 'fr'): string {
   if (!labels) return label;
-  try {
-    const raw = typeof window !== 'undefined' && localStorage.getItem('aris-locale');
-    if (raw) {
-      const locale = JSON.parse(raw)?.state?.locale ?? 'fr';
-      return labels[locale] || labels.fr || labels.en || label;
-    }
-  } catch { /* ignore */ }
-  return labels.fr || labels.en || label;
+  return labels[locale] || labels.fr || labels.en || label;
 }
 
 export function KpiCardWidget({
@@ -104,7 +98,8 @@ export function KpiCardWidget({
         : 'text-gray-400';
 
   const Icon = icon ? ICON_MAP[icon] : null;
-  const displayLabel = resolveLabel(label, labels);
+  const locale = useLocaleStore((s) => s.locale);
+  const displayLabel = resolveLabel(label, labels, locale);
   const animatedValue = useAnimatedCounter(typeof value === 'number' ? value : 0);
 
   return (
