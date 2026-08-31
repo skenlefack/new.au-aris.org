@@ -5633,6 +5633,8 @@
     "pprFramework": "إطار النتائج",
     "valueCrossTitle": "عرض شامل لسلسلة القيمة",
     "valueCrossDesc": "عرض جميع النطاقات الفرعية المرتبطة بالسلسلة \"{code}\" عبر المجالات",
-    "valueCrossExplore": "استكشاف"
+    "valueCrossExplore": "استكشاف",
+    "topCountriesTitle": "أفضل 10 دول",
+    "topCountriesSubtitle": "حسب عدد التقديمات"
   }
 }

@@ -5632,6 +5632,8 @@
     "pprFramework": "Mfumo wa Matokeo",
     "valueCrossTitle": "Mtazamo wa msalaba wa mnyororo wa thamani",
     "valueCrossDesc": "Angalia sekta ndogo zote zilizounganishwa na mnyororo \"{code}\" kwenye vikoa",
-    "valueCrossExplore": "Chunguza"
+    "valueCrossExplore": "Chunguza",
+    "topCountriesTitle": "Nchi 10 Bora",
+    "topCountriesSubtitle": "Kwa idadi ya mawasilisho"
   }
 }

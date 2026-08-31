@@ -5632,6 +5632,8 @@
     "pprFramework": "Cadre de Resultats",
     "valueCrossTitle": "Vue transverse de la chaine de valeur",
     "valueCrossDesc": "Voir tous les sous-domaines lies a la chaine \"{code}\" a travers les domaines",
-    "valueCrossExplore": "Explorer"
+    "valueCrossExplore": "Explorer",
+    "topCountriesTitle": "Top 10 Pays",
+    "topCountriesSubtitle": "Par nombre de soumissions"
   }
 }

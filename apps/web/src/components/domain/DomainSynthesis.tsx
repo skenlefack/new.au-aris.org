@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
+  BarChart, Bar,
 } from 'recharts';
 import { Maximize2, Minimize2, Download, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -189,40 +190,29 @@ function TrendChart({ data, domainColor, height = 280, submissionsLabel = 'Submi
   );
 }
 
-function BreakdownChart({ data, height = 280, noDataLabel = 'No data' }: {
-  data: Array<{ name: string; value: number; color: string }>;
+function TopCountriesChart({ data, height = 280, domainColor = '#1F4E79', noDataLabel = 'No data', valueLabel = 'Submissions' }: {
+  data: Array<{ name: string; value: number }>;
   height?: number;
+  domainColor?: string;
   noDataLabel?: string;
+  valueLabel?: string;
 }) {
   if (data.length === 0) {
     return <div className="flex items-center justify-center text-sm text-gray-400" style={{ height }}>{noDataLabel}</div>;
   }
+  const yWidth = Math.min(120, Math.max(70, ...data.map((d) => d.name.length * 7)));
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="45%"
-          innerRadius={height > 400 ? 80 : 55}
-          outerRadius={height > 400 ? 140 : 90}
-          paddingAngle={2}
-          dataKey="value"
-          labelLine={false}
-          label={({ percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
-          animationBegin={200}
-          animationDuration={800}
-        >
-          {data.map((entry, idx) => (
-            <Cell key={idx} fill={entry.color} stroke="none" />
-          ))}
-        </Pie>
+      <BarChart data={data} layout="vertical" margin={{ left: 0, right: 16, top: 4, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+        <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={yWidth} interval={0} />
+        <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)} />
         <Tooltip
           contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
-          formatter={(value: number) => value.toLocaleString()}
+          formatter={(value: number) => [value.toLocaleString(), valueLabel]}
         />
-        <Legend verticalAlign="bottom" iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
-      </PieChart>
+        <Bar dataKey="value" fill={domainColor} radius={[0, 4, 4, 0]} />
+      </BarChart>
     </ResponsiveContainer>
   );
 }
@@ -255,12 +245,12 @@ export function DomainSynthesis({ synthesis, loading, domainColor = '#1F4E79' }:
     rec: '',
   }));
 
-  const pieData = synthesis.subDomainBreakdown
-    .filter((s) => s.count > 0)
-    .map((s, i) => ({
-      name: s.label || s.code,
-      value: s.count,
-      color: COLORS[i % COLORS.length],
+  const topCountriesData = [...synthesis.countryDistribution]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+    .map((c) => ({
+      name: c.name ?? c.code ?? '',
+      value: c.count,
     }));
 
   return (
@@ -309,26 +299,26 @@ export function DomainSynthesis({ synthesis, loading, domainColor = '#1F4E79' }:
         </div>
       </WidgetCard>
 
-      {/* 3. Sub-domain Donut */}
+      {/* 3. Top 10 Countries */}
       <WidgetCard
-        title={t('breakdownTitle')}
-        subtitle={t('breakdownSubtitle')}
+        title={t('topCountriesTitle')}
+        subtitle={t('topCountriesSubtitle')}
         exportLabel={t('export')}
         fullscreenLabel={t('fullscreen')}
         onExport={() => {
           exportToCSV(
-            synthesis.subDomainBreakdown.map((s) => ({ sub_domain: s.label || s.code, [t('csvSubmissions')]: s.count })),
-            'subdomain-breakdown',
+            topCountriesData.map((c) => ({ [t('csvCountry')]: c.name, [t('csvSubmissions')]: c.value })),
+            'top-countries',
           );
         }}
         fullscreenContent={
           <div ref={pieRef}>
-            <BreakdownChart data={pieData} height={600} noDataLabel={t('noData')} />
+            <TopCountriesChart data={topCountriesData} height={600} domainColor={domainColor} noDataLabel={t('noData')} valueLabel={t('submissions')} />
           </div>
         }
       >
         <div ref={pieRef}>
-          <BreakdownChart data={pieData} height={380} noDataLabel={t('noData')} />
+          <TopCountriesChart data={topCountriesData} height={380} domainColor={domainColor} noDataLabel={t('noData')} valueLabel={t('submissions')} />
         </div>
       </WidgetCard>
     </div>

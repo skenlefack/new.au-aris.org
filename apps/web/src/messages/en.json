@@ -5632,6 +5632,8 @@
     "pprFramework": "Results Framework",
     "valueCrossTitle": "Cross-domain value chain view",
     "valueCrossDesc": "See all sub-domains linked to the \"{code}\" chain across domains",
-    "valueCrossExplore": "Explore"
+    "valueCrossExplore": "Explore",
+    "topCountriesTitle": "Top 10 Countries",
+    "topCountriesSubtitle": "By number of submissions"
   }
 }

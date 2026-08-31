@@ -5633,6 +5633,8 @@
     "pprFramework": "Quadro de Resultados",
     "valueCrossTitle": "Vista transversal da cadeia de valor",
     "valueCrossDesc": "Ver todos os subdomínios ligados à cadeia \"{code}\" entre os domínios",
-    "valueCrossExplore": "Explorar"
+    "valueCrossExplore": "Explorar",
+    "topCountriesTitle": "Top 10 Países",
+    "topCountriesSubtitle": "Por número de submissões"
   }
 }
