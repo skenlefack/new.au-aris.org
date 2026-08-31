@@ -666,7 +666,15 @@
     "saving": "Guardando...",
     "save": "Guardar",
     "undoTooltip": "Deshacer (Ctrl+Z)",
-    "redoTooltip": "Rehacer (Ctrl+Shift+Z)"
+    "redoTooltip": "Rehacer (Ctrl+Shift+Z)",
+    "zonePrincipal": "Tablero principal",
+    "zoneDomain": "Tablero",
+    "defaultBadge": "Predeterminado",
+    "changeDashboard": "Cambiar",
+    "setAsDefault": "Establecer como predeterminado",
+    "noDashboardConfigured": "Ningún tablero configurado",
+    "createDashboardHint": "Cree un tablero personalizado desde \"Mis tableros\"",
+    "createDashboard": "Crear un tablero"
   },
   "auth": {
     "signIn": "Iniciar Sesión",
@@ -3983,7 +3991,11 @@
     "customTenantFieldsLegend": "Campos personalizados del inquilino",
     "formNotFoundMsg": "Formulario no encontrado",
     "previewTitle": "Vista previa: {name}",
-    "saveChanges": "Guardar Cambios"
+    "saveChanges": "Guardar Cambios",
+    "labResultsTab": "Resultados de Laboratorio",
+    "dashboardsTab": "Tableros",
+    "dashboardSingular": "Tablero",
+    "createCustomDashboard": "Crear un tablero personalizado"
   },
   "masterData": {
     "title": "Datos Maestros",

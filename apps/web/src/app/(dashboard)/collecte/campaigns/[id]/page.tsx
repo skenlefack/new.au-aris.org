@@ -410,7 +410,7 @@ export default function CampaignDetailPage() {
             )}
           >
             <FlaskConical className="h-4 w-4" />
-            Résultats Laboratoire
+            {t('labResultsTab')}
           </button>
         )}
         <button
@@ -423,7 +423,7 @@ export default function CampaignDetailPage() {
           )}
         >
           <LayoutDashboard className="h-4 w-4" />
-          Tableaux de bord
+          {t('dashboardsTab')}
         </button>
       </div>
 
@@ -850,7 +850,7 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              {dashboards.length === 1 ? 'Tableau de bord' : `Tableaux de bord (${dashboards.length})`}
+              {dashboards.length === 1 ? t('dashboardSingular') : `${t('dashboardsTab')} (${dashboards.length})`}
             </h3>
             <button
               onClick={handleCreate}
@@ -858,7 +858,7 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
               className="flex items-center gap-2 rounded-lg bg-[#1F4E79] px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-[#163a5c] disabled:opacity-50 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
-              Nouveau
+              {t('newDashboard')}
             </button>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -900,7 +900,7 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-colors dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
           >
             <Plus className="h-3.5 w-3.5" />
-            Créer un tableau de bord personnalisé
+            {t('createCustomDashboard')}
           </button>
         </div>
       )}

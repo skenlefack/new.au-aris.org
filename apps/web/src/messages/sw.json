@@ -666,7 +666,15 @@
     "saving": "Inahifadhi...",
     "save": "Hifadhi",
     "undoTooltip": "Tendua (Ctrl+Z)",
-    "redoTooltip": "Fanya Tena (Ctrl+Shift+Z)"
+    "redoTooltip": "Fanya Tena (Ctrl+Shift+Z)",
+    "zonePrincipal": "Dashibodi kuu",
+    "zoneDomain": "Dashibodi",
+    "defaultBadge": "Chaguo-msingi",
+    "changeDashboard": "Badilisha",
+    "setAsDefault": "Weka kama chaguo-msingi",
+    "noDashboardConfigured": "Hakuna dashibodi iliyosanidiwa",
+    "createDashboardHint": "Unda dashibodi maalum kutoka \"Dashibodi zangu\"",
+    "createDashboard": "Unda dashibodi"
   },
   "auth": {
     "signIn": "Ingia",
@@ -3982,7 +3990,11 @@
     "customTenantFieldsLegend": "Sehemu maalum za mkazi",
     "formNotFoundMsg": "Fomu haikupatikana",
     "previewTitle": "Hakikisho: {name}",
-    "saveChanges": "Hifadhi Mabadiliko"
+    "saveChanges": "Hifadhi Mabadiliko",
+    "labResultsTab": "Matokeo ya Maabara",
+    "dashboardsTab": "Dashibodi",
+    "dashboardSingular": "Dashibodi",
+    "createCustomDashboard": "Unda dashibodi maalum"
   },
   "masterData": {
     "title": "Data Kuu",

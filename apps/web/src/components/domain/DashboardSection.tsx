@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import {
   useDefaultDashboard,
   useDashboard,
@@ -36,12 +38,24 @@ interface DashboardSectionProps {
   zone?: 'principal' | 'domain';
 }
 
-const ZONE_LABELS = {
-  principal: 'Tableau de bord principal',
-  domain: 'Tableau de bord',
-};
+function pickDashTitle(d: any, locale: string): string {
+  switch (locale) {
+    case 'en': return d?.title_en || d?.titleEn || d?.title_fr || d?.titleFr || d?.title || '';
+    case 'pt': return d?.title_pt || d?.titlePt || d?.title_fr || d?.titleFr || d?.title || '';
+    case 'ar': return d?.title_ar || d?.titleAr || d?.title_fr || d?.titleFr || d?.title || '';
+    case 'es': return d?.title_es || d?.titleEs || d?.title_fr || d?.titleFr || d?.title || '';
+    case 'sw': return d?.title_sw || d?.titleSw || d?.title_en || d?.titleEn || d?.title || '';
+    default:   return d?.title_fr || d?.titleFr || d?.title || d?.title_en || d?.titleEn || '';
+  }
+}
 
 export function DashboardSection({ scope, target, domainCode, zone = 'domain' }: DashboardSectionProps) {
+  const t = useTranslations('dashboard');
+  const locale = useLocaleStore((s) => s.locale);
+  const ZONE_LABELS = {
+    principal: t('zonePrincipal'),
+    domain: t('zoneDomain'),
+  };
   const targetKey = target.subDomainId
     ? `sub:${target.subDomainId}`
     : target.domainId
@@ -69,7 +83,7 @@ export function DashboardSection({ scope, target, domainCode, zone = 'domain' }:
   const renderLoading = detailLoading;
 
   const d = loadedDashboard as any;
-  const dashTitle = d?.title_fr || d?.titleFr || d?.title || d?.title_en || d?.titleEn || '';
+  const dashTitle = pickDashTitle(d, locale);
 
   const handleSetDefault = () => {
     if (!activeDashboardId) return;
@@ -112,7 +126,7 @@ export function DashboardSection({ scope, target, domainCode, zone = 'domain' }:
         {/* Default badge */}
         {activeDashboardId && activeDashboardId === defaultDashboard?.id && (
           <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 shrink-0">
-            Par defaut
+            {t('defaultBadge')}
           </span>
         )}
 
@@ -126,7 +140,7 @@ export function DashboardSection({ scope, target, domainCode, zone = 'domain' }:
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
             >
-              Changer
+              {t('changeDashboard')}
               <ChevronDown className={cn('h-3 w-3 transition-transform', dropdownOpen && 'rotate-180')} />
             </button>
             {dropdownOpen && (
@@ -163,7 +177,7 @@ export function DashboardSection({ scope, target, domainCode, zone = 'domain' }:
             onClick={handleSetDefault}
             disabled={setPreference.isPending}
             className="rounded-md p-1.5 text-gray-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/20 dark:hover:text-amber-400 shrink-0"
-            title="Definir comme defaut"
+            title={t('setAsDefault')}
           >
             <Star className="h-3.5 w-3.5" />
           </button>
@@ -174,7 +188,7 @@ export function DashboardSection({ scope, target, domainCode, zone = 'domain' }:
           <Link
             href={`/dashboards/${activeDashboardId}/edit`}
             className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300 shrink-0"
-            title="Modifier"
+            title={t('editDashboard')}
           >
             <Pencil className="h-3.5 w-3.5" />
           </Link>
@@ -184,7 +198,7 @@ export function DashboardSection({ scope, target, domainCode, zone = 'domain' }:
         <button
           onClick={() => setIsFullscreen(!isFullscreen)}
           className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300 shrink-0"
-          title={isFullscreen ? 'Quitter le plein ecran' : 'Plein ecran'}
+          title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
         >
           {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </button>
@@ -211,17 +225,17 @@ export function DashboardSection({ scope, target, domainCode, zone = 'domain' }:
           <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
             <LayoutDashboard className="h-10 w-10 text-gray-300 dark:text-gray-600" />
             <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">
-              Aucun tableau de bord configure
+              {t('noDashboardConfigured')}
             </p>
             <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-              Creez un tableau de bord personnalise depuis &quot;Mes tableaux de bord&quot;
+              {t('createDashboardHint')}
             </p>
             <Link
               href={`/my-dashboards${domainCode ? `?domain=${domainCode}` : ''}`}
               className="mt-4 flex items-center gap-1.5 rounded-lg bg-[#1F4E79] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#1a4060]"
             >
               <Plus className="h-3.5 w-3.5" />
-              Creer un tableau de bord
+              {t('createDashboard')}
             </Link>
           </div>
         )}

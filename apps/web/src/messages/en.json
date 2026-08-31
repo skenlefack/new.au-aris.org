@@ -666,7 +666,15 @@
     "saving": "Saving...",
     "save": "Save",
     "undoTooltip": "Undo (Ctrl+Z)",
-    "redoTooltip": "Redo (Ctrl+Shift+Z)"
+    "redoTooltip": "Redo (Ctrl+Shift+Z)",
+    "zonePrincipal": "Main dashboard",
+    "zoneDomain": "Dashboard",
+    "defaultBadge": "Default",
+    "changeDashboard": "Change",
+    "setAsDefault": "Set as default",
+    "noDashboardConfigured": "No dashboard configured",
+    "createDashboardHint": "Create a custom dashboard from \"My dashboards\"",
+    "createDashboard": "Create a dashboard"
   },
   "auth": {
     "signIn": "Sign In",
@@ -3982,7 +3990,11 @@
     "customTenantFieldsLegend": "Custom tenant fields",
     "formNotFoundMsg": "Form not found",
     "previewTitle": "Preview: {name}",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "labResultsTab": "Lab Results",
+    "dashboardsTab": "Dashboards",
+    "dashboardSingular": "Dashboard",
+    "createCustomDashboard": "Create a custom dashboard"
   },
   "masterData": {
     "title": "Master Data",

@@ -666,7 +666,15 @@
     "saving": "جارٍ الحفظ...",
     "save": "حفظ",
     "undoTooltip": "تراجع (Ctrl+Z)",
-    "redoTooltip": "إعادة (Ctrl+Shift+Z)"
+    "redoTooltip": "إعادة (Ctrl+Shift+Z)",
+    "zonePrincipal": "لوحة المعلومات الرئيسية",
+    "zoneDomain": "لوحة المعلومات",
+    "defaultBadge": "افتراضي",
+    "changeDashboard": "تغيير",
+    "setAsDefault": "تعيين كافتراضي",
+    "noDashboardConfigured": "لا توجد لوحة معلومات مهيأة",
+    "createDashboardHint": "أنشئ لوحة معلومات مخصصة من \"لوحاتي\"",
+    "createDashboard": "إنشاء لوحة معلومات"
   },
   "auth": {
     "signIn": "تسجيل الدخول",
@@ -3983,7 +3991,11 @@
     "customTenantFieldsLegend": "الحقول المخصصة للمستأجر",
     "formNotFoundMsg": "النموذج غير موجود",
     "previewTitle": "معاينة: {name}",
-    "saveChanges": "حفظ التغييرات"
+    "saveChanges": "حفظ التغييرات",
+    "labResultsTab": "نتائج المختبر",
+    "dashboardsTab": "لوحات المعلومات",
+    "dashboardSingular": "لوحة المعلومات",
+    "createCustomDashboard": "إنشاء لوحة معلومات مخصصة"
   },
   "masterData": {
     "title": "البيانات المرجعية",

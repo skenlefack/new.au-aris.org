@@ -666,7 +666,15 @@
     "saving": "A guardar...",
     "save": "Guardar",
     "undoTooltip": "Desfazer (Ctrl+Z)",
-    "redoTooltip": "Refazer (Ctrl+Shift+Z)"
+    "redoTooltip": "Refazer (Ctrl+Shift+Z)",
+    "zonePrincipal": "Painel principal",
+    "zoneDomain": "Painel",
+    "defaultBadge": "Padrão",
+    "changeDashboard": "Alterar",
+    "setAsDefault": "Definir como padrão",
+    "noDashboardConfigured": "Nenhum painel configurado",
+    "createDashboardHint": "Crie um painel personalizado em \"Meus painéis\"",
+    "createDashboard": "Criar um painel"
   },
   "auth": {
     "signIn": "Entrar",
@@ -3983,7 +3991,11 @@
     "customTenantFieldsLegend": "Campos personalizados do tenant",
     "formNotFoundMsg": "Formulário não encontrado",
     "previewTitle": "Pré-visualização: {name}",
-    "saveChanges": "Guardar Alterações"
+    "saveChanges": "Guardar Alterações",
+    "labResultsTab": "Resultados Laboratoriais",
+    "dashboardsTab": "Painéis",
+    "dashboardSingular": "Painel",
+    "createCustomDashboard": "Criar um painel personalizado"
   },
   "masterData": {
     "title": "Dados Mestres",
