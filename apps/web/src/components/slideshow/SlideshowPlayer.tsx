@@ -438,14 +438,17 @@ function SmartTicker({ dashboardId, accentColor, isDark, isPublic, preRendered }
 }
 
 /** Live clock — updates every second, BBC-style */
-function LiveClock({ isDark, accentColor }: { isDark: boolean; accentColor: string }) {
+const LOCALE_MAP: Record<string, string> = { en: 'en-GB', fr: 'fr-FR', pt: 'pt-PT', ar: 'ar-SA', es: 'es-ES', sw: 'sw-KE' };
+
+function LiveClock({ isDark, accentColor, locale = 'fr' }: { isDark: boolean; accentColor: string; locale?: string }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const date = now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  const loc = LOCALE_MAP[locale] || 'fr-FR';
+  const time = now.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const date = now.toLocaleDateString(loc, { day: '2-digit', month: 'short', year: 'numeric' });
   return (
     <div className="flex flex-col items-center leading-none gap-0.5">
       <span className="text-sm font-bold tracking-wider text-white tabular-nums">{time}</span>
@@ -975,7 +978,7 @@ export function SlideshowPlayer({
             )}
 
             {/* Live clock */}
-            <LiveClock isDark={isDark} accentColor={themeColor.accent} />
+            <LiveClock isDark={isDark} accentColor={themeColor.accent} locale={locale} />
           </div>
         </div>
       </footer>
