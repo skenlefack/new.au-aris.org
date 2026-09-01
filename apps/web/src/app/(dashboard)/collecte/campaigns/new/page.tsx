@@ -35,7 +35,7 @@ import { SubDomainTreeSelector } from '@/components/forms/SubDomainTreeSelector'
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTenantStore, findTenantById } from '@/lib/stores/tenant-store';
-import { useGeoEntities } from '@/lib/api/geo-hooks';
+import { useGeoEntities, useGeoZones, type GeoZone } from '@/lib/api/geo-hooks';
 import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
 import { MapPin } from 'lucide-react';
 
@@ -155,6 +155,9 @@ function NewCampaignPage() {
   // Admin division targeting (country-level users)
   const [targetAdminZones, setTargetAdminZones] = useState<Array<{ id: string; label: string; level: string }>>([]);
 
+  // GeoZone targeting
+  const [selectedGeoZoneIds, setSelectedGeoZoneIds] = useState<string[]>([]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Auto-select country/REC for restricted users
@@ -186,6 +189,14 @@ function NewCampaignPage() {
       ? { level: 'ADMIN2', countryCode: targetCountryCode, limit: 500 }
       : undefined,
   );
+
+  // Fetch GeoZones for the selected country + first domain
+  const selectedDomain = selectedDomains[0];
+  const { data: geoZonesData } = useGeoZones(
+    targetCountryCode && selectedDomain ? targetCountryCode : undefined,
+    selectedDomain,
+  );
+  const geoZones: GeoZone[] = geoZonesData?.data ?? [];
 
   // AI suggestion dialog
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -360,6 +371,7 @@ function NewCampaignPage() {
       targetCountries: selectedCountries.map((c: CountryConfig) => c.code),
       targetRecIds: selectedRecs.length > 0 ? selectedRecs.map((r) => r.tenantId) : undefined,
       targetZones: targetAdminZones.length > 0 ? targetAdminZones.map((z) => z.id) : undefined,
+      targetGeoZoneIds: selectedGeoZoneIds.length > 0 ? selectedGeoZoneIds : undefined,
       targetSubmissions: targetSubmissions ? parseInt(targetSubmissions, 10) : undefined,
       frequency,
       sendReminders,
@@ -933,6 +945,40 @@ function NewCampaignPage() {
                   onChange={setTargetAdminZones}
                   t={t}
                 />
+              </div>
+            )}
+
+            {/* GeoZone Selector — shown when country + domain are selected */}
+            {targetCountryCode && selectedDomain && (
+              <div className="space-y-3 border-t border-gray-100 pt-4 dark:border-gray-800">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-gray-400" />
+                  {t('targetZones') || 'Target Zones'}
+                  <span className="ml-1 text-xs font-normal text-gray-400">({t('optionalField')})</span>
+                </h3>
+                {geoZones.length === 0 ? (
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    {t('noZonesAvailable') || 'No zones configured for this domain/country'}
+                  </p>
+                ) : (
+                  <MultiSearchCombobox<GeoZone>
+                    value={geoZones.filter((z) => selectedGeoZoneIds.includes(z.id))}
+                    onChange={(zones) => setSelectedGeoZoneIds(zones.map((z) => z.id))}
+                    items={geoZones}
+                    labelKey={(z) => z.name?.en || z.name?.fr || z.code}
+                    idKey={(z) => z.id}
+                    filterKey={(z) => `${z.code} ${z.name?.en ?? ''} ${z.name?.fr ?? ''}`}
+                    placeholder={t('selectGeoZones') || 'Select geographic zones'}
+                    allLabel={t('allZones') || 'All zones'}
+                    renderItem={(z) => (
+                      <span className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-gray-400">{z.code}</span>
+                        <span>{z.name?.en || z.name?.fr || z.code}</span>
+                      </span>
+                    )}
+                    renderChip={(z) => <span>{z.name?.en || z.name?.fr || z.code}</span>}
+                  />
+                )}
               </div>
             )}
           </div>

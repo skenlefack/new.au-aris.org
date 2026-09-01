@@ -1414,7 +1414,7 @@ export class CollectionCampaignService {
     const data: Record<string, unknown> = {};
     for (const key of [
       'name', 'description', 'targetCountries', 'targetRecIds', 'targetAdminAreas',
-      'excludedCountries', 'excludedRecIds',
+      'excludedCountries', 'excludedRecIds', 'targetGeoZoneIds',
       'targetSubmissions', 'targetPerAgent', 'frequency', 'sendReminders', 'reminderDaysBefore', 'metadata', 'formTemplateIds',
       'formTemplateId', 'isPermanent', 'autoActivate', 'autoClose',
     ]) {

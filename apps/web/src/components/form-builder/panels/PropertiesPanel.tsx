@@ -416,6 +416,14 @@ function FieldProperties({ field }: { field: FormField }) {
                     })}
                   </div>
                 </div>
+                <ToggleRow
+                  label={t('showDomainZones')}
+                  checked={!!field.properties.showZones}
+                  onChange={(showZones) => update({ properties: { ...field.properties, showZones } })}
+                />
+                {field.properties.showZones && (
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 -mt-1">{t('showDomainZonesHint')}</p>
+                )}
               </div>
             )}
             {field.type === 'matrix' && (

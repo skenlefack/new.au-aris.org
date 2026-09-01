@@ -26,6 +26,7 @@ import {
   X,
   RotateCcw,
   ChevronDown,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -82,6 +83,7 @@ import {
   useCreateDashboard,
   type DashboardListItem,
 } from '@/lib/api/dashboard-hooks';
+import { useGeoZones, type GeoZone } from '@/lib/api/geo-hooks';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCampaign = any;
@@ -329,6 +331,22 @@ export default function CampaignDetailPage() {
       return c ? { code: c.code, name: c.name, flag: c.flag } : { code, name: code, flag: '' };
     });
   }, [campaign]);
+
+  // Resolve GeoZone info for targetGeoZoneIds
+  const campaignCountryCode = countryInfos.length === 1 ? countryInfos[0].code : undefined;
+  const campaignDomain = campaign?.domain;
+  const { data: campaignGeoZonesData } = useGeoZones(
+    campaignCountryCode && campaignDomain ? campaignCountryCode : undefined,
+    campaignDomain,
+  );
+  const campaignGeoZoneMap = useMemo(() => {
+    const zones: GeoZone[] = campaignGeoZonesData?.data ?? [];
+    return new Map(zones.map((z) => [z.id, z]));
+  }, [campaignGeoZonesData]);
+  const targetGeoZoneIds: string[] = useMemo(
+    () => (Array.isArray(campaign?.targetGeoZoneIds) ? campaign.targetGeoZoneIds : []),
+    [campaign],
+  );
 
   // Detect if any template has lab-processable repeaters
   const labTemplates = useMemo(() => {
@@ -989,6 +1007,24 @@ export default function CampaignDetailPage() {
                 </dt>
                 <dd className="text-xs font-medium text-gray-900 dark:text-white">{countryInfos.length}</dd>
               </div>
+              {targetGeoZoneIds.length > 0 && (
+                <div className="space-y-1.5">
+                  <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1 text-xs">
+                    <MapPin className="h-3.5 w-3.5" /> {t('targetZones') || 'Target Zones'}
+                  </dt>
+                  <dd className="flex flex-wrap gap-1">
+                    {targetGeoZoneIds.map((zid) => {
+                      const zone = campaignGeoZoneMap.get(zid);
+                      const label = zone ? (zone.name?.en || zone.name?.fr || zone.code) : zid.slice(0, 8);
+                      return (
+                        <span key={zid} className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                          {label}
+                        </span>
+                      );
+                    })}
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                   <Users className="h-3.5 w-3.5" /> {t('agents')}

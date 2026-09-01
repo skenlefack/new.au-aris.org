@@ -149,6 +149,18 @@ export class SubmissionService {
       throw err;
     }
 
+    // Extract zone_id from admin_location field if present in form data
+    let geoZoneId: string | undefined;
+    if (dto.data && typeof dto.data === 'object') {
+      const data = dto.data as Record<string, any>;
+      for (const val of Object.values(data)) {
+        if (val && typeof val === 'object' && val.zone_id) {
+          geoZoneId = val.zone_id;
+          break;
+        }
+      }
+    }
+
     // 3. Persist submission
     const submission = await (this.prisma as any).submission.create({
       data: {
@@ -168,6 +180,7 @@ export class SubmissionService {
         dataClassification:
           dto.dataClassification ?? DataClassification.RESTRICTED,
         status: 'SUBMITTED',
+        geoZoneId: geoZoneId ?? null,
       },
     });
 

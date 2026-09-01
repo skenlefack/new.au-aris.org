@@ -218,7 +218,7 @@ function getDefaultPropertiesForType(type: string): Record<string, unknown> {
     case 'date-range':
       return {};
     case 'admin-location':
-      return { levels: [0, 1, 2], requiredLevels: [0], maxAdminLevel: 2 };
+      return { levels: [0, 1, 2], requiredLevels: [0], maxAdminLevel: 2, showZones: false };
     case 'geo-point':
       return { autoDetect: true, allowManualEntry: true, showMap: true };
     case 'geo-polygon':

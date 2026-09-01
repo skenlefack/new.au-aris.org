@@ -167,6 +167,7 @@ model Submission {
   conflictDetectedAt  DateTime?        @map("conflict_detected_at") @db.Timestamptz
   conflictResolvedAt  DateTime?        @map("conflict_resolved_at") @db.Timestamptz
   conflictResolvedBy  String?          @map("conflict_resolved_by") @db.Uuid
+  geoZoneId           String?          @map("geo_zone_id") @db.Uuid
   createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -386,6 +387,7 @@ model CollectionCampaign {
   targetAdminAreas    Json?                    @map("target_admin_areas")
   excludedCountries   Json?                    @map("excluded_countries")
   excludedRecIds      Json?                    @map("excluded_rec_ids")
+  targetGeoZoneIds    Json?                    @map("target_geo_zone_ids")
   targetSubmissions   Int?                     @map("target_submissions")
   targetPerAgent      Int?                     @map("target_per_agent")
   frequency           String?                  @db.VarChar(20) // one_time, daily, weekly, biweekly, monthly, quarterly

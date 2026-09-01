@@ -528,6 +528,8 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
             value={value && typeof value === 'object' ? value as Record<string, string> : null}
             onChange={(v) => onChange(v)}
             campaignTargetCountries={formValues?._campaignTargetCountries as string[] | undefined}
+            showZones={!!field.properties.showZones}
+            domainCode={formValues?._campaignDomain as string | undefined}
           />
         </Suspense>
       )}

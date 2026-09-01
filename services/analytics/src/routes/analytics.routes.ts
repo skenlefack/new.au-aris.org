@@ -182,6 +182,22 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
     return reply.code(200).send({ data });
   });
 
+  // ── Zone KPIs (aggregated by geographic zone) ──
+
+  app.get<{ Params: { zoneId: string }; Querystring: { memberIds?: string } }>(
+    `${PREFIX}/zones/:zoneId/kpis`,
+    { preHandler: [app.authHookFn, tenantHook()] },
+    async (request, reply) => {
+      const { zoneId } = request.params;
+      // memberIds is an optional comma-separated list of Admin1 UUIDs belonging to the zone
+      const memberIds = request.query.memberIds
+        ? request.query.memberIds.split(',').map((id) => id.trim()).filter(Boolean)
+        : [];
+      const data = await app.dbStatsService.getZoneKpis(zoneId, memberIds);
+      return reply.code(200).send({ data });
+    },
+  );
+
   // ── Generic Domain KPIs (mobile app uses /{domainKey}/kpis) ──
 
   app.get(`${PREFIX}/:domainKey/kpis`, {

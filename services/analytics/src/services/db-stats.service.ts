@@ -398,6 +398,78 @@ export class DbStatsService {
     }
   }
 
+  /**
+   * Zone-level KPI aggregation.
+   * Counts submissions where geo_zone_id matches OR admin_location level_1 is in memberIds.
+   * memberIds is an array of Admin1 UUIDs that belong to the zone.
+   */
+  async getZoneKpis(zoneId: string, memberIds: string[] = []): Promise<{
+    zoneId: string;
+    totalSubmissions: number;
+    activeTenants: number;
+    memberBreakdown: Array<{ admin1Id: string; count: number }>;
+  }> {
+    const cacheKey = `analytics:zone-kpis:${zoneId}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch { /* re-fetch */ }
+    }
+
+    const client = await this.pool.connect();
+    try {
+      // Aggregate totals across the zone
+      const { rows: [totals] } = await client.query<{
+        total_submissions: string;
+        active_tenants: string;
+      }>(
+        `SELECT
+          COUNT(*)::bigint AS total_submissions,
+          COUNT(DISTINCT s.tenant_id)::bigint AS active_tenants
+        FROM public.submissions s
+        WHERE s.geo_zone_id = $1
+          OR s.data->'admin_location'->>'level_1' = ANY($2::text[])`,
+        [zoneId, memberIds],
+      );
+
+      // Per-member breakdown (only when memberIds provided)
+      let memberBreakdown: Array<{ admin1Id: string; count: number }> = [];
+      if (memberIds.length > 0) {
+        const { rows: breakdownRows } = await client.query<{
+          admin1_id: string;
+          count: string;
+        }>(
+          `SELECT
+            s.data->'admin_location'->>'level_1' AS admin1_id,
+            COUNT(*)::int AS count
+          FROM public.submissions s
+          WHERE s.data->'admin_location'->>'level_1' = ANY($1::text[])
+          GROUP BY 1
+          ORDER BY count DESC`,
+          [memberIds],
+        );
+        memberBreakdown = breakdownRows.map((r) => ({
+          admin1Id: r.admin1_id,
+          count: Number(r.count),
+        }));
+      }
+
+      const result = {
+        zoneId,
+        totalSubmissions: Number(totals?.total_submissions ?? 0),
+        activeTenants: Number(totals?.active_tenants ?? 0),
+        memberBreakdown,
+      };
+
+      await this.redis.set(cacheKey, JSON.stringify(result), CACHE_TTL);
+      return result;
+    } catch (err) {
+      console.error('[DbStatsService] Zone KPIs query failed:', err);
+      return { zoneId, totalSubmissions: 0, activeTenants: 0, memberBreakdown: [] };
+    } finally {
+      client.release();
+    }
+  }
+
   async close(): Promise<void> {
     await this.pool.end();
   }

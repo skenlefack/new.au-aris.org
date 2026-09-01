@@ -47,6 +47,8 @@ interface FormRendererProps {
   onSubmit?: (data: Record<string, unknown>) => void;
   /** Campaign target countries (ISO codes) — filters admin-location fields */
   campaignTargetCountries?: string[];
+  /** Campaign domain code — passed to admin-location for zone filtering */
+  campaignDomain?: string;
   /** Extension fields from effective form — rendered as an extra section after base sections */
   extensionFields?: ExtensionFieldDef[];
   /** Label for the extension section (defaults to "Extension Fields") */
@@ -67,7 +69,7 @@ function isEmptyValue(value: unknown): boolean {
 /** Layout/display-only field types that should never be required */
 const LAYOUT_TYPES = new Set(['heading', 'divider', 'spacer', 'info-box']);
 
-export function FormRenderer({ schema, formName, mobile = false, preview = false, isSubmitting = false, onSubmit, campaignTargetCountries, extensionFields, extensionSectionLabel, initialValues, submitLabel }: FormRendererProps) {
+export function FormRenderer({ schema, formName, mobile = false, preview = false, isSubmitting = false, onSubmit, campaignTargetCountries, campaignDomain, extensionFields, extensionSectionLabel, initialValues, submitLabel }: FormRendererProps) {
   const t = useTranslations('collecte');
   const [values, setValues] = useState<Record<string, unknown>>(initialValues ?? {});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -286,10 +288,12 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
               <SectionRenderer
                 key={section.id}
                 section={section}
-                values={campaignTargetCountries
-                  ? { ...values, _campaignTargetCountries: campaignTargetCountries }
-                  : values
-                }
+                values={(() => {
+                  const mergedValues = { ...values };
+                  if (campaignTargetCountries) mergedValues._campaignTargetCountries = campaignTargetCountries;
+                  if (campaignDomain) mergedValues._campaignDomain = campaignDomain;
+                  return mergedValues;
+                })()}
                 onChange={handleFieldChange}
                 fieldErrors={fieldErrors}
                 isCollapsed={collapsedSections.has(section.id)}

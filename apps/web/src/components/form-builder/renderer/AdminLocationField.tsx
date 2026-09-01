@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { COUNTRIES } from '@/data/countries-config';
 import { RECS } from '@/data/recs-config';
 import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
-import { useGeoEntities, useGeoChildren } from '@/lib/api/geo-hooks';
+import { useGeoEntities, useGeoChildren, useGeoZones } from '@/lib/api/geo-hooks';
 import { useAdminLevels, type AdminLevel } from '@/lib/api/settings-hooks';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -21,6 +21,10 @@ interface AdminLocationFieldProps {
   onChange: (value: Record<string, string> | null) => void;
   /** Campaign target countries (ISO codes) — restricts country dropdown */
   campaignTargetCountries?: string[];
+  /** Whether to show a domain zone selector (filters Admin1 options) */
+  showZones?: boolean;
+  /** Domain code to scope zone options */
+  domainCode?: string;
 }
 
 /** Generic fallback labels when no country-specific config exists */
@@ -85,6 +89,8 @@ export function AdminLocationField({
   value,
   onChange,
   campaignTargetCountries,
+  showZones = false,
+  domainCode,
 }: AdminLocationFieldProps) {
   const locale = useLocaleStore((s) => s.locale);
   const user = useAuthStore((s) => s.user);
@@ -145,6 +151,16 @@ export function AdminLocationField({
   }, [value]);
 
   const selectedCountry = selections['level_0'] || '';
+
+  // ── Zone selector (domain-specific geographic zones) ──────────────
+  const { data: zonesData } = useGeoZones(
+    showZones && selectedCountry ? selectedCountry : undefined,
+    showZones && domainCode ? domainCode : undefined,
+  );
+  const zones = zonesData?.data ?? [];
+  const selectedZoneId = selections['zone_id'] || '';
+  const selectedZone = zones.find((z: any) => z.id === selectedZoneId);
+
   const selectedAdmin1 = selections['level_1'] || '';
   const selectedAdmin2 = selections['level_2'] || '';
   const selectedAdmin3 = selections['level_3'] || '';
@@ -248,8 +264,12 @@ export function AdminLocationField({
 
   const admin1Options = useMemo(() => {
     if (!admin1Data?.data) return [];
-    return buildOptions(admin1Data.data as any);
-  }, [admin1Data, buildOptions]);
+    const list = admin1Data.data as any[];
+    const filtered = selectedZone
+      ? list.filter((e: any) => selectedZone.memberIds.includes(e.id))
+      : list;
+    return buildOptions(filtered);
+  }, [admin1Data, buildOptions, selectedZone]);
 
   const admin2Options = useMemo(() => {
     if (admin2ChildData?.data && admin2ChildData.data.length > 0) {
@@ -387,6 +407,25 @@ export function AdminLocationField({
         delete updated[`level_${l}`];
       }
     }
+    // Clear zone and admin1+ when country changes
+    if (level === 0) {
+      delete updated['zone_id'];
+    }
+    setSelections(updated);
+    onChange(Object.keys(updated).length > 0 ? updated : null);
+  };
+
+  const handleZoneChange = (zoneId: string) => {
+    const updated = { ...selections };
+    if (zoneId) {
+      updated['zone_id'] = zoneId;
+    } else {
+      delete updated['zone_id'];
+    }
+    // Clear admin1 and deeper when zone changes
+    for (const l of levels) {
+      if (l >= 1) delete updated[`level_${l}`];
+    }
     setSelections(updated);
     onChange(Object.keys(updated).length > 0 ? updated : null);
   };
@@ -441,6 +480,30 @@ export function AdminLocationField({
         <MapPin className="h-4 w-4" />
         <span>{locale === 'fr' ? 'Localisation Administrative' : 'Administrative Location'}</span>
       </div>
+      {/* Zone selector — shown when showZones is enabled and a country is selected */}
+      {showZones && selectedCountry && zones.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            {locale === 'fr' ? 'Zone' : 'Zone'}
+          </label>
+          <select
+            value={selectedZoneId}
+            onChange={(e) => handleZoneChange(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">
+              {locale === 'fr' ? 'Toutes les divisions' : 'All divisions'}
+            </option>
+            {zones.map((z: any) => {
+              const zoneName = typeof z.name === 'string' ? z.name : (z.name?.[locale] || z.name?.en || z.code);
+              return (
+                <option key={z.id} value={z.id}>{zoneName}</option>
+              );
+            })}
+          </select>
+        </div>
+      )}
+
       <div className={cn('grid grid-cols-1 gap-3', levels.length <= 3 ? 'md:grid-cols-3' : levels.length <= 4 ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 lg:grid-cols-3')}>
         {levels.map((level) => {
           const isRequired = requiredLevels.includes(level);
