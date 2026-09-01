@@ -16,6 +16,10 @@ import {
   Search,
   Check,
   ChevronDown,
+  BarChart3,
+  FileText,
+  Users,
+  List,
 } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useSettingsCountry } from '@/lib/api/settings-hooks';
@@ -27,6 +31,7 @@ import {
   type GeoZone,
 } from '@/lib/api/settings-hooks';
 import { useGeoEntities, type GeoEntity } from '@/lib/api/geo-hooks';
+import { useZoneKpis, type ZoneKpis } from '@/lib/api/analytics-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 
@@ -446,6 +451,119 @@ function ZoneFormModal({
   );
 }
 
+// ─── Zone KPI Card ────────────────────────────────────────────────────────────
+
+function ZoneKpiCard({
+  zone,
+  admin1Map,
+  domainLabel,
+}: {
+  zone: GeoZone;
+  admin1Map: Map<string, GeoEntity>;
+  domainLabel: (code: string) => string;
+}) {
+  const { data: kpiData, isLoading } = useZoneKpis(zone.id, zone.memberIds);
+  const kpis = kpiData?.data;
+
+  const memberNames = zone.memberIds
+    .map((id) => admin1Map.get(id)?.name?.en ?? '?')
+    .slice(0, 5);
+  const moreCount = Math.max(0, zone.memberIds.length - 5);
+
+  // Simple bar chart data
+  const breakdown = kpis?.memberBreakdown ?? [];
+  const maxCount = Math.max(1, ...breakdown.map((b) => b.count));
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="font-semibold text-gray-900 dark:text-white">{zone.name?.en}</h3>
+          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 mt-1">
+            {domainLabel(zone.domainCode)}
+          </span>
+        </div>
+        <span className="font-mono text-xs text-gray-400">{zone.code}</span>
+      </div>
+
+      {/* KPI Numbers */}
+      <div className="mt-4 grid grid-cols-3 gap-3">
+        <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/50">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <FileText className="h-3.5 w-3.5" />
+            Submissions
+          </div>
+          <p className="mt-1 text-lg font-bold text-gray-900 dark:text-white">
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (kpis?.totalSubmissions ?? 0).toLocaleString()}
+          </p>
+        </div>
+        <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/50">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <Users className="h-3.5 w-3.5" />
+            Tenants
+          </div>
+          <p className="mt-1 text-lg font-bold text-gray-900 dark:text-white">
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (kpis?.activeTenants ?? 0)}
+          </p>
+        </div>
+        <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/50">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <Map className="h-3.5 w-3.5" />
+            Regions
+          </div>
+          <p className="mt-1 text-lg font-bold text-gray-900 dark:text-white">
+            {zone.memberIds.length}
+          </p>
+        </div>
+      </div>
+
+      {/* Member breakdown mini bar chart */}
+      {!isLoading && breakdown.length > 0 && (
+        <div className="mt-4 space-y-1.5">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Breakdown by region</p>
+          {breakdown.slice(0, 6).map((b) => {
+            const name = admin1Map.get(b.admin1Id)?.name?.en ?? b.admin1Id.slice(0, 8);
+            const pct = (b.count / maxCount) * 100;
+            return (
+              <div key={b.admin1Id} className="flex items-center gap-2">
+                <span className="w-20 truncate text-xs text-gray-600 dark:text-gray-400" title={name}>
+                  {name}
+                </span>
+                <div className="flex-1 h-3 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-aris-primary-500"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className="w-8 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
+                  {b.count}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Member tags */}
+      <div className="mt-3 flex flex-wrap gap-1">
+        {memberNames.map((name, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+          >
+            {name}
+          </span>
+        ))}
+        {moreCount > 0 && (
+          <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+            +{moreCount}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function GeoZonesPage() {
@@ -458,6 +576,9 @@ export default function GeoZonesPage() {
   const { data: countryData, isLoading: countryLoading } = useSettingsCountry(countryId);
   const country = countryData?.data as Record<string, any> | undefined;
   const countryCode = country?.code ?? '';
+
+  // View mode: list or dashboard
+  const [viewMode, setViewMode] = useState<'list' | 'dashboard'>('list');
 
   // Domain filter
   const [domainFilter, setDomainFilter] = useState('');
@@ -599,10 +720,61 @@ export default function GeoZonesPage() {
         <span className="text-xs text-gray-400">
           {zones.length} {zones.length === 1 ? 'zone' : 'zones'}
         </span>
+        <div className="ml-auto flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+              viewMode === 'list'
+                ? 'bg-aris-primary-600 text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+          >
+            <List className="h-3.5 w-3.5" />
+            {t('listView') || 'List'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('dashboard')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+              viewMode === 'dashboard'
+                ? 'bg-aris-primary-600 text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            Dashboard
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+      {/* Dashboard View */}
+      {viewMode === 'dashboard' && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {zonesLoading ? (
+            <div className="col-span-full flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            </div>
+          ) : zones.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-12">
+              <Map className="mb-2 h-8 w-8 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('noZonesYet')}</p>
+            </div>
+          ) : (
+            zones.map((zone) => (
+              <ZoneKpiCard
+                key={zone.id}
+                zone={zone}
+                admin1Map={admin1Map}
+                domainLabel={domainLabel}
+              />
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Table (List View) */}
+      {viewMode === 'list' && <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
@@ -707,7 +879,7 @@ export default function GeoZonesPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
 
       {/* Create/Edit Modal */}
       {modalOpen && (

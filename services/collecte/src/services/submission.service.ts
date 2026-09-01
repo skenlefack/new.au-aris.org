@@ -161,6 +161,21 @@ export class SubmissionService {
       }
     }
 
+    // Validate extracted geoZoneId exists (non-blocking — warn only)
+    if (geoZoneId) {
+      try {
+        const zone = await (this.prisma as any).$queryRawUnsafe(
+          `SELECT id FROM master_data.geo_zones WHERE id = $1::uuid LIMIT 1`,
+          geoZoneId,
+        );
+        if (!zone || (Array.isArray(zone) && zone.length === 0)) {
+          console.warn(`[SubmissionService] geoZoneId ${geoZoneId} not found in master_data.geo_zones — saving anyway`);
+        }
+      } catch (err) {
+        console.warn(`[SubmissionService] Could not validate geoZoneId: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
     // 3. Persist submission
     const submission = await (this.prisma as any).submission.create({
       data: {

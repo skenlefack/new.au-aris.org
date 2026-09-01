@@ -334,6 +334,35 @@ export class GeoService {
 
   // ── GeoZone CRUD ──
 
+  /**
+   * Validate that all memberIds reference existing ADMIN1 GeoEntities
+   * belonging to the specified country.
+   */
+  private async validateMemberIds(memberIds: string[], countryCode: string): Promise<void> {
+    if (!memberIds || memberIds.length === 0) return;
+
+    const entities = await (this.prisma as any).geoEntity.findMany({
+      where: { id: { in: memberIds }, isActive: true },
+      select: { id: true, level: true, countryCode: true },
+    });
+
+    if (entities.length !== memberIds.length) {
+      const foundIds = new Set(entities.map((e: any) => e.id));
+      const missing = memberIds.filter(id => !foundIds.has(id));
+      throw new HttpError(400, `GeoEntity not found: ${missing.join(', ')}`);
+    }
+
+    const wrongCountry = entities.filter((e: any) => e.countryCode !== countryCode);
+    if (wrongCountry.length > 0) {
+      throw new HttpError(400, `Member divisions must belong to country ${countryCode}`);
+    }
+
+    const wrongLevel = entities.filter((e: any) => e.level !== 'ADMIN1');
+    if (wrongLevel.length > 0) {
+      throw new HttpError(400, `Member divisions must be ADMIN1 level (found: ${wrongLevel.map((e: any) => `${e.id}=${e.level}`).join(', ')})`);
+    }
+  }
+
   async createZone(
     dto: {
       countryCode: string;
@@ -346,6 +375,8 @@ export class GeoService {
     },
     user: AuthUser,
   ): Promise<{ data: any }> {
+    await this.validateMemberIds(dto.memberIds, dto.countryCode);
+
     const zone = await (this.prisma as any).geoZone.create({
       data: {
         countryCode: dto.countryCode,
@@ -412,6 +443,10 @@ export class GeoService {
   ): Promise<{ data: any }> {
     const existing = await (this.prisma as any).geoZone.findUnique({ where: { id } });
     if (!existing) throw new HttpError(404, `GeoZone ${id} not found`);
+
+    if (dto.memberIds !== undefined) {
+      await this.validateMemberIds(dto.memberIds, existing.countryCode);
+    }
 
     const updateData: Record<string, unknown> = {};
     if (dto.name !== undefined) updateData['name'] = dto.name;

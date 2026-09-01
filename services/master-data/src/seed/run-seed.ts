@@ -11,6 +11,7 @@ import { DENOMINATOR_SEEDS } from './denominator-seed-data';
 import { IDENTIFIER_SEEDS } from './identifier-seed-data';
 import { INFRASTRUCTURE_SEEDS } from './infrastructure-seed-data';
 import { seedFisheryReferentials } from './fishery-referentials';
+import { GEO_ZONE_SEEDS } from './geo-zone-seed-data';
 
 const prisma = new PrismaClient();
 
@@ -307,6 +308,43 @@ async function main(): Promise<void> {
   const fisheryRefCount = await seedFisheryReferentials(prisma);
   console.log(`  ✓ ${fisheryRefCount} fishery referentials`);
 
+  // ── 9. Geographic Zones ──
+  console.log('\n🗺️  Seeding geographic zones...');
+  let zoneCount = 0;
+  for (const zone of GEO_ZONE_SEEDS) {
+    // Resolve memberCodes to member IDs
+    const members = await (prisma as any).geoEntity.findMany({
+      where: { code: { in: zone.memberCodes }, isActive: true },
+      select: { id: true },
+    });
+    const memberIds = members.map((m: { id: string }) => m.id);
+
+    if (memberIds.length === 0) {
+      console.warn(`  ⚠ No ADMIN1 found for zone ${zone.code} (codes: ${zone.memberCodes.join(',')})`);
+      continue;
+    }
+
+    const existing = await (prisma as any).geoZone.findFirst({
+      where: { countryCode: zone.countryCode, domainCode: zone.domainCode, code: zone.code },
+    });
+
+    if (!existing) {
+      await (prisma as any).geoZone.create({
+        data: {
+          countryCode: zone.countryCode,
+          domainCode: zone.domainCode,
+          code: zone.code,
+          name: zone.name,
+          description: zone.description ?? null,
+          memberIds,
+          sortOrder: zone.sortOrder,
+        },
+      });
+      zoneCount++;
+    }
+  }
+  console.log(`  ✓ ${zoneCount} geographic zones`);
+
   // ── Summary ──
   const counts = await Promise.all([
     prisma.geoEntity.count(),
@@ -317,6 +355,7 @@ async function main(): Promise<void> {
     prisma.identifier.count(),
     (prisma as any).refInfrastructure.count(),
     (prisma as any).fisheryReferential.count(),
+    (prisma as any).geoZone.count(),
   ]);
 
   console.log('\n═══════════════════════════════════════');
@@ -330,6 +369,7 @@ async function main(): Promise<void> {
   console.log(`  Identifiers:       ${counts[5]}`);
   console.log(`  Infrastructures:   ${counts[6]}`);
   console.log(`  Fishery Refs:      ${counts[7]}`);
+  console.log(`  Geo Zones:         ${counts[8]}`);
   console.log('═══════════════════════════════════════');
   console.log('\n✅ Seed completed successfully!');
 }
