@@ -332,6 +332,128 @@ export class GeoService {
     }, DEFAULT_TTLS.QUERY_RESULT);
   }
 
+  // ── GeoZone CRUD ──
+
+  async createZone(
+    dto: {
+      countryCode: string;
+      domainCode: string;
+      code: string;
+      name: Record<string, string>;
+      description?: Record<string, string>;
+      memberIds: string[];
+      sortOrder?: number;
+    },
+    user: AuthUser,
+  ): Promise<{ data: any }> {
+    const zone = await (this.prisma as any).geoZone.create({
+      data: {
+        countryCode: dto.countryCode,
+        domainCode: dto.domainCode,
+        code: dto.code,
+        name: dto.name,
+        description: dto.description ?? null,
+        memberIds: dto.memberIds,
+        sortOrder: dto.sortOrder ?? 0,
+      },
+    });
+    await this.audit.log({
+      entityType: 'GeoZone',
+      entityId: zone.id,
+      action: 'CREATE',
+      user,
+      newVersion: zone as unknown as object,
+      dataClassification: 'PUBLIC',
+    });
+    await this.cache.invalidateByPattern('master-data', 'geo-zones');
+    return { data: zone };
+  }
+
+  async findAllZones(query: {
+    countryCode?: string;
+    domainCode?: string;
+    isActive?: boolean;
+  }): Promise<{ data: any[] }> {
+    const where: Record<string, unknown> = {};
+    if (query.countryCode) where['countryCode'] = query.countryCode;
+    if (query.domainCode) where['domainCode'] = query.domainCode;
+    if (query.isActive !== undefined) where['isActive'] = query.isActive;
+
+    const cacheKey = `aris:master-data:geo-zones:list:${JSON.stringify(where)}`;
+    return this.cache.getOrSet(cacheKey, async () => {
+      const zones = await (this.prisma as any).geoZone.findMany({
+        where,
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      });
+      return { data: zones };
+    }, DEFAULT_TTLS.QUERY_RESULT);
+  }
+
+  async findZone(id: string): Promise<{ data: any }> {
+    const cacheKey = `aris:master-data:geo-zones:${id}`;
+    return this.cache.getOrSet(cacheKey, async () => {
+      const zone = await (this.prisma as any).geoZone.findUnique({ where: { id } });
+      if (!zone) throw new HttpError(404, `GeoZone ${id} not found`);
+      return { data: zone };
+    }, DEFAULT_TTLS.MASTER_DATA);
+  }
+
+  async updateZone(
+    id: string,
+    dto: Partial<{
+      name: Record<string, string>;
+      description: Record<string, string>;
+      memberIds: string[];
+      isActive: boolean;
+      sortOrder: number;
+      code: string;
+    }>,
+    user: AuthUser,
+  ): Promise<{ data: any }> {
+    const existing = await (this.prisma as any).geoZone.findUnique({ where: { id } });
+    if (!existing) throw new HttpError(404, `GeoZone ${id} not found`);
+
+    const updateData: Record<string, unknown> = {};
+    if (dto.name !== undefined) updateData['name'] = dto.name;
+    if (dto.description !== undefined) updateData['description'] = dto.description;
+    if (dto.memberIds !== undefined) updateData['memberIds'] = dto.memberIds;
+    if (dto.isActive !== undefined) updateData['isActive'] = dto.isActive;
+    if (dto.sortOrder !== undefined) updateData['sortOrder'] = dto.sortOrder;
+    if (dto.code !== undefined) updateData['code'] = dto.code;
+
+    const zone = await (this.prisma as any).geoZone.update({ where: { id }, data: updateData });
+
+    await this.audit.log({
+      entityType: 'GeoZone',
+      entityId: zone.id,
+      action: 'UPDATE',
+      user,
+      previousVersion: existing as unknown as object,
+      newVersion: zone as unknown as object,
+      dataClassification: 'PUBLIC',
+    });
+    await this.cache.invalidateByPattern('master-data', 'geo-zones');
+    return { data: zone };
+  }
+
+  async deleteZone(id: string, user: AuthUser): Promise<{ data: { id: string } }> {
+    const existing = await (this.prisma as any).geoZone.findUnique({ where: { id } });
+    if (!existing) throw new HttpError(404, `GeoZone ${id} not found`);
+
+    await (this.prisma as any).geoZone.delete({ where: { id } });
+
+    await this.audit.log({
+      entityType: 'GeoZone',
+      entityId: id,
+      action: 'DELETE',
+      user,
+      previousVersion: existing as unknown as object,
+      dataClassification: 'PUBLIC',
+    });
+    await this.cache.invalidateByPattern('master-data', 'geo-zones');
+    return { data: { id } };
+  }
+
   private async publishEvent(
     entity: { id: string; [key: string]: unknown },
     user: AuthUser,

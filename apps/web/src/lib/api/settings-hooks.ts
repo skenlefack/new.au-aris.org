@@ -1066,3 +1066,75 @@ export function useUpdateRolePermissions() {
     },
   });
 }
+
+// ── Geographic Zones ──
+
+export interface GeoZone {
+  id: string;
+  code: string;
+  name: Record<string, string>;
+  description?: Record<string, string>;
+  domainCode: string;
+  countryCode: string;
+  memberIds: string[];
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useGeoZones(params?: { countryCode?: string; domainCode?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.countryCode) qs.set('countryCode', params.countryCode);
+  if (params?.domainCode) qs.set('domainCode', params.domainCode);
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+
+  return useQuery({
+    queryKey: ['settings', 'geo-zones', params],
+    queryFn: () => tenantFetch<{ data: GeoZone[] }>(`/api/v1/master-data/geo-zones${query}`),
+    enabled: !!params?.countryCode,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useCreateGeoZone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      code: string;
+      name: Record<string, string>;
+      description?: Record<string, string>;
+      domainCode: string;
+      countryCode: string;
+      memberIds?: string[];
+      sortOrder?: number;
+      isActive?: boolean;
+    }) => tenantPost<{ data: GeoZone }>('/api/v1/master-data/geo-zones', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'geo-zones'] }),
+  });
+}
+
+export function useUpdateGeoZone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: {
+      id: string;
+      code?: string;
+      name?: Record<string, string>;
+      description?: Record<string, string>;
+      domainCode?: string;
+      memberIds?: string[];
+      sortOrder?: number;
+      isActive?: boolean;
+    }) => tenantPut<{ data: GeoZone }>(`/api/v1/master-data/geo-zones/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'geo-zones'] }),
+  });
+}
+
+export function useDeleteGeoZone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => tenantDelete(`/api/v1/master-data/geo-zones/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'geo-zones'] }),
+  });
+}

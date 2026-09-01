@@ -63,4 +63,55 @@ export async function registerGeoRoutes(app: FastifyInstance): Promise<void> {
       limit: request.query.limit ? parseInt(request.query.limit, 10) : undefined,
     });
   });
+
+  // ── GeoZone routes ──
+
+  app.get<{ Querystring: { countryCode?: string; domainCode?: string; isActive?: string } }>(
+    '/api/v1/master-data/geo-zones',
+    { preHandler: authAndTenant },
+    async (request) => {
+      const q = request.query;
+      return app.geoService.findAllZones({
+        countryCode: q.countryCode,
+        domainCode: q.domainCode,
+        isActive: q.isActive !== undefined ? q.isActive === 'true' : undefined,
+      });
+    },
+  );
+
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/master-data/geo-zones/:id',
+    { preHandler: authAndTenant },
+    async (request) => {
+      return app.geoService.findZone(request.params.id);
+    },
+  );
+
+  app.post<{ Body: any }>(
+    '/api/v1/master-data/geo-zones',
+    { preHandler: [...authAndTenant, adminRoles] },
+    async (request, reply) => {
+      const user = request.user as AuthenticatedUser;
+      const result = await app.geoService.createZone(request.body, user);
+      return reply.code(201).send(result);
+    },
+  );
+
+  app.put<{ Params: { id: string }; Body: any }>(
+    '/api/v1/master-data/geo-zones/:id',
+    { preHandler: [...authAndTenant, adminRoles] },
+    async (request) => {
+      const user = request.user as AuthenticatedUser;
+      return app.geoService.updateZone(request.params.id, request.body, user);
+    },
+  );
+
+  app.delete<{ Params: { id: string } }>(
+    '/api/v1/master-data/geo-zones/:id',
+    { preHandler: [...authAndTenant, adminRoles] },
+    async (request) => {
+      const user = request.user as AuthenticatedUser;
+      return app.geoService.deleteZone(request.params.id, user);
+    },
+  );
 }

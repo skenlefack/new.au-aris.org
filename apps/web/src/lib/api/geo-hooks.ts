@@ -410,6 +410,96 @@ export function useUpdateGeoEntity() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// GeoZone hooks
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface GeoZone {
+  id: string;
+  countryCode: string;
+  domainCode: string;
+  code: string;
+  name: Record<string, string>;
+  description: Record<string, string> | null;
+  memberIds: string[];
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useGeoZones(countryCode?: string, domainCode?: string) {
+  const params: Record<string, string> = {};
+  if (countryCode) params.countryCode = countryCode;
+  if (domainCode) params.domainCode = domainCode;
+
+  return useQuery({
+    queryKey: ['geo-zones', countryCode, domainCode],
+    queryFn: () =>
+      apiClient.get<{ data: GeoZone[] }>('/master-data/geo-zones', params),
+    enabled: !!countryCode,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useGeoZone(id: string | undefined | null) {
+  return useQuery({
+    queryKey: ['geo-zones', 'detail', id],
+    queryFn: () => apiClient.get<{ data: GeoZone }>(`/master-data/geo-zones/${id}`),
+    enabled: !!id,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useCreateGeoZone() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      countryCode: string;
+      domainCode: string;
+      code: string;
+      name: Record<string, string>;
+      description?: Record<string, string>;
+      memberIds: string[];
+      sortOrder?: number;
+    }) => apiClient.post<{ data: GeoZone }>('/master-data/geo-zones', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['geo-zones'] });
+    },
+  });
+}
+
+export function useUpdateGeoZone() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      name?: Record<string, string>;
+      description?: Record<string, string> | null;
+      memberIds?: string[];
+      isActive?: boolean;
+      sortOrder?: number;
+      code?: string;
+    }) => apiClient.put<{ data: GeoZone }>(`/master-data/geo-zones/${id}`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['geo-zones'] });
+    },
+  });
+}
+
+export function useDeleteGeoZone() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/master-data/geo-zones/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['geo-zones'] });
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Risk Layer hooks (geo-services)
 // ═══════════════════════════════════════════════════════════════════════════════
 

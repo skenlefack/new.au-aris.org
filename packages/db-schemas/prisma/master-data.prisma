@@ -114,6 +114,29 @@ model GeoEntity {
   @@schema("public")
 }
 
+// ── GeoZone — Domain-specific geographic zones grouping Admin1 divisions ──
+
+model GeoZone {
+  id           String   @id @default(uuid()) @db.Uuid
+  countryCode  String   @map("country_code") @db.VarChar(3)
+  domainCode   String   @map("domain_code")
+  code         String
+  name         Json
+  description  Json?
+  memberIds    String[] @map("member_ids") @db.Uuid
+  isActive     Boolean  @default(true) @map("is_active")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@unique([countryCode, domainCode, code])
+  @@index([countryCode], map: "idx_geo_zone_country_code")
+  @@index([domainCode], map: "idx_geo_zone_domain_code")
+  @@index([isActive], map: "idx_geo_zone_is_active")
+  @@map("geo_zones")
+  @@schema("public")
+}
+
 // ── Species — WOAH + FAO aligned ──
 
 model Species {

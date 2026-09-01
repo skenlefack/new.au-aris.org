@@ -516,15 +516,22 @@ export default function CountryDetailPage() {
           </div>
         )}
 
-        {/* Manage Divisions link */}
+        {/* Manage Divisions + Geographic Zones links */}
         {adminLevels.length > 0 && (
-          <div className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
             <Link
               href={`/settings/countries/${id}/divisions`}
               className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <MapPin className="h-3.5 w-3.5" />
               {t('manageDivisions')}
+            </Link>
+            <Link
+              href={`/settings/countries/${id}/zones`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              <MapPin className="h-3.5 w-3.5" />
+              {t('geoZones')}
             </Link>
           </div>
         )}
