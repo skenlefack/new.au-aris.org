@@ -246,6 +246,8 @@ export const UpdateCollectionCampaignSchema = Type.Object({
   targetCountries: Type.Optional(Type.Array(Type.String())),
   targetRecIds: Type.Optional(Type.Array(Type.String())),
   targetAdminAreas: Type.Optional(Type.Array(Type.String())),
+  excludedCountries: Type.Optional(Type.Array(Type.String())),
+  excludedRecIds: Type.Optional(Type.Array(Type.String())),
   targetSubmissions: Type.Optional(Type.Integer({ minimum: 1 })),
   targetPerAgent: Type.Optional(Type.Integer({ minimum: 1 })),
   frequency: Type.Optional(Type.String()),

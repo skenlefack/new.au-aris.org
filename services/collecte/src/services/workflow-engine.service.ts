@@ -1414,6 +1414,7 @@ export class CollectionCampaignService {
     const data: Record<string, unknown> = {};
     for (const key of [
       'name', 'description', 'targetCountries', 'targetRecIds', 'targetAdminAreas',
+      'excludedCountries', 'excludedRecIds',
       'targetSubmissions', 'targetPerAgent', 'frequency', 'sendReminders', 'reminderDaysBefore', 'metadata', 'formTemplateIds',
       'formTemplateId', 'isPermanent', 'autoActivate', 'autoClose',
     ]) {
@@ -1742,7 +1743,7 @@ export class CollectionCampaignService {
    */
   private async canAccessCampaign(
     user: AuthenticatedUser,
-    campaign: { ownerId: string | null; targetCountries: unknown; targetRecIds: unknown; metadata?: any },
+    campaign: { ownerId: string | null; targetCountries: unknown; targetRecIds: unknown; excludedCountries?: unknown; excludedRecIds?: unknown; metadata?: any },
   ): Promise<boolean> {
     // Function-restricted campaigns: check user has the required function
     const targetFunctionId = campaign.metadata?.targetFunctionId;
@@ -1768,15 +1769,30 @@ export class CollectionCampaignService {
       ? (campaign.targetRecIds as string[])
       : [];
 
+    const excludedCountries = Array.isArray(campaign.excludedCountries)
+      ? (campaign.excludedCountries as string[]).map((c: string) => c.toUpperCase())
+      : [];
+    const excludedRecIds = Array.isArray(campaign.excludedRecIds)
+      ? (campaign.excludedRecIds as string[])
+      : [];
+
     if (tenant.level === 'MEMBER_STATE' && tenant.countryCode) {
-      return targetCountries.includes(tenant.countryCode.toUpperCase());
+      const cc = tenant.countryCode.toUpperCase();
+      if (!targetCountries.includes(cc)) return false;
+      // Check exclusion
+      if (excludedCountries.includes(cc)) return false;
+      return true;
     }
 
     if (tenant.level === 'REC') {
       // REC can see if it is directly targeted
-      if (targetRecIds.includes(user.tenantId)) return true;
+      if (targetRecIds.includes(user.tenantId)) {
+        // Check exclusion
+        if (excludedRecIds.includes(user.tenantId)) return false;
+        return true;
+      }
 
-      // Or if any of its member countries are targeted
+      // Or if any of its member countries are targeted (and not excluded)
       const memberTenants = await (this.prisma as any).tenant.findMany({
         where: { parentId: user.tenantId, level: 'MEMBER_STATE' },
         select: { countryCode: true },
@@ -1784,7 +1800,7 @@ export class CollectionCampaignService {
       const memberCodes: string[] = memberTenants
         .map((t: { countryCode: string | null }) => t.countryCode?.toUpperCase())
         .filter(Boolean);
-      return targetCountries.some((c: string) => memberCodes.includes(c));
+      return targetCountries.some((c: string) => memberCodes.includes(c) && !excludedCountries.includes(c));
     }
 
     return false;

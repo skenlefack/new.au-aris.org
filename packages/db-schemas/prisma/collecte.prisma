@@ -384,6 +384,8 @@ model CollectionCampaign {
   targetCountries     Json?                    @map("target_countries")   // ["KE", "TZ"]
   targetRecIds        Json?                    @map("target_rec_ids")
   targetAdminAreas    Json?                    @map("target_admin_areas")
+  excludedCountries   Json?                    @map("excluded_countries")
+  excludedRecIds      Json?                    @map("excluded_rec_ids")
   targetSubmissions   Int?                     @map("target_submissions")
   targetPerAgent      Int?                     @map("target_per_agent")
   frequency           String?                  @db.VarChar(20) // one_time, daily, weekly, biweekly, monthly, quarterly

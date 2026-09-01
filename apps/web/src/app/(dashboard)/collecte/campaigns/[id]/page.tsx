@@ -23,6 +23,9 @@ import {
   FlaskConical,
   LayoutDashboard,
   Plus,
+  X,
+  RotateCcw,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -36,7 +39,10 @@ import {
   type FormTemplateListItem,
 } from '@/lib/api/form-builder-hooks';
 import { COUNTRIES } from '@/data/countries-config';
+import { RECS, REC_ORDER } from '@/data/recs-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
+import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useWorkflowRealtime } from '@/lib/realtime/use-workflow-realtime';
 import LabResultsTab, { detectLabRepeaters } from '@/components/collecte/LabResultsTab';
@@ -177,6 +183,19 @@ export default function CampaignDetailPage() {
   const [targetDraft, setTargetDraft] = useState<string>('');
   const savingTargetRef = React.useRef(false);
 
+  // End date inline edit
+  const [editingEndDate, setEditingEndDate] = useState(false);
+  const [endDateDraft, setEndDateDraft] = useState('');
+
+  // Target management
+  const [showAddTargets, setShowAddTargets] = useState(false);
+  const [excludedCountries, setExcludedCountries] = useState<string[]>([]);
+  const [excludedRecs, setExcludedRecs] = useState<string[]>([]);
+  const [addCountriesDraft, setAddCountriesDraft] = useState<{ code: string; name: string; flag: string }[]>([]);
+  const [addRecsDraft, setAddRecsDraft] = useState<{ code: string; name: string }[]>([]);
+  const [excludeConfirm, setExcludeConfirm] = useState<{ type: 'country' | 'rec'; code: string; name: string } | null>(null);
+  const [excludeSaving, setExcludeSaving] = useState(false);
+
   const saveTargetSubmissions = async () => {
     if (savingTargetRef.current) return;
     savingTargetRef.current = true;
@@ -189,6 +208,83 @@ export default function CampaignDetailPage() {
     setEditingTarget(false);
     savingTargetRef.current = false;
   };
+
+  const saveEndDate = async () => {
+    if (!endDateDraft) { setEditingEndDate(false); return; }
+    try {
+      await updateCampaign.mutateAsync({ id: campaignId, endDate: endDateDraft } as AnyCampaign);
+    } catch { /* ignore */ }
+    setEditingEndDate(false);
+  };
+
+  const handleExcludeTarget = async () => {
+    if (!excludeConfirm || !campaign) return;
+    setExcludeSaving(true);
+    try {
+      if (excludeConfirm.type === 'country') {
+        const updated = (campaign.targetCountries ?? []).filter((c: string) => c.toUpperCase() !== excludeConfirm.code.toUpperCase());
+        await updateCampaign.mutateAsync({ id: campaignId, targetCountries: updated } as AnyCampaign);
+        setExcludedCountries((prev) => [...prev, excludeConfirm.code]);
+      } else {
+        const updated = (campaign.targetRecIds ?? []).filter((r: string) => r.toLowerCase() !== excludeConfirm.code.toLowerCase());
+        await updateCampaign.mutateAsync({ id: campaignId, targetRecIds: updated } as AnyCampaign);
+        setExcludedRecs((prev) => [...prev, excludeConfirm.code]);
+      }
+    } catch { /* ignore */ }
+    setExcludeSaving(false);
+    setExcludeConfirm(null);
+  };
+
+  const handleRestoreTarget = async (type: 'country' | 'rec', code: string) => {
+    if (!campaign) return;
+    try {
+      if (type === 'country') {
+        const updated = [...(campaign.targetCountries ?? []), code];
+        await updateCampaign.mutateAsync({ id: campaignId, targetCountries: updated } as AnyCampaign);
+        setExcludedCountries((prev) => prev.filter((c) => c !== code));
+      } else {
+        const updated = [...(campaign.targetRecIds ?? []), code];
+        await updateCampaign.mutateAsync({ id: campaignId, targetRecIds: updated } as AnyCampaign);
+        setExcludedRecs((prev) => prev.filter((r) => r !== code));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleSaveAddTargets = async () => {
+    if (!campaign) return;
+    try {
+      const newCountryCodes = addCountriesDraft.map((c) => c.code);
+      const newRecCodes = addRecsDraft.map((r) => r.code);
+      const updatedCountries = [...new Set([...(campaign.targetCountries ?? []), ...newCountryCodes])];
+      const updatedRecs = [...new Set([...(campaign.targetRecIds ?? []), ...newRecCodes])];
+      await updateCampaign.mutateAsync({ id: campaignId, targetCountries: updatedCountries, targetRecIds: updatedRecs } as AnyCampaign);
+      setAddCountriesDraft([]);
+      setAddRecsDraft([]);
+      setShowAddTargets(false);
+    } catch { /* ignore */ }
+  };
+
+  // Available countries for the "Add targets" combobox (exclude already targeted)
+  const availableCountries = useMemo(() => {
+    const existing = new Set((campaign?.targetCountries ?? []).map((c: string) => c.toUpperCase()));
+    return Object.values(COUNTRIES).filter((c) => !existing.has(c.code.toUpperCase())).map((c) => ({ code: c.code, name: c.name, flag: c.flag }));
+  }, [campaign]);
+
+  const availableRecs = useMemo(() => {
+    const existing = new Set((campaign?.targetRecIds ?? []).map((r: string) => r.toLowerCase()));
+    return REC_ORDER.filter((code) => !existing.has(code.toLowerCase())).map((code) => ({ code, name: RECS[code]?.name ?? code }));
+  }, [campaign]);
+
+  // REC infos for display
+  const recInfos = useMemo(() => {
+    if (!campaign?.targetRecIds) return [];
+    return (campaign.targetRecIds as string[]).map((code: string) => {
+      const r = RECS[code.toLowerCase()];
+      return r ? { code: r.code, name: r.name } : { code, name: code.toUpperCase() };
+    });
+  }, [campaign]);
+
+  const canManageTargets = editable && ['ACTIVE', 'PLANNED'].includes(campaign?.status ?? '');
 
   // Resolve each campaign templateId to a { name, tpl, tplId } object.
   // Matching strategy: try ID match first (real DB IDs), then fall back to
@@ -612,6 +708,168 @@ export default function CampaignDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Manage Targets — add/exclude countries & RECs */}
+          {canManageTargets && (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                <Target className="h-4 w-4 text-gray-400" />
+                {t('manageTargets')}
+              </h3>
+
+              {/* Active targets */}
+              <div className="mb-4">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('activeTargets')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {countryInfos.map((c) => (
+                    <span
+                      key={c.code}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                      <span className="text-sm">{c.flag}</span>
+                      {c.name}
+                      <button
+                        onClick={() => setExcludeConfirm({ type: 'country', code: c.code, name: c.name })}
+                        className="ml-0.5 text-gray-400 hover:text-red-500"
+                        title={t('excludeTarget')}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {recInfos.map((r) => (
+                    <span
+                      key={r.code}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300"
+                    >
+                      {r.name}
+                      <button
+                        onClick={() => setExcludeConfirm({ type: 'rec', code: r.code, name: r.name })}
+                        className="ml-0.5 text-indigo-400 hover:text-red-500"
+                        title={t('excludeTarget')}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Excluded targets */}
+              {(excludedCountries.length > 0 || excludedRecs.length > 0) && (
+                <div className="mb-4">
+                  <p className="text-xs font-medium text-red-500 dark:text-red-400 uppercase tracking-wider mb-2">{t('excludedTargets')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {excludedCountries.map((code) => {
+                      const c = COUNTRIES[code.toUpperCase()];
+                      return (
+                        <span
+                          key={code}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 line-through dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+                        >
+                          <span className="text-sm">{c?.flag ?? ''}</span>
+                          {c?.name ?? code}
+                          <span className="text-[10px] font-semibold text-red-500 no-underline">{t('excluded')}</span>
+                          <button
+                            onClick={() => handleRestoreTarget('country', code)}
+                            className="ml-0.5 text-red-400 hover:text-green-600 no-underline"
+                            title={t('restoreTarget')}
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                    {excludedRecs.map((code) => {
+                      const r = RECS[code.toLowerCase()];
+                      return (
+                        <span
+                          key={code}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 line-through dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+                        >
+                          {r?.name ?? code.toUpperCase()}
+                          <span className="text-[10px] font-semibold text-red-500 no-underline">{t('excluded')}</span>
+                          <button
+                            onClick={() => handleRestoreTarget('rec', code)}
+                            className="ml-0.5 text-red-400 hover:text-green-600 no-underline"
+                            title={t('restoreTarget')}
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {excludedCountries.length === 0 && excludedRecs.length === 0 && (
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">{t('noTargetsExcluded')}</p>
+              )}
+
+              {/* Add targets */}
+              <button
+                onClick={() => setShowAddTargets(!showAddTargets)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t('addTargets')}
+                <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showAddTargets && 'rotate-180')} />
+              </button>
+
+              {showAddTargets && (
+                <div className="mt-3 space-y-3 rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">{t('addCountries')}</label>
+                    <MultiSearchCombobox
+                      value={addCountriesDraft}
+                      onChange={setAddCountriesDraft}
+                      items={availableCountries}
+                      labelKey={(c) => `${c.flag} ${c.name}`}
+                      filterKey="name"
+                      idKey="code"
+                      placeholder={t('searchCountries')}
+                      allLabel={t('allCountries')}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">{t('addRecs')}</label>
+                    <MultiSearchCombobox
+                      value={addRecsDraft}
+                      onChange={setAddRecsDraft}
+                      items={availableRecs}
+                      labelKey="name"
+                      filterKey="name"
+                      idKey="code"
+                      placeholder={t('searchRecs')}
+                      allLabel={t('allRecs')}
+                    />
+                  </div>
+                  {(addCountriesDraft.length > 0 || addRecsDraft.length > 0) && (
+                    <button
+                      onClick={handleSaveAddTargets}
+                      disabled={updateCampaign.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {updateCampaign.isPending ? t('loading') : t('saveChanges')}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Exclude Confirmation Dialog */}
+          <ConfirmDialog
+            open={!!excludeConfirm}
+            onConfirm={handleExcludeTarget}
+            onCancel={() => setExcludeConfirm(null)}
+            title={t('excludeConfirmTitle', { name: excludeConfirm?.name ?? '' })}
+            message={t('excludeConfirmMessage', { name: excludeConfirm?.name ?? '' })}
+            confirmLabel={t('excludeTarget')}
+            cancelLabel={t('keepAccess')}
+            variant="danger"
+            loading={excludeSaving}
+          />
         </div>
 
         {/* Right sidebar */}
@@ -642,12 +900,44 @@ export default function CampaignDetailPage() {
                   {campaign.startDate ? new Date(campaign.startDate).toLocaleDateString() : '—'}
                 </dd>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" /> {t('end')}
                 </dt>
-                <dd className="text-xs text-gray-900 dark:text-white">
-                  {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : '—'}
+                <dd className="text-xs text-gray-900 dark:text-white flex items-center gap-1">
+                  {editingEndDate ? (
+                    <form
+                      onSubmit={(e) => { e.preventDefault(); saveEndDate(); }}
+                      className="flex items-center gap-1"
+                    >
+                      <input
+                        type="date"
+                        autoFocus
+                        min={new Date().toISOString().split('T')[0]}
+                        value={endDateDraft}
+                        onChange={(e) => setEndDateDraft(e.target.value)}
+                        onBlur={() => saveEndDate()}
+                        onKeyDown={(e) => { if (e.key === 'Escape') { setEditingEndDate(false); } }}
+                        className="w-36 rounded border border-gray-300 px-1.5 py-0.5 text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </form>
+                  ) : (
+                    <>
+                      {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : '—'}
+                      {editable && (campaign.status === 'ACTIVE' || campaign.status === 'PLANNED') && (
+                        <button
+                          onClick={() => {
+                            setEndDateDraft(campaign.endDate ? new Date(campaign.endDate).toISOString().split('T')[0] : '');
+                            setEditingEndDate(true);
+                          }}
+                          className="ml-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                          title={t('extendEndDate')}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      )}
+                    </>
+                  )}
                 </dd>
               </div>
               <div className="flex justify-between items-center">

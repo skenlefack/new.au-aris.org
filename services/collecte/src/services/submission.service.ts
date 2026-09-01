@@ -800,7 +800,7 @@ export class SubmissionService {
    */
   private async canAccessCollectionCampaign(
     user: AuthenticatedUser,
-    campaign: { ownerId: string | null; targetCountries: unknown; targetRecIds: unknown },
+    campaign: { ownerId: string | null; targetCountries: unknown; targetRecIds: unknown; excludedCountries?: unknown; excludedRecIds?: unknown },
   ): Promise<boolean> {
     if (campaign.ownerId === user.tenantId) return true;
 
@@ -816,13 +816,25 @@ export class SubmissionService {
     const targetRecIds = Array.isArray(campaign.targetRecIds)
       ? (campaign.targetRecIds as string[])
       : [];
+    const excludedCountries = Array.isArray(campaign.excludedCountries)
+      ? (campaign.excludedCountries as string[]).map((c: string) => c.toUpperCase())
+      : [];
+    const excludedRecIds = Array.isArray(campaign.excludedRecIds)
+      ? (campaign.excludedRecIds as string[])
+      : [];
 
     if (tenant.level === 'MEMBER_STATE' && tenant.countryCode) {
-      return targetCountries.includes(tenant.countryCode.toUpperCase());
+      const cc = tenant.countryCode.toUpperCase();
+      if (!targetCountries.includes(cc)) return false;
+      if (excludedCountries.includes(cc)) return false;
+      return true;
     }
 
     if (tenant.level === 'REC') {
-      if (targetRecIds.includes(user.tenantId)) return true;
+      if (targetRecIds.includes(user.tenantId)) {
+        if (excludedRecIds.includes(user.tenantId)) return false;
+        return true;
+      }
       const memberTenants = await (this.prisma as any).tenant.findMany({
         where: { parentId: user.tenantId, level: 'MEMBER_STATE' },
         select: { countryCode: true },
@@ -830,7 +842,7 @@ export class SubmissionService {
       const memberCodes: string[] = memberTenants
         .map((t: { countryCode: string | null }) => t.countryCode?.toUpperCase())
         .filter(Boolean);
-      return targetCountries.some((c: string) => memberCodes.includes(c));
+      return targetCountries.some((c: string) => memberCodes.includes(c) && !excludedCountries.includes(c));
     }
 
     return false;

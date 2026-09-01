@@ -554,7 +554,10 @@ export function useUpdateCollectionCampaign() {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['collection-campaigns'] }),
+    onSuccess: (_, vars: any) => {
+      qc.invalidateQueries({ queryKey: ['collection-campaigns'] });
+      if (vars?.id) qc.invalidateQueries({ queryKey: ['collection-campaign', vars.id] });
+    },
   });
 }
 
