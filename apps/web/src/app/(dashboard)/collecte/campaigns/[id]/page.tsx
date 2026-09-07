@@ -1115,6 +1115,7 @@ export default function CampaignDetailPage() {
 /* ── Campaign Dashboards Tab ─────────────────────────────────────────────── */
 
 function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: string; campaignName: string }) {
+  const t = useTranslations('collecte');
   const router = useRouter();
   const { data, isLoading } = useDashboards({ campaignId, limit: 50 });
   const dashboards: DashboardListItem[] = data?.data ?? [];
