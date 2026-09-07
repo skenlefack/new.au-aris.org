@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import { AFRICA_COUNTRIES } from '@/components/dashboard/maps/africa-geo-data';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 /* Custom map — dynamic import (no SSR, Leaflet needs window) */
 const DigitalToolsMap = dynamic(
@@ -151,6 +152,7 @@ function DonutChart({ entries, colors, size = 160, centerLabel }: {
 
 export default function DigitalToolsDashboard({ campaignId }: { campaignId: string }) {
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
   const sQ = useCampaignSubmissions(campaignId, { limit: 100 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
@@ -167,7 +169,7 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
       if (!countryGeo) continue;
       const usesDigital = d.uses_digital_tool === 'yes';
       byCountry.set(code, {
-        code, name: countryGeo.nameFr || countryGeo.name,
+        code, name: locale === 'fr' ? (countryGeo.nameFr || countryGeo.name) : (countryGeo.name || countryGeo.nameFr),
         status: usesDigital ? 'uses_digital' : 'no_digital',
         toolName: d.tool_name || undefined, toolDeveloper: d.tool_developer || undefined,
         hasSurveillance: d.has_surveillance === 'yes', institution: d.institution || undefined,
@@ -191,7 +193,7 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
       kpis: { surveyed, withDigital, withOwnSystem, withoutDigital, withSurveillance },
       toolsByDeveloper: devArr,
     };
-  }, [rawSubs]);
+  }, [rawSubs, locale]);
 
   const digitalCountries = useMemo(() => countriesInfo.filter((c) => c.status === 'uses_digital').sort((a, b) => a.name.localeCompare(b.name)), [countriesInfo]);
   const noDigitalCountries = useMemo(() => countriesInfo.filter((c) => c.status === 'no_digital').sort((a, b) => a.name.localeCompare(b.name)), [countriesInfo]);
@@ -381,9 +383,9 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
                 {t('countriesNotSurveyed')} ({allCountriesStatus.filter((c) => c.status === 'not_surveyed').length})
               </h3>
               <div className="flex flex-wrap gap-1.5">
-                {allCountriesStatus.filter((c) => c.status === 'not_surveyed').sort((a, b) => a.nameFr.localeCompare(b.nameFr)).map((c) => (
+                {allCountriesStatus.filter((c) => c.status === 'not_surveyed').sort((a, b) => (locale === 'fr' ? a.nameFr : a.name).localeCompare(locale === 'fr' ? b.nameFr : b.name)).map((c) => (
                   <span key={c.code} className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                    {c.nameFr}
+                    {locale === 'fr' ? c.nameFr : c.name}
                   </span>
                 ))}
               </div>
@@ -394,7 +396,7 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
 
       {/* FOOTER */}
       <div className="bg-[#1E40AF] px-4 py-1.5 text-[9px] leading-snug text-white/90">
-        <strong>Source :</strong> {t('pprDigitalToolsTitle')} — AU-IBAR. {t('dataSourceFooter', { count: kpis.surveyed })}
+        <strong>Source:</strong> {t('pprDigitalToolsTitle')} — AU-IBAR. {t('dataSourceFooter', { count: kpis.surveyed })}
       </div>
     </div>
   );

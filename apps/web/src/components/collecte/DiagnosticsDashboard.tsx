@@ -17,6 +17,7 @@ import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import type { CountryOutbreakData } from '@/components/dashboard/demo-data';
 import { AFRICA_COUNTRIES } from '@/components/dashboard/maps/africa-geo-data';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 /* Leaflet map — dynamic import (no SSR) */
 const ChoroplethMap = dynamic(
@@ -65,9 +66,10 @@ function resolveCountryCode(raw: string): string | null {
   return COUNTRY_NAME_TO_ISO2[cleaned] ?? null;
 }
 
-function countryName(code: string): string {
+function countryName(code: string, locale: string): string {
   const c = AFRICA_COUNTRIES.find((x) => x.code === code);
-  return c?.nameFr || c?.name || code;
+  if (!c) return code;
+  return locale === 'fr' ? (c.nameFr || c.name) : (c.name || c.nameFr);
 }
 
 type PprStatus = 'Infected' | 'Free' | 'Eradicated' | 'Other';
@@ -178,6 +180,7 @@ const PPR_STATUS_COLORS: Record<string, string> = {
 
 export default function DiagnosticsDashboard({ campaignId }: { campaignId: string }) {
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
   const sQ = useCampaignSubmissions(campaignId, { limit: 100 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
@@ -276,12 +279,12 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
     /* Infected table */
     const infectedTable = rows
       .filter((r) => r.pprStatus === 'Infected')
-      .map((r) => ({ country: countryName(r.code), code: r.code, pprStatus: r.pprStatus, kitsRequested: r.kitsRequested, pmatStage: r.pmatStage }))
+      .map((r) => ({ country: countryName(r.code, locale), code: r.code, pprStatus: r.pprStatus, kitsRequested: r.kitsRequested, pmatStage: r.pmatStage }))
       .sort((a, b) => a.country.localeCompare(b.country));
 
     /* Storage & engagement table */
     const storageTable = rows
-      .map((r) => ({ country: countryName(r.code), code: r.code, storageConditions: r.storageConditions, endorsement: r.endorsement, commitment: r.commitment }))
+      .map((r) => ({ country: countryName(r.code, locale), code: r.code, storageConditions: r.storageConditions, endorsement: r.endorsement, commitment: r.commitment }))
       .sort((a, b) => a.country.localeCompare(b.country));
 
     /* Kits per country (bar chart) */
@@ -290,7 +293,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
       kitsPerCountry.set(r.code, (kitsPerCountry.get(r.code) || 0) + r.kitsRequested);
     }
     const kitsBarEntries = Array.from(kitsPerCountry.entries())
-      .map(([code, value]) => ({ label: countryName(code), value }))
+      .map(([code, value]) => ({ label: countryName(code, locale), value }))
       .filter((e) => e.value > 0)
       .sort((a, b) => b.value - a.value);
 
@@ -300,7 +303,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
       countryStatusMap.set(r.code, r.pprStatus);
     }
     const md: CountryOutbreakData[] = rows.map((r) => ({
-      code: r.code, name: countryName(r.code),
+      code: r.code, name: countryName(r.code, locale),
       outbreaks: r.pprStatus === 'Infected' ? 10 : r.pprStatus.toLowerCase().includes('free') ? 0 : 1,
       cases: r.kitsRequested, deaths: 0, vaccinations: 0, submissions: 1, rec: '',
     }));
@@ -325,7 +328,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
       notifEntries,
       allCountriesStatus,
     };
-  }, [rawSubs, t]);
+  }, [rawSubs, t, locale]);
 
   const ACCENT = '#7C3AED';
 
@@ -374,15 +377,15 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
 
       {/* MAIN CONTENT */}
       {loading ? (
-        <div className="grid flex-1 gap-4 p-4 lg:grid-cols-2">
+        <div className="grid flex-1 gap-4 p-4 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="min-h-[300px] rounded-xl" />)}
         </div>
       ) : (
         <div className="flex-1 overflow-auto p-4 space-y-4">
           {/* ROW 1: Map + Charts */}
-          <div className="grid gap-4 lg:grid-cols-5">
+          <div className="grid gap-4 md:grid-cols-5">
             {/* Africa Map — spans 3 */}
-            <div className="lg:col-span-3 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <div className="md:col-span-3 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                 <Globe2 className="h-4 w-4 text-[#7C3AED]" />
                 <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">{t('pprMapAfrica')}</h3>
@@ -417,7 +420,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
             </div>
 
             {/* Right — 3 charts */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="md:col-span-2 space-y-4">
               <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                 <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('pprStatusByCountry')}</h3>
                 <PieChart
@@ -443,7 +446,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
           </div>
 
           {/* ROW 2: Tables */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             {/* Infected countries & kits */}
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
@@ -524,7 +527,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
           </div>
 
           {/* ROW 3: Bar chart + Notification pie */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
               <h3 className="mb-4 text-sm font-bold text-gray-800 dark:text-gray-200">{t('kitsRequestedByCountry')}</h3>
               {kitsBarEntries.length > 0 ? (
@@ -547,7 +550,7 @@ export default function DiagnosticsDashboard({ campaignId }: { campaignId: strin
 
       {/* FOOTER */}
       <div className="bg-[#7C3AED] px-4 py-1.5 text-[9px] leading-snug text-white/90">
-        <strong>Source :</strong> {t('pprDiagnosticsTitle')} — AU-IBAR. {t('dataSourceFooter', { count: kpis.totalCountries })}
+        <strong>Source:</strong> {t('pprDiagnosticsTitle')} — AU-IBAR. {t('dataSourceFooter', { count: kpis.totalCountries })}
       </div>
     </div>
   );
