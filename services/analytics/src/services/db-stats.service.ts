@@ -198,11 +198,14 @@ export class DbStatsService {
    * Continental KPIs computed from historical tables + submissions.
    * Returns the same KpiCard[] format as CrossDomainService for compatibility.
    */
-  async getContinentalKpis(): Promise<{
+  async getContinentalKpis(countryCode?: string): Promise<{
     kpis: Array<{ key: string; label: string; value: number; unit: string; trend: string; trendPercent: number }>;
     asOf: string;
   }> {
-    const cached = await this.redis.get('analytics:continental-kpis');
+    const cacheKey = countryCode
+      ? `analytics:country-kpis:${countryCode.toUpperCase()}`
+      : 'analytics:continental-kpis';
+    const cached = await this.redis.get(cacheKey);
     if (cached) {
       try { return JSON.parse(cached); } catch { /* re-fetch */ }
     }
@@ -213,25 +216,29 @@ export class DbStatsService {
       const LIVESTOCK_CAMPAIGN = '35ddef54-7df3-4c2d-ae52-cf84febcd8c4';
       const MV = 'analytics.mv_campaign_stats';
 
+      // Parameterized country filter for MEMBER_STATE scoping
+      const cc = countryCode?.toUpperCase() ?? null;
+      const params: unknown[] = [LIVESTOCK_CAMPAIGN, cc];
+
       const { rows: [r] } = await client.query(`
         SELECT
-          (SELECT COUNT(DISTINCT country) FROM ${MV} WHERE valid_country)::int AS countries_reporting,
-          (SELECT COUNT(*) FROM ${MV})::int AS health_reports,
-          (SELECT COALESCE(SUM(num_outbreaks), 0) FROM ${MV})::bigint AS outbreaks,
-          (SELECT COUNT(DISTINCT disease) FROM ${MV} WHERE valid_disease)::int AS diseases_monitored,
+          (SELECT COUNT(DISTINCT country) FROM ${MV} WHERE valid_country AND ($2::text IS NULL OR UPPER(country) = $2))::int AS countries_reporting,
+          (SELECT COUNT(*) FROM ${MV} WHERE ($2::text IS NULL OR UPPER(country) = $2))::int AS health_reports,
+          (SELECT COALESCE(SUM(num_outbreaks), 0) FROM ${MV} WHERE ($2::text IS NULL OR UPPER(country) = $2))::bigint AS outbreaks,
+          (SELECT COUNT(DISTINCT disease) FROM ${MV} WHERE valid_disease AND ($2::text IS NULL OR UPPER(country) = $2))::int AS diseases_monitored,
           0::bigint AS animals_vaccinated,
-          (SELECT COUNT(*) FROM ${MV} WHERE vacc_flag IN ('yes','true','1','oui'))::int AS mass_vaccinations,
+          (SELECT COUNT(*) FROM ${MV} WHERE vacc_flag IN ('yes','true','1','oui') AND ($2::text IS NULL OR UPPER(country) = $2))::int AS mass_vaccinations,
           (SELECT COALESCE(SUM(
             CASE WHEN (data->>'num_animals') ~ '^[0-9]+\\.?[0-9]*$'
               THEN (data->>'num_animals')::numeric ELSE 0 END), 0)
-           FROM public.submissions WHERE campaign_id = $1)::bigint AS livestock_censused,
-          ((SELECT COUNT(*) FROM ${MV}) +
-           (SELECT COUNT(*) FROM public.submissions WHERE campaign_id = $1))::int AS total_records
-      `, [LIVESTOCK_CAMPAIGN]);
+           FROM public.submissions WHERE campaign_id = $1 AND ($2::text IS NULL OR UPPER(country_code) = $2))::bigint AS livestock_censused,
+          ((SELECT COUNT(*) FROM ${MV} WHERE ($2::text IS NULL OR UPPER(country) = $2)) +
+           (SELECT COUNT(*) FROM public.submissions WHERE campaign_id = $1 AND ($2::text IS NULL OR UPPER(country_code) = $2)))::int AS total_records
+      `, params);
 
       const countriesReporting = Number(r.countries_reporting ?? 0);
       const kpis = [
-        { key: 'countries_reporting', label: 'Countries', value: countriesReporting, unit: '/55', trend: 'stable', trendPercent: 0 },
+        { key: 'countries_reporting', label: 'Countries', value: countriesReporting, unit: countryCode ? '' : '/55', trend: 'stable', trendPercent: 0 },
         { key: 'health_reports', label: 'Health Reports', value: Number(r.health_reports ?? 0), unit: '', trend: 'stable', trendPercent: 0 },
         { key: 'outbreaks', label: 'Outbreaks', value: Number(r.outbreaks ?? 0), unit: '', trend: 'stable', trendPercent: 0 },
         { key: 'diseases_monitored', label: 'Diseases', value: Number(r.diseases_monitored ?? 0), unit: '', trend: 'stable', trendPercent: 0 },
@@ -242,7 +249,7 @@ export class DbStatsService {
       ];
 
       const result = { kpis, asOf: new Date().toISOString() };
-      await this.redis.set('analytics:continental-kpis', JSON.stringify(result), CACHE_TTL);
+      await this.redis.set(cacheKey, JSON.stringify(result), CACHE_TTL);
       return result;
     } catch (err) {
       console.error('[DbStatsService] Continental KPIs query failed:', err);
@@ -255,13 +262,16 @@ export class DbStatsService {
   /**
    * Dashboard chart data: disease distribution, country distribution, monthly trend.
    */
-  async getDashboardCharts(): Promise<{
+  async getDashboardCharts(countryCode?: string): Promise<{
     diseaseDistribution: Array<{ label: string; value: number }>;
     countryDistribution: Array<{ label: string; value: number }>;
     monthlyTrend: Array<{ month: string; outbreaks: number; reports: number }>;
     yearlyOutbreaks: Array<{ year: string; outbreaks: number }>;
   }> {
-    const cached = await this.redis.get('analytics:dashboard-charts');
+    const cacheKey = countryCode
+      ? `analytics:dashboard-charts:${countryCode.toUpperCase()}`
+      : 'analytics:dashboard-charts';
+    const cached = await this.redis.get(cacheKey);
     if (cached) {
       try { return JSON.parse(cached); } catch { /* re-fetch */ }
     }
@@ -270,27 +280,30 @@ export class DbStatsService {
     try {
       const MV = 'analytics.mv_campaign_stats';
 
+      // Parameterized country filter for MEMBER_STATE scoping
+      const cc = countryCode?.toUpperCase() ?? null;
+
       // All 4 queries from materialized view (fast)
       const [{ rows: diseaseRows }, { rows: countryRows }, { rows: trendRows }, { rows: yearlyRows }] = await Promise.all([
         client.query(`SELECT disease AS label, COUNT(*)::int AS value
-          FROM ${MV} WHERE valid_disease
-          GROUP BY 1 ORDER BY value DESC LIMIT 8`),
+          FROM ${MV} WHERE valid_disease AND ($1::text IS NULL OR UPPER(country) = $1)
+          GROUP BY 1 ORDER BY value DESC LIMIT 8`, [cc]),
 
         client.query(`SELECT country AS label, COUNT(*)::int AS value
-          FROM ${MV} WHERE valid_country
-          GROUP BY 1 ORDER BY value DESC LIMIT 10`),
+          FROM ${MV} WHERE valid_country AND ($1::text IS NULL OR UPPER(country) = $1)
+          GROUP BY 1 ORDER BY value DESC LIMIT 10`, [cc]),
 
         client.query(`SELECT TO_CHAR(submitted_at, 'Mon') AS month,
           COUNT(*) FILTER (WHERE outbreak_flag IN ('yes','true','1','oui'))::int AS outbreaks,
           COUNT(*)::int AS reports
-          FROM ${MV} WHERE valid_country AND submitted_at IS NOT NULL
+          FROM ${MV} WHERE valid_country AND submitted_at IS NOT NULL AND ($1::text IS NULL OR UPPER(country) = $1)
           GROUP BY EXTRACT(YEAR FROM submitted_at), EXTRACT(MONTH FROM submitted_at), TO_CHAR(submitted_at, 'Mon')
-          ORDER BY MAX(submitted_at) DESC LIMIT 12`),
+          ORDER BY MAX(submitted_at) DESC LIMIT 12`, [cc]),
 
         client.query(`SELECT EXTRACT(YEAR FROM submitted_at)::int AS year,
           COUNT(*)::int AS outbreaks
-          FROM ${MV} WHERE valid_country AND submitted_at IS NOT NULL
-          GROUP BY 1 ORDER BY 1`),
+          FROM ${MV} WHERE valid_country AND submitted_at IS NOT NULL AND ($1::text IS NULL OR UPPER(country) = $1)
+          GROUP BY 1 ORDER BY 1`, [cc]),
       ]);
 
       const result = {
@@ -300,7 +313,7 @@ export class DbStatsService {
         yearlyOutbreaks: yearlyRows.map((r: any) => ({ year: String(r.year), outbreaks: r.outbreaks })),
       };
 
-      await this.redis.set('analytics:dashboard-charts', JSON.stringify(result), CACHE_TTL);
+      await this.redis.set(cacheKey, JSON.stringify(result), CACHE_TTL);
       return result;
     } catch (err) {
       console.error('[DbStatsService] Dashboard charts query failed:', err);

@@ -31,6 +31,13 @@ interface ResolvedWidget {
   error?: string;
 }
 
+export interface WidgetUserContext {
+  tenantId?: string;
+  tenantLevel?: string;
+  countryCode?: string;
+  domains?: Record<string, string[]>;
+}
+
 export class WidgetResolver {
   private pool: Pool;
 
@@ -43,12 +50,29 @@ export class WidgetResolver {
   }
 
   /**
+   * Apply tenant-based scoping to global filters.
+   * MEMBER_STATE users are forced to see only their country's data.
+   */
+  private applyTenantScope(globalFilters: RenderQuery, userContext?: WidgetUserContext): RenderQuery {
+    if (!userContext?.tenantLevel || !userContext.countryCode) return globalFilters;
+
+    if (userContext.tenantLevel === 'MEMBER_STATE') {
+      // Force countryCode to user's country — cannot be overridden
+      return { ...globalFilters, countryCode: userContext.countryCode };
+    }
+
+    // REC users: if no countryCode filter explicitly set, leave as-is (they can see their member states)
+    return globalFilters;
+  }
+
+  /**
    * Render a full dashboard: load all widgets and resolve their data in parallel.
    */
   async renderDashboard(
     dashboardId: string,
     userId: string,
     globalFilters: RenderQuery,
+    userContext?: WidgetUserContext,
   ): Promise<{ dashboard: Record<string, unknown>; renderedWidgets: ResolvedWidget[]; sections: Record<string, unknown>[] }> {
     const result = await this.dashboardService.getDashboardWithWidgets(dashboardId);
     if (!result) {
@@ -57,8 +81,11 @@ export class WidgetResolver {
 
     const { dashboard, widgets, sections } = result;
 
+    // Enforce tenant-level data scoping
+    const scopedFilters = this.applyTenantScope(globalFilters, userContext);
+
     const renderedWidgets = await Promise.all(
-      widgets.map((w) => this.resolveWidget(w, userId, globalFilters)),
+      widgets.map((w) => this.resolveWidget(w, userId, scopedFilters)),
     );
 
     return { dashboard, renderedWidgets, sections };

@@ -2,6 +2,17 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { domainsHook, tenantHook } from '@aris/auth-middleware/fastify';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 
+/** Resolve country_code for MEMBER_STATE users (returns undefined for REC/Continental). */
+async function resolveCountryCode(app: FastifyInstance, user?: AuthenticatedUser): Promise<string | undefined> {
+  if (user?.tenantLevel !== 'MEMBER_STATE') return undefined;
+  const pool = app.indicatorService.getPool();
+  const { rows } = await pool.query(
+    `SELECT country_code FROM public.tenants WHERE id = $1`,
+    [user.tenantId],
+  );
+  return rows[0]?.country_code?.toUpperCase();
+}
+
 export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<void> {
   const PREFIX = '/api/v1/analytics';
 
@@ -149,13 +160,14 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
 
   app.get(`${PREFIX}/continental/kpis`, {
     preHandler: [app.authHookFn, tenantHook()],
-  }, async (_request: FastifyRequest, reply: FastifyReply) => {
-    // Use DbStatsService for real data from historical tables
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = (request as any).user as AuthenticatedUser | undefined;
+    const countryCode = await resolveCountryCode(app, user);
+
     if (app.dbStatsService) {
-      const data = await app.dbStatsService.getContinentalKpis();
+      const data = await app.dbStatsService.getContinentalKpis(countryCode);
       return reply.code(200).send({ data });
     }
-    // Fallback to Redis-based (empty when no Kafka events)
     const data = await app.crossDomainService.getContinentalKpis();
     return reply.code(200).send({ data });
   });
@@ -164,9 +176,12 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
 
   app.get(`${PREFIX}/dashboard/charts`, {
     preHandler: [app.authHookFn, tenantHook()],
-  }, async (_request: FastifyRequest, reply: FastifyReply) => {
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = (request as any).user as AuthenticatedUser | undefined;
+    const countryCode = await resolveCountryCode(app, user);
+
     if (app.dbStatsService) {
-      const data = await app.dbStatsService.getDashboardCharts();
+      const data = await app.dbStatsService.getDashboardCharts(countryCode);
       return reply.code(200).send({ data });
     }
     return reply.code(200).send({ data: { diseaseDistribution: [], countryDistribution: [], monthlyTrend: [] } });

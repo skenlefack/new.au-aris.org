@@ -27,6 +27,17 @@ import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { tenantHook, rolesHook } from '@aris/auth-middleware/fastify';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+
+/** Resolve country_code for MEMBER_STATE users (returns undefined for REC/Continental). */
+async function resolveUserCountryCode(app: FastifyInstance, user: AuthenticatedUser): Promise<string | undefined> {
+  if (user.tenantLevel !== 'MEMBER_STATE') return undefined;
+  const pool = app.indicatorService.getPool();
+  const { rows } = await pool.query(
+    `SELECT country_code FROM public.tenants WHERE id = $1`,
+    [user.tenantId],
+  );
+  return rows[0]?.country_code?.toUpperCase();
+}
 import { UserRole } from '@aris/shared-types';
 import {
   DashboardScopeSchema,
@@ -281,10 +292,18 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as any).user as AuthenticatedUser;
     const { id } = request.params as DashboardIdParam;
+
+    const userCountryCode = await resolveUserCountryCode(app, user);
     const data = await app.widgetResolver.renderDashboard(
       id,
       user.userId,
       request.query as RenderQuery,
+      {
+        tenantId: user.tenantId,
+        tenantLevel: user.tenantLevel,
+        countryCode: userCountryCode,
+        domains: user.domains,
+      },
     );
     return reply.code(200).send({ data });
   });
