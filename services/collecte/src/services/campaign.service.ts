@@ -319,11 +319,19 @@ export class CampaignService {
   ): Promise<Record<string, unknown>> {
     const where: Record<string, unknown> = {};
 
-    // Domain-based filtering: non-SUPER_ADMIN users only see campaigns
-    // whose domain matches one of their assigned domains (from JWT).
+    // Domain-based filtering: enforce strict domain isolation.
+    // Admins (SUPER_ADMIN, CONTINENTAL_ADMIN) see all campaigns.
+    // Other roles only see campaigns matching their assigned domains.
+    // Users with 0 domains assigned see NO campaigns.
+    const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'CONTINENTAL_ADMIN';
     const userDomainCodes = Object.keys(user.domains ?? {});
-    if (user.role !== 'SUPER_ADMIN' && userDomainCodes.length > 0) {
-      where['domain'] = { in: userDomainCodes };
+    if (!isAdmin) {
+      if (userDomainCodes.length === 0) {
+        // No domains assigned → return nothing (impossible WHERE)
+        where['id'] = '00000000-0000-0000-0000-000000000000';
+      } else {
+        where['domain'] = { in: userDomainCodes };
+      }
     }
 
     if (user.tenantLevel === TenantLevel.CONTINENTAL) {
@@ -366,8 +374,8 @@ export class CampaignService {
     }
 
     if (query.domain) {
-      // Backward compat: reads legacy domain field, prefer targets[] filtering via domainCode/subDomainCode
-      if (user.role === 'SUPER_ADMIN' || userDomainCodes.length === 0 || userDomainCodes.includes(query.domain)) {
+      // Only allow filtering to a domain the user actually has access to
+      if (isAdmin || userDomainCodes.includes(query.domain)) {
         where['domain'] = query.domain;
       }
       // If user doesn't have access to the requested domain, the IN filter above keeps them restricted

@@ -267,8 +267,7 @@ const ALL_DOMAIN_ROLES: Set<UserRole> = new Set([
   'NATIONAL_LABORATORY', 'REGIONAL_LABORATORY', 'CONTINENTAL_LABORATORY',
 ] as UserRole[]);
 
-/** FIELD_AGENT only sees specific domain routes */
-const FIELD_AGENT_DOMAIN_ROUTES = new Set(['/animal-health']);
+/** FIELD_AGENT can see domain routes — access controlled by domain assignment, not hardcoded list */
 
 /**
  * Filter nav groups by role AND user's assigned domains.
@@ -294,12 +293,10 @@ function filterGroupsByRole(
       ...group,
       items: group.items.filter((item) => {
         if (item.isDomain) {
-          // Domain items: check role allows domain access + user is assigned
-          const roleAllowed =
-            ALL_DOMAIN_ROLES.has(role) ||
-            (role === 'FIELD_AGENT' && FIELD_AGENT_DOMAIN_ROUTES.has(item.matchPrefix));
+          // Domain items: role must allow domain access + user must be assigned
+          const roleAllowed = ALL_DOMAIN_ROLES.has(role) || role === 'FIELD_AGENT';
           if (!roleAllowed) return false;
-          // Check user's assigned domains
+          // Strict check: user must have this domain assigned
           if (item.domainCode) return hasAccess(item.domainCode);
           return true;
         }

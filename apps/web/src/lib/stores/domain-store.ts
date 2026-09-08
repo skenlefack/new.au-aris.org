@@ -163,8 +163,8 @@ export const useDomainStore = create<DomainState>()(
         if (Object.keys(domainPermissions).length > 0) {
           return domainCode in domainPermissions;
         }
-        // Fallback to legacy behavior
-        if (userDomains.length === 0) return true;
+        // No domains assigned = no access (admins are handled in Sidebar before calling this)
+        if (userDomains.length === 0) return false;
         return userDomains.some((d) => d.code === domainCode);
       },
 

@@ -330,10 +330,10 @@ export function useLogin() {
         usePermissionStore.getState().setPermissions(effectiveRoles, permissions);
       }
 
-      // Populate domain store with user's assigned domains
-      if (user.domains && (Array.isArray(user.domains) ? user.domains.length > 0 : Object.keys(user.domains).length > 0)) {
-        useDomainStore.getState().setUserDomains(user.domains);
-      }
+      // Populate domain store with user's assigned domains (always set, even if empty,
+      // to clear stale domains from a previous session)
+      const domains = user.domains ?? [];
+      useDomainStore.getState().setUserDomains(Array.isArray(domains) ? domains : []);
     },
   });
 }

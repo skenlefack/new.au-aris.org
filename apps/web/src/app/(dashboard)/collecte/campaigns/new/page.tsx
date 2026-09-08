@@ -75,6 +75,8 @@ function NewCampaignPage() {
   const locale = useLocaleStore((s) => s.locale);
   const createCampaign = useCreateCollectionCampaign();
   const allDomains = useDomainStore((s) => s.allDomains);
+  const userDomains = useDomainStore((s) => s.userDomains);
+  const hasAccess = useDomainStore((s) => s.hasAccess);
   const user = useAuthStore((s) => s.user);
   const tenantTree = useTenantStore((s) => s.tenantTree);
   const selectedTenantId = useTenantStore((s) => s.selectedTenantId);
@@ -106,10 +108,13 @@ function NewCampaignPage() {
   }, [user, selectedTenantId, userLevel]);
 
   // Build domain options from store (active only, excluding Knowledge)
+  // Non-admin users only see their assigned domains
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'CONTINENTAL_ADMIN';
   const domainOptions = useMemo(() => {
     if (allDomains.length > 0) {
       return allDomains
         .filter((d) => !EXCLUDED_DOMAINS.has(d.code))
+        .filter((d) => isAdmin || hasAccess(d.code))
         .map((d) => {
           const formCode = DOMAIN_OPTIONS.find(
             (opt) => opt.label === (d.name.en || d.name.fr),
@@ -121,7 +126,7 @@ function NewCampaignPage() {
     }
     // Fallback to static DOMAIN_OPTIONS
     return DOMAIN_OPTIONS;
-  }, [allDomains]);
+  }, [allDomains, isAdmin, hasAccess]);
 
   // Multilingual name & description
   const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '', sw: '' });

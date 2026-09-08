@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { ToastContainer } from '@/components/realtime/ToastContainer';
 import { RouteChangeLoader, PageReadyProvider } from '@/components/ui/PageLoader';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import { DomainGuard } from '@/components/auth/DomainGuard';
 import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useDomainStore } from '@/lib/stores/domain-store';
@@ -170,6 +171,7 @@ export default function DashboardLayout({
 
   return (
     <AuthGuard>
+      <DomainGuard>
       {isEmbed ? (
         /* Embed mode: content only, no chrome — used by slideshow iframe */
         <div className="h-screen overflow-y-auto bg-slate-50 dark:bg-gray-950">
@@ -227,6 +229,7 @@ export default function DashboardLayout({
         <ForcePasswordChangeModal />
       </div>
       )}
+      </DomainGuard>
     </AuthGuard>
   );
 }

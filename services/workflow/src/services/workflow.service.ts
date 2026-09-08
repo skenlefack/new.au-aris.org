@@ -149,6 +149,7 @@ export class WorkflowService {
 
     const where: Prisma.WorkflowInstanceWhereInput = {
       ...this.buildTenantFilter(user),
+      ...this.buildDomainFilter(user),
       ...(query.level && { current_level: query.level as Prisma.EnumWfLevelFilter }),
       ...(query.status && { status: query.status as Prisma.EnumWfStatusFilter }),
       ...(query.domain && { domain: query.domain }),
@@ -586,7 +587,7 @@ export class WorkflowService {
   async getDashboard(
     user: AuthenticatedUser,
   ): Promise<ApiResponse<DashboardMetrics>> {
-    const tenantFilter = this.buildTenantFilter(user);
+    const tenantFilter = { ...this.buildTenantFilter(user), ...this.buildDomainFilter(user) };
 
     const [
       pendingTech,
@@ -828,7 +829,7 @@ export class WorkflowService {
     const def = await this.getDefinitionWithSteps(tenantId);
     if (!def) return LEVEL_ORDER;
     // Filter to only valid enum values — definition steps may have legacy level_type values
-    const validDefLevels = def.levelOrder.filter(l => VALID_LEVELS.has(l));
+    const validDefLevels = def.levelOrder.filter(l => VALID_LEVELS.has(l as any));
     return validDefLevels.length > 0 ? validDefLevels : LEVEL_ORDER;
   }
 
@@ -864,7 +865,7 @@ export class WorkflowService {
     }
   }
 
-  // ── Tenant Filtering ──
+  // ── Tenant + Domain Filtering ──
 
   private buildTenantFilter(
     user: AuthenticatedUser,
@@ -883,6 +884,20 @@ export class WorkflowService {
       default:
         return { tenant_id: user.tenantId };
     }
+  }
+
+  /** Restrict results to domains the user is assigned to. Admins bypass. */
+  private buildDomainFilter(
+    user: AuthenticatedUser,
+  ): Prisma.WorkflowInstanceWhereInput {
+    const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'CONTINENTAL_ADMIN';
+    if (isAdmin) return {};
+    const codes = Object.keys(user.domains ?? {});
+    if (codes.length === 0) {
+      // No domains → no results
+      return { id: '00000000-0000-0000-0000-000000000000' };
+    }
+    return { domain: { in: codes } };
   }
 
   private verifyTenantAccess(
