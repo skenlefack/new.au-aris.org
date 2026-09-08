@@ -120,7 +120,10 @@ function getCountryCount(campaign: AnyCampaign): number {
 }
 
 function getFormCount(campaign: AnyCampaign): number {
-  return (campaign.templateIds ?? (campaign.formTemplateId ? [campaign.formTemplateId] : [])).length;
+  if (Array.isArray(campaign.formTemplateIds) && campaign.formTemplateIds.length > 0) return campaign.formTemplateIds.length;
+  if (Array.isArray(campaign.templateIds) && campaign.templateIds.length > 0) return campaign.templateIds.length;
+  if (campaign.formTemplateId || campaign.templateId) return 1;
+  return 0;
 }
 
 function getDomainLabel(domain?: string): string {
@@ -350,12 +353,12 @@ function CampaignCard({
   const t = useTranslations('collecte');
   const locale = useLocaleStore((s) => s.locale);
   const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
-  const total = campaign.totalSubmissions ?? 0;
-  const validated = campaign.validatedSubmissions ?? 0;
-  const rejected = campaign.rejectedSubmissions ?? 0;
+  const total = campaign.progress?.totalSubmissions ?? campaign.totalSubmissions ?? 0;
+  const validated = campaign.progress?.validated ?? 0;
+  const rejected = campaign.progress?.rejected ?? 0;
   const target = campaign.targetSubmissions ?? 0;
-  const agentCount = campaign._count?.assignments ?? (Array.isArray(campaign.assignedAgents) ? campaign.assignedAgents.length : 0);
-  const progress = target > 0 ? Math.round((total / target) * 100) : 0;
+  const agentCount = campaign.progress?.totalAgents ?? campaign._count?.assignments ?? (Array.isArray(campaign.assignedAgents) ? campaign.assignedAgents.length : 0);
+  const progress = campaign.progress?.completionRate ?? (target > 0 ? Math.round((total / target) * 100) : 0);
   const flags = getCountryFlags(campaign);
   const countryCount = getCountryCount(campaign);
   const formCount = getFormCount(campaign);
@@ -370,7 +373,7 @@ function CampaignCard({
               {i18nStr(campaign.name, locale)}
             </h3>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-              {i18nStr(campaign.description, locale) || 'No description'}
+              {i18nStr(campaign.description, locale) || t('noDescriptionProvided')}
             </p>
           </Link>
           <div className="ml-3 flex items-center gap-1.5">
@@ -489,12 +492,12 @@ function CampaignListRow({
   const t = useTranslations('collecte');
   const locale = useLocaleStore((s) => s.locale);
   const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
-  const total = campaign.totalSubmissions ?? 0;
+  const total = campaign.progress?.totalSubmissions ?? campaign.totalSubmissions ?? 0;
   const target = campaign.targetSubmissions ?? 0;
-  const progress = target > 0 ? Math.round((total / target) * 100) : 0;
+  const progress = campaign.progress?.completionRate ?? (target > 0 ? Math.round((total / target) * 100) : 0);
   const countryCount = getCountryCount(campaign);
   const formCount = getFormCount(campaign);
-  const agentCount = campaign._count?.assignments ?? (Array.isArray(campaign.assignedAgents) ? campaign.assignedAgents.length : 0);
+  const agentCount = campaign.progress?.totalAgents ?? campaign._count?.assignments ?? (Array.isArray(campaign.assignedAgents) ? campaign.assignedAgents.length : 0);
   const flags = getCountryFlags(campaign);
 
   return (
@@ -515,15 +518,15 @@ function CampaignListRow({
 
       {/* Stats badges */}
       <div className="hidden md:flex items-center gap-3 shrink-0">
-        <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400" title="Forms">
+        <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400" title={t('forms')}>
           <FileText className="h-3.5 w-3.5" />
           {formCount}
         </span>
-        <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400" title="Countries">
+        <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400" title={t('countries')}>
           <Globe className="h-3.5 w-3.5" />
           {countryCount}
         </span>
-        <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400" title="Agents">
+        <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400" title={t('agents')}>
           <Users className="h-3.5 w-3.5" />
           {agentCount}
         </span>

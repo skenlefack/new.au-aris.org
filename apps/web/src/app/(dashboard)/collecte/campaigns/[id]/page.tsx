@@ -368,9 +368,9 @@ export default function CampaignDetailPage() {
   const statusCfg = STATUS_CONFIG[campaign?.status ?? 'PLANNED'] ?? STATUS_CONFIG.PLANNED;
   const progress = campaign?.progress;
   const totalSubmissions = progress?.totalSubmissions ?? 0;
-  const validated = 0;
-  const rejected = 0;
-  const pending = totalSubmissions - validated - rejected;
+  const validated = progress?.validated ?? 0;
+  const rejected = progress?.rejected ?? 0;
+  const pending = progress?.pending ?? (totalSubmissions - validated - rejected);
   const target = campaign?.targetSubmissions ?? 0;
   const pct = progress?.completionRate ?? (target > 0 ? Math.round((totalSubmissions / target) * 100) : 0);
   const agentCount = progress?.totalAgents ?? (Array.isArray(campaign?.assignments) ? campaign.assignments.length : 0);

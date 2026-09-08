@@ -37,7 +37,7 @@ const TYPE_BADGE_CLASSES: Record<SubDomainType, string> = {
   OTHER: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
 };
 
-const DOMAIN_COLORS: Record<string, string> = {
+const DOMAIN_FALLBACK_COLORS: Record<string, string> = {
   'animal-health': '#C62828',
   'livestock-prod': '#E65100',
   fisheries: '#0277BD',
@@ -114,7 +114,7 @@ export default function SubDomainPage() {
   const domainName =
     domain?.name?.en ?? domain?.name?.fr ?? domainCode.replace(/-/g, ' ');
   const subDomainName = subDomain?.labelEn || subDomain?.labelFr || subCode.replace(/-/g, ' ');
-  const color = DOMAIN_COLORS[domainCode] ?? '#1F4E79';
+  const color = domain?.color || DOMAIN_FALLBACK_COLORS[domainCode] || '#1F4E79';
   const scope = resolveScope(user?.role, user?.tenantLevel);
   const typeEnum = subDomain?.typeEnum ?? 'OTHER';
   const typeBadgeClasses = TYPE_BADGE_CLASSES[typeEnum];

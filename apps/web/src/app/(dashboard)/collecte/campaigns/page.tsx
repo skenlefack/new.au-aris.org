@@ -44,16 +44,12 @@ const STATUS_CONFIG: Record<string, { tKey: string; color: string; icon: React.R
   CANCELLED: { tKey: 'cancelled', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', icon: <XCircle className="h-3.5 w-3.5" /> },
 };
 
-const DOMAIN_LABELS: Record<string, string> = {
-  animal_health: 'Animal Health',
-  livestock: 'Livestock',
-  fisheries: 'Fisheries',
-  wildlife: 'Wildlife',
-  apiculture: 'Apiculture',
-  trade_sps: 'Trade & SPS',
-  governance: 'Governance',
-  climate_env: 'Climate & Env',
-};
+import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
+
+function getDomainLabel(domain?: string): string {
+  if (!domain) return '—';
+  return DOMAIN_OPTIONS.find((d) => d.value === domain)?.label ?? domain;
+}
 
 export default function CampaignsPage() {
   const t = useTranslations('collecte');
@@ -113,8 +109,8 @@ export default function CampaignsPage() {
           className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
         >
           <option value="">{t('allDomains')}</option>
-          {Object.entries(DOMAIN_LABELS).map(([key, label]) => (
-            <option key={key} value={key}>{label}</option>
+          {DOMAIN_OPTIONS.map((d) => (
+            <option key={d.value} value={d.value}>{d.label}</option>
           ))}
         </select>
       </div>
@@ -142,9 +138,11 @@ export default function CampaignsPage() {
             const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG['PLANNED'];
             const targetCountries = campaign.targetCountries ?? [];
             const progress = campaign.progress ?? {};
-            const submitted = progress.submitted ?? 0;
+            const submitted = progress.totalSubmissions ?? campaign.totalSubmissions ?? 0;
+            const validated = progress.validated ?? 0;
+            const rejected = progress.rejected ?? 0;
             const target = campaign.targetSubmissions ?? 0;
-            const pct = target > 0 ? Math.round((submitted / target) * 100) : 0;
+            const pct = progress.completionRate ?? (target > 0 ? Math.round((submitted / target) * 100) : 0);
 
             return (
               <div
@@ -189,12 +187,12 @@ export default function CampaignsPage() {
                       ) : campaign.domain ? (
                         // Backward compat: reads legacy domain field, prefer targets[]
                         <span className="rounded bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-blue-700 dark:text-blue-300">
-                          {DOMAIN_LABELS[campaign.domain] ?? campaign.domain}
+                          {getDomainLabel(campaign.domain)}
                         </span>
                       ) : null}
                       <span className="flex items-center gap-1">
                         <Users className="h-3.5 w-3.5" />
-                        {campaign._count?.assignments ?? 0} {t('agents').toLowerCase()}
+                        {progress.totalAgents ?? campaign._count?.assignments ?? 0} {t('agents').toLowerCase()}
                       </span>
                       {targetCountries.length > 0 && (
                         <span className="flex items-center gap-1">
@@ -255,22 +253,28 @@ export default function CampaignsPage() {
                 <div className="mt-4">
                   <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                     <span>{t('progressLabel')} {submitted} / {target} ({pct}%)</span>
-                    {progress.validated != null && (
-                      <span>{t('validatedLabel')} {progress.validated}</span>
+                    {validated > 0 && (
+                      <span>{t('validatedLabel')} {validated}</span>
                     )}
                   </div>
                   <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
                     <div className="flex h-full">
-                      {progress.validated > 0 && (
+                      {validated > 0 && (
                         <div
                           className="bg-green-500 transition-all"
-                          style={{ width: `${target > 0 ? (progress.validated / target) * 100 : 0}%` }}
+                          style={{ width: `${target > 0 ? Math.min((validated / target) * 100, 100) : 0}%` }}
                         />
                       )}
                       <div
                         className="bg-blue-400 transition-all"
-                        style={{ width: `${target > 0 ? ((submitted - (progress.validated ?? 0)) / target) * 100 : 0}%` }}
+                        style={{ width: `${target > 0 ? Math.min(((submitted - validated - rejected) / target) * 100, 100) : 0}%` }}
                       />
+                      {rejected > 0 && (
+                        <div
+                          className="bg-red-400 transition-all"
+                          style={{ width: `${target > 0 ? Math.min((rejected / target) * 100, 100) : 0}%` }}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
