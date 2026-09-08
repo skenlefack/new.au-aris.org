@@ -334,6 +334,20 @@ export function useLogin() {
       // to clear stale domains from a previous session)
       const domains = user.domains ?? [];
       useDomainStore.getState().setUserDomains(Array.isArray(domains) ? domains : []);
+
+      // Extract hierarchical domain permissions from JWT and hydrate immediately.
+      // This ensures domain filtering works before /me/access is fetched.
+      try {
+        const jwtPayload = JSON.parse(atob(accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        const jwtDomains = jwtPayload.domains as Record<string, string[]> | undefined;
+        if (jwtDomains && typeof jwtDomains === 'object') {
+          useDomainStore.getState().hydrateFromMeAccess({
+            domains: jwtDomains,
+            subDomainsDetails: [],
+            valueChainCodes: [],
+          });
+        }
+      } catch { /* JWT decode failed — /me/access will hydrate later */ }
     },
   });
 }
