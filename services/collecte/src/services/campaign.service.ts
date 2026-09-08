@@ -330,7 +330,12 @@ export class CampaignService {
         // No domains assigned → return nothing (impossible WHERE)
         where['id'] = '00000000-0000-0000-0000-000000000000';
       } else {
-        where['domain'] = { in: userDomainCodes };
+        // Match both formats: "animal-health" and legacy "animal_health"
+        const expanded = userDomainCodes.flatMap((c) => {
+          const alt = c.includes('-') ? c.replace(/-/g, '_') : c.replace(/_/g, '-');
+          return alt !== c ? [c, alt] : [c];
+        });
+        where['domain'] = { in: expanded };
       }
     }
 
