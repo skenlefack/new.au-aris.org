@@ -117,12 +117,18 @@ export class DomainService {
 
   /** Get domain codes for a user (used for JWT enrichment) */
   async getUserDomainCodes(userId: string): Promise<string[]> {
-    const userDomains = await (this.prisma as any).userDomain.findMany({
-      where: { userId, isActive: true },
-      include: {
-        domain: { select: { code: true } },
-      },
-    });
-    return userDomains.map((ud: any) => ud.domain.code);
+    try {
+      // Use raw SQL to avoid dependency on Prisma model generation for UserDomain
+      const rows: Array<{ code: string }> = await (this.prisma as any).$queryRawUnsafe(
+        `SELECT d.code FROM governance.user_domains ud
+         JOIN governance.domains d ON ud.domain_id = d.id
+         WHERE ud.user_id = $1::uuid AND ud.is_active = true`,
+        userId,
+      );
+      return rows.map((r) => r.code);
+    } catch (err) {
+      console.error('[DomainService] getUserDomainCodes failed:', err);
+      return [];
+    }
   }
 }
