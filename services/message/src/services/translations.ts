@@ -100,6 +100,12 @@ const labels: Record<string, Record<Locale, string>> = {
     pt: 'Função',
     ar: 'الدور',
   },
+  'welcome.label_function': {
+    en: 'Function',
+    fr: 'Fonction',
+    pt: 'Função',
+    ar: 'الوظيفة',
+  },
   'welcome.label_organization': {
     en: 'Organization',
     fr: 'Organisation',

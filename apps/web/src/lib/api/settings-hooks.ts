@@ -726,6 +726,13 @@ export function useDeleteUser() {
   });
 }
 
+export function useResendWelcome() {
+  return useMutation({
+    mutationFn: (userId: string) =>
+      tenantPost(`/api/v1/settings/users/${userId}/resend-welcome`, {}),
+  });
+}
+
 export function useToggleUserActive() {
   const qc = useQueryClient();
   return useMutation({

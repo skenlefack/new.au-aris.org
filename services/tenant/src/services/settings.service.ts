@@ -1893,12 +1893,28 @@ export class SettingsService {
         where: { id: user.tenantId },
         select: { name: true, code: true },
       });
+
+      // Resolve function names for the welcome email
+      let functionNames: string[] = [];
+      if (functionIds && functionIds.length > 0) {
+        const fns = await (this.prisma as any).function.findMany({
+          where: { id: { in: functionIds } },
+          select: { name: true, code: true },
+        });
+        functionNames = fns.map((f: any) => {
+          const name = f.name;
+          if (typeof name === 'object' && name !== null) return name.en || name.fr || f.code;
+          return String(name || f.code);
+        });
+      }
+
       const publicBase = process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org';
       await this.publishEvent(
         TOPIC_SYS_CREDENTIAL_USER_CREATED,
         {
           ...user,
           tenantName: tenant?.name ?? tenant?.code ?? null,
+          functionNames,
           temporaryPassword: plainPassword,
           loginUrl: `${publicBase}/login`,
         },
@@ -1911,6 +1927,77 @@ export class SettingsService {
 
     await this.invalidateUserCache();
     return { data: user };
+  }
+
+  /**
+   * Resend the welcome email for an existing user.
+   * Generates a new temporary password, hashes it, saves it, sets mustChangePassword,
+   * and re-publishes the TOPIC_SYS_CREDENTIAL_USER_CREATED Kafka event so the
+   * message service sends a fresh welcome email with the new credentials.
+   */
+  async resendWelcome(userId: string, caller: AuthenticatedUser) {
+    const user = await (this.prisma as any).user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true, email: true, firstName: true, lastName: true, role: true, locale: true, tenantId: true,
+        functions: {
+          include: { function: { select: { name: true, code: true } } },
+          orderBy: { isPrimary: 'desc' as const },
+        },
+      },
+    });
+    if (!user) throw new HttpError(404, `User ${userId} not found`);
+
+    // Enforce tenant scope
+    await this.assertUserAccess(caller, user.tenantId);
+
+    // Generate a new temporary password (12 chars, mixed)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+    let newPassword = '';
+    for (let i = 0; i < 12; i++) newPassword += chars[Math.floor(Math.random() * chars.length)];
+
+    // Hash and save the new password, force password change on next login
+    const passwordHash = await hash(newPassword, BCRYPT_ROUNDS);
+    await (this.prisma as any).user.update({
+      where: { id: userId },
+      data: { passwordHash, mustChangePassword: true },
+    });
+
+    // Resolve tenant and function names
+    const tenant = await (this.prisma as any).tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { name: true, code: true },
+    });
+
+    const functionNames: string[] = (user.functions ?? []).map((uf: any) => {
+      const fn = uf.function;
+      if (!fn) return '';
+      const name = fn.name;
+      if (typeof name === 'object' && name !== null) return name.en || name.fr || fn.code;
+      return String(name || fn.code);
+    }).filter(Boolean);
+
+    const publicBase = process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org';
+    await this.publishEvent(
+      TOPIC_SYS_CREDENTIAL_USER_CREATED,
+      {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        locale: user.locale ?? 'en',
+        tenantName: tenant?.name ?? tenant?.code ?? null,
+        functionNames,
+        temporaryPassword: newPassword,
+        loginUrl: `${publicBase}/login`,
+      },
+      caller,
+    );
+
+    await this.writeAudit('user', userId, 'UPDATE', caller, { newVersion: { action: 'resend_welcome' }, classification: 'RESTRICTED' });
+
+    return { data: { success: true, email: user.email } };
   }
 
   async updateUser(id: string, dto: Record<string, unknown>, caller: AuthenticatedUser) {

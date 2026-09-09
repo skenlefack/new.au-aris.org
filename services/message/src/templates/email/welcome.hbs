@@ -44,6 +44,12 @@
                 <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">{{t "welcome.label_role"}}</td>
                 <td style="padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 14px; color: #0f172a; font-weight: 500;">{{roleName}}</td>
               </tr>
+              {{#if functionName}}
+              <tr>
+                <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">{{t "welcome.label_function"}}</td>
+                <td style="padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 14px; color: #0f172a; font-weight: 500;">{{functionName}}</td>
+              </tr>
+              {{/if}}
               <tr>
                 <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">{{t "welcome.label_organization"}}</td>
                 <td style="padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 14px; color: #0f172a; font-weight: 500;">{{tenantName}}</td>

@@ -366,12 +366,14 @@ export class NotificationConsumer {
         const roleName = String(data.role ?? '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
         // Use the locale from the Kafka event (set during user creation) or fall back to 'en'
         const locale = data.locale ?? DEFAULT_LOCALE;
+        const functionNames: string[] = Array.isArray(data.functionNames) ? data.functionNames : [];
         const templateData = {
           userName,
           firstName: data.firstName ?? '',
           lastName: data.lastName ?? '',
           email: data.email,
           roleName,
+          functionName: functionNames.length > 0 ? functionNames.join(', ') : null,
           tenantName: data.tenantName ?? 'ARIS',
           temporaryPassword: data.temporaryPassword,
           loginUrl: data.loginUrl ?? process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org/login',

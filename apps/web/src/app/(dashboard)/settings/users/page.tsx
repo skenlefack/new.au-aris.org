@@ -41,6 +41,7 @@ import {
   useUpdateUser,
   useDeleteUser,
   useToggleUserActive,
+  useResendWelcome,
   useSettingsRoles,
   useSettingsFunctions,
   useLockedAccounts,
@@ -1553,6 +1554,7 @@ export default function UsersPage() {
 
   const deleteMut = useDeleteUser();
   const toggleActiveMut = useToggleUserActive();
+  const resendWelcomeMut = useResendWelcome();
 
   const users = data?.data ?? [];
   const meta = data?.meta ?? { total: 0, page: 1, limit: ITEMS_PER_PAGE };
@@ -1585,6 +1587,16 @@ export default function UsersPage() {
       toast.error(t('toastDeleteFailed'), { description: err?.message ?? t('toastTryAgain') });
     }
   }, [deletingUser, deleteMut]);
+
+  const handleResendWelcome = useCallback(async (user: ManagedUser) => {
+    const name = `${user.firstName} ${user.lastName}`.trim();
+    try {
+      await resendWelcomeMut.mutateAsync(user.id);
+      toast.success(t('toastWelcomeResent'), { description: t('toastWelcomeResentDesc').replace('{name}', name).replace('{email}', user.email) });
+    } catch (err: any) {
+      toast.error(t('toastResendFailed'), { description: err?.message ?? t('toastTryAgain') });
+    }
+  }, [resendWelcomeMut]);
 
   const handleToggleActive = useCallback((user: ManagedUser) => {
     const name = `${user.firstName} ${user.lastName}`;
@@ -1880,6 +1892,14 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleResendWelcome(user)}
+                          disabled={resendWelcomeMut.isPending}
+                          className="inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 p-1.5 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400 transition-all disabled:opacity-50"
+                          title={t('resendWelcome')}
+                        >
+                          <Mail className="h-3 w-3" />
+                        </button>
                         <button
                           onClick={() => handleEdit(user)}
                           className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all"

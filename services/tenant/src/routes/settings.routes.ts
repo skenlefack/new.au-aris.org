@@ -491,6 +491,15 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
     return reply.code(201).send(result);
   });
 
+  // POST /api/v1/settings/users/:id/resend-welcome — resend welcome email with new temp password
+  app.post<{ Params: UuidParamInput }>('/api/v1/settings/users/:id/resend-welcome', {
+    schema: { params: UuidParamSchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.resendWelcome(request.params.id, user);
+  });
+
   // PUT /api/v1/settings/users/:id — update user
   app.put<{ Params: UuidParamInput; Body: UserUpdateBodyInput }>('/api/v1/settings/users/:id', {
     schema: { params: UuidParamSchema, body: UserUpdateBodySchema },
