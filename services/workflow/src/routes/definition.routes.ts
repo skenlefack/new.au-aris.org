@@ -96,4 +96,32 @@ export async function registerDefinitionRoutes(app: FastifyInstance): Promise<vo
     await app.definitionService.deleteStep(request.params.id, request.params.stepId, user);
     return reply.code(204).send();
   });
+
+  // ── DAG Graph Routes ──
+
+  // GET /api/v1/workflow/definitions/:id/graph — get full graph (steps + edges + positions)
+  app.get<{ Params: DefinitionIdParamInput }>('/api/v1/workflow/definitions/:id/graph', {
+    schema: { params: DefinitionIdParamSchema },
+    preHandler: [auth],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.definitionService.getGraph(request.params.id, user);
+  });
+
+  // PUT /api/v1/workflow/definitions/:id/graph — save full graph atomically
+  app.put<{ Params: DefinitionIdParamInput; Body: any }>('/api/v1/workflow/definitions/:id/graph', {
+    schema: { params: DefinitionIdParamSchema },
+    preHandler: [auth],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.definitionService.saveGraph(request.params.id, request.body, user);
+  });
+
+  // POST /api/v1/workflow/definitions/:id/graph/validate — validate graph without saving
+  app.post<{ Params: DefinitionIdParamInput; Body: any }>('/api/v1/workflow/definitions/:id/graph/validate', {
+    schema: { params: DefinitionIdParamSchema },
+    preHandler: [auth],
+  }, async (request) => {
+    return app.definitionService.validateGraph(request.body);
+  });
 }

@@ -613,3 +613,117 @@ export function useRemoveCampaignAssignment() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['collection-campaign'] }),
   });
 }
+
+// ═══════════════════════════════════════════════════════
+// DAG WORKFLOW — Graph, Routes, Branches
+// ═══════════════════════════════════════════════════════
+
+/** Get the full graph (steps + edges + positions) for a definition */
+export function useWorkflowGraph(definitionId?: string) {
+  return useQuery({
+    queryKey: ['workflow-graph', definitionId],
+    queryFn: () => wfFetch<{ data: any }>(`/api/v1/workflow/definitions/${definitionId}/graph`),
+    enabled: !!definitionId,
+    staleTime: 60_000,
+  });
+}
+
+/** Save full graph atomically */
+export function useSaveWorkflowGraph() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ definitionId, ...body }: { definitionId: string; graphVersion: number; steps: any[]; edges: any[] }) =>
+      wfFetch(`/api/v1/workflow/definitions/${definitionId}/graph`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['workflow-graph', vars.definitionId] });
+      qc.invalidateQueries({ queryKey: ['workflow-definitions'] });
+    },
+  });
+}
+
+/** Validate a graph without saving */
+export function useValidateWorkflowGraph() {
+  return useMutation({
+    mutationFn: ({ definitionId, ...body }: { definitionId: string; steps: any[]; edges: any[] }) =>
+      wfFetch(`/api/v1/workflow/definitions/${definitionId}/graph/validate`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+  });
+}
+
+/** Get available routing options for the current step of a DAG instance */
+export function useAvailableRoutes(instanceId?: string) {
+  return useQuery({
+    queryKey: ['workflow-available-routes', instanceId],
+    queryFn: () => wfFetch<{
+      data: {
+        edgeType: string | null;
+        options: Array<{
+          edgeId: string;
+          targetStepId: string;
+          targetStepName: Record<string, string>;
+          label: Record<string, string> | null;
+        }>;
+      };
+    }>(`/api/v1/workflow/instances/${instanceId}/available-routes`),
+    enabled: !!instanceId,
+    staleTime: 30_000,
+  });
+}
+
+/** Get active branch tokens for a DAG instance */
+export function useInstanceBranches(instanceId?: string) {
+  return useQuery({
+    queryKey: ['workflow-branches', instanceId],
+    queryFn: () => wfFetch<{
+      data: Array<{
+        id: string;
+        instanceId: string;
+        stepId: string;
+        branchGroup: string;
+        status: string;
+        createdAt: string;
+        completedAt: string | null;
+      }>;
+    }>(`/api/v1/workflow/instances/${instanceId}/branches`),
+    enabled: !!instanceId,
+    staleTime: 30_000,
+  });
+}
+
+/** Approve a specific branch token */
+export function useApproveBranch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ instanceId, tokenId, comment }: { instanceId: string; tokenId: string; comment?: string }) =>
+      wfFetch(`/api/v1/workflow/instances/${instanceId}/branches/${tokenId}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ comment }),
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['workflow-branches', vars.instanceId] });
+      qc.invalidateQueries({ queryKey: ['workflow-instances'] });
+    },
+  });
+}
+
+/** Approve with target step IDs (for DAG choice routing) */
+export function useApproveWithRouting() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ instanceId, comment, targetStepIds }: { instanceId: string; comment?: string; targetStepIds?: string[] }) =>
+      wfFetch(`/api/v1/workflow/instances/${instanceId}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ comment, targetStepIds }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workflow-instances'] });
+      qc.invalidateQueries({ queryKey: ['workflow-available-routes'] });
+      qc.invalidateQueries({ queryKey: ['workflow-branches'] });
+    },
+  });
+}

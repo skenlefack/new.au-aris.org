@@ -32,6 +32,24 @@ enum WfAction {
   @@schema("workflow")
 }
 
+// ── DAG Workflow Enums ──
+
+enum WfEdgeType {
+  SEQUENTIAL       // default: approval auto-advances to single target
+  PARALLEL         // fan-out: all targets activate simultaneously
+  CHOICE_SINGLE    // user picks exactly one target
+  CHOICE_MULTI     // user picks one or more targets
+
+  @@schema("workflow")
+}
+
+enum WfMergeStrategy {
+  ALL              // wait for all incoming branches to complete
+  ANY              // first branch to complete unlocks this step
+
+  @@schema("workflow")
+}
+
 model WorkflowInstance {
   id                 String               @id @default(uuid()) @db.Uuid
   tenant_id          String               @db.Uuid
@@ -46,11 +64,15 @@ model WorkflowInstance {
   wahis_ready        Boolean              @default(false)
   analytics_ready    Boolean              @default(false)
   sla_deadline       DateTime?
+  // DAG extensions
+  current_step_id    String?              @db.Uuid
+  definition_id      String?              @db.Uuid
   created_by         String               @db.Uuid
   created_at         DateTime             @default(now())
   updated_at         DateTime             @updatedAt
 
   transitions        WorkflowTransition[]
+  branch_tokens      WorkflowBranchToken[]
 
   @@index([tenant_id])
   @@index([entity_type, entity_id])
@@ -63,19 +85,22 @@ model WorkflowInstance {
 }
 
 model WorkflowTransition {
-  id              String            @id @default(uuid()) @db.Uuid
-  instance_id     String            @db.Uuid
-  from_level      WfLevel
-  to_level        WfLevel
-  from_status     WfStatus
-  to_status       WfStatus
-  action          WfAction
-  actor_user_id   String            @db.Uuid
-  actor_role      String            @db.VarChar(50)
-  comment         String?
-  created_at      DateTime          @default(now())
+  id               String            @id @default(uuid()) @db.Uuid
+  instance_id      String            @db.Uuid
+  from_level       WfLevel
+  to_level         WfLevel
+  from_status      WfStatus
+  to_status        WfStatus
+  action           WfAction
+  actor_user_id    String            @db.Uuid
+  actor_role       String            @db.VarChar(50)
+  comment          String?
+  // DAG extensions
+  step_id          String?           @db.Uuid
+  branch_token_id  String?           @db.Uuid
+  created_at       DateTime          @default(now())
 
-  instance        WorkflowInstance  @relation(fields: [instance_id], references: [id])
+  instance         WorkflowInstance  @relation(fields: [instance_id], references: [id])
 
   @@index([instance_id])
   @@index([created_at])
@@ -101,11 +126,15 @@ model WorkflowDefinition {
   allow_reject              Boolean  @default(true)
   allow_return              Boolean  @default(true)
   is_active                 Boolean  @default(true)
+  // DAG extensions
+  is_dag                    Boolean  @default(false)
+  graph_version             Int      @default(1)
   created_by                String   @db.Uuid
   created_at                DateTime @default(now())
   updated_at                DateTime @updatedAt
 
   steps                     WorkflowStep[]
+  edges                     WorkflowEdge[]
 
   @@unique([tenant_id, country_code])
   @@index([tenant_id])
@@ -115,22 +144,74 @@ model WorkflowDefinition {
 }
 
 model WorkflowStep {
-  id                   String   @id @default(uuid()) @db.Uuid
-  definition_id        String   @db.Uuid
+  id                   String          @id @default(uuid()) @db.Uuid
+  definition_id        String          @db.Uuid
   step_order           Int
-  level_type           String   @db.VarChar(20)
+  level_type           String          @db.VarChar(20)
   admin_level          Int?
-  name                 Json     // { en: "...", fr: "..." }
-  can_edit             Boolean  @default(false)
-  can_validate         Boolean  @default(true)
+  name                 Json            // { en: "...", fr: "..." }
+  can_edit             Boolean         @default(false)
+  can_validate         Boolean         @default(true)
   transmit_delay_hours Int?
-  created_at           DateTime @default(now())
-  updated_at           DateTime @updatedAt
+  // DAG extensions
+  step_key             String?         @db.VarChar(80)   // stable machine key, e.g. "REC_ECCAS"
+  node_type            String          @default("step") @db.VarChar(20) // start | step | end
+  merge_strategy       WfMergeStrategy @default(ALL)
+  allowed_roles        Json?           // string[] of UserRole values for custom RBAC
+  position_x           Float?          // canvas X for visual designer
+  position_y           Float?          // canvas Y for visual designer
+  created_at           DateTime        @default(now())
+  updated_at           DateTime        @updatedAt
 
   definition           WorkflowDefinition @relation(fields: [definition_id], references: [id], onDelete: Cascade)
+  outgoing_edges       WorkflowEdge[]     @relation("outgoing_edges")
+  incoming_edges       WorkflowEdge[]     @relation("incoming_edges")
 
   @@index([definition_id])
   @@map("workflow_steps")
+  @@schema("workflow")
+}
+
+// ── DAG: Edges between workflow steps ──
+
+model WorkflowEdge {
+  id              String              @id @default(uuid()) @db.Uuid
+  definition_id   String              @db.Uuid
+  source_step_id  String              @db.Uuid
+  target_step_id  String              @db.Uuid
+  edge_type       WfEdgeType          @default(SEQUENTIAL)
+  condition       Json?               // optional rule expression for conditional routing
+  label           Json?               // { en: "Send to ECCAS", fr: "Envoyer a la CEEAC" }
+  sort_order      Int                 @default(0)
+  created_at      DateTime            @default(now())
+
+  definition      WorkflowDefinition  @relation(fields: [definition_id], references: [id], onDelete: Cascade)
+  source_step     WorkflowStep        @relation("outgoing_edges", fields: [source_step_id], references: [id], onDelete: Cascade)
+  target_step     WorkflowStep        @relation("incoming_edges", fields: [target_step_id], references: [id], onDelete: Cascade)
+
+  @@index([definition_id])
+  @@index([source_step_id])
+  @@index([target_step_id])
+  @@map("workflow_edges")
+  @@schema("workflow")
+}
+
+// ── DAG: Branch tokens for parallel / multi-choice execution ──
+
+model WorkflowBranchToken {
+  id            String            @id @default(uuid()) @db.Uuid
+  instance_id   String            @db.Uuid
+  step_id       String            @db.Uuid
+  branch_group  String            @db.VarChar(80)
+  status        String            @default("ACTIVE") @db.VarChar(20) // ACTIVE | COMPLETED | CANCELLED
+  created_at    DateTime          @default(now())
+  completed_at  DateTime?
+
+  instance      WorkflowInstance  @relation(fields: [instance_id], references: [id])
+
+  @@index([instance_id])
+  @@index([instance_id, branch_group])
+  @@map("workflow_branch_tokens")
   @@schema("workflow")
 }
 

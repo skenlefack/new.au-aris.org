@@ -26,7 +26,10 @@ import type { AuthenticatedUser } from '@aris/auth-middleware';
 import type {
   WorkflowInstanceEntity,
   WorkflowTransitionEntity,
+  WorkflowEdgeEntity,
+  WorkflowBranchTokenEntity,
   DashboardMetrics,
+  WfEdgeType,
 } from '../entities/workflow.entity.js';
 import { LEVEL_ROLES, LEVEL_ORDER } from '../entities/workflow.entity.js';
 import type { CreateInstanceInput } from '../schemas/workflow.schemas.js';
@@ -54,15 +57,34 @@ interface DefinitionWithSteps {
     default_validation_delay: number;
     default_transmit_delay: number;
     is_active: boolean;
+    is_dag: boolean;
+    graph_version: number;
     [key: string]: unknown;
   };
   steps: Array<{
     id: string;
     step_order: number;
     level_type: string;
+    step_key: string | null;
+    node_type: string;
+    merge_strategy: string;
+    allowed_roles: string[] | null;
     can_edit: boolean;
     can_validate: boolean;
     transmit_delay_hours: number | null;
+    outgoing_edges?: Array<{
+      id: string;
+      target_step_id: string;
+      edge_type: string;
+      label: Record<string, string> | null;
+      sort_order: number;
+      condition: Record<string, unknown> | null;
+    }>;
+    incoming_edges?: Array<{
+      id: string;
+      source_step_id: string;
+      edge_type: string;
+    }>;
     [key: string]: unknown;
   }>;
   /** Ordered level_type sequence derived from steps */
@@ -202,6 +224,7 @@ export class WorkflowService {
     id: string,
     comment: string | undefined,
     user: AuthenticatedUser,
+    targetStepIds?: string[],
   ): Promise<ApiResponse<WorkflowInstanceEntity>> {
     const instance = await (this.prisma as any).workflowInstance.findUnique({
       where: { id },
@@ -213,10 +236,17 @@ export class WorkflowService {
 
     this.verifyTenantAccess(user, instance.tenant_id);
     this.verifyActionable(instance.status);
-    this.verifyRoleForLevel(user, instance.current_level);
 
     // Fetch dynamic definition for the tenant
     const def = await this.getDefinitionWithSteps(instance.tenant_id);
+
+    // DAG dispatch: if definition is DAG mode, use DAG engine
+    if (def?.definition.is_dag && instance.current_step_id) {
+      return this.approveDAG(instance, comment, user, def, targetStepIds);
+    }
+
+    // Legacy linear mode
+    this.verifyRoleForLevel(user, instance.current_level);
 
     // Enforce require_comment if definition mandates it
     if (def && def.definition.require_comment && (!comment || comment.trim().length === 0)) {
@@ -335,6 +365,474 @@ export class WorkflowService {
     }
 
     return { data: this.toEntityWithTransitions(updated) };
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  DAG ENGINE — branching, choice routing, parallel execution
+  // ══════════════════════════════════════════════════════════════
+
+  /**
+   * Approve a DAG workflow instance. Resolves outgoing edges from the current step
+   * and routes to the next step(s) based on edge type (SEQUENTIAL, PARALLEL, CHOICE).
+   */
+  private async approveDAG(
+    instance: any,
+    comment: string | undefined,
+    user: AuthenticatedUser,
+    def: DefinitionWithSteps,
+    targetStepIds?: string[],
+  ): Promise<ApiResponse<WorkflowInstanceEntity>> {
+    const currentStep = def.steps.find((s) => s.id === instance.current_step_id);
+    if (!currentStep) {
+      throw new HttpError(400, `Current step ${instance.current_step_id} not found in definition`);
+    }
+
+    // Verify RBAC for this step
+    this.verifyRoleForStep(user, currentStep);
+
+    // Enforce require_comment
+    if (def.definition.require_comment && (!comment || comment.trim().length === 0)) {
+      throw new HttpError(400, 'Comment is required for approval in this workflow configuration');
+    }
+
+    // Get outgoing edges from current step
+    const outgoingEdges = currentStep.outgoing_edges ?? [];
+
+    // Terminal node — no outgoing edges
+    if (outgoingEdges.length === 0) {
+      return this.completeDagInstance(instance, currentStep, comment, user);
+    }
+
+    // All edges from same source must share the same type
+    const edgeType = outgoingEdges[0].edge_type as WfEdgeType;
+
+    switch (edgeType) {
+      case 'SEQUENTIAL': {
+        // Single next step
+        const targetStepId = outgoingEdges[0].target_step_id;
+        return this.advanceToStep(instance, currentStep, targetStepId, comment, user, def);
+      }
+
+      case 'PARALLEL': {
+        // Fan-out: create branch tokens for ALL target steps
+        const branchGroup = uuidv4();
+        const targetIds = outgoingEdges.map((e) => e.target_step_id);
+        return this.createBranches(instance, currentStep, targetIds, branchGroup, comment, user, def);
+      }
+
+      case 'CHOICE_SINGLE': {
+        if (!targetStepIds || targetStepIds.length !== 1) {
+          throw new HttpError(400, 'CHOICE_SINGLE requires exactly one targetStepId');
+        }
+        const validTargets = new Set(outgoingEdges.map((e) => e.target_step_id));
+        if (!validTargets.has(targetStepIds[0])) {
+          throw new HttpError(400, `Invalid target step: ${targetStepIds[0]}`);
+        }
+        return this.advanceToStep(instance, currentStep, targetStepIds[0], comment, user, def);
+      }
+
+      case 'CHOICE_MULTI': {
+        if (!targetStepIds || targetStepIds.length === 0) {
+          throw new HttpError(400, 'CHOICE_MULTI requires at least one targetStepId');
+        }
+        const validTargets = new Set(outgoingEdges.map((e) => e.target_step_id));
+        for (const tid of targetStepIds) {
+          if (!validTargets.has(tid)) {
+            throw new HttpError(400, `Invalid target step: ${tid}`);
+          }
+        }
+        if (targetStepIds.length === 1) {
+          return this.advanceToStep(instance, currentStep, targetStepIds[0], comment, user, def);
+        }
+        const branchGroup = uuidv4();
+        return this.createBranches(instance, currentStep, targetStepIds, branchGroup, comment, user, def);
+      }
+
+      default:
+        throw new HttpError(400, `Unknown edge type: ${edgeType}`);
+    }
+  }
+
+  /** Advance instance to a single next step (SEQUENTIAL or single CHOICE) */
+  private async advanceToStep(
+    instance: any,
+    fromStep: DefinitionWithSteps['steps'][number],
+    targetStepId: string,
+    comment: string | undefined,
+    user: AuthenticatedUser,
+    def: DefinitionWithSteps,
+  ): Promise<ApiResponse<WorkflowInstanceEntity>> {
+    const targetStep = def.steps.find((s) => s.id === targetStepId);
+    const isEnd = targetStep?.node_type === 'end';
+    const nextStatus = isEnd ? 'APPROVED' : 'PENDING';
+
+    // Map step_key to WfLevel for backward-compat fields
+    const fromLevel = this.stepKeyToLevel(fromStep.step_key ?? fromStep.level_type);
+    const toLevel = this.stepKeyToLevel(targetStep?.step_key ?? targetStep?.level_type ?? 'NATIONAL_TECHNICAL');
+
+    const wahisReady = instance.wahis_ready || fromLevel === 'NATIONAL_OFFICIAL';
+    const analyticsReady = instance.analytics_ready || fromLevel === 'CONTINENTAL_PUBLICATION';
+
+    const [updated] = await (this.prisma as any).$transaction([
+      (this.prisma as any).workflowInstance.update({
+        where: { id: instance.id },
+        data: {
+          current_step_id: targetStepId,
+          current_level: toLevel,
+          status: nextStatus,
+          wahis_ready: wahisReady,
+          analytics_ready: analyticsReady,
+        },
+        include: { transitions: { orderBy: { created_at: 'asc' } } },
+      }),
+      (this.prisma as any).workflowTransition.create({
+        data: {
+          instance_id: instance.id,
+          from_level: fromLevel,
+          to_level: toLevel,
+          from_status: instance.status,
+          to_status: nextStatus,
+          action: 'APPROVE',
+          actor_user_id: user.userId,
+          actor_role: user.role,
+          comment: comment ?? null,
+          step_id: targetStepId,
+        },
+      }),
+    ]);
+
+    await this.publishEvent(TOPIC_AU_WORKFLOW_VALIDATION_APPROVED, updated, user);
+    return { data: this.toEntityWithTransitions(updated) };
+  }
+
+  /** Create parallel branch tokens (PARALLEL or CHOICE_MULTI) */
+  private async createBranches(
+    instance: any,
+    fromStep: DefinitionWithSteps['steps'][number],
+    targetStepIds: string[],
+    branchGroup: string,
+    comment: string | undefined,
+    user: AuthenticatedUser,
+    def: DefinitionWithSteps,
+  ): Promise<ApiResponse<WorkflowInstanceEntity>> {
+    const fromLevel = this.stepKeyToLevel(fromStep.step_key ?? fromStep.level_type);
+
+    const ops: any[] = [];
+
+    // Create a branch token for each target step
+    for (const targetStepId of targetStepIds) {
+      ops.push(
+        (this.prisma as any).$executeRawUnsafe(
+          `INSERT INTO workflow.workflow_branch_tokens (id, instance_id, step_id, branch_group, status, created_at)
+           VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3, 'ACTIVE', now())`,
+          instance.id, targetStepId, branchGroup,
+        ),
+      );
+
+      const targetStep = def.steps.find((s) => s.id === targetStepId);
+      const toLevel = this.stepKeyToLevel(targetStep?.step_key ?? targetStep?.level_type ?? 'NATIONAL_TECHNICAL');
+
+      ops.push(
+        (this.prisma as any).workflowTransition.create({
+          data: {
+            instance_id: instance.id,
+            from_level: fromLevel,
+            to_level: toLevel,
+            from_status: instance.status,
+            to_status: 'PENDING',
+            action: 'APPROVE',
+            actor_user_id: user.userId,
+            actor_role: user.role,
+            comment: comment ? `${comment} [branch: ${branchGroup}]` : `[branch: ${branchGroup}]`,
+            step_id: targetStepId,
+          },
+        }),
+      );
+    }
+
+    // Keep first target as the "main" current step for display
+    const firstTarget = def.steps.find((s) => s.id === targetStepIds[0]);
+    const firstLevel = this.stepKeyToLevel(firstTarget?.step_key ?? firstTarget?.level_type ?? 'NATIONAL_TECHNICAL');
+
+    ops.push(
+      (this.prisma as any).workflowInstance.update({
+        where: { id: instance.id },
+        data: {
+          current_step_id: targetStepIds[0],
+          current_level: firstLevel,
+          status: 'PENDING', // branches are active
+        },
+      }),
+    );
+
+    await (this.prisma as any).$transaction(ops);
+
+    const updated = await (this.prisma as any).workflowInstance.findUnique({
+      where: { id: instance.id },
+      include: { transitions: { orderBy: { created_at: 'asc' } } },
+    });
+
+    await this.publishEvent(TOPIC_AU_WORKFLOW_VALIDATION_APPROVED, updated, user);
+    return { data: this.toEntityWithTransitions(updated) };
+  }
+
+  /** Complete a DAG instance (terminal node reached) */
+  private async completeDagInstance(
+    instance: any,
+    currentStep: DefinitionWithSteps['steps'][number],
+    comment: string | undefined,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<WorkflowInstanceEntity>> {
+    const level = this.stepKeyToLevel(currentStep.step_key ?? currentStep.level_type);
+
+    const [updated] = await (this.prisma as any).$transaction([
+      (this.prisma as any).workflowInstance.update({
+        where: { id: instance.id },
+        data: {
+          status: 'APPROVED',
+          wahis_ready: true,
+          analytics_ready: true,
+        },
+        include: { transitions: { orderBy: { created_at: 'asc' } } },
+      }),
+      (this.prisma as any).workflowTransition.create({
+        data: {
+          instance_id: instance.id,
+          from_level: level,
+          to_level: level,
+          from_status: instance.status,
+          to_status: 'APPROVED',
+          action: 'APPROVE',
+          actor_user_id: user.userId,
+          actor_role: user.role,
+          comment: comment ?? 'Final approval (terminal node)',
+          step_id: currentStep.id,
+        },
+      }),
+    ]);
+
+    await this.publishEvent(TOPIC_AU_WORKFLOW_VALIDATION_APPROVED, updated, user);
+    return { data: this.toEntityWithTransitions(updated) };
+  }
+
+  /**
+   * Approve a specific branch token. When all tokens in a branch group are completed,
+   * the merge logic checks the target step's merge_strategy and advances if ready.
+   */
+  async approveBranch(
+    instanceId: string,
+    tokenId: string,
+    comment: string | undefined,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<WorkflowInstanceEntity>> {
+    // Mark the token as completed
+    await (this.prisma as any).$executeRawUnsafe(
+      `UPDATE workflow.workflow_branch_tokens SET status = 'COMPLETED', completed_at = now() WHERE id = $1::uuid AND instance_id = $2::uuid`,
+      tokenId, instanceId,
+    );
+
+    // Load the token to get branch_group and step_id
+    const tokens: any[] = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT id, step_id, branch_group, status FROM workflow.workflow_branch_tokens WHERE instance_id = $1::uuid ORDER BY created_at`,
+      instanceId,
+    );
+
+    const completedToken = tokens.find((t: any) => t.id === tokenId);
+    if (!completedToken) throw new HttpError(404, 'Branch token not found');
+
+    const branchGroup = completedToken.branch_group;
+    const groupTokens = tokens.filter((t: any) => t.branch_group === branchGroup);
+    const allCompleted = groupTokens.every((t: any) => t.status === 'COMPLETED');
+
+    // Record transition
+    const instance = await (this.prisma as any).workflowInstance.findUnique({ where: { id: instanceId } });
+    if (!instance) throw new HttpError(404, 'Instance not found');
+
+    const def = await this.getDefinitionWithSteps(instance.tenant_id);
+    const currentStep = def?.steps.find((s: any) => s.id === completedToken.step_id);
+    const level = this.stepKeyToLevel(currentStep?.step_key ?? currentStep?.level_type ?? 'NATIONAL_TECHNICAL');
+
+    await (this.prisma as any).workflowTransition.create({
+      data: {
+        instance_id: instanceId,
+        from_level: level,
+        to_level: level,
+        from_status: 'PENDING',
+        to_status: 'APPROVED',
+        action: 'APPROVE',
+        actor_user_id: user.userId,
+        actor_role: user.role,
+        comment: comment ?? `Branch approved [${branchGroup}]`,
+        step_id: completedToken.step_id,
+        branch_token_id: tokenId,
+      },
+    });
+
+    // Check merge: find the downstream step that all branches converge to
+    if (allCompleted && def) {
+      await this.checkMergeAndAdvance(instanceId, groupTokens, def, user);
+    }
+
+    const updated = await (this.prisma as any).workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { transitions: { orderBy: { created_at: 'asc' } } },
+    });
+
+    return { data: this.toEntityWithTransitions(updated) };
+  }
+
+  /**
+   * After all branch tokens in a group are completed, find the merge point
+   * and advance the instance to it.
+   */
+  private async checkMergeAndAdvance(
+    instanceId: string,
+    groupTokens: any[],
+    def: DefinitionWithSteps,
+    user: AuthenticatedUser,
+  ): Promise<void> {
+    // Find common downstream step: steps that have incoming edges from ALL branch step IDs
+    const branchStepIds = new Set(groupTokens.map((t: any) => t.step_id));
+
+    for (const step of def.steps) {
+      const incomingFrom = (step.incoming_edges ?? []).map((e: any) => e.source_step_id);
+      const allBranchesMerge = [...branchStepIds].every((bsId) => incomingFrom.includes(bsId));
+
+      if (allBranchesMerge && incomingFrom.length > 0) {
+        // This step is the merge point — advance instance to it
+        const mergeLevel = this.stepKeyToLevel(step.step_key ?? step.level_type);
+        await (this.prisma as any).workflowInstance.update({
+          where: { id: instanceId },
+          data: {
+            current_step_id: step.id,
+            current_level: mergeLevel,
+            status: 'PENDING',
+          },
+        });
+        return;
+      }
+    }
+
+    // No merge point found — branches are terminal (multiple ends)
+    // Check if ALL tokens across ALL groups are completed
+    const allTokens: any[] = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT status FROM workflow.workflow_branch_tokens WHERE instance_id = $1::uuid AND status = 'ACTIVE'`,
+      instanceId,
+    );
+
+    if (allTokens.length === 0) {
+      // All branches done, no merge point → mark instance as APPROVED
+      await (this.prisma as any).workflowInstance.update({
+        where: { id: instanceId },
+        data: { status: 'APPROVED', wahis_ready: true, analytics_ready: true },
+      });
+    }
+  }
+
+  /**
+   * Get available routing options for the current step of a DAG instance.
+   * Used by the frontend to show choice buttons when edge_type is CHOICE_*.
+   */
+  async getAvailableRoutes(
+    instanceId: string,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<{ edgeType: WfEdgeType | null; options: Array<{ edgeId: string; targetStepId: string; targetStepName: Record<string, string>; label: Record<string, string> | null }> }>> {
+    const instance = await (this.prisma as any).workflowInstance.findUnique({ where: { id: instanceId } });
+    if (!instance) throw new HttpError(404, 'Instance not found');
+    this.verifyTenantAccess(user, instance.tenant_id);
+
+    const def = await this.getDefinitionWithSteps(instance.tenant_id);
+    if (!def?.definition.is_dag || !instance.current_step_id) {
+      return { data: { edgeType: null, options: [] } };
+    }
+
+    const currentStep = def.steps.find((s) => s.id === instance.current_step_id);
+    const outgoing = currentStep?.outgoing_edges ?? [];
+
+    if (outgoing.length === 0) {
+      return { data: { edgeType: null, options: [] } };
+    }
+
+    const edgeType = outgoing[0].edge_type as WfEdgeType;
+    const options = outgoing
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((e) => {
+        const target = def.steps.find((s) => s.id === e.target_step_id);
+        return {
+          edgeId: e.id,
+          targetStepId: e.target_step_id,
+          targetStepName: (target?.name ?? { en: e.target_step_id }) as Record<string, string>,
+          label: e.label,
+        };
+      });
+
+    return { data: { edgeType, options } };
+  }
+
+  /**
+   * Get active branch tokens for a DAG instance.
+   */
+  async getInstanceBranches(
+    instanceId: string,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<WorkflowBranchTokenEntity[]>> {
+    const instance = await (this.prisma as any).workflowInstance.findUnique({ where: { id: instanceId } });
+    if (!instance) throw new HttpError(404, 'Instance not found');
+    this.verifyTenantAccess(user, instance.tenant_id);
+
+    const tokens: any[] = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT id, instance_id, step_id, branch_group, status, created_at, completed_at
+       FROM workflow.workflow_branch_tokens WHERE instance_id = $1::uuid ORDER BY created_at`,
+      instanceId,
+    );
+
+    return {
+      data: tokens.map((t: any) => ({
+        id: t.id,
+        instanceId: t.instance_id,
+        stepId: t.step_id,
+        branchGroup: t.branch_group,
+        status: t.status,
+        createdAt: t.created_at,
+        completedAt: t.completed_at,
+      })),
+    };
+  }
+
+  // ── DAG RBAC ──
+
+  /** Verify user has the right role for a DAG step (uses step.allowed_roles or step_key→LEVEL_ROLES) */
+  private verifyRoleForStep(user: AuthenticatedUser, step: DefinitionWithSteps['steps'][number]): void {
+    // 1. Check custom allowed_roles on step
+    if (step.allowed_roles && Array.isArray(step.allowed_roles) && step.allowed_roles.length > 0) {
+      if (!step.allowed_roles.includes(user.role)) {
+        throw new HttpError(403, `Role ${user.role} cannot act at step "${step.step_key ?? step.id}"`);
+      }
+      return;
+    }
+
+    // 2. Fallback to LEVEL_ROLES via step_key
+    const levelKey = step.step_key ?? step.level_type;
+    const allowedRoles = LEVEL_ROLES[levelKey];
+    if (allowedRoles && !allowedRoles.includes(user.role)) {
+      throw new HttpError(403, `Role ${user.role} cannot act at step "${levelKey}"`);
+    }
+
+    // 3. If no mapping found, allow SUPER_ADMIN only
+    if (!allowedRoles && user.role !== 'SUPER_ADMIN') {
+      throw new HttpError(403, `No RBAC mapping for step "${levelKey}" — only SUPER_ADMIN allowed`);
+    }
+  }
+
+  /** Map a step_key to the closest WfLevel enum value for backward-compat fields */
+  private stepKeyToLevel(stepKeyOrLevel: string): string {
+    const VALID_LEVELS = new Set(LEVEL_ORDER as unknown as string[]);
+    if (VALID_LEVELS.has(stepKeyOrLevel)) return stepKeyOrLevel;
+    // Map common patterns
+    if (stepKeyOrLevel.startsWith('REC_') || stepKeyOrLevel === 'regional') return 'REC_HARMONIZATION';
+    if (stepKeyOrLevel === 'continental' || stepKeyOrLevel.startsWith('AU_')) return 'CONTINENTAL_PUBLICATION';
+    if (stepKeyOrLevel === 'national' || stepKeyOrLevel.startsWith('NATIONAL_')) return 'NATIONAL_TECHNICAL';
+    return 'NATIONAL_TECHNICAL'; // safe default
   }
 
   // ── Reject ──
@@ -798,7 +1296,15 @@ export class WorkflowService {
     try {
       const definition = await (this.prisma as any).workflowDefinition.findFirst({
         where: { tenant_id: tenantId, is_active: true },
-        include: { steps: { orderBy: { step_order: 'asc' } } },
+        include: {
+          steps: {
+            orderBy: { step_order: 'asc' },
+            include: {
+              outgoing_edges: { orderBy: { sort_order: 'asc' } },
+              incoming_edges: true,
+            },
+          },
+        },
       });
 
       if (!definition || !definition.steps || definition.steps.length === 0) {
@@ -970,6 +1476,8 @@ export class WorkflowService {
       wahisReady: row.wahis_ready,
       analyticsReady: row.analytics_ready,
       slaDeadline: row.sla_deadline,
+      currentStepId: (row as any).current_step_id ?? null,
+      definitionId: (row as any).definition_id ?? null,
       createdBy: row.created_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -1019,6 +1527,8 @@ export class WorkflowService {
       actorUserId: t.actor_user_id,
       actorRole: t.actor_role as UserRole,
       comment: t.comment,
+      stepId: t.step_id ?? null,
+      branchTokenId: t.branch_token_id ?? null,
       createdAt: t.created_at,
     }));
     return entity;

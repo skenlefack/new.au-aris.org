@@ -14,6 +14,9 @@ export interface WorkflowTransitionEntity {
   actorUserId: string;
   actorRole: UserRole;
   comment: string | null;
+  // DAG extensions
+  stepId: string | null;
+  branchTokenId: string | null;
   createdAt: Date;
 }
 
@@ -31,10 +34,14 @@ export interface WorkflowInstanceEntity {
   wahisReady: boolean;
   analyticsReady: boolean;
   slaDeadline: Date | null;
+  // DAG extensions
+  currentStepId: string | null;
+  definitionId: string | null;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
   transitions?: WorkflowTransitionEntity[];
+  branchTokens?: WorkflowBranchTokenEntity[];
 }
 
 export interface DashboardMetrics {
@@ -61,6 +68,15 @@ export interface WorkflowStepEntity {
   canEdit: boolean;
   canValidate: boolean;
   transmitDelayHours: number | null;
+  // DAG extensions
+  stepKey: string | null;
+  nodeType: WfNodeType;
+  mergeStrategy: WfMergeStrategy;
+  allowedRoles: string[] | null;
+  positionX: number | null;
+  positionY: number | null;
+  outgoingEdges?: WorkflowEdgeEntity[];
+  incomingEdges?: WorkflowEdgeEntity[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,10 +97,42 @@ export interface WorkflowDefinitionEntity {
   allowReject: boolean;
   allowReturn: boolean;
   isActive: boolean;
+  // DAG extensions
+  isDag: boolean;
+  graphVersion: number;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
   steps?: WorkflowStepEntity[];
+  edges?: WorkflowEdgeEntity[];
+}
+
+// ── DAG: Edge Entity ──
+
+export type WfEdgeType = 'SEQUENTIAL' | 'PARALLEL' | 'CHOICE_SINGLE' | 'CHOICE_MULTI';
+export type WfMergeStrategy = 'ALL' | 'ANY';
+export type WfNodeType = 'start' | 'step' | 'end';
+
+export interface WorkflowEdgeEntity {
+  id: string;
+  definitionId: string;
+  sourceStepId: string;
+  targetStepId: string;
+  edgeType: WfEdgeType;
+  condition: Record<string, unknown> | null;
+  label: Record<string, string> | null;
+  sortOrder: number;
+  createdAt: Date;
+}
+
+export interface WorkflowBranchTokenEntity {
+  id: string;
+  instanceId: string;
+  stepId: string;
+  branchGroup: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  createdAt: Date;
+  completedAt: Date | null;
 }
 
 // ── Validation Chain ──

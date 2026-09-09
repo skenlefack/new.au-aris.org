@@ -69,12 +69,13 @@ export async function registerWorkflowRoutes(app: FastifyInstance): Promise<void
   });
 
   // POST /api/v1/workflow/instances/:id/approve
-  app.post<{ Params: UuidParamInput; Body: ApproveInput }>('/api/v1/workflow/instances/:id/approve', {
-    schema: { params: UuidParamSchema, body: ApproveSchema },
+  app.post<{ Params: UuidParamInput; Body: ApproveInput & { targetStepIds?: string[] } }>('/api/v1/workflow/instances/:id/approve', {
+    schema: { params: UuidParamSchema },
     preHandler: [auth],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
-    return app.workflowService.approve(request.params.id, request.body.comment, user);
+    const body = request.body as any;
+    return app.workflowService.approve(request.params.id, body?.comment, user, body?.targetStepIds);
   });
 
   // POST /api/v1/workflow/instances/:id/reject
@@ -102,5 +103,34 @@ export async function registerWorkflowRoutes(app: FastifyInstance): Promise<void
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.workflowService.addComment(request.params.id, request.body.text, user);
+  });
+
+  // ── DAG Routes ──
+
+  // GET /api/v1/workflow/instances/:id/available-routes — outgoing edges for choice UI
+  app.get<{ Params: UuidParamInput }>('/api/v1/workflow/instances/:id/available-routes', {
+    schema: { params: UuidParamSchema },
+    preHandler: [auth],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.workflowService.getAvailableRoutes(request.params.id, user);
+  });
+
+  // GET /api/v1/workflow/instances/:id/branches — active branch tokens
+  app.get<{ Params: UuidParamInput }>('/api/v1/workflow/instances/:id/branches', {
+    schema: { params: UuidParamSchema },
+    preHandler: [auth],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.workflowService.getInstanceBranches(request.params.id, user);
+  });
+
+  // POST /api/v1/workflow/instances/:id/branches/:tokenId/approve — approve a specific branch
+  app.post<{ Params: { id: string; tokenId: string }; Body: any }>('/api/v1/workflow/instances/:id/branches/:tokenId/approve', {
+    preHandler: [auth],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    const body = request.body as any;
+    return app.workflowService.approveBranch(request.params.id, request.params.tokenId, body?.comment, user);
   });
 }

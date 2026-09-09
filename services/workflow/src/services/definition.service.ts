@@ -275,6 +275,253 @@ export class DefinitionService {
     await (this.prisma as any).workflowStep.delete({ where: { id: stepId } });
   }
 
+  // ══════════════════════════════════════════════════════════════
+  //  DAG GRAPH CRUD
+  // ══════════════════════════════════════════════════════════════
+
+  /**
+   * Get the full graph (steps with positions + edges) for a definition.
+   */
+  async getGraph(definitionId: string, user: AuthenticatedUser) {
+    const definition = await (this.prisma as any).workflowDefinition.findUnique({
+      where: { id: definitionId },
+      include: {
+        steps: {
+          orderBy: { step_order: 'asc' },
+          include: {
+            outgoing_edges: { orderBy: { sort_order: 'asc' } },
+            incoming_edges: true,
+          },
+        },
+        edges: { orderBy: { sort_order: 'asc' } },
+      },
+    });
+
+    if (!definition) throw new HttpError(404, `Workflow definition ${definitionId} not found`);
+    this.verifyTenantAccess(user, definition.tenant_id);
+
+    return {
+      data: {
+        id: definition.id,
+        isDag: definition.is_dag ?? false,
+        graphVersion: definition.graph_version ?? 1,
+        steps: (definition.steps ?? []).map((s: any) => ({
+          id: s.id,
+          stepKey: s.step_key,
+          stepOrder: s.step_order,
+          nodeType: s.node_type ?? 'step',
+          levelType: s.level_type,
+          adminLevel: s.admin_level,
+          name: s.name,
+          canEdit: s.can_edit,
+          canValidate: s.can_validate,
+          mergeStrategy: s.merge_strategy ?? 'ALL',
+          allowedRoles: s.allowed_roles,
+          transmitDelayHours: s.transmit_delay_hours,
+          positionX: s.position_x,
+          positionY: s.position_y,
+        })),
+        edges: (definition.edges ?? []).map((e: any) => ({
+          id: e.id,
+          sourceStepId: e.source_step_id,
+          targetStepId: e.target_step_id,
+          edgeType: e.edge_type,
+          label: e.label,
+          condition: e.condition,
+          sortOrder: e.sort_order,
+        })),
+      },
+    };
+  }
+
+  /**
+   * Save the full graph atomically: diff steps and edges in a single transaction.
+   * Supports optimistic concurrency via graphVersion.
+   */
+  async saveGraph(
+    definitionId: string,
+    body: {
+      graphVersion: number;
+      steps: Array<{
+        id?: string;
+        stepKey: string;
+        stepOrder: number;
+        nodeType: string;
+        levelType?: string;
+        adminLevel?: number;
+        name: Record<string, string>;
+        canEdit?: boolean;
+        canValidate?: boolean;
+        allowedRoles?: string[];
+        mergeStrategy?: string;
+        transmitDelayHours?: number;
+        positionX?: number;
+        positionY?: number;
+      }>;
+      edges: Array<{
+        id?: string;
+        sourceStepKey: string;
+        targetStepKey: string;
+        edgeType: string;
+        label?: Record<string, string>;
+        condition?: Record<string, unknown>;
+        sortOrder?: number;
+      }>;
+    },
+    user: AuthenticatedUser,
+  ) {
+    const definition = await (this.prisma as any).workflowDefinition.findUnique({
+      where: { id: definitionId },
+    });
+
+    if (!definition) throw new HttpError(404, `Workflow definition ${definitionId} not found`);
+    this.verifyTenantAccess(user, definition.tenant_id);
+
+    // Optimistic concurrency check
+    if (definition.graph_version !== body.graphVersion) {
+      throw new HttpError(409, `Graph version conflict: expected ${definition.graph_version}, got ${body.graphVersion}. Please refresh and try again.`);
+    }
+
+    // Validate the graph
+    const { validateDAG } = await import('../utils/dag-validator.js');
+    const validation = validateDAG(
+      body.steps.map((s) => ({ id: s.stepKey, nodeType: s.nodeType, stepKey: s.stepKey })),
+      body.edges.map((e) => ({ sourceStepId: e.sourceStepKey, targetStepId: e.targetStepKey, edgeType: e.edgeType })),
+    );
+
+    if (!validation.valid) {
+      throw new HttpError(400, `Invalid workflow graph: ${validation.errors.join('; ')}`);
+    }
+
+    // Build step key→UUID map (reuse existing IDs where possible)
+    const existingSteps = await (this.prisma as any).workflowStep.findMany({
+      where: { definition_id: definitionId },
+    });
+    const existingByKey = new Map(existingSteps.map((s: any) => [s.step_key ?? s.id, s]));
+
+    const stepKeyToId = new Map<string, string>();
+    const ops: any[] = [];
+
+    // Delete all existing edges first (they reference steps)
+    ops.push(
+      (this.prisma as any).$executeRawUnsafe(
+        `DELETE FROM workflow.workflow_edges WHERE definition_id = $1::uuid`,
+        definitionId,
+      ),
+    );
+
+    // Delete steps that are no longer in the graph
+    const newStepKeys = new Set(body.steps.map((s) => s.stepKey));
+    for (const existing of existingSteps) {
+      const key = existing.step_key ?? existing.id;
+      if (!newStepKeys.has(key)) {
+        ops.push((this.prisma as any).workflowStep.delete({ where: { id: existing.id } }));
+      }
+    }
+
+    // Upsert steps
+    for (const step of body.steps) {
+      const existing = existingByKey.get(step.stepKey);
+      const stepId = existing?.id ?? uuidv4();
+      stepKeyToId.set(step.stepKey, stepId);
+
+      if (existing) {
+        ops.push((this.prisma as any).workflowStep.update({
+          where: { id: existing.id },
+          data: {
+            step_key: step.stepKey,
+            step_order: step.stepOrder,
+            node_type: step.nodeType,
+            level_type: step.levelType ?? step.stepKey,
+            admin_level: step.adminLevel ?? null,
+            name: step.name,
+            can_edit: step.canEdit ?? false,
+            can_validate: step.canValidate ?? true,
+            allowed_roles: step.allowedRoles ?? null,
+            merge_strategy: step.mergeStrategy ?? 'ALL',
+            transmit_delay_hours: step.transmitDelayHours ?? null,
+            position_x: step.positionX ?? null,
+            position_y: step.positionY ?? null,
+          },
+        }));
+      } else {
+        ops.push((this.prisma as any).workflowStep.create({
+          data: {
+            id: stepId,
+            definition_id: definitionId,
+            step_key: step.stepKey,
+            step_order: step.stepOrder,
+            node_type: step.nodeType,
+            level_type: step.levelType ?? step.stepKey,
+            admin_level: step.adminLevel ?? null,
+            name: step.name,
+            can_edit: step.canEdit ?? false,
+            can_validate: step.canValidate ?? true,
+            allowed_roles: step.allowedRoles ?? null,
+            merge_strategy: step.mergeStrategy ?? 'ALL',
+            transmit_delay_hours: step.transmitDelayHours ?? null,
+            position_x: step.positionX ?? null,
+            position_y: step.positionY ?? null,
+          },
+        }));
+      }
+    }
+
+    // Update definition: mark as DAG and increment version
+    ops.push((this.prisma as any).workflowDefinition.update({
+      where: { id: definitionId },
+      data: { is_dag: true, graph_version: definition.graph_version + 1 },
+    }));
+
+    // Execute steps first (edges depend on step IDs)
+    await (this.prisma as any).$transaction(ops);
+
+    // Now create edges (step IDs are settled)
+    const edgeOps: any[] = [];
+    for (const edge of body.edges) {
+      const sourceId = stepKeyToId.get(edge.sourceStepKey);
+      const targetId = stepKeyToId.get(edge.targetStepKey);
+      if (!sourceId || !targetId) continue;
+
+      edgeOps.push(
+        (this.prisma as any).$executeRawUnsafe(
+          `INSERT INTO workflow.workflow_edges (id, definition_id, source_step_id, target_step_id, edge_type, label, condition, sort_order)
+           VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, $4::workflow."WfEdgeType", $5::jsonb, $6::jsonb, $7)`,
+          definitionId,
+          sourceId,
+          targetId,
+          edge.edgeType,
+          edge.label ? JSON.stringify(edge.label) : null,
+          edge.condition ? JSON.stringify(edge.condition) : null,
+          edge.sortOrder ?? 0,
+        ),
+      );
+    }
+
+    if (edgeOps.length > 0) {
+      await (this.prisma as any).$transaction(edgeOps);
+    }
+
+    return this.getGraph(definitionId, user);
+  }
+
+  /**
+   * Validate a graph without saving. Returns validation errors.
+   */
+  async validateGraph(
+    body: {
+      steps: Array<{ stepKey: string; nodeType: string }>;
+      edges: Array<{ sourceStepKey: string; targetStepKey: string; edgeType: string }>;
+    },
+  ) {
+    const { validateDAG } = await import('../utils/dag-validator.js');
+    const result = validateDAG(
+      body.steps.map((s) => ({ id: s.stepKey, nodeType: s.nodeType, stepKey: s.stepKey })),
+      body.edges.map((e) => ({ sourceStepId: e.sourceStepKey, targetStepId: e.targetStepKey, edgeType: e.edgeType })),
+    );
+    return { data: result };
+  }
+
   // ── Tenant Filtering ──
 
   private buildTenantFilter(user: AuthenticatedUser): Record<string, unknown> {
@@ -315,6 +562,8 @@ export class DefinitionService {
       allowReject: row.allow_reject,
       allowReturn: row.allow_return,
       isActive: row.is_active,
+      isDag: row.is_dag ?? false,
+      graphVersion: row.graph_version ?? 1,
       createdBy: row.created_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -338,6 +587,12 @@ export class DefinitionService {
       canEdit: row.can_edit,
       canValidate: row.can_validate,
       transmitDelayHours: row.transmit_delay_hours,
+      stepKey: row.step_key ?? null,
+      nodeType: row.node_type ?? 'step',
+      mergeStrategy: row.merge_strategy ?? 'ALL',
+      allowedRoles: row.allowed_roles ?? null,
+      positionX: row.position_x ?? null,
+      positionY: row.position_y ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
