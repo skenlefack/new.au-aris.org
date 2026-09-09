@@ -41,17 +41,17 @@ import { useTranslations } from '@/lib/i18n/translations';
 
 type Tab = 'USER_OWNED' | 'SHARED' | 'SYSTEM_TEMPLATE';
 
-const TABS: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
-  { key: 'USER_OWNED', label: 'My Dashboards', icon: LayoutDashboard },
-  { key: 'SHARED', label: 'Shared with me', icon: Share2 },
-  { key: 'SYSTEM_TEMPLATE', label: 'System Templates', icon: Layers },
+const TAB_KEYS: { key: Tab; tKey: string; icon: typeof LayoutDashboard }[] = [
+  { key: 'USER_OWNED', tKey: 'tabMyDashboards', icon: LayoutDashboard },
+  { key: 'SHARED', tKey: 'tabSharedWithMe', icon: Share2 },
+  { key: 'SYSTEM_TEMPLATE', tKey: 'tabSystemTemplates', icon: Layers },
 ];
 
-const SCOPE_LABELS: Record<DashboardScope, string> = {
-  CONTINENTAL: 'Continental',
-  REC: 'REC',
-  COUNTRY: 'Country',
-  PERSONAL: 'Personal',
+const SCOPE_KEYS: Record<DashboardScope, string> = {
+  CONTINENTAL: 'scopeContinental',
+  REC: 'scopeRec',
+  COUNTRY: 'scopeCountry',
+  PERSONAL: 'scopePersonal',
 };
 
 function DashboardCard({
@@ -87,7 +87,7 @@ function DashboardCard({
             {isShared && (
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
                 <Share2 className="h-3 w-3" />
-                Shared with you
+                {t('tabSharedWithMe')}
               </span>
             )}
             {dashboard.isDefault && (
@@ -279,7 +279,7 @@ export default function MyDashboardsPage() {
       onError: (err: any) => {
         addToast({
           type: 'error',
-          title: 'Erreur',
+          title: t('error') || 'Error',
           message: err?.message || 'Impossible de supprimer le tableau de bord.',
         });
         setDeleteTarget(null);
@@ -311,7 +311,7 @@ export default function MyDashboardsPage() {
 
       {/* Tabs */}
       <div className="mt-6 flex gap-1 rounded-lg bg-gray-100 dark:bg-gray-800/50 p-1">
-        {TABS.map((tab) => {
+        {TAB_KEYS.map((tab) => {
           const Icon = tab.icon;
           return (
             <button
@@ -325,7 +325,7 @@ export default function MyDashboardsPage() {
               )}
             >
               <Icon className="h-4 w-4" />
-              {tab.label}
+              {t(tab.tKey)}
             </button>
           );
         })}
@@ -347,10 +347,10 @@ export default function MyDashboardsPage() {
             <LayoutDashboard className="h-12 w-12 text-gray-300 dark:text-gray-600" />
             <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">
               {activeTab === 'USER_OWNED'
-                ? 'No dashboards yet'
+                ? t('noDashboardsYet')
                 : activeTab === 'SHARED'
-                  ? 'No dashboards shared with you'
-                  : 'No system templates available'}
+                  ? t('noSharedDashboards')
+                  : t('noSystemTemplates')}
             </p>
             {activeTab === 'USER_OWNED' && (
               <button
@@ -358,7 +358,7 @@ export default function MyDashboardsPage() {
                 className="mt-3 flex items-center gap-1.5 text-sm font-medium text-[#1F4E79] hover:underline"
               >
                 <Plus className="h-4 w-4" />
-                Create your first dashboard
+                {t('createFirst')}
               </button>
             )}
           </div>
@@ -391,9 +391,9 @@ export default function MyDashboardsPage() {
         open={!!deleteTarget}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
-        title="Supprimer le tableau de bord"
+        title={t('deleteDashboard')}
         message="Cette action est irreversible. Tous les widgets et configurations seront perdus."
-        confirmLabel="Supprimer"
+        confirmLabel={t('deleteConfirmBtn') || 'Delete'}
         variant="danger"
         loading={deleteMutation.isPending}
       />
@@ -428,7 +428,7 @@ export default function MyDashboardsPage() {
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
               {/* Title — multilingual with auto-translate */}
               <MultilingualInput
-                label="Titre du tableau de bord"
+                label={t('dashboardTitle')}
                 value={newTitle}
                 onChange={setNewTitle}
                 placeholder="Ex: Vue d'ensemble Santé animale..."
@@ -437,15 +437,15 @@ export default function MyDashboardsPage() {
 
               {/* Zone — 3 options */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Zone d&apos;affichage</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('displayZone')}</label>
                 <div className="grid grid-cols-3 gap-3">
                   {([
-                    { key: 'principal' as const, icon: LogIn, label: 'Ouverture de session', desc: 'Tableau de bord principal', disabled: false },
-                    { key: 'domain' as const, icon: Globe, label: 'Page domaine', desc: 'Specifique a un domaine', disabled: false },
-                    { key: 'subdomain' as const, icon: Layers, label: 'Sous-domaine', desc: 'Specifique a un sous-domaine', disabled: false },
-                    { key: 'campaign' as const, icon: ClipboardList, label: 'Campagne', desc: 'Lie a une campagne de collecte', disabled: false },
-                    { key: 'public_rec' as const, icon: Globe, label: 'Page publique RECs', desc: 'Affiche sur la page REC', disabled: isNational },
-                    { key: 'public_country' as const, icon: Flag, label: 'Page publique Pays', desc: 'Affiche sur la page pays', disabled: false },
+                    { key: 'principal' as const, icon: LogIn, label: t('zonePrincipal'), desc: t('zonePrincipalDesc'), disabled: false },
+                    { key: 'domain' as const, icon: Globe, label: t('zoneDomain'), desc: t('zoneDomainDesc'), disabled: false },
+                    { key: 'subdomain' as const, icon: Layers, label: t('zoneSubdomain'), desc: t('zoneSubdomainDesc'), disabled: false },
+                    { key: 'campaign' as const, icon: ClipboardList, label: t('zoneCampaign'), desc: t('zoneCampaignDesc'), disabled: false },
+                    { key: 'public_rec' as const, icon: Globe, label: t('zonePublicRec'), desc: t('zonePublicRecDesc'), disabled: isNational },
+                    { key: 'public_country' as const, icon: Flag, label: t('zonePublicCountry'), desc: t('zonePublicCountryDesc'), disabled: false },
                   ]).map((z) => (
                     <button
                       key={z.key}
@@ -472,7 +472,7 @@ export default function MyDashboardsPage() {
                       {z.disabled && <Lock className="absolute top-1.5 right-1.5 h-3 w-3 text-gray-300 dark:text-gray-600" />}
                       <z.icon className="h-5 w-5" />
                       <span>{z.label}</span>
-                      <span className="text-[9px] font-normal text-gray-400">{z.disabled ? 'Niveau REC/Continental requis' : z.desc}</span>
+                      <span className="text-[9px] font-normal text-gray-400">{z.disabled ? t('recLevelRequired') : z.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -576,10 +576,10 @@ export default function MyDashboardsPage() {
                 });
                 const STATUS_ORDER = ['ACTIVE', 'PLANNED', 'COMPLETED', 'CANCELLED'] as const;
                 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-                  ACTIVE: { label: 'Actives', dot: 'bg-green-500', bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-400' },
-                  PLANNED: { label: 'Planifiees', dot: 'bg-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20', text: 'text-yellow-700 dark:text-yellow-400' },
-                  COMPLETED: { label: 'Terminees', dot: 'bg-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-400' },
-                  CANCELLED: { label: 'Annulees', dot: 'bg-gray-400', bg: 'bg-gray-50 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-400' },
+                  ACTIVE: { label: t('statusActive') || 'Active', dot: 'bg-green-500', bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-400' },
+                  PLANNED: { label: t('statusPlanned') || 'Planned', dot: 'bg-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20', text: 'text-yellow-700 dark:text-yellow-400' },
+                  COMPLETED: { label: t('statusCompleted') || 'Completed', dot: 'bg-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-400' },
+                  CANCELLED: { label: t('statusCancelled') || 'Cancelled', dot: 'bg-gray-400', bg: 'bg-gray-50 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-400' },
                 };
                 const grouped = STATUS_ORDER.map((status) => ({
                   status,
