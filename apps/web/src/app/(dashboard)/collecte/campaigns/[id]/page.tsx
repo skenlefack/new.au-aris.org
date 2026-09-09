@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { resolveTemplateName } from '@/lib/utils/template-names';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -277,19 +277,40 @@ export default function CampaignDetailPage() {
     return Object.values(COUNTRIES).filter((c) => !existing.has(c.code.toUpperCase())).map((c) => ({ code: c.code, name: c.name, flag: c.flag }));
   }, [campaign]);
 
+  // Build a tenantId→REC lookup for resolving UUID-based targetRecIds
+  const recByTenantId = useMemo(() => {
+    const map = new Map<string, typeof RECS[string]>();
+    for (const code of REC_ORDER) {
+      const r = RECS[code];
+      if (r?.tenantId) map.set(r.tenantId.toLowerCase(), r);
+    }
+    return map;
+  }, []);
+
+  // Resolve a targetRecId (could be a code like "igad" or a tenantId UUID)
+  const resolveRec = useCallback((id: string) => {
+    return RECS[id.toLowerCase()] ?? recByTenantId.get(id.toLowerCase()) ?? null;
+  }, [recByTenantId]);
+
   const availableRecs = useMemo(() => {
-    const existing = new Set((campaign?.targetRecIds ?? []).map((r: string) => r.toLowerCase()));
-    return REC_ORDER.filter((code) => !existing.has(code.toLowerCase())).map((code) => ({ code, name: RECS[code]?.name ?? code }));
+    const existingIds = new Set((campaign?.targetRecIds ?? []).map((r: string) => r.toLowerCase()));
+    return REC_ORDER
+      .filter((code) => {
+        const r = RECS[code];
+        // Exclude if the code OR tenantId is already targeted
+        return !existingIds.has(code.toLowerCase()) && (!r?.tenantId || !existingIds.has(r.tenantId.toLowerCase()));
+      })
+      .map((code) => ({ code, name: RECS[code]?.name ?? code }));
   }, [campaign]);
 
-  // REC infos for display
+  // REC infos for display — resolve both code-based and UUID-based IDs
   const recInfos = useMemo(() => {
     if (!campaign?.targetRecIds) return [];
-    return (campaign.targetRecIds as string[]).map((code: string) => {
-      const r = RECS[code.toLowerCase()];
-      return r ? { code: r.code, name: r.name } : { code, name: code.toUpperCase() };
+    return (campaign.targetRecIds as string[]).map((id: string) => {
+      const r = resolveRec(id);
+      return r ? { code: r.code, name: r.name } : { code: id, name: id.slice(0, 8) };
     });
-  }, [campaign]);
+  }, [campaign, resolveRec]);
 
   const canManageTargets = editable && ['ACTIVE', 'PLANNED'].includes(campaign?.status ?? '');
 
