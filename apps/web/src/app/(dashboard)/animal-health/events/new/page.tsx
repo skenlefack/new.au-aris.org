@@ -7,39 +7,26 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
-import { useCreateHealthEvent } from '@/lib/api/hooks';
+import { useCreateHealthEvent, useDiseases } from '@/lib/api/hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
 const eventSchema = z.object({
-  disease: z.string().min(1, 'Disease name is required'),
-  diseaseCode: z.string().min(1, 'Disease code is required'),
-  country: z.string().min(1, 'Country is required'),
-  countryCode: z.string().min(2, 'Country code is required').max(3),
-  region: z.string().min(1, 'Region is required'),
+  disease: z.string().min(1),
+  diseaseCode: z.string().min(1),
+  country: z.string().min(1),
+  countryCode: z.string().min(2).max(3),
+  region: z.string().min(1),
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
   severity: z.enum(['low', 'medium', 'high', 'critical']),
   cases: z.coerce.number().int().min(0),
   deaths: z.coerce.number().int().min(0),
-  speciesAffected: z.string().min(1, 'At least one species is required'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
+  speciesAffected: z.string().min(1),
+  description: z.string().min(10),
   measures: z.string().optional(),
 });
 
 type EventForm = z.infer<typeof eventSchema>;
-
-const DISEASES = [
-  { code: 'FMD', name: 'Foot-and-Mouth Disease' },
-  { code: 'PPR', name: 'Peste des Petits Ruminants' },
-  { code: 'HPAI', name: 'Highly Pathogenic Avian Influenza' },
-  { code: 'ASF', name: 'African Swine Fever' },
-  { code: 'RVF', name: 'Rift Valley Fever' },
-  { code: 'LSD', name: 'Lumpy Skin Disease' },
-  { code: 'ND', name: 'Newcastle Disease' },
-  { code: 'CBPP', name: 'Contagious Bovine Pleuropneumonia' },
-  { code: 'CCPP', name: 'Contagious Caprine Pleuropneumonia' },
-  { code: 'AHS', name: 'African Horse Sickness' },
-];
 
 export default function CreateEventPage() {
   const t = useTranslations('animalHealth');
@@ -47,6 +34,8 @@ export default function CreateEventPage() {
   const tc = useTranslations('common');
   const router = useRouter();
   const createMutation = useCreateHealthEvent();
+  const { data: diseasesData } = useDiseases({ limit: 200, notifiable: true });
+  const diseases = (diseasesData?.data ?? []).map((d) => ({ code: d.woahCode || d.id.slice(0, 6).toUpperCase(), name: d.name }));
 
   const {
     register,
@@ -80,7 +69,7 @@ export default function CreateEventPage() {
   };
 
   function handleDiseaseSelect(code: string) {
-    const d = DISEASES.find((dis) => dis.code === code);
+    const d = diseases.find((dis) => dis.code === code);
     if (d) {
       setValue('disease', d.name);
       setValue('diseaseCode', d.code);
@@ -122,7 +111,7 @@ export default function CreateEventPage() {
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {createMutation.error instanceof Error
               ? createMutation.error.message
-              : 'Failed to create event'}
+              : tc('error')}
           </div>
         )}
 
@@ -141,7 +130,7 @@ export default function CreateEventPage() {
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
               >
                 <option value="">{t('selectDisease')}</option>
-                {DISEASES.map((d) => (
+                {diseases.map((d) => (
                   <option key={d.code} value={d.code}>
                     {d.name} ({d.code})
                   </option>
@@ -352,7 +341,7 @@ export default function CreateEventPage() {
               placeholder="One measure per line&#10;e.g., Movement restrictions imposed&#10;Ring vaccination initiated"
             />
             <p className="mt-1 text-xs text-gray-400">
-              One measure per line (optional)
+              {t('oneMeasurePerLine')}
             </p>
           </div>
         </fieldset>

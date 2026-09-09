@@ -1528,6 +1528,7 @@
     "selectDisease": "Select a disease...",
     "commaSeparated": "Comma-separated list",
     "submitEvent": "Submit Event",
+    "oneMeasurePerLine": "One measure per line (optional)",
     "vaccinationCampaigns": "Vaccination Campaigns",
     "vaccinationSubtitle": "Campaign management and coverage tracking",
     "coverageTrend": "Continental Vaccination Coverage Trend",

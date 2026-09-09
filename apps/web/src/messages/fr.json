@@ -1528,6 +1528,7 @@
     "selectDisease": "Sélectionner une maladie...",
     "commaSeparated": "Liste séparée par des virgules",
     "submitEvent": "Soumettre l'événement",
+    "oneMeasurePerLine": "Une mesure par ligne (optionnel)",
     "vaccinationCampaigns": "Campagnes de vaccination",
     "vaccinationSubtitle": "Gestion des campagnes et suivi de la couverture",
     "coverageTrend": "Tendance de la couverture vaccinale continentale",

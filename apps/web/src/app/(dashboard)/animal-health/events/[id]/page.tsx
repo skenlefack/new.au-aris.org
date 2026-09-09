@@ -16,7 +16,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useHealthEvent, type HealthEventDetail, type LabResult, type TimelineEntry } from '@/lib/api/hooks';
+import { useHealthEvent, type LabResult, type TimelineEntry } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { PrintButton } from '@/components/ui/PrintButton';
@@ -45,126 +45,6 @@ const LAB_RESULT_BADGE: Record<string, string> = {
   pending: 'bg-gray-100 text-gray-600',
 };
 
-// Placeholder detail data
-const PLACEHOLDER_DETAIL: HealthEventDetail = {
-  id: 'ev-1',
-  disease: 'Foot-and-Mouth Disease',
-  diseaseCode: 'FMD',
-  country: 'Kenya',
-  countryCode: 'KE',
-  region: 'Rift Valley',
-  lat: -1.286,
-  lng: 36.817,
-  status: 'confirmed',
-  severity: 'high',
-  cases: 234,
-  deaths: 12,
-  speciesAffected: ['Cattle', 'Goat'],
-  reportedAt: '2026-02-15T10:30:00Z',
-  confirmedAt: '2026-02-16T14:00:00Z',
-  reportedBy: 'Dr. Ochieng',
-  validationLevel: 2,
-  workflowStatus: 'pending_l2',
-  dataQualityScore: 92,
-  createdAt: '2026-02-15T10:30:00Z',
-  updatedAt: '2026-02-18T09:00:00Z',
-  description:
-    'Outbreak of FMD affecting dairy and beef cattle herds in the Rift Valley region. Initial cases detected at Nakuru County livestock market. Rapid spread to neighbouring farms observed. Clinical signs include vesicular lesions on the mouth and feet, salivation, and lameness.',
-  measures: [
-    'Movement restrictions imposed in affected sub-counties',
-    'Ring vaccination initiated (10 km radius)',
-    'Enhanced surveillance in neighbouring counties',
-    'Quarantine of affected farms',
-    'Disinfection of livestock markets',
-  ],
-  labResults: [
-    {
-      id: 'lr-1',
-      sampleId: 'KE-FMD-2026-001',
-      testType: 'RT-PCR',
-      result: 'positive',
-      pathogen: 'FMDV serotype O',
-      laboratory: 'KARI Muguga',
-      collectedAt: '2026-02-15T12:00:00Z',
-      resultAt: '2026-02-16T10:00:00Z',
-    },
-    {
-      id: 'lr-2',
-      sampleId: 'KE-FMD-2026-002',
-      testType: 'ELISA',
-      result: 'positive',
-      pathogen: 'FMDV antibodies',
-      laboratory: 'KARI Muguga',
-      collectedAt: '2026-02-15T12:30:00Z',
-      resultAt: '2026-02-16T14:00:00Z',
-    },
-    {
-      id: 'lr-3',
-      sampleId: 'KE-FMD-2026-003',
-      testType: 'Virus isolation',
-      result: 'pending',
-      pathogen: 'FMDV',
-      laboratory: 'AU-PANVAC',
-      collectedAt: '2026-02-16T08:00:00Z',
-    },
-  ],
-  timeline: [
-    {
-      id: 'tl-1',
-      action: 'Event reported',
-      actor: 'Dr. Ochieng',
-      actorRole: 'Field Agent',
-      detail: 'Initial report submitted from Nakuru County',
-      timestamp: '2026-02-15T10:30:00Z',
-    },
-    {
-      id: 'tl-2',
-      action: 'Samples collected',
-      actor: 'Dr. Ochieng',
-      actorRole: 'Field Agent',
-      detail: '3 samples collected from affected animals',
-      timestamp: '2026-02-15T12:00:00Z',
-    },
-    {
-      id: 'tl-3',
-      action: 'Level 1 approved',
-      actor: 'Dr. Kamau',
-      actorRole: 'Data Steward',
-      detail: 'Technical validation passed — quality score 92%',
-      timestamp: '2026-02-16T09:00:00Z',
-    },
-    {
-      id: 'tl-4',
-      action: 'Lab results confirmed',
-      actor: 'KARI Muguga',
-      actorRole: 'Laboratory',
-      detail: 'RT-PCR positive for FMDV serotype O',
-      timestamp: '2026-02-16T10:00:00Z',
-    },
-    {
-      id: 'tl-5',
-      action: 'Status updated to Confirmed',
-      actor: 'System',
-      actorRole: 'System',
-      detail: 'Auto-updated based on lab confirmation',
-      timestamp: '2026-02-16T14:00:00Z',
-    },
-    {
-      id: 'tl-6',
-      action: 'Pending Level 2 approval',
-      actor: 'System',
-      actorRole: 'System',
-      detail: 'Awaiting CVO office approval for official notification',
-      timestamp: '2026-02-16T14:01:00Z',
-    },
-  ],
-  vaccinationResponse: {
-    campaignId: 'vc-1',
-    dosesAdministered: 4520,
-    targetPopulation: 12000,
-    coverage: 37.7,
-  },
-};
 
 export default function EventDetailPage() {
   const t = useTranslations('health');
@@ -179,7 +59,7 @@ export default function EventDetailPage() {
   if (isError || !event) {
     return (
       <QueryError
-        message={error instanceof Error ? error.message : 'Event not found'}
+        message={error instanceof Error ? error.message : ta('eventNotFound')}
         onRetry={() => refetch()}
       />
     );

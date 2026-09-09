@@ -16,23 +16,10 @@ const AfricaMap = dynamic(
   { ssr: false, loading: () => <MapSkeleton /> },
 );
 
-const PLACEHOLDER_MARKERS: OutbreakMarker[] = [
-  { id: 'ob-1', lat: -1.286, lng: 36.817, disease: 'Foot-and-Mouth Disease', country: 'Kenya', severity: 'high', cases: 234, status: 'confirmed' },
-  { id: 'ob-2', lat: 9.005, lng: 38.763, disease: 'Peste des Petits Ruminants', country: 'Ethiopia', severity: 'critical', cases: 412, status: 'confirmed' },
-  { id: 'ob-3', lat: 9.06, lng: 7.49, disease: 'Highly Pathogenic Avian Influenza', country: 'Nigeria', severity: 'critical', cases: 89, status: 'confirmed' },
-  { id: 'ob-4', lat: 14.693, lng: -17.444, disease: 'African Swine Fever', country: 'Senegal', severity: 'medium', cases: 45, status: 'suspected' },
-  { id: 'ob-5', lat: -6.162, lng: 35.75, disease: 'Rift Valley Fever', country: 'Tanzania', severity: 'low', cases: 12, status: 'resolved' },
-  { id: 'ob-6', lat: -25.747, lng: 28.229, disease: 'FMD', country: 'South Africa', severity: 'medium', cases: 67, status: 'confirmed' },
-  { id: 'ob-7', lat: 5.614, lng: -0.186, disease: 'Newcastle Disease', country: 'Ghana', severity: 'low', cases: 23, status: 'confirmed' },
-  { id: 'ob-8', lat: 0.347, lng: 32.582, disease: 'PPR', country: 'Uganda', severity: 'medium', cases: 78, status: 'confirmed' },
-  { id: 'ob-9', lat: 30.044, lng: 31.236, disease: 'Lumpy Skin Disease', country: 'Egypt', severity: 'high', cases: 156, status: 'confirmed' },
-  { id: 'ob-10', lat: -4.441, lng: 15.266, disease: 'HPAI', country: 'DR Congo', severity: 'low', cases: 8, status: 'suspected' },
-];
-
 export default function OutbreakMapPage() {
   const t = useTranslations('animalHealth');
   const { data, isLoading, isError, error, refetch } = useOutbreakMarkers();
-  const markers: OutbreakMarker[] = data?.data ?? PLACEHOLDER_MARKERS;
+  const markers: OutbreakMarker[] = data?.data ?? [];
 
   return (
     <div className="space-y-4">
@@ -62,7 +49,7 @@ export default function OutbreakMapPage() {
 
       {isError ? (
         <QueryError
-          message={error instanceof Error ? error.message : 'Failed to load markers'}
+          message={error instanceof Error ? error.message : t('loadError')}
           onRetry={() => refetch()}
         />
       ) : (
@@ -76,7 +63,7 @@ export default function OutbreakMapPage() {
           />
           <div className="flex items-center gap-6 text-xs text-gray-500">
             <span className="font-medium text-gray-700">
-              {markers.length} events
+              {markers.length} {t('events')}
             </span>
             <span className="flex items-center gap-1">
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#2E7D32]" />

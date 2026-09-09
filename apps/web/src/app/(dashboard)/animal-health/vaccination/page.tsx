@@ -37,53 +37,6 @@ const STATUS_BADGE: Record<string, string> = {
   suspended: 'bg-red-100 text-red-700',
 };
 
-const PLACEHOLDER_CAMPAIGNS: VaccinationCampaign[] = [
-  {
-    id: 'vc-1', name: 'FMD Ring Vaccination — Rift Valley', disease: 'FMD',
-    country: 'Kenya', startDate: '2026-02-16', endDate: '2026-03-16',
-    status: 'active', targetPopulation: 12000, dosesAdministered: 4520,
-    coverage: 37.7, species: 'Cattle', createdAt: '2026-02-15T10:00:00Z',
-  },
-  {
-    id: 'vc-2', name: 'PPR National Campaign', disease: 'PPR',
-    country: 'Ethiopia', startDate: '2026-01-01', endDate: '2026-06-30',
-    status: 'active', targetPopulation: 500000, dosesAdministered: 312000,
-    coverage: 62.4, species: 'Sheep/Goat', createdAt: '2025-12-15T10:00:00Z',
-  },
-  {
-    id: 'vc-3', name: 'HPAI Emergency Response', disease: 'HPAI',
-    country: 'Nigeria', startDate: '2026-02-10', endDate: '2026-03-10',
-    status: 'active', targetPopulation: 50000, dosesAdministered: 28000,
-    coverage: 56.0, species: 'Poultry', createdAt: '2026-02-09T10:00:00Z',
-  },
-  {
-    id: 'vc-4', name: 'LSD Prophylactic Campaign', disease: 'LSD',
-    country: 'Egypt', startDate: '2026-03-01', endDate: '2026-05-31',
-    status: 'planned', targetPopulation: 200000, dosesAdministered: 0,
-    coverage: 0, species: 'Cattle', createdAt: '2026-02-18T10:00:00Z',
-  },
-  {
-    id: 'vc-5', name: 'ND Village Poultry', disease: 'ND',
-    country: 'Ghana', startDate: '2025-10-01', endDate: '2025-12-31',
-    status: 'completed', targetPopulation: 80000, dosesAdministered: 72000,
-    coverage: 90.0, species: 'Poultry', createdAt: '2025-09-15T10:00:00Z',
-  },
-  {
-    id: 'vc-6', name: 'RVF Emergency Response', disease: 'RVF',
-    country: 'Tanzania', startDate: '2026-01-25', endDate: '2026-02-25',
-    status: 'completed', targetPopulation: 30000, dosesAdministered: 27500,
-    coverage: 91.7, species: 'Cattle', createdAt: '2026-01-24T10:00:00Z',
-  },
-];
-
-const PLACEHOLDER_COVERAGE: VaccinationCoveragePoint[] = [
-  { month: 'Sep 2025', coverage: 68.2, target: 80 },
-  { month: 'Oct 2025', coverage: 72.5, target: 80 },
-  { month: 'Nov 2025', coverage: 76.1, target: 80 },
-  { month: 'Dec 2025', coverage: 79.8, target: 80 },
-  { month: 'Jan 2026', coverage: 83.4, target: 85 },
-  { month: 'Feb 2026', coverage: 87.3, target: 85 },
-];
 
 export default function VaccinationPage() {
   const t = useTranslations('animalHealth');
@@ -108,14 +61,10 @@ export default function VaccinationPage() {
     isLoading: coverageLoading,
   } = useVaccinationCoverage();
 
-  const campaigns = campaignData?.data ?? PLACEHOLDER_CAMPAIGNS;
-  const meta = campaignData?.meta ?? {
-    total: PLACEHOLDER_CAMPAIGNS.length,
-    page: 1,
-    limit: 10,
-  };
+  const campaigns = campaignData?.data ?? [];
+  const meta = campaignData?.meta ?? { total: 0, page: 1, limit: 10 };
   const totalPages = Math.ceil(meta.total / meta.limit);
-  const coveragePoints = coverageData?.data ?? PLACEHOLDER_COVERAGE;
+  const coveragePoints = coverageData?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -263,7 +212,7 @@ export default function VaccinationPage() {
           message={
             campaignsErr instanceof Error
               ? campaignsErr.message
-              : 'Failed to load campaigns'
+              : t('loadError')
           }
           onRetry={() => refetchCampaigns()}
         />
