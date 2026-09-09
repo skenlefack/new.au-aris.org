@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Settings,
   Plus,
@@ -13,7 +14,13 @@ import {
   ArrowDown,
   Layers,
   Search,
+  GitBranch,
 } from 'lucide-react';
+
+const WorkflowDesigner = dynamic(
+  () => import('@/components/workflow-designer/WorkflowDesigner'),
+  { ssr: false, loading: () => <div className="h-[700px] animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
 import { Pagination } from '@/components/ui/Pagination';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -93,6 +100,19 @@ export default function WorkflowConfigPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [designerId, setDesignerId] = useState<string | null>(null);
+
+  // When designer is open, show it full-screen
+  if (designerId) {
+    return (
+      <div className="space-y-4">
+        <WorkflowDesigner
+          definitionId={designerId}
+          onClose={() => setDesignerId(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -150,6 +170,7 @@ export default function WorkflowConfigPage() {
               workflow={wf}
               isExpanded={selectedId === wf.id}
               onToggle={() => setSelectedId(selectedId === wf.id ? null : wf.id)}
+              onOpenDesigner={() => setDesignerId(wf.id)}
             />
           ))}
           {!isNational && (
@@ -173,10 +194,12 @@ function WorkflowCard({
   workflow,
   isExpanded,
   onToggle,
+  onOpenDesigner,
 }: {
   workflow: any;
   isExpanded: boolean;
   onToggle: () => void;
+  onOpenDesigner: () => void;
 }) {
   const t = useTranslations('settings');
   const { data: detailRes } = useWorkflowDefinition(isExpanded ? workflow.id : undefined);
@@ -227,6 +250,13 @@ function WorkflowCard({
               {t('autoTransmit')}
             </span>
           )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onOpenDesigner(); }}
+            className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/30 transition"
+          >
+            <GitBranch className="h-3.5 w-3.5" />
+            Designer
+          </button>
           {isExpanded ? (
             <ChevronUp className="h-5 w-5 text-gray-400" />
           ) : (
