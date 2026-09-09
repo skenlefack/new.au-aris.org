@@ -1732,8 +1732,32 @@ export class CollectionCampaignService {
       }
     }
 
+    // Domain-based filtering: enforce strict domain isolation.
+    // Admins (SUPER_ADMIN, CONTINENTAL_ADMIN) see all domains.
+    // Other roles only see campaigns matching their assigned domains.
+    // Users with 0 domains assigned see NO campaigns.
+    const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'CONTINENTAL_ADMIN';
+    const userDomainCodes = Object.keys(user.domains ?? {});
+    if (!isAdmin) {
+      if (userDomainCodes.length === 0) {
+        where['id'] = '00000000-0000-0000-0000-000000000000';
+      } else {
+        // Match both formats: "animal-health" and legacy "animal_health"
+        const expanded = userDomainCodes.flatMap((c) => {
+          const alt = c.includes('-') ? c.replace(/-/g, '_') : c.replace(/_/g, '-');
+          return alt !== c ? [c, alt] : [c];
+        });
+        where['domain'] = { in: expanded };
+      }
+    }
+
     if (query.status) where['status'] = query.status.toUpperCase();
-    if (query.domain) where['domain'] = query.domain; // Backward compat: reads legacy domain field, prefer targets[]
+    if (query.domain) {
+      // Only allow filtering to a domain the user has access to
+      if (isAdmin || userDomainCodes.includes(query.domain)) {
+        where['domain'] = query.domain;
+      }
+    }
 
     return where;
   }
