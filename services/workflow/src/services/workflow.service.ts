@@ -1294,18 +1294,29 @@ export class WorkflowService {
     }
 
     try {
-      const definition = await (this.prisma as any).workflowDefinition.findFirst({
-        where: { tenant_id: tenantId, is_active: true },
-        include: {
-          steps: {
-            orderBy: { step_order: 'asc' },
-            include: {
-              outgoing_edges: { orderBy: { sort_order: 'asc' } },
-              incoming_edges: true,
+      // Try with DAG edge includes first; fall back to simple steps query
+      // if the Prisma client hasn't been regenerated with edge relations yet
+      let definition: any = null;
+      try {
+        definition = await (this.prisma as any).workflowDefinition.findFirst({
+          where: { tenant_id: tenantId, is_active: true },
+          include: {
+            steps: {
+              orderBy: { step_order: 'asc' },
+              include: {
+                outgoing_edges: { orderBy: { sort_order: 'asc' } },
+                incoming_edges: true,
+              },
             },
           },
-        },
-      });
+        });
+      } catch {
+        // Prisma client may not have edge relations yet — fallback to simple query
+        definition = await (this.prisma as any).workflowDefinition.findFirst({
+          where: { tenant_id: tenantId, is_active: true },
+          include: { steps: { orderBy: { step_order: 'asc' } } },
+        });
+      }
 
       if (!definition || !definition.steps || definition.steps.length === 0) {
         this.definitionCache.set(tenantId, { data: null, expiresAt: Date.now() + WorkflowService.CACHE_TTL_MS });
