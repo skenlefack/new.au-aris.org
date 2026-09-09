@@ -215,10 +215,10 @@ export default function CategoriesAdminPage() {
       toast.success(t('catDeleteSuccess'), { description: t('catDeleteSuccessDesc', { name: cat.nameEn }) });
     } catch (err) {
       toast.error(t('catDeleteFailed'), {
-        description: err instanceof Error ? err.message : t('loading'),
+        description: err instanceof Error ? err.message : 'Unknown error',
       });
     }
-  };
+  }, [deletingCat, deleteMut, t]);
 
   const handleSave = async (input: any) => {
     try {
