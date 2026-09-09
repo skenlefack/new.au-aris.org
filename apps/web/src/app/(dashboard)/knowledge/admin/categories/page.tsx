@@ -7,7 +7,8 @@
 // see only the categories at their own level and can manage their own ones.
 // The page renders a modern table with inline create / edit form (no modal).
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, useCallback, type ReactNode } from 'react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import Link from 'next/link';
 import * as LucideIcons from 'lucide-react';
 import {
@@ -153,6 +154,7 @@ export default function CategoriesAdminPage() {
 
   const [view, setView] = useState<ViewMode>('list');
   const [editing, setEditing] = useState<KnowledgeCategory | null>(null);
+  const [deletingCat, setDeletingCat] = useState<KnowledgeCategory | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -201,14 +203,19 @@ export default function CategoriesAdminPage() {
       });
       return;
     }
-    const ok = window.confirm(t('catDeleteConfirm', { name: cat.nameEn }));
-    if (!ok) return;
+    setDeletingCat(cat);
+  };
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deletingCat) return;
+    const cat = deletingCat;
+    setDeletingCat(null);
     try {
       await deleteMut.mutateAsync(cat.id);
       toast.success(t('catDeleteSuccess'), { description: t('catDeleteSuccessDesc', { name: cat.nameEn }) });
     } catch (err) {
       toast.error(t('catDeleteFailed'), {
-        description: err instanceof Error ? err.message : 'Unknown error',
+        description: err instanceof Error ? err.message : t('loading'),
       });
     }
   };
@@ -582,6 +589,17 @@ export default function CategoriesAdminPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deletingCat}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingCat(null)}
+        title={t('catDeleteConfirm', { name: deletingCat?.nameEn ?? '' })}
+        message={t('catDeleteConfirmDesc') || 'This action cannot be undone.'}
+        confirmLabel={t('catDelete') || 'Delete'}
+        variant="danger"
+        loading={deleteMut.isPending}
+      />
     </div>
   );
 }

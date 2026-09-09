@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -84,10 +85,17 @@ export default function QualityRulesPage() {
     updateRule.mutate({ id: rule.id, active: !rule.active });
   }
 
-  function handleDelete(id: string) {
-    if (window.confirm('Delete this rule? This action cannot be undone.')) {
-      deleteRule.mutate(id);
+  const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
+
+  const handleConfirmDeleteRule = useCallback(() => {
+    if (deletingRuleId) {
+      deleteRule.mutate(deletingRuleId);
+      setDeletingRuleId(null);
     }
+  }, [deletingRuleId, deleteRule]);
+
+  function handleDelete(id: string) {
+    setDeletingRuleId(id);
   }
 
   return (
@@ -293,6 +301,17 @@ export default function QualityRulesPage() {
       {showCreateModal && (
         <CreateRuleModal onClose={() => setShowCreateModal(false)} />
       )}
+
+      <ConfirmDialog
+        open={!!deletingRuleId}
+        onConfirm={handleConfirmDeleteRule}
+        onCancel={() => setDeletingRuleId(null)}
+        title="Delete rule"
+        message="Delete this rule? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteRule.isPending}
+      />
     </div>
   );
 }

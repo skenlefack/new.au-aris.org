@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from '@/lib/i18n/translations';
 import { ArrowLeft, Plus, Pencil, Trash2, Search, Save, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -448,7 +449,7 @@ function InlineForm({ entity, entityLabel, item, onBack }: {
       }
       onBack();
     } catch (err: any) {
-      alert(err?.message || 'Error saving');
+      toast.error(err?.message || 'Error saving');
     }
   };
 

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   ArrowLeft,
   AlertTriangle,
@@ -241,6 +242,7 @@ function StrategiesTab({ t, locale }: { t: (k: string, p?: Record<string, string
 
   const [showModal, setShowModal] = useState(false);
   const [editingStrategy, setEditingStrategy] = useState<FlashStrategy | null>(null);
+  const [deletingStrategyId, setDeletingStrategyId] = useState<string | null>(null);
 
   const strategies: FlashStrategy[] = (data as any)?.data ?? [];
 
@@ -373,11 +375,7 @@ function StrategiesTab({ t, locale }: { t: (k: string, p?: Record<string, string
                           <Pencil className="h-3 w-3" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm(t('confirmDeleteStrategy'))) {
-                              deleteMutation.mutate(s.id);
-                            }
-                          }}
+                          onClick={() => setDeletingStrategyId(s.id)}
                           disabled={deleteMutation.isPending}
                           className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
                         >
@@ -486,6 +484,22 @@ function StrategiesTab({ t, locale }: { t: (k: string, p?: Record<string, string
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deletingStrategyId}
+        onConfirm={() => {
+          if (deletingStrategyId) {
+            deleteMutation.mutate(deletingStrategyId);
+            setDeletingStrategyId(null);
+          }
+        }}
+        onCancel={() => setDeletingStrategyId(null)}
+        title={t('confirmDeleteStrategy')}
+        message={t('confirmDeleteStrategyDesc') || 'This action cannot be undone.'}
+        confirmLabel={t('delete') || 'Delete'}
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }

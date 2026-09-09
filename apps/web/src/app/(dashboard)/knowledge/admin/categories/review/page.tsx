@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { ArrowLeft, CheckCircle2, XCircle, Clock, Folder } from 'lucide-react';
 import { useCategoryReviewQueue, useReviewCategory } from '@/lib/api/knowledge-hub-hooks';
 
@@ -23,7 +24,7 @@ export default function CategoryReviewQueuePage() {
       setComment('');
       setActiveId(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Review failed');
+      toast.error(err instanceof Error ? err.message : 'Review failed');
     }
   };
 

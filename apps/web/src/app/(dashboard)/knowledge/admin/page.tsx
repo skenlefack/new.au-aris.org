@@ -69,10 +69,10 @@ export default function KnowledgeDashboardPage() {
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
-              <Sparkles className="h-3 w-3" /> Knowledge Management
+              <Sparkles className="h-3 w-3" /> {t('adminTitle')}
             </div>
             <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-              Welcome{user?.firstName ? `, ${user.firstName}` : ''}
+              {t('welcome')}{user?.firstName ? `, ${user.firstName}` : ''}
             </h1>
             <p className="mt-2 max-w-xl text-emerald-100">
               {t('adminSubtitle')}
@@ -101,22 +101,22 @@ export default function KnowledgeDashboardPage() {
         <KpiCard
           color="emerald"
           icon={<BookOpenCheck className="h-5 w-5" />}
-          label="Published content"
+          label={t('publishedContent')}
           value={allPublished.data?.meta?.total ?? 0}
-          subtitle="Visible on the portal"
+          subtitle={t('visibleOnPortal')}
         />
         <KpiCard
           color="blue"
           icon={<FileText className="h-5 w-5" />}
-          label="My publications"
+          label={t('myPublications')}
           value={myPubs.data?.meta?.total ?? 0}
-          subtitle="Drafts + submitted + published"
+          subtitle={t('draftsSubmittedPublished')}
           link="/knowledge/admin/mine"
         />
         <KpiCard
           color="purple"
           icon={<FolderTree className="h-5 w-5" />}
-          label="Categories"
+          label={t('categories')}
           value={categoryStats.total}
           subtitle={`${categoryStats.continental} cont · ${categoryStats.rec} REC · ${categoryStats.country} country`}
           link="/knowledge/admin/categories"
@@ -126,7 +126,7 @@ export default function KnowledgeDashboardPage() {
             color="orange"
             highlight={(queue.data?.data?.length ?? 0) > 0}
             icon={<ClipboardCheck className="h-5 w-5" />}
-            label="Awaiting review"
+            label={t('awaitingReview')}
             value={(queue.data?.data?.length ?? 0) + (catQueue.data?.data?.length ?? 0)}
             subtitle={`${queue.data?.data?.length ?? 0} content · ${catQueue.data?.data?.length ?? 0} category`}
             link="/knowledge/admin/review"
@@ -135,9 +135,9 @@ export default function KnowledgeDashboardPage() {
           <KpiCard
             color="rose"
             icon={<Globe2 className="h-5 w-5" />}
-            label="Tenant scope"
+            label={t('tenantScope')}
             value={user?.tenantLevel ?? '—'}
-            subtitle="Your publishing rights"
+            subtitle={t('publishingRights')}
           />
         )}
       </section>
@@ -148,11 +148,11 @@ export default function KnowledgeDashboardPage() {
         <section className="rounded-xl border bg-card lg:col-span-2">
           <header className="flex items-center justify-between border-b p-5">
             <div>
-              <h2 className="text-base font-semibold">Latest published</h2>
-              <p className="text-xs text-muted-foreground">Recently approved content visible on the public portal</p>
+              <h2 className="text-base font-semibold">{t('latestPublished')}</h2>
+              <p className="text-xs text-muted-foreground">{t('latestPublishedDesc')}</p>
             </div>
             <Link href="/knowledge" target="_blank" className="text-sm text-primary hover:underline">
-              View all →
+              {t('viewAll')} →
             </Link>
           </header>
           {(allPublished.data?.data?.length ?? 0) === 0 ? (
@@ -183,22 +183,22 @@ export default function KnowledgeDashboardPage() {
         {/* Right column: my publications */}
         <section className="rounded-xl border bg-card">
           <header className="flex items-center justify-between border-b p-5">
-            <h2 className="text-base font-semibold">My publications</h2>
+            <h2 className="text-base font-semibold">{t('myPublications')}</h2>
             <Link href="/knowledge/admin/mine" className="text-sm text-primary hover:underline">
-              All →
+              {t('viewAll')} →
             </Link>
           </header>
           {myPubs.isLoading ? (
-            <p className="p-5 text-sm text-muted-foreground">Loading…</p>
+            <p className="p-5 text-sm text-muted-foreground">{t('loading')}</p>
           ) : (myPubs.data?.data?.length ?? 0) === 0 ? (
             <div className="p-8 text-center">
               <FileText className="mx-auto h-10 w-10 text-muted-foreground/40" />
-              <p className="mt-2 text-sm text-muted-foreground">You haven't created any publications yet.</p>
+              <p className="mt-2 text-sm text-muted-foreground">{t('noPublicationsYet')}</p>
               <Link
                 href="/knowledge/admin/publications/new"
                 className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
               >
-                <Plus className="h-3 w-3" /> Create your first
+                <Plus className="h-3 w-3" /> {t('createFirst')}
               </Link>
             </div>
           ) : (
@@ -229,12 +229,12 @@ export default function KnowledgeDashboardPage() {
             <header className="flex items-center justify-between border-b p-5">
               <div>
                 <h2 className="flex items-center gap-2 text-base font-semibold">
-                  <ClipboardCheck className="h-4 w-4 text-orange-600" /> Content review queue
+                  <ClipboardCheck className="h-4 w-4 text-orange-600" /> {t('reviewQueue')}
                 </h2>
-                <p className="text-xs text-muted-foreground">{queue.data?.data?.length ?? 0} item(s) awaiting validation</p>
+                <p className="text-xs text-muted-foreground">{queue.data?.data?.length ?? 0} {t('itemsAwaiting')}</p>
               </div>
               <Link href="/knowledge/admin/review" className="text-sm text-primary hover:underline">
-                Open queue →
+                {t('openQueue')} →
               </Link>
             </header>
             {(queue.data?.data?.length ?? 0) === 0 ? (
@@ -264,16 +264,16 @@ export default function KnowledgeDashboardPage() {
             <header className="flex items-center justify-between border-b p-5">
               <div>
                 <h2 className="flex items-center gap-2 text-base font-semibold">
-                  <FolderTree className="h-4 w-4 text-purple-600" /> Category proposals
+                  <FolderTree className="h-4 w-4 text-purple-600" /> {t('categoryProposals')}
                 </h2>
-                <p className="text-xs text-muted-foreground">{catQueue.data?.data?.length ?? 0} category(ies) proposed by REC/country users</p>
+                <p className="text-xs text-muted-foreground">{catQueue.data?.data?.length ?? 0} {t('categoriesProposed')}</p>
               </div>
               <Link href="/knowledge/admin/categories/review" className="text-sm text-primary hover:underline">
-                Open queue →
+                {t('openQueue')} →
               </Link>
             </header>
             {(catQueue.data?.data?.length ?? 0) === 0 ? (
-              <p className="p-6 text-center text-sm text-muted-foreground">No pending proposals</p>
+              <p className="p-6 text-center text-sm text-muted-foreground">{t('noPendingProposals')}</p>
             ) : (
               <ul className="divide-y">
                 {catQueue.data!.data.slice(0, 4).map((cat) => (
@@ -295,7 +295,7 @@ export default function KnowledgeDashboardPage() {
                         href="/knowledge/admin/categories/review"
                         className="rounded-md border px-2 py-1 text-xs hover:bg-accent"
                       >
-                        Review
+                        {t('catReviewQueue')}
                       </Link>
                     </div>
                   </li>
@@ -310,20 +310,20 @@ export default function KnowledgeDashboardPage() {
       <section className="grid gap-4 md:grid-cols-3">
         <QuickLink
           icon={<FolderTree className="h-5 w-5 text-purple-600" />}
-          title="Manage categories"
-          desc="Browse the taxonomy or propose new categories for your level."
+          title={t('qlManageCategories')}
+          desc={t('qlManageCategoriesDesc')}
           href="/knowledge/admin/categories"
         />
         <QuickLink
           icon={<FileText className="h-5 w-5 text-blue-600" />}
-          title="My publications"
-          desc="Drafts, in-review, approved — track everything you've written."
+          title={t('myPublications')}
+          desc={t('qlMyPublicationsDesc')}
           href="/knowledge/admin/mine"
         />
         <QuickLink
           icon={<Globe2 className="h-5 w-5 text-emerald-600" />}
-          title="Public portal"
-          desc="Open the public Knowledge Hub in a new tab."
+          title={t('publicPortal')}
+          desc={t('qlPublicPortalDesc')}
           href="/knowledge"
           external
         />
