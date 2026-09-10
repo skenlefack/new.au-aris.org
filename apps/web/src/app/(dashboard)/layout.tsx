@@ -110,8 +110,12 @@ export default function DashboardLayout({
     }
   }, [isEmbed, publicDomainData, setAllDomains]);
 
+  const hasSubDomains = useDomainStore((s) => s.subDomainsMetadata.length > 0);
   useEffect(() => {
-    if (isEmbed || isHydrated) return;
+    if (isEmbed) return;
+    // Always fetch /me/access if sub-domains are missing — the JWT-based
+    // hydration at login sets hydrated=true but leaves subDomainsDetails empty.
+    if (isHydrated && hasSubDomains) return;
     const token = useAuthStore.getState().accessToken;
     if (!token) return;
     fetch('/api/v1/credential/me/access', {
@@ -128,7 +132,7 @@ export default function DashboardLayout({
         }
       })
       .catch(() => { /* non-blocking */ });
-  }, [isEmbed, isHydrated, hydrateFromMeAccess]);
+  }, [isEmbed, isHydrated, hasSubDomains, hydrateFromMeAccess]);
 
   const { data: i18nOverridesData } = useSettingsConfig('i18n-overrides');
   const setI18nOverrides = useI18nOverridesStore((s) => s.setOverrides);
