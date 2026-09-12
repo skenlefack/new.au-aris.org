@@ -420,51 +420,56 @@ export class DefinitionService {
       }
     }
 
-    // Upsert steps
+    // Upsert steps via raw SQL to avoid Prisma enum mismatch with DB
     for (const step of body.steps) {
       const existing = existingByKey.get(step.stepKey);
       const stepId = existing?.id ?? randomUUID();
       stepKeyToId.set(step.stepKey, stepId);
 
       if (existing) {
-        ops.push((this.prisma as any).workflowStep.update({
-          where: { id: existing.id },
-          data: {
-            step_key: step.stepKey,
-            step_order: step.stepOrder,
-            node_type: step.nodeType,
-            level_type: step.levelType ?? step.stepKey,
-            admin_level: step.adminLevel ?? null,
-            name: step.name,
-            can_edit: step.canEdit ?? false,
-            can_validate: step.canValidate ?? true,
-            allowed_roles: step.allowedRoles ?? null,
-            merge_strategy: step.mergeStrategy ?? 'ALL',
-            transmit_delay_hours: step.transmitDelayHours ?? null,
-            position_x: step.positionX ?? null,
-            position_y: step.positionY ?? null,
-          },
-        }));
+        ops.push((this.prisma as any).$executeRawUnsafe(
+          `UPDATE workflow.workflow_steps SET
+            step_key = $1, step_order = $2, node_type = $3, level_type = $4,
+            admin_level = $5, name = $6::jsonb, can_edit = $7, can_validate = $8,
+            allowed_roles = $9::jsonb, transmit_delay_hours = $10,
+            position_x = $11, position_y = $12, updated_at = NOW()
+           WHERE id = $13::uuid`,
+          step.stepKey,
+          step.stepOrder,
+          step.nodeType,
+          step.levelType ?? step.stepKey,
+          step.adminLevel ?? null,
+          JSON.stringify(step.name),
+          step.canEdit ?? false,
+          step.canValidate ?? true,
+          step.allowedRoles?.length ? JSON.stringify(step.allowedRoles) : null,
+          step.transmitDelayHours ?? null,
+          step.positionX ?? null,
+          step.positionY ?? null,
+          existing.id,
+        ));
       } else {
-        ops.push((this.prisma as any).workflowStep.create({
-          data: {
-            id: stepId,
-            definition_id: definitionId,
-            step_key: step.stepKey,
-            step_order: step.stepOrder,
-            node_type: step.nodeType,
-            level_type: step.levelType ?? step.stepKey,
-            admin_level: step.adminLevel ?? null,
-            name: step.name,
-            can_edit: step.canEdit ?? false,
-            can_validate: step.canValidate ?? true,
-            allowed_roles: step.allowedRoles ?? null,
-            merge_strategy: step.mergeStrategy ?? 'ALL',
-            transmit_delay_hours: step.transmitDelayHours ?? null,
-            position_x: step.positionX ?? null,
-            position_y: step.positionY ?? null,
-          },
-        }));
+        ops.push((this.prisma as any).$executeRawUnsafe(
+          `INSERT INTO workflow.workflow_steps
+            (id, definition_id, step_key, step_order, node_type, level_type,
+             admin_level, name, can_edit, can_validate, allowed_roles,
+             transmit_delay_hours, position_x, position_y, created_at, updated_at)
+           VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11::jsonb, $12, $13, $14, NOW(), NOW())`,
+          stepId,
+          definitionId,
+          step.stepKey,
+          step.stepOrder,
+          step.nodeType,
+          step.levelType ?? step.stepKey,
+          step.adminLevel ?? null,
+          JSON.stringify(step.name),
+          step.canEdit ?? false,
+          step.canValidate ?? true,
+          step.allowedRoles?.length ? JSON.stringify(step.allowedRoles) : null,
+          step.transmitDelayHours ?? null,
+          step.positionX ?? null,
+          step.positionY ?? null,
+        ));
       }
     }
 
