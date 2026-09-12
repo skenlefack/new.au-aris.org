@@ -22,6 +22,7 @@ import type {
   UpdateStepInput,
 } from '../schemas/definition.schemas.js';
 import { HttpError } from './workflow.service.js';
+import { randomUUID } from 'node:crypto';
 
 export class DefinitionService {
   constructor(private readonly prisma: PrismaClient) {}
@@ -422,7 +423,7 @@ export class DefinitionService {
     // Upsert steps
     for (const step of body.steps) {
       const existing = existingByKey.get(step.stepKey);
-      const stepId = existing?.id ?? uuidv4();
+      const stepId = existing?.id ?? randomUUID();
       stepKeyToId.set(step.stepKey, stepId);
 
       if (existing) {
