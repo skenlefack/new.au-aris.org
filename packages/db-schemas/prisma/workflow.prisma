@@ -43,12 +43,8 @@ enum WfEdgeType {
   @@schema("workflow")
 }
 
-enum WfMergeStrategy {
-  ALL              // wait for all incoming branches to complete
-  ANY              // first branch to complete unlocks this step
-
-  @@schema("workflow")
-}
+// WfMergeStrategy removed — using String @db.VarChar(10) instead (ALL | ANY)
+// Avoids Prisma enum/DB sync issues on production deployments
 
 model WorkflowInstance {
   id                 String               @id @default(uuid()) @db.Uuid
@@ -147,16 +143,16 @@ model WorkflowStep {
   id                   String          @id @default(uuid()) @db.Uuid
   definition_id        String          @db.Uuid
   step_order           Int
-  level_type           String          @db.VarChar(20)
+  level_type           String          @db.VarChar(50)
   admin_level          Int?
   name                 Json            // { en: "...", fr: "..." }
   can_edit             Boolean         @default(false)
   can_validate         Boolean         @default(true)
   transmit_delay_hours Int?
   // DAG extensions
-  step_key             String?         @db.VarChar(80)   // stable machine key, e.g. "REC_ECCAS"
-  node_type            String          @default("step") @db.VarChar(20) // start | step | end
-  merge_strategy       WfMergeStrategy @default(ALL)
+  step_key             String?         @db.VarChar(120)  // stable machine key, e.g. "REC_ECCAS"
+  node_type            String          @default("step") @db.VarChar(50) // start | step | end | decision | fork | join | notification
+  merge_strategy       String          @default("ALL") @db.VarChar(10)  // ALL | ANY
   allowed_roles        Json?           // string[] of UserRole values for custom RBAC
   position_x           Float?          // canvas X for visual designer
   position_y           Float?          // canvas Y for visual designer
