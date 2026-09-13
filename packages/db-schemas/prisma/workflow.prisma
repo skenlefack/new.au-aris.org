@@ -34,14 +34,8 @@ enum WfAction {
 
 // ── DAG Workflow Enums ──
 
-enum WfEdgeType {
-  SEQUENTIAL       // default: approval auto-advances to single target
-  PARALLEL         // fan-out: all targets activate simultaneously
-  CHOICE_SINGLE    // user picks exactly one target
-  CHOICE_MULTI     // user picks one or more targets
-
-  @@schema("workflow")
-}
+// WfEdgeType removed — using String @db.VarChar(20) instead
+// Values: SEQUENTIAL | PARALLEL | CHOICE_SINGLE | CHOICE_MULTI
 
 // WfMergeStrategy removed — using String @db.VarChar(10) instead (ALL | ANY)
 // Avoids Prisma enum/DB sync issues on production deployments
@@ -175,7 +169,7 @@ model WorkflowEdge {
   definition_id   String              @db.Uuid
   source_step_id  String              @db.Uuid
   target_step_id  String              @db.Uuid
-  edge_type       WfEdgeType          @default(SEQUENTIAL)
+  edge_type       String              @default("SEQUENTIAL") @db.VarChar(20)
   condition       Json?               // optional rule expression for conditional routing
   label           Json?               // { en: "Send to ECCAS", fr: "Envoyer a la CEEAC" }
   sort_order      Int                 @default(0)

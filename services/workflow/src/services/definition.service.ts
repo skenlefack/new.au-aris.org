@@ -492,7 +492,7 @@ export class DefinitionService {
       edgeOps.push(
         (this.prisma as any).$executeRawUnsafe(
           `INSERT INTO workflow.workflow_edges (id, definition_id, source_step_id, target_step_id, edge_type, label, condition, sort_order)
-           VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, $4::workflow."WfEdgeType", $5::jsonb, $6::jsonb, $7)`,
+           VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, $4, $5::jsonb, $6::jsonb, $7)`,
           definitionId,
           sourceId,
           targetId,
