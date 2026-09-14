@@ -539,7 +539,7 @@ function PropertiesPanel({
   if (selectedEdge) {
     const d = asEdge(selectedEdge.data);
     return (
-      <div className="w-80 rounded-xl border border-gray-200 bg-white/95 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95 overflow-hidden">
+      <div className="w-[420px] rounded-xl border border-gray-200 bg-white/95 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <ArrowRightLeft className="h-4 w-4 text-gray-500" />
@@ -622,7 +622,7 @@ function PropertiesPanel({
     );
 
     return (
-      <div className="w-80 rounded-xl border border-gray-200 bg-white/95 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95 max-h-[85vh] overflow-hidden flex flex-col">
+      <div className="w-[420px] rounded-xl border border-gray-200 bg-white/95 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95 max-h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 shrink-0">
           <div className="flex items-center gap-2">
