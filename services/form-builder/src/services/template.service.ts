@@ -137,27 +137,57 @@ export class TemplateService {
       ? { [query.sort]: query.order ?? 'asc' }
       : { created_at: 'desc' as const };
 
-    // Domain-based filtering: non-SUPER_ADMIN users only see templates
-    // whose domain matches one of their assigned domains (from JWT).
-    const userDomains = (user as any).domains ?? [];
+    // Domain-based filtering: enforce strict domain isolation.
+    // Admins (SUPER_ADMIN, CONTINENTAL_ADMIN) see all templates.
+    // Other roles only see templates matching their assigned domains.
+    // Users with 0 domains assigned see NO templates.
+    const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'CONTINENTAL_ADMIN';
+    const userDomainCodes = Object.keys((user as any).domains ?? {});
     let domainFilter: Record<string, unknown> = {};
+
+    if (!isAdmin) {
+      if (userDomainCodes.length === 0) {
+        // No domains assigned → return nothing (impossible WHERE)
+        domainFilter = { id: '00000000-0000-0000-0000-000000000000' };
+      } else {
+        // Match both formats: "animal-health" and legacy "animal_health"
+        const expanded = userDomainCodes.flatMap((c) => {
+          const alt = c.includes('-') ? c.replace(/-/g, '_') : c.replace(/_/g, '-');
+          return alt !== c ? [c, alt] : [c];
+        });
+        domainFilter = {
+          OR: [
+            { domain: { in: expanded } },
+            { targets: { some: { domain_code: { in: expanded } } } },
+          ],
+        };
+      }
+    }
+
     if (query.domain) {
-      // Backward compat: reads legacy domain field, prefer targets[] filtering via domainCode/subDomainCode
-      if (user.role === 'SUPER_ADMIN' || userDomains.length === 0 || userDomains.includes(query.domain)) {
+      // Only allow filtering to a domain the user actually has access to
+      if (isAdmin || userDomainCodes.includes(query.domain)) {
         domainFilter = { domain: query.domain };
       }
-    } else if (user.role !== 'SUPER_ADMIN' && userDomains.length > 0) {
-      // Backward compat: reads legacy domain field, prefer targets[] filtering via domainCode/subDomainCode
-      domainFilter = { domain: { in: userDomains } };
+      // If user doesn't have access, the filter above keeps them restricted
     }
 
     // Multi-target filtering via FormTarget join table
     let targetFilter: Record<string, unknown> = {};
     if (query.domainCode || query.subDomainCode) {
       const targetWhere: Record<string, unknown> = {};
-      if (query.domainCode) targetWhere['domain_code'] = query.domainCode;
+      if (query.domainCode) {
+        // Ensure non-admin can only filter domains they have access to
+        if (!isAdmin && userDomainCodes.length > 0 && !userDomainCodes.includes(query.domainCode)) {
+          targetFilter = { id: '00000000-0000-0000-0000-000000000000' };
+        } else {
+          targetWhere['domain_code'] = query.domainCode;
+        }
+      }
       if (query.subDomainCode) targetWhere['sub_domain_code'] = query.subDomainCode;
-      targetFilter = { targets: { some: targetWhere } };
+      if (Object.keys(targetWhere).length > 0) {
+        targetFilter = { targets: { some: targetWhere } };
+      }
     }
 
     // Full-text search on template name (case-insensitive)
@@ -165,14 +195,20 @@ export class TemplateService {
       ? { name: { contains: query.search, mode: 'insensitive' } }
       : {};
 
-    const where: Prisma.FormTemplateWhereInput = {
-      ...this.buildTenantFilter(user),
-      ...domainFilter,
-      ...targetFilter,
-      ...searchFilter,
-      ...(query.formType && { form_type: query.formType }),
-      ...(query.status && { status: query.status as Prisma.EnumFormTemplateStatusFilter }),
-    };
+    // Build final WHERE — combine domain + target + search + other filters.
+    // Use AND array to avoid spread conflicts between domainFilter.OR and targetFilter.targets
+    const conditions: Record<string, unknown>[] = [
+      this.buildTenantFilter(user),
+      ...(Object.keys(domainFilter).length > 0 ? [domainFilter] : []),
+      ...(Object.keys(targetFilter).length > 0 ? [targetFilter] : []),
+      ...(Object.keys(searchFilter).length > 0 ? [searchFilter] : []),
+      ...(query.formType ? [{ form_type: query.formType }] : []),
+      ...(query.status ? [{ status: query.status as Prisma.EnumFormTemplateStatusFilter }] : []),
+    ].filter((c) => Object.keys(c).length > 0);
+
+    const where: Prisma.FormTemplateWhereInput = conditions.length > 1
+      ? { AND: conditions }
+      : conditions[0] ?? {};
 
     const [data, total] = await Promise.all([
       (this.prisma as any).formTemplate.findMany({
