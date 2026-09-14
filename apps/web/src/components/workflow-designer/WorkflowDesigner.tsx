@@ -58,6 +58,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkflowGraph, useSaveWorkflowGraph } from '@/lib/api/workflow-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 import { toast } from 'sonner';
 
 // ══════════════════════════════════════════════════════════
@@ -112,47 +113,47 @@ const ROLES = [
   'CONTINENTAL_LABORATORY', 'PAID_ADMIN',
 ];
 
-const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  CONTINENTAL_ADMIN: 'Continental Admin',
-  REC_ADMIN: 'REC Admin',
-  NATIONAL_ADMIN: 'National Admin',
-  DATA_STEWARD: 'Data Steward',
-  WAHIS_FOCAL_POINT: 'WAHIS Focal Point',
-  ANALYST: 'Analyst',
-  FIELD_AGENT: 'Field Agent',
-  KNOWLEDGE_MANAGER: 'Knowledge Manager',
-  NATIONAL_LABORATORY: 'National Lab',
-  REGIONAL_LABORATORY: 'Regional Lab',
-  CONTINENTAL_LABORATORY: 'Continental Lab',
-  PAID_ADMIN: 'PAID Admin',
+const ROLE_I18N_KEYS: Record<string, string> = {
+  SUPER_ADMIN: 'superAdmin',
+  CONTINENTAL_ADMIN: 'continentalAdmin',
+  REC_ADMIN: 'recAdmin',
+  NATIONAL_ADMIN: 'nationalAdmin',
+  DATA_STEWARD: 'dataSteward',
+  WAHIS_FOCAL_POINT: 'wahisFocalPoint',
+  ANALYST: 'analyst',
+  FIELD_AGENT: 'fieldAgent',
+  KNOWLEDGE_MANAGER: 'knowledgeManager',
+  NATIONAL_LABORATORY: 'nationalLab',
+  REGIONAL_LABORATORY: 'regionalLab',
+  CONTINENTAL_LABORATORY: 'continentalLab',
+  PAID_ADMIN: 'paidAdmin',
 };
 
-const LEVEL_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; darkBg: string }> = {
-  NATIONAL_TECHNICAL:      { label: 'National Technical',      color: 'text-blue-700',   bg: 'bg-blue-50',    border: 'border-blue-400',   darkBg: 'dark:bg-blue-900/20' },
-  NATIONAL_OFFICIAL:       { label: 'National Official',       color: 'text-amber-700',  bg: 'bg-amber-50',   border: 'border-amber-400',  darkBg: 'dark:bg-amber-900/20' },
-  REC_HARMONIZATION:       { label: 'REC Harmonization',       color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-400', darkBg: 'dark:bg-purple-900/20' },
-  CONTINENTAL_PUBLICATION: { label: 'Continental Publication', color: 'text-red-700',    bg: 'bg-red-50',     border: 'border-red-400',    darkBg: 'dark:bg-red-900/20' },
-  national:                { label: 'National',                color: 'text-blue-700',   bg: 'bg-blue-50',    border: 'border-blue-400',   darkBg: 'dark:bg-blue-900/20' },
-  regional:                { label: 'Regional',                color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-400', darkBg: 'dark:bg-purple-900/20' },
-  continental:             { label: 'Continental',             color: 'text-red-700',    bg: 'bg-red-50',     border: 'border-red-400',    darkBg: 'dark:bg-red-900/20' },
+const LEVEL_CONFIG: Record<string, { i18nKey: string; color: string; bg: string; border: string; darkBg: string }> = {
+  NATIONAL_TECHNICAL:      { i18nKey: 'nationalTechnical',      color: 'text-blue-700',   bg: 'bg-blue-50',    border: 'border-blue-400',   darkBg: 'dark:bg-blue-900/20' },
+  NATIONAL_OFFICIAL:       { i18nKey: 'nationalOfficial',       color: 'text-amber-700',  bg: 'bg-amber-50',   border: 'border-amber-400',  darkBg: 'dark:bg-amber-900/20' },
+  REC_HARMONIZATION:       { i18nKey: 'recHarmonization',       color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-400', darkBg: 'dark:bg-purple-900/20' },
+  CONTINENTAL_PUBLICATION: { i18nKey: 'continentalPublication', color: 'text-red-700',    bg: 'bg-red-50',     border: 'border-red-400',    darkBg: 'dark:bg-red-900/20' },
+  national:                { i18nKey: 'national',                color: 'text-blue-700',   bg: 'bg-blue-50',    border: 'border-blue-400',   darkBg: 'dark:bg-blue-900/20' },
+  regional:                { i18nKey: 'regional',                color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-400', darkBg: 'dark:bg-purple-900/20' },
+  continental:             { i18nKey: 'continental',             color: 'text-red-700',    bg: 'bg-red-50',     border: 'border-red-400',    darkBg: 'dark:bg-red-900/20' },
 };
 
-const EDGE_STYLES: Record<EdgeKind, { color: string; dash: string; animated: boolean; label: string }> = {
-  SEQUENTIAL:   { color: '#6b7280', dash: '0',   animated: false, label: 'Sequential' },
-  PARALLEL:     { color: '#8b5cf6', dash: '0',   animated: true,  label: 'Parallel (fan-out)' },
-  CHOICE_SINGLE:{ color: '#f59e0b', dash: '8 4', animated: false, label: 'Choice — Single' },
-  CHOICE_MULTI: { color: '#10b981', dash: '8 4', animated: false, label: 'Choice — Multiple' },
+const EDGE_STYLES: Record<EdgeKind, { color: string; dash: string; animated: boolean; i18nKey: string }> = {
+  SEQUENTIAL:   { color: '#6b7280', dash: '0',   animated: false, i18nKey: 'sequential' },
+  PARALLEL:     { color: '#8b5cf6', dash: '0',   animated: true,  i18nKey: 'parallelFanOut' },
+  CHOICE_SINGLE:{ color: '#f59e0b', dash: '8 4', animated: false, i18nKey: 'choiceSingle' },
+  CHOICE_MULTI: { color: '#10b981', dash: '8 4', animated: false, i18nKey: 'choiceMultiple' },
 };
 
-const NODE_CATALOG: { type: NodeKind; label: string; labelFr: string; icon: React.ReactNode; description: string; color: string }[] = [
-  { type: 'start',        label: 'Start',        labelFr: 'Début',        icon: <Play className="h-4 w-4" />,         description: 'Entry point',       color: 'text-green-600' },
-  { type: 'step',         label: 'Step',         labelFr: 'Étape',        icon: <CheckCircle2 className="h-4 w-4" />, description: 'Validation step',   color: 'text-blue-600' },
-  { type: 'decision',     label: 'Decision',     labelFr: 'Décision',     icon: <Diamond className="h-4 w-4" />,      description: 'Conditional routing',color: 'text-amber-600' },
-  { type: 'fork',         label: 'Fork',         labelFr: 'Fourche',      icon: <GitFork className="h-4 w-4" />,      description: 'Parallel split',    color: 'text-purple-600' },
-  { type: 'join',         label: 'Join',         labelFr: 'Jonction',     icon: <Merge className="h-4 w-4" />,        description: 'Merge branches',    color: 'text-indigo-600' },
-  { type: 'notification', label: 'Notification', labelFr: 'Notification', icon: <Bell className="h-4 w-4" />,         description: 'Send alert',        color: 'text-pink-600' },
-  { type: 'end',          label: 'End',          labelFr: 'Fin',          icon: <Square className="h-4 w-4" />,        description: 'Terminal state',    color: 'text-red-600' },
+const NODE_CATALOG: { type: NodeKind; i18nKey: string; descKey: string; icon: React.ReactNode; color: string }[] = [
+  { type: 'start',        i18nKey: 'start',        descKey: 'startDesc',        icon: <Play className="h-4 w-4" />,         color: 'text-green-600' },
+  { type: 'step',         i18nKey: 'step',         descKey: 'stepDesc',         icon: <CheckCircle2 className="h-4 w-4" />, color: 'text-blue-600' },
+  { type: 'decision',     i18nKey: 'decision',     descKey: 'decisionDesc',     icon: <Diamond className="h-4 w-4" />,      color: 'text-amber-600' },
+  { type: 'fork',         i18nKey: 'fork',         descKey: 'forkDesc',         icon: <GitFork className="h-4 w-4" />,      color: 'text-purple-600' },
+  { type: 'join',         i18nKey: 'join',         descKey: 'joinDesc',         icon: <Merge className="h-4 w-4" />,        color: 'text-indigo-600' },
+  { type: 'notification', i18nKey: 'notification', descKey: 'notificationDesc', icon: <Bell className="h-4 w-4" />,  color: 'text-pink-600' },
+  { type: 'end',          i18nKey: 'end',          descKey: 'endDesc',          icon: <Square className="h-4 w-4" />, color: 'text-red-600' },
 ];
 
 // ══════════════════════════════════════════════════════════
@@ -203,7 +204,7 @@ function StepNode({ data, selected }: NodeProps) {
             )}
           </div>
           <span className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider', level?.bg, level?.color)}>
-            {level?.label?.split(' ')[0] ?? d.levelType}
+            {level?.i18nKey ?? d.levelType}
           </span>
         </div>
         {d.description && (
@@ -390,7 +391,7 @@ function apiToReactFlow(graphData: any): { nodes: Node[]; edges: Edge[] } {
       id: e.id ?? `${e.sourceStepId}-${e.targetStepId}`,
       source: e.sourceStepId,
       target: e.targetStepId,
-      label: e.label?.en ?? (edgeType !== 'SEQUENTIAL' ? style.label : undefined),
+      label: e.label?.en ?? (edgeType !== 'SEQUENTIAL' ? edgeType : undefined),
       markerEnd: { type: MarkerType.ArrowClosed, color: style.color },
       style: { stroke: style.color, strokeWidth: 2, strokeDasharray: style.dash },
       data: { edgeType, label: e.label?.en, labelFr: e.label?.fr, condition: e.condition } as EdgeData,
@@ -441,6 +442,7 @@ function reactFlowToApi(nodes: Node[], edges: Edge[], graphVersion: number) {
 // ══════════════════════════════════════════════════════════
 
 function ToolboxPanel({ hasStart }: { hasStart: boolean }) {
+  const t = useTranslations('workflow');
   const [collapsed, setCollapsed] = useState(false);
 
   const onDragStart = useCallback((e: DragEvent, nodeType: NodeKind) => {
@@ -454,13 +456,14 @@ function ToolboxPanel({ hasStart }: { hasStart: boolean }) {
         onClick={() => setCollapsed(!collapsed)}
         className="flex items-center justify-between w-full px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600"
       >
-        <span>Toolbox</span>
+        <span>{t('designer.toolbox')}</span>
         {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
       </button>
       {!collapsed && (
         <div className="px-2 pb-2 space-y-0.5">
           {NODE_CATALOG.map((item) => {
             const disabled = item.type === 'start' && hasStart;
+            const label = t(`designer.${item.i18nKey}`);
             return (
               <div
                 key={item.type}
@@ -473,13 +476,13 @@ function ToolboxPanel({ hasStart }: { hasStart: boolean }) {
                     : 'hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-sm',
                   item.color,
                 )}
-                title={disabled ? 'Only one Start node allowed' : `Drag to add ${item.label}`}
+                title={disabled ? t('designer.onlyOneStart') : t('designer.dragToAdd', { type: label })}
               >
                 <GripVertical className="h-3 w-3 text-gray-300 shrink-0" />
                 {item.icon}
                 <div className="min-w-0">
-                  <div className="font-semibold leading-tight">{item.label}</div>
-                  <div className="text-[9px] text-gray-400 leading-tight">{item.description}</div>
+                  <div className="font-semibold leading-tight">{label}</div>
+                  <div className="text-[9px] text-gray-400 leading-tight">{t(`designer.${item.descKey}`)}</div>
                 </div>
               </div>
             );
@@ -513,6 +516,7 @@ function PropertiesPanel({
   onDuplicate: (id: string) => void;
   onClose: () => void;
 }) {
+  const t = useTranslations('workflow');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     general: true, permissions: true, timing: false, roles: false,
   });
@@ -529,34 +533,34 @@ function PropertiesPanel({
         <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <ArrowRightLeft className="h-4 w-4 text-gray-500" />
-            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Connection</h3>
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">{t('designer.connection')}</h3>
           </div>
           <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700"><X className="h-4 w-4" /></button>
         </div>
         <div className="p-4 space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Type</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.edgeType')}</label>
             <select
               value={d.edgeType ?? 'SEQUENTIAL'}
               onChange={(e) => onUpdateEdge(selectedEdge.id, { edgeType: e.target.value as EdgeKind })}
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-xs bg-white dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Object.entries(EDGE_STYLES).map(([key, val]) => (
-                <option key={key} value={key}>{val.label}</option>
+                <option key={key} value={key}>{t(`designer.${val.i18nKey}`)}</option>
               ))}
             </select>
             <div className="mt-1.5 flex items-center gap-2">
               <div className="h-0.5 w-8 rounded" style={{ backgroundColor: EDGE_STYLES[d.edgeType ?? 'SEQUENTIAL'].color }} />
               <span className="text-[9px] text-gray-400">
-                {d.edgeType === 'PARALLEL' && 'All targets activate simultaneously'}
-                {d.edgeType === 'CHOICE_SINGLE' && 'User picks exactly one target'}
-                {d.edgeType === 'CHOICE_MULTI' && 'User picks one or more targets'}
-                {(d.edgeType === 'SEQUENTIAL' || !d.edgeType) && 'One step after another'}
+                {d.edgeType === 'PARALLEL' && t('designer.parallelDesc')}
+                {d.edgeType === 'CHOICE_SINGLE' && t('designer.choiceSingleDesc')}
+                {d.edgeType === 'CHOICE_MULTI' && t('designer.choiceMultiDesc')}
+                {(d.edgeType === 'SEQUENTIAL' || !d.edgeType) && t('designer.seqDesc')}
               </span>
             </div>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Label (EN)</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.labelEn')}</label>
             <input
               value={d.label ?? ''}
               onChange={(e) => onUpdateEdge(selectedEdge.id, { label: e.target.value })}
@@ -565,7 +569,7 @@ function PropertiesPanel({
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Label (FR)</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.labelFr')}</label>
             <input
               value={d.labelFr ?? ''}
               onChange={(e) => onUpdateEdge(selectedEdge.id, { labelFr: e.target.value })}
@@ -574,7 +578,7 @@ function PropertiesPanel({
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Condition (optional)</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.condition')}</label>
             <textarea
               value={d.condition ?? ''}
               onChange={(e) => onUpdateEdge(selectedEdge.id, { condition: e.target.value })}
@@ -582,13 +586,13 @@ function PropertiesPanel({
               rows={2}
               placeholder='e.g. status === "confirmed"'
             />
-            <p className="mt-1 text-[9px] text-gray-400">JavaScript expression evaluated at runtime</p>
+            <p className="mt-1 text-[9px] text-gray-400">{t('designer.conditionHint')}</p>
           </div>
           <button
             onClick={() => onDeleteEdge(selectedEdge.id)}
             className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-red-50 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 transition"
           >
-            <Trash2 className="h-3.5 w-3.5" /> Delete Connection
+            <Trash2 className="h-3.5 w-3.5" /> {t('designer.deleteConnection')}
           </button>
         </div>
       </div>
@@ -606,7 +610,7 @@ function PropertiesPanel({
     const isNotification = d.nodeType === 'notification';
     const showFullProps = isStep || isDecision;
 
-    const nodeLabel = NODE_CATALOG.find((n) => n.type === d.nodeType)?.label ?? d.nodeType;
+    const nodeLabel = t(`designer.${NODE_CATALOG.find((n) => n.type === d.nodeType)?.i18nKey ?? d.nodeType}`);
     const nodeIcon = NODE_CATALOG.find((n) => n.type === d.nodeType)?.icon;
 
     // Section header component
@@ -633,7 +637,7 @@ function PropertiesPanel({
               <button
                 onClick={() => onDuplicate(selectedNode.id)}
                 className="rounded-md p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                title="Duplicate"
+                title={t('designer.duplicate')}
               >
                 <Copy className="h-3.5 w-3.5" />
               </button>
@@ -644,11 +648,11 @@ function PropertiesPanel({
 
         <div className="overflow-y-auto flex-1 px-4 py-3 space-y-1">
           {/* ── General Section ── */}
-          <SectionHeader id="general" title="General" icon={<Info className="h-3 w-3" />} />
+          <SectionHeader id="general" title={t('designer.general')} icon={<Info className="h-3 w-3" />} />
           {expandedSections.general && (
             <div className="space-y-3 pb-3 border-b border-gray-100 dark:border-gray-800">
               <div>
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Key</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.key')}</label>
                 <input
                   value={d.stepKey}
                   onChange={(e) => onUpdateNode(selectedNode.id, { stepKey: e.target.value })}
@@ -658,7 +662,7 @@ function PropertiesPanel({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Name (EN)</label>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.nameEn')}</label>
                   <input
                     value={d.label}
                     onChange={(e) => onUpdateNode(selectedNode.id, { label: e.target.value })}
@@ -666,7 +670,7 @@ function PropertiesPanel({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Name (FR)</label>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.nameFr')}</label>
                   <input
                     value={d.labelFr}
                     onChange={(e) => onUpdateNode(selectedNode.id, { labelFr: e.target.value })}
@@ -676,26 +680,26 @@ function PropertiesPanel({
               </div>
               {(showFullProps || isNotification || isForkJoin) && (
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Description (EN)</label>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.descriptionEn')}</label>
                   <textarea
                     value={d.description ?? ''}
                     onChange={(e) => onUpdateNode(selectedNode.id, { description: e.target.value })}
                     className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
                     rows={2}
-                    placeholder="What happens at this step..."
+                    placeholder="{t('designer.descPlaceholder')}"
                   />
                 </div>
               )}
               {showFullProps && (
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Level Type</label>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.levelType')}</label>
                   <select
                     value={d.levelType}
                     onChange={(e) => onUpdateNode(selectedNode.id, { levelType: e.target.value })}
                     className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
                   >
                     {Object.entries(LEVEL_CONFIG).map(([key, val]) => (
-                      <option key={key} value={key}>{val.label}</option>
+                      <option key={key} value={key}>{t(`designer.${val.i18nKey}`)}</option>
                     ))}
                   </select>
                 </div>
@@ -706,7 +710,7 @@ function PropertiesPanel({
           {/* ── Permissions Section ── */}
           {showFullProps && (
             <>
-              <SectionHeader id="permissions" title="Permissions" icon={<ShieldCheck className="h-3 w-3" />} />
+              <SectionHeader id="permissions" title={t('designer.permissions')} icon={<ShieldCheck className="h-3 w-3" />} />
               {expandedSections.permissions && (
                 <div className="space-y-3 pb-3 border-b border-gray-100 dark:border-gray-800">
                   <div className="flex items-center gap-4">
@@ -717,7 +721,7 @@ function PropertiesPanel({
                         onChange={(e) => onUpdateNode(selectedNode.id, { canEdit: e.target.checked })}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <Pencil className="h-3 w-3 text-blue-500" /> Can Edit
+                      <Pencil className="h-3 w-3 text-blue-500" /> {t('designer.canEdit')}
                     </label>
                     <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
                       <input
@@ -726,11 +730,11 @@ function PropertiesPanel({
                         onChange={(e) => onUpdateNode(selectedNode.id, { canValidate: e.target.checked })}
                         className="rounded border-gray-300 text-green-600 focus:ring-green-500"
                       />
-                      <ShieldCheck className="h-3 w-3 text-green-500" /> Can Validate
+                      <ShieldCheck className="h-3 w-3 text-green-500" /> {t('designer.canValidate')}
                     </label>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Merge Strategy</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.mergeStrategy')}</label>
                     <div className="mt-1.5 flex gap-2">
                       {(['ALL', 'ANY'] as const).map((val) => (
                         <button
@@ -745,7 +749,7 @@ function PropertiesPanel({
                         >
                           <div className="font-bold">{val}</div>
                           <div className="text-[9px] text-gray-400 mt-0.5">
-                            {val === 'ALL' ? 'Wait all branches' : 'First branch unlocks'}
+                            {val === 'ALL' ? t('designer.waitAllBranches') : t('designer.firstBranchUnlocks')}
                           </div>
                         </button>
                       ))}
@@ -759,12 +763,12 @@ function PropertiesPanel({
           {/* ── Timing Section ── */}
           {(showFullProps || isNotification) && (
             <>
-              <SectionHeader id="timing" title="Timing & SLA" icon={<Timer className="h-3 w-3" />} />
+              <SectionHeader id="timing" title={t('designer.timingSla')} icon={<Timer className="h-3 w-3" />} />
               {expandedSections.timing && (
                 <div className="space-y-3 pb-3 border-b border-gray-100 dark:border-gray-800">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">SLA (hours)</label>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.slaHours')}</label>
                       <input
                         type="number"
                         min={0}
@@ -775,7 +779,7 @@ function PropertiesPanel({
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Auto-transmit (h)</label>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.autoTransmitHours')}</label>
                       <input
                         type="number"
                         min={0}
@@ -787,7 +791,7 @@ function PropertiesPanel({
                     </div>
                   </div>
                   <p className="text-[9px] text-gray-400 flex items-center gap-1">
-                    <Info className="h-3 w-3" /> SLA = max time before escalation. Auto-transmit = auto-forward after delay.
+                    <Info className="h-3 w-3" /> {t('designer.slaHint')}
                   </p>
                 </div>
               )}
@@ -797,10 +801,10 @@ function PropertiesPanel({
           {/* ── Roles Section ── */}
           {showFullProps && (
             <>
-              <SectionHeader id="roles" title={`Allowed Roles (${d.allowedRoles?.length || 0})`} icon={<Users className="h-3 w-3" />} />
+              <SectionHeader id="roles" title={`${t('designer.allowedRoles')} (${d.allowedRoles?.length || 0})`} icon={<Users className="h-3 w-3" />} />
               {expandedSections.roles && (
                 <div className="space-y-1 pb-3 border-b border-gray-100 dark:border-gray-800">
-                  <p className="text-[9px] text-gray-400 mb-2">Leave empty = all roles can access this step</p>
+                  <p className="text-[9px] text-gray-400 mb-2">{t('designer.rolesEmpty')}</p>
                   <div className="grid grid-cols-1 gap-0.5 max-h-[200px] overflow-y-auto">
                     {ROLES.map((role) => {
                       const checked = d.allowedRoles?.includes(role);
@@ -824,7 +828,7 @@ function PropertiesPanel({
                             }}
                             className="rounded border-gray-300 text-violet-600 focus:ring-violet-500 h-3 w-3"
                           />
-                          {ROLE_LABELS[role] ?? role}
+                          {t(`designer.${ROLE_I18N_KEYS[role] ?? role}`)}
                         </label>
                       );
                     })}
@@ -837,7 +841,7 @@ function PropertiesPanel({
           {/* Join merge strategy */}
           {d.nodeType === 'join' && (
             <div className="pb-3">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Merge Strategy</label>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.mergeStrategy')}</label>
               <div className="mt-1.5 flex gap-2">
                 {(['ALL', 'ANY'] as const).map((val) => (
                   <button
@@ -850,7 +854,7 @@ function PropertiesPanel({
                         : 'border-gray-200 text-gray-500 hover:border-gray-300 dark:border-gray-600',
                     )}
                   >
-                    {val === 'ALL' ? 'Wait All' : 'First Wins'}
+                    {val === 'ALL' ? t('designer.waitAll') : t('designer.firstWins')}
                   </button>
                 ))}
               </div>
@@ -865,7 +869,7 @@ function PropertiesPanel({
               onClick={() => onDeleteNode(selectedNode.id)}
               className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-red-50 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 transition"
             >
-              <Trash2 className="h-3.5 w-3.5" /> Delete {nodeLabel}
+              <Trash2 className="h-3.5 w-3.5" /> {t('designer.deleteNode', { type: nodeLabel })}
             </button>
           </div>
         )}
@@ -881,12 +885,13 @@ function PropertiesPanel({
 // ══════════════════════════════════════════════════════════
 
 function ValidationPanel({ errors }: { errors: string[] }) {
+  const t = useTranslations('workflow');
   if (errors.length === 0) return null;
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50/95 shadow-lg backdrop-blur dark:border-amber-800 dark:bg-amber-900/30 p-3 max-w-[280px]">
       <div className="flex items-center gap-1.5 mb-2">
         <AlertTriangle className="h-4 w-4 text-amber-600" />
-        <span className="text-xs font-bold text-amber-800 dark:text-amber-300">Validation Issues ({errors.length})</span>
+        <span className="text-xs font-bold text-amber-800 dark:text-amber-300">{t('designer.validationIssues')} ({errors.length})</span>
       </div>
       <ul className="space-y-1">
         {errors.slice(0, 5).map((err, i) => (
@@ -1029,6 +1034,7 @@ interface WorkflowDesignerInnerProps {
 }
 
 function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerProps) {
+  const t = useTranslations('workflow');
   const { data: graphRes, isLoading } = useWorkflowGraph(definitionId);
   const saveMut = useSaveWorkflowGraph();
   const reactFlowInstance = useReactFlow();
@@ -1141,7 +1147,7 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
       ...connection,
       markerEnd: { type: MarkerType.ArrowClosed, color: style.color },
       style: { stroke: style.color, strokeWidth: 2 },
-      data: { edgeType: 'SEQUENTIAL' } as EdgeData,
+      data: { edgeType: 'SEQUENTIAL' } as unknown as Record<string, unknown>,
     }, eds));
   }, [setEdges]);
 
@@ -1158,7 +1164,7 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
 
     // Prevent multiple starts
     if (type === 'start' && nodes.some((n) => asStep(n.data).nodeType === 'start')) {
-      toast.error('Only one Start node is allowed');
+      toast.error(t('designer.onlyOneStart'));
       return;
     }
 
@@ -1172,8 +1178,8 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
       position,
       data: {
         stepKey: type === 'start' ? 'START' : type === 'end' ? `END_${idx}` : `${type.toUpperCase()}_${idx}`,
-        label: catalog.label,
-        labelFr: catalog.labelFr,
+        label: t(`designer.${catalog.i18nKey}`),
+        labelFr: t(`designer.${catalog.i18nKey}`),
         description: '',
         descriptionFr: '',
         nodeType: type,
@@ -1185,7 +1191,7 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
         transmitDelayHours: null,
         slaHours: null,
         color: '',
-      } as StepData,
+      } as unknown as Record<string, unknown>,
     };
     setNodes((nds) => [...nds, newNode]);
     // Auto-select the new node
@@ -1207,7 +1213,7 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
       return {
         ...e,
         data: newData,
-        label: newData.label || (edgeType !== 'SEQUENTIAL' ? style.label : undefined),
+        label: newData.label || (edgeType !== 'SEQUENTIAL' ? t(`designer.${style.i18nKey}`) : undefined),
         markerEnd: { type: MarkerType.ArrowClosed, color: style.color },
         style: { stroke: style.color, strokeWidth: 2, strokeDasharray: style.dash },
         animated: style.animated,
@@ -1251,21 +1257,21 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
     const laid = autoLayout(nodes, edges);
     setNodes(laid);
     setTimeout(() => reactFlowInstance.fitView({ padding: 0.2, duration: 300 }), 50);
-    toast.success('Layout applied');
+    toast.success(t('designer.layoutApplied'));
   }, [nodes, edges, setNodes, reactFlowInstance]);
 
   const handleSave = useCallback(async () => {
     const errs = validateGraph(nodes, edges);
     if (errs.length > 0) {
-      toast.error(`Cannot save: ${errs.length} validation issue(s)`, { description: errs[0] });
+      toast.error(t('designer.cannotSave', { count: String(errs.length) }), { description: errs[0] });
       return;
     }
     const payload = reactFlowToApi(nodes, edges, graphVersion);
     try {
       await saveMut.mutateAsync({ definitionId, ...payload });
-      toast.success('Workflow graph saved successfully');
+      toast.success(t('designer.graphSaved'));
     } catch (err: any) {
-      toast.error('Failed to save', { description: err?.message ?? 'Check graph for errors' });
+      toast.error(t('designer.saveFailed'), { description: err?.message });
     }
   }, [nodes, edges, graphVersion, definitionId, saveMut]);
 
@@ -1278,7 +1284,7 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
     a.download = `workflow-${definitionId}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('JSON exported');
+    toast.success(t('designer.jsonExported'));
   }, [nodes, edges, graphVersion, definitionId]);
 
   const hasStart = nodes.some((n) => asStep(n.data).nodeType === 'start');
@@ -1288,7 +1294,7 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
       <div className="flex h-[700px] items-center justify-center rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <span className="text-sm text-gray-500">Loading workflow...</span>
+          <span className="text-sm text-gray-500">{t('designer.loading')}</span>
         </div>
       </div>
     );
@@ -1342,29 +1348,29 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
         <Panel position="top-center">
           <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white/95 px-3 py-1.5 shadow-lg backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
             <GitBranch className="h-4 w-4 text-blue-500" />
-            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Workflow Designer</span>
+            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('designer.title')}</span>
             <span className="text-[10px] text-gray-400 bg-gray-100 dark:bg-gray-800 rounded px-1.5 py-0.5 font-mono">v{graphVersion}</span>
 
             <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
             {/* Undo/Redo */}
-            <button onClick={undo} disabled={historyIdx <= 0} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition" title="Undo (Ctrl+Z)">
+            <button onClick={undo} disabled={historyIdx <= 0} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition" title={`${t('designer.undo')} (Ctrl+Z)`}>
               <Undo2 className="h-3.5 w-3.5" />
             </button>
-            <button onClick={redo} disabled={historyIdx >= history.length - 1} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition" title="Redo (Ctrl+Y)">
+            <button onClick={redo} disabled={historyIdx >= history.length - 1} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition" title={`${t('designer.redo')} (Ctrl+Y)`}>
               <Redo2 className="h-3.5 w-3.5" />
             </button>
 
             <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
             {/* Layout & Zoom */}
-            <button onClick={handleAutoLayout} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title="Auto Layout">
+            <button onClick={handleAutoLayout} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title={t('designer.autoLayout')}>
               <LayoutGrid className="h-3.5 w-3.5" />
             </button>
-            <button onClick={() => reactFlowInstance.fitView({ padding: 0.2, duration: 300 })} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title="Fit View">
+            <button onClick={() => reactFlowInstance.fitView({ padding: 0.2, duration: 300 })} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title={t('designer.fitView')}>
               <Maximize2 className="h-3.5 w-3.5" />
             </button>
-            <button onClick={handleExportJSON} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title="Export JSON">
+            <button onClick={handleExportJSON} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title={t('designer.exportJson')}>
               <Download className="h-3.5 w-3.5" />
             </button>
 
@@ -1372,7 +1378,7 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
 
             {/* Node count */}
             <span className="text-[10px] text-gray-400">
-              {nodes.length} nodes · {edges.length} edges
+              {nodes.length} {t('designer.nodes')} · {edges.length} {t('designer.edges')}
             </span>
 
             <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
@@ -1387,16 +1393,16 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
                   : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50',
               )}
-              title={validationErrors.length > 0 ? `Fix ${validationErrors.length} issue(s) first` : 'Save workflow'}
+              title={validationErrors.length > 0 ? t('designer.fixIssuesFirst', { count: String(validationErrors.length) }) : t('designer.saveWorkflow')}
             >
               {saveMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              Save
+              {t('designer.save')}
             </button>
             <button
               onClick={onClose}
               className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 transition"
             >
-              <X className="h-3.5 w-3.5" /> Close
+              <X className="h-3.5 w-3.5" /> {t('designer.close')}
             </button>
           </div>
         </Panel>
