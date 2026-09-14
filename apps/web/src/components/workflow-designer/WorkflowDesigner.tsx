@@ -59,6 +59,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useWorkflowGraph, useSaveWorkflowGraph } from '@/lib/api/workflow-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { toast } from 'sonner';
 
 // ══════════════════════════════════════════════════════════
@@ -67,12 +69,12 @@ import { toast } from 'sonner';
 
 type NodeKind = 'start' | 'step' | 'end' | 'decision' | 'fork' | 'join' | 'notification';
 
+interface MultiLang { [key: string]: string }
+
 interface StepData {
   stepKey: string;
-  label: string;
-  labelFr: string;
-  description: string;
-  descriptionFr: string;
+  name: MultiLang;       // { en, fr, pt, ar, es, sw }
+  description: MultiLang;
   nodeType: NodeKind;
   levelType: string;
   canEdit: boolean;
@@ -88,14 +90,24 @@ type EdgeKind = 'SEQUENTIAL' | 'PARALLEL' | 'CHOICE_SINGLE' | 'CHOICE_MULTI';
 
 interface EdgeData {
   edgeType: EdgeKind;
-  label?: string;
-  labelFr?: string;
+  label: MultiLang;
   condition?: string;
 }
 
 // Safe casters (ReactFlow types Node.data / Edge.data as Record<string, unknown>)
 function asStep(data: unknown): StepData { return data as StepData; }
 function asEdge(data: unknown): EdgeData { return (data ?? {}) as EdgeData; }
+
+/** Get best display name from a multilingual object */
+function mlDisplay(ml: MultiLang | undefined, fallback = ''): string {
+  if (!ml) return fallback;
+  return ml.en || ml.fr || ml.pt || Object.values(ml).find(Boolean) || fallback;
+}
+/** Get secondary display name (FR if EN is primary) */
+function mlSecondary(ml: MultiLang | undefined): string | undefined {
+  if (!ml || !ml.fr || ml.fr === ml.en) return undefined;
+  return ml.fr;
+}
 
 interface HistoryEntry {
   nodes: Node[];
@@ -198,17 +210,17 @@ function StepNode({ data, selected }: NodeProps) {
       <div className="px-3 pt-2.5 pb-1.5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-bold text-gray-800 dark:text-gray-100 leading-tight">{d.label || 'Untitled'}</div>
-            {d.labelFr && d.labelFr !== d.label && (
-              <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight mt-0.5">{d.labelFr}</div>
+            <div className="text-xs font-bold text-gray-800 dark:text-gray-100 leading-tight">{mlDisplay(d.name, 'Untitled')}</div>
+            {mlSecondary(d.name) && (
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight mt-0.5">{mlSecondary(d.name)}</div>
             )}
           </div>
           <span className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider', level?.bg, level?.color)}>
             {level?.i18nKey ?? d.levelType}
           </span>
         </div>
-        {d.description && (
-          <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500 line-clamp-2 leading-snug">{d.description}</p>
+        {mlDisplay(d.description) && (
+          <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500 line-clamp-2 leading-snug">{mlDisplay(d.description)}</p>
         )}
       </div>
 
@@ -261,7 +273,7 @@ function DecisionNode({ data, selected }: NodeProps) {
       )} />
       <div className="absolute flex flex-col items-center">
         <Diamond className="h-5 w-5 text-amber-600" />
-        <span className="mt-0.5 text-[8px] font-bold text-amber-700 dark:text-amber-300 max-w-[60px] truncate text-center">{d.label || '?'}</span>
+        <span className="mt-0.5 text-[8px] font-bold text-amber-700 dark:text-amber-300 max-w-[60px] truncate text-center">{mlDisplay(d.name, '?')}</span>
       </div>
       <Handle type="target" position={Position.Top} className="!bg-amber-500 !w-3.5 !h-3.5 !border-2 !border-white !-top-[7px]" />
       <Handle type="target" position={Position.Left} id="left" className="!bg-amber-500 !w-3 !h-3 !border-2 !border-white !-left-[6px]" />
@@ -281,7 +293,7 @@ function ForkNode({ data, selected }: NodeProps) {
       'bg-gradient-to-r from-purple-50 via-purple-100 to-violet-100 dark:from-purple-900/40 dark:to-violet-900/40',
     )}>
       <GitFork className="h-4 w-4 text-purple-600" />
-      <span className="text-[8px] font-bold uppercase tracking-wide text-purple-700 dark:text-purple-300">{d.label || 'Fork'}</span>
+      <span className="text-[8px] font-bold uppercase tracking-wide text-purple-700 dark:text-purple-300">{mlDisplay(d.name, 'Fork')}</span>
       <Handle type="target" position={Position.Top} className="!bg-purple-500 !w-3.5 !h-3.5 !border-2 !border-white !-top-[7px]" />
       <Handle type="source" position={Position.Bottom} className="!bg-purple-500 !w-3.5 !h-3.5 !border-2 !border-white !-bottom-[7px]" />
       <Handle type="source" position={Position.Right} id="right" className="!bg-purple-500 !w-3 !h-3 !border-2 !border-white !-right-[6px]" />
@@ -300,7 +312,7 @@ function JoinNode({ data, selected }: NodeProps) {
       'bg-gradient-to-r from-indigo-50 via-indigo-100 to-blue-100 dark:from-indigo-900/40 dark:to-blue-900/40',
     )}>
       <Merge className="h-4 w-4 text-indigo-600" />
-      <span className="text-[8px] font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">{d.label || 'Join'}</span>
+      <span className="text-[8px] font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">{mlDisplay(d.name, 'Join')}</span>
       <Handle type="target" position={Position.Top} className="!bg-indigo-500 !w-3.5 !h-3.5 !border-2 !border-white !-top-[7px]" />
       <Handle type="target" position={Position.Left} id="left" className="!bg-indigo-500 !w-3 !h-3 !border-2 !border-white !-left-[6px]" />
       <Handle type="target" position={Position.Right} id="right-tgt" className="!bg-indigo-500 !w-3 !h-3 !border-2 !border-white !-right-[6px]" />
@@ -319,7 +331,7 @@ function NotificationNode({ data, selected }: NodeProps) {
       'bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 dark:from-pink-900/30 dark:to-rose-900/30',
     )}>
       <Bell className="h-4 w-4 text-pink-600" />
-      <span className="text-[8px] font-bold text-pink-700 dark:text-pink-300 max-w-[120px] truncate">{d.label || 'Notify'}</span>
+      <span className="text-[8px] font-bold text-pink-700 dark:text-pink-300 max-w-[120px] truncate">{mlDisplay(d.name, 'Notify')}</span>
       <Handle type="target" position={Position.Top} className="!bg-pink-500 !w-3.5 !h-3.5 !border-2 !border-white !-top-[7px]" />
       <Handle type="source" position={Position.Bottom} className="!bg-pink-500 !w-3.5 !h-3.5 !border-2 !border-white !-bottom-[7px]" />
     </div>
@@ -367,10 +379,8 @@ function apiToReactFlow(graphData: any): { nodes: Node[]; edges: Edge[] } {
       position: { x: s.positionX ?? 300, y: s.positionY ?? i * 150 },
       data: {
         stepKey: s.stepKey,
-        label: s.name?.en ?? s.stepKey,
-        labelFr: s.name?.fr ?? '',
-        description: s.description?.en ?? '',
-        descriptionFr: s.description?.fr ?? '',
+        name: s.name ?? { en: s.stepKey },
+        description: s.description ?? {},
         nodeType: nt,
         levelType: s.levelType ?? s.stepKey,
         canEdit: s.canEdit ?? false,
@@ -391,10 +401,10 @@ function apiToReactFlow(graphData: any): { nodes: Node[]; edges: Edge[] } {
       id: e.id ?? `${e.sourceStepId}-${e.targetStepId}`,
       source: e.sourceStepId,
       target: e.targetStepId,
-      label: e.label?.en ?? (edgeType !== 'SEQUENTIAL' ? edgeType : undefined),
+      label: mlDisplay(e.label) || (edgeType !== 'SEQUENTIAL' ? edgeType : undefined),
       markerEnd: { type: MarkerType.ArrowClosed, color: style.color },
       style: { stroke: style.color, strokeWidth: 2, strokeDasharray: style.dash },
-      data: { edgeType, label: e.label?.en, labelFr: e.label?.fr, condition: e.condition } as EdgeData,
+      data: { edgeType, label: e.label ?? {}, condition: e.condition } as EdgeData,
       animated: style.animated,
     };
   });
@@ -410,8 +420,8 @@ function reactFlowToApi(nodes: Node[], edges: Edge[], graphVersion: number) {
       stepOrder: i,
       nodeType: d.nodeType,
       levelType: d.levelType,
-      name: { en: d.label, fr: d.labelFr || d.label },
-      description: d.description ? { en: d.description, fr: d.descriptionFr || d.description } : undefined,
+      name: d.name,
+      description: Object.values(d.description).some(Boolean) ? d.description : undefined,
       canEdit: d.canEdit,
       canValidate: d.canValidate,
       allowedRoles: d.allowedRoles?.length ? d.allowedRoles : undefined,
@@ -429,7 +439,7 @@ function reactFlowToApi(nodes: Node[], edges: Edge[], graphVersion: number) {
     sourceStepKey: idToKey.get(e.source) ?? e.source,
     targetStepKey: idToKey.get(e.target) ?? e.target,
     edgeType: asEdge(e.data)?.edgeType ?? 'SEQUENTIAL',
-    label: asEdge(e.data)?.label ? { en: asEdge(e.data).label, fr: asEdge(e.data).labelFr } : undefined,
+    label: Object.values(asEdge(e.data)?.label ?? {}).some(Boolean) ? asEdge(e.data).label : undefined,
     condition: asEdge(e.data)?.condition || undefined,
     sortOrder: i,
   }));
@@ -559,24 +569,11 @@ function PropertiesPanel({
               </span>
             </div>
           </div>
-          <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.labelEn')}</label>
-            <input
-              value={d.label ?? ''}
-              onChange={(e) => onUpdateEdge(selectedEdge.id, { label: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. Approved → Send to REC"
-            />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.labelFr')}</label>
-            <input
-              value={d.labelFr ?? ''}
-              onChange={(e) => onUpdateEdge(selectedEdge.id, { labelFr: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
-              placeholder="ex. Approuvé → Envoyer au REC"
-            />
-          </div>
+          <MultilingualInput
+            label={t('designer.labelEn').replace(' (EN)', '')}
+            value={d.label ?? {}}
+            onChange={(val) => onUpdateEdge(selectedEdge.id, { label: val })}
+          />
           <div>
             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.condition')}</label>
             <textarea
@@ -660,35 +657,18 @@ function PropertiesPanel({
                   readOnly={isStart}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.nameEn')}</label>
-                  <input
-                    value={d.label}
-                    onChange={(e) => onUpdateNode(selectedNode.id, { label: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.nameFr')}</label>
-                  <input
-                    value={d.labelFr}
-                    onChange={(e) => onUpdateNode(selectedNode.id, { labelFr: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
+              <MultilingualInput
+                label={t('designer.nameEn').replace(' (EN)', '')}
+                value={d.name ?? {}}
+                onChange={(val) => onUpdateNode(selectedNode.id, { name: val })}
+              />
               {(showFullProps || isNotification || isForkJoin) && (
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('designer.descriptionEn')}</label>
-                  <textarea
-                    value={d.description ?? ''}
-                    onChange={(e) => onUpdateNode(selectedNode.id, { description: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
-                    rows={2}
-                    placeholder="{t('designer.descPlaceholder')}"
-                  />
-                </div>
+                <MultilingualInput
+                  label={t('designer.descriptionEn').replace(' (EN)', '')}
+                  value={d.description ?? {}}
+                  onChange={(val) => onUpdateNode(selectedNode.id, { description: val })}
+                  placeholder={t('designer.descPlaceholder')}
+                />
               )}
               {showFullProps && (
                 <div>
@@ -928,12 +908,12 @@ function validateGraph(nodes: Node[], edges: Edge[]): string[] {
       const hasOutgoing = edges.some((e) => e.source === node.id);
 
       if (d.nodeType === 'start' && !hasOutgoing) errors.push(`START has no outgoing connection`);
-      if (d.nodeType === 'end' && !hasIncoming) errors.push(`END "${d.label}" has no incoming connection`);
+      if (d.nodeType === 'end' && !hasIncoming) errors.push(`END "${mlDisplay(d.name)}" has no incoming connection`);
       if (d.nodeType !== 'start' && d.nodeType !== 'end' && !hasIncoming && !hasOutgoing) {
-        errors.push(`"${d.label}" is disconnected`);
+        errors.push(`"${mlDisplay(d.name)}" is disconnected`);
       }
       if (d.nodeType !== 'end' && d.nodeType !== 'start' && !hasOutgoing) {
-        errors.push(`"${d.label}" has no outgoing connection (dead end)`);
+        errors.push(`"${mlDisplay(d.name)}" has no outgoing connection (dead end)`);
       }
     }
   }
@@ -953,7 +933,7 @@ function validateGraph(nodes: Node[], edges: Edge[]): string[] {
   for (const [sourceId, types] of edgesBySource) {
     if (types.size > 1) {
       const node = nodes.find((n) => n.id === sourceId);
-      const label = asStep(node?.data)?.label ?? sourceId;
+      const label = mlDisplay(asStep(node?.data)?.name) || sourceId;
       errors.push(`"${label}" has mixed edge types — all outgoing must be same type`);
     }
   }
@@ -1178,10 +1158,8 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
       position,
       data: {
         stepKey: type === 'start' ? 'START' : type === 'end' ? `END_${idx}` : `${type.toUpperCase()}_${idx}`,
-        label: t(`designer.${catalog.i18nKey}`),
-        labelFr: t(`designer.${catalog.i18nKey}`),
-        description: '',
-        descriptionFr: '',
+        name: { en: t(`designer.${catalog.i18nKey}`) },
+        description: {},
         nodeType: type,
         levelType: type === 'step' || type === 'decision' ? 'NATIONAL_TECHNICAL' : type,
         canEdit: false,
@@ -1213,7 +1191,7 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
       return {
         ...e,
         data: newData,
-        label: newData.label || (edgeType !== 'SEQUENTIAL' ? t(`designer.${style.i18nKey}`) : undefined),
+        label: mlDisplay(newData.label) || (edgeType !== 'SEQUENTIAL' ? t(`designer.${style.i18nKey}`) : undefined),
         markerEnd: { type: MarkerType.ArrowClosed, color: style.color },
         style: { stroke: style.color, strokeWidth: 2, strokeDasharray: style.dash },
         animated: style.animated,
@@ -1246,7 +1224,7 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
       data: {
         ...d,
         stepKey: `${d.stepKey}_COPY_${idx}`,
-        label: `${d.label} (copy)`,
+        name: { ...d.name, en: `${mlDisplay(d.name)} (copy)` },
       },
     };
     setNodes((nds) => [...nds, newNode]);
