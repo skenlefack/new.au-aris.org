@@ -1265,6 +1265,39 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
     toast.success(t('designer.jsonExported'));
   }, [nodes, edges, graphVersion, definitionId]);
 
+  // ── Token Simulation ──
+  const { sim, play: simPlay, pause: simPause, stepOnce: simStep, reset: simReset, setSpeed: simSetSpeed } = useTokenSimulation(nodes, edges);
+
+  // Apply simulation visual styles to nodes
+  useEffect(() => {
+    if (sim.status === 'idle') return;
+    setNodes((nds) => nds.map((n) => ({
+      ...n,
+      className: getSimNodeClass(n.id, sim),
+    })));
+  }, [sim.activeNodes, sim.visitedNodes, sim.status, setNodes]);
+
+  // Apply simulation visual styles to edges
+  useEffect(() => {
+    if (sim.status === 'idle') return;
+    setEdges((eds) => eds.map((e) => ({
+      ...e,
+      style: { ...e.style, ...getSimEdgeStyle(e.id, sim) },
+      animated: sim.activeEdges.has(e.id) || (asEdge(e.data)?.edgeType === 'PARALLEL'),
+    })));
+  }, [sim.activeEdges, sim.visitedEdges, sim.status, setEdges]);
+
+  // Reset edge/node styles when simulation ends or resets
+  useEffect(() => {
+    if (sim.status !== 'idle') return;
+    setNodes((nds) => nds.map((n) => ({ ...n, className: undefined })));
+    setEdges((eds) => eds.map((e) => {
+      const edgeType = asEdge(e.data)?.edgeType ?? 'SEQUENTIAL';
+      const style = EDGE_STYLES[edgeType];
+      return { ...e, style: { stroke: style.color, strokeWidth: 2, strokeDasharray: style.dash }, animated: style.animated };
+    }));
+  }, [sim.status, setNodes, setEdges]);
+
   const hasStart = nodes.some((n) => asStep(n.data).nodeType === 'start');
 
   if (isLoading) {
@@ -1354,6 +1387,29 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
 
             <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
+            {/* Simulate */}
+            {sim.status === 'idle' ? (
+              <button
+                onClick={simPlay}
+                disabled={validationErrors.length > 0 || !hasStart}
+                className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-40 dark:bg-emerald-900/20 dark:text-emerald-400 transition"
+                title="Simulate token flow"
+              >
+                <CircleDot className="h-3.5 w-3.5" />
+                Simulate
+              </button>
+            ) : (
+              <button
+                onClick={simReset}
+                className="flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 transition"
+              >
+                <X className="h-3.5 w-3.5" />
+                Stop
+              </button>
+            )}
+
+            <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
+
             {/* Node count */}
             <span className="text-[10px] text-gray-400">
               {nodes.length} {t('designer.nodes')} · {edges.length} {t('designer.edges')}
@@ -1404,13 +1460,388 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
           />
         </Panel>
 
-        {/* ── Bottom: Validation ── */}
+        {/* ── Bottom Left: Validation ── */}
         <Panel position="bottom-left">
           <ValidationPanel errors={validationErrors} />
+        </Panel>
+
+        {/* ── Bottom Right: Simulation ── */}
+        <Panel position="bottom-right">
+          <SimulationPanel
+            sim={sim}
+            onPlay={simPlay}
+            onPause={simPause}
+            onStep={simStep}
+            onReset={simReset}
+            onSetSpeed={simSetSpeed}
+          />
         </Panel>
       </ReactFlow>
     </div>
   );
+}
+
+// ══════════════════════════════════════════════════════════
+// TOKEN SIMULATION ENGINE
+// ══════════════════════════════════════════════════════════
+
+type SimStatus = 'idle' | 'playing' | 'paused' | 'finished';
+
+interface SimToken {
+  id: string;
+  nodeId: string;
+  progress: number; // 0 = at node, 0-1 = traveling along edge
+  edgeId?: string;
+  color: string;
+}
+
+interface SimState {
+  status: SimStatus;
+  tokens: SimToken[];
+  visitedNodes: Set<string>;
+  activeNodes: Set<string>;
+  visitedEdges: Set<string>;
+  activeEdges: Set<string>;
+  speed: number; // 1 = normal, 2 = fast, 0.5 = slow
+  log: { time: number; message: string; type: 'info' | 'move' | 'split' | 'merge' | 'end' }[];
+  pendingChoice?: { tokenId: string; nodeId: string; edges: Edge[] };
+}
+
+function useTokenSimulation(nodes: Node[], edges: Edge[]) {
+  const [sim, setSim] = useState<SimState>({
+    status: 'idle',
+    tokens: [],
+    visitedNodes: new Set(),
+    activeNodes: new Set(),
+    visitedEdges: new Set(),
+    activeEdges: new Set(),
+    speed: 1,
+    log: [],
+  });
+
+  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const tokenCounter = useRef(0);
+
+  const getOutgoingEdges = useCallback((nodeId: string) => {
+    return edges.filter((e) => e.source === nodeId);
+  }, [edges]);
+
+  const getIncomingEdges = useCallback((nodeId: string) => {
+    return edges.filter((e) => e.target === nodeId);
+  }, [edges]);
+
+  const addLog = useCallback((message: string, type: SimState['log'][0]['type'] = 'info') => {
+    setSim((s) => ({ ...s, log: [...s.log.slice(-50), { time: Date.now(), message, type }] }));
+  }, []);
+
+  const reset = useCallback(() => {
+    clearInterval(intervalRef.current);
+    tokenCounter.current = 0;
+    setSim({
+      status: 'idle',
+      tokens: [],
+      visitedNodes: new Set(),
+      activeNodes: new Set(),
+      visitedEdges: new Set(),
+      activeEdges: new Set(),
+      speed: sim.speed,
+      log: [],
+    });
+  }, [sim.speed]);
+
+  const advanceToken = useCallback((token: SimToken): SimToken[] => {
+    const node = nodes.find((n) => n.id === token.nodeId);
+    if (!node) return [];
+    const d = asStep(node.data);
+    const outEdges = getOutgoingEdges(token.nodeId);
+
+    // End node — token dies
+    if (d.nodeType === 'end' || outEdges.length === 0) return [];
+
+    // Check edge type
+    const edgeType = asEdge(outEdges[0]?.data)?.edgeType ?? 'SEQUENTIAL';
+
+    if (edgeType === 'PARALLEL' || d.nodeType === 'fork') {
+      // Fork: create one token per outgoing edge
+      return outEdges.map((e) => ({
+        id: `tok-${++tokenCounter.current}`,
+        nodeId: e.target,
+        progress: 0,
+        edgeId: e.id,
+        color: edgeType === 'PARALLEL' ? '#8b5cf6' : token.color,
+      }));
+    }
+
+    if (edgeType === 'CHOICE_SINGLE' || edgeType === 'CHOICE_MULTI' || d.nodeType === 'decision') {
+      // Decision: prompt user — for simulation, take first edge
+      const chosen = outEdges[0];
+      return [{
+        id: `tok-${++tokenCounter.current}`,
+        nodeId: chosen.target,
+        progress: 0,
+        edgeId: chosen.id,
+        color: '#f59e0b',
+      }];
+    }
+
+    // Sequential: advance to single target
+    const edge = outEdges[0];
+    return [{
+      id: `tok-${++tokenCounter.current}`,
+      nodeId: edge.target,
+      progress: 0,
+      edgeId: edge.id,
+      color: token.color,
+    }];
+  }, [nodes, edges, getOutgoingEdges]);
+
+  const tick = useCallback(() => {
+    setSim((prev) => {
+      if (prev.status !== 'playing' || prev.tokens.length === 0) {
+        if (prev.status === 'playing' && prev.tokens.length === 0) {
+          clearInterval(intervalRef.current);
+          return { ...prev, status: 'finished', log: [...prev.log, { time: Date.now(), message: 'Simulation complete', type: 'end' as const }] };
+        }
+        return prev;
+      }
+
+      const newVisited = new Set(prev.visitedNodes);
+      const newActive = new Set<string>();
+      const newVisitedEdges = new Set(prev.visitedEdges);
+      const newActiveEdges = new Set<string>();
+      let newTokens: SimToken[] = [];
+      const newLog = [...prev.log];
+
+      for (const token of prev.tokens) {
+        // Token is at a node — dwell briefly then advance
+        if (token.progress >= 1 || token.progress === 0) {
+          newVisited.add(token.nodeId);
+          const node = nodes.find((n) => n.id === token.nodeId);
+          const d = node ? asStep(node.data) : null;
+
+          // Check if Join node — wait for all incoming tokens
+          if (d?.nodeType === 'join' || d?.mergeStrategy === 'ALL') {
+            const incoming = getIncomingEdges(token.nodeId);
+            const arrivedCount = prev.tokens.filter((t) => t.nodeId === token.nodeId).length;
+            if (incoming.length > 1 && arrivedCount < incoming.length) {
+              // Wait — keep token in place
+              newActive.add(token.nodeId);
+              newTokens.push({ ...token, progress: 0 });
+              continue;
+            }
+          }
+
+          const nextTokens = advanceToken(token);
+          if (nextTokens.length === 0) {
+            // End node
+            newVisited.add(token.nodeId);
+            newLog.push({ time: Date.now(), message: `Token reached ${d?.nodeType === 'end' ? 'END' : mlDisplay(d?.name)}`, type: 'end' });
+          } else if (nextTokens.length > 1) {
+            newLog.push({ time: Date.now(), message: `Split into ${nextTokens.length} tokens at ${mlDisplay(d?.name)}`, type: 'split' });
+          } else {
+            if (token.edgeId) newVisitedEdges.add(token.edgeId);
+          }
+
+          for (const nt of nextTokens) {
+            newActive.add(nt.nodeId);
+            if (nt.edgeId) {
+              newActiveEdges.add(nt.edgeId);
+              newVisitedEdges.add(nt.edgeId);
+            }
+            newTokens.push(nt);
+          }
+        }
+      }
+
+      // Deduplicate tokens at same node
+      const seen = new Map<string, SimToken>();
+      for (const t of newTokens) {
+        const existing = seen.get(t.nodeId);
+        if (!existing) seen.set(t.nodeId, t);
+      }
+      newTokens = Array.from(seen.values());
+
+      return {
+        ...prev,
+        tokens: newTokens,
+        visitedNodes: newVisited,
+        activeNodes: newActive,
+        visitedEdges: newVisitedEdges,
+        activeEdges: newActiveEdges,
+        log: newLog.slice(-50),
+      };
+    });
+  }, [nodes, advanceToken, getIncomingEdges]);
+
+  const play = useCallback(() => {
+    const startNode = nodes.find((n) => asStep(n.data).nodeType === 'start');
+    if (!startNode) { toast.error('No START node found'); return; }
+
+    setSim((prev) => {
+      if (prev.status === 'paused') return { ...prev, status: 'playing' };
+      // Fresh start
+      tokenCounter.current = 0;
+      return {
+        ...prev,
+        status: 'playing',
+        tokens: [{ id: `tok-${++tokenCounter.current}`, nodeId: startNode.id, progress: 0, color: '#3b82f6' }],
+        visitedNodes: new Set([startNode.id]),
+        activeNodes: new Set([startNode.id]),
+        visitedEdges: new Set(),
+        activeEdges: new Set(),
+        log: [{ time: Date.now(), message: 'Simulation started', type: 'info' }],
+      };
+    });
+
+    clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(tick, 1200 / sim.speed);
+  }, [nodes, tick, sim.speed]);
+
+  const pause = useCallback(() => {
+    clearInterval(intervalRef.current);
+    setSim((s) => ({ ...s, status: 'paused' }));
+  }, []);
+
+  const stepOnce = useCallback(() => {
+    const startNode = nodes.find((n) => asStep(n.data).nodeType === 'start');
+    if (sim.status === 'idle' && startNode) {
+      tokenCounter.current = 0;
+      setSim((prev) => ({
+        ...prev,
+        status: 'paused',
+        tokens: [{ id: `tok-${++tokenCounter.current}`, nodeId: startNode.id, progress: 0, color: '#3b82f6' }],
+        visitedNodes: new Set([startNode.id]),
+        activeNodes: new Set([startNode.id]),
+        visitedEdges: new Set(),
+        activeEdges: new Set(),
+        log: [{ time: Date.now(), message: 'Simulation started (step mode)', type: 'info' }],
+      }));
+    } else {
+      tick();
+    }
+  }, [nodes, sim.status, tick]);
+
+  const setSpeed = useCallback((speed: number) => {
+    setSim((s) => ({ ...s, speed }));
+    if (sim.status === 'playing') {
+      clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(tick, 1200 / speed);
+    }
+  }, [sim.status, tick]);
+
+  // Cleanup
+  useEffect(() => () => clearInterval(intervalRef.current), []);
+
+  return { sim, play, pause, stepOnce, reset, setSpeed };
+}
+
+// ── Simulation Control Panel ──
+
+function SimulationPanel({
+  sim, onPlay, onPause, onStep, onReset, onSetSpeed,
+}: {
+  sim: SimState;
+  onPlay: () => void;
+  onPause: () => void;
+  onStep: () => void;
+  onReset: () => void;
+  onSetSpeed: (speed: number) => void;
+}) {
+  const t = useTranslations('workflow');
+
+  if (sim.status === 'idle') return null;
+
+  return (
+    <div className="rounded-xl border border-blue-200 bg-white/95 shadow-xl backdrop-blur dark:border-blue-800 dark:bg-gray-900/95 w-[320px] overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 bg-blue-50 dark:bg-blue-900/30 border-b border-blue-100 dark:border-blue-800">
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            'h-2.5 w-2.5 rounded-full animate-pulse',
+            sim.status === 'playing' ? 'bg-green-500' : sim.status === 'paused' ? 'bg-amber-500' : 'bg-gray-400',
+          )} />
+          <span className="text-xs font-bold text-blue-800 dark:text-blue-300">
+            {sim.status === 'playing' ? 'Simulating...' : sim.status === 'paused' ? 'Paused' : 'Finished'}
+          </span>
+          <span className="text-[10px] text-blue-500 bg-blue-100 dark:bg-blue-800 rounded px-1.5 py-0.5">
+            {sim.tokens.length} token{sim.tokens.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <button onClick={onReset} className="text-[10px] text-blue-600 hover:underline dark:text-blue-400">Reset</button>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-blue-50 dark:border-blue-900">
+        {sim.status === 'playing' ? (
+          <button onClick={onPause} className="rounded-md bg-amber-100 p-1.5 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 transition" title="Pause">
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+          </button>
+        ) : (
+          <button onClick={onPlay} disabled={sim.status === 'finished'} className="rounded-md bg-green-100 p-1.5 text-green-700 hover:bg-green-200 disabled:opacity-40 dark:bg-green-900/30 dark:text-green-400 transition" title="Play">
+            <Play className="h-4 w-4" />
+          </button>
+        )}
+        <button onClick={onStep} disabled={sim.status === 'finished'} className="rounded-md bg-blue-100 p-1.5 text-blue-700 hover:bg-blue-200 disabled:opacity-40 dark:bg-blue-900/30 dark:text-blue-400 transition" title="Step">
+          <ChevronRight className="h-4 w-4" />
+        </button>
+
+        <div className="mx-1 h-5 w-px bg-blue-100 dark:bg-blue-800" />
+
+        {/* Speed */}
+        <div className="flex items-center gap-1">
+          {[0.5, 1, 2, 3].map((s) => (
+            <button
+              key={s}
+              onClick={() => onSetSpeed(s)}
+              className={cn(
+                'rounded px-1.5 py-0.5 text-[9px] font-bold transition',
+                sim.speed === s
+                  ? 'bg-blue-600 text-white'
+                  : 'text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20',
+              )}
+            >
+              {s}x
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Log */}
+      <div className="max-h-[150px] overflow-y-auto px-3 py-2 space-y-0.5">
+        {sim.log.slice(-10).reverse().map((entry, i) => (
+          <div key={i} className="flex items-start gap-1.5 text-[10px]">
+            <span className={cn(
+              'mt-0.5 h-1.5 w-1.5 rounded-full shrink-0',
+              entry.type === 'move' ? 'bg-blue-400' :
+              entry.type === 'split' ? 'bg-purple-400' :
+              entry.type === 'merge' ? 'bg-indigo-400' :
+              entry.type === 'end' ? 'bg-red-400' : 'bg-gray-300',
+            )} />
+            <span className="text-gray-600 dark:text-gray-400">{entry.message}</span>
+          </div>
+        ))}
+        {sim.log.length === 0 && (
+          <p className="text-[10px] text-gray-400 italic">Press Play to start simulation</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Node highlight overlay (applied via className) ──
+
+function getSimNodeClass(nodeId: string, sim: SimState): string {
+  if (sim.status === 'idle') return '';
+  if (sim.activeNodes.has(nodeId)) return 'ring-4 ring-blue-400 ring-offset-2 animate-pulse scale-110 z-50';
+  if (sim.visitedNodes.has(nodeId)) return 'ring-2 ring-green-400 ring-offset-1 opacity-90';
+  return 'opacity-40';
+}
+
+function getSimEdgeStyle(edgeId: string, sim: SimState): React.CSSProperties | undefined {
+  if (sim.status === 'idle') return undefined;
+  if (sim.activeEdges.has(edgeId)) return { strokeWidth: 4, filter: 'drop-shadow(0 0 6px rgba(59,130,246,0.5))' };
+  if (sim.visitedEdges.has(edgeId)) return { strokeWidth: 3, opacity: 0.8 };
+  return { opacity: 0.2 };
 }
 
 // ══════════════════════════════════════════════════════════
