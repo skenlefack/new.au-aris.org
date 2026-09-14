@@ -1312,171 +1312,178 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
   }
 
   return (
-    <div className="relative h-[calc(100vh-120px)] min-h-[600px] rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-950 overflow-hidden shadow-xl">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-        onNodeClick={(_, node) => { setSelectedNode(node); setSelectedEdge(null); }}
-        onEdgeClick={(_, edge) => { setSelectedEdge(edge); setSelectedNode(null); }}
-        onPaneClick={() => { setSelectedNode(null); setSelectedEdge(null); }}
-        nodeTypes={nodeTypes}
-        fitView
-        snapToGrid
-        snapGrid={[20, 20]}
-        defaultEdgeOptions={{
-          markerEnd: { type: MarkerType.ArrowClosed, color: '#6b7280' },
-          style: { stroke: '#6b7280', strokeWidth: 2 },
-        }}
-        deleteKeyCode={null}
-        className="bg-gray-50 dark:bg-gray-950"
-      >
-        <Background gap={20} size={1} color="#e5e7eb" className="dark:opacity-20" />
-        <Controls
-          showInteractive={false}
-          className="!bg-white !border-gray-200 !shadow-lg dark:!bg-gray-900 dark:!border-gray-700 !rounded-lg"
-        />
-        <MiniMap
-          nodeColor={(n) => {
-            const kind = n.type;
-            if (kind === 'start') return '#22c55e';
-            if (kind === 'end') return '#ef4444';
-            if (kind === 'decision') return '#f59e0b';
-            if (kind === 'fork') return '#8b5cf6';
-            if (kind === 'join') return '#6366f1';
-            if (kind === 'notification') return '#ec4899';
-            return '#3b82f6';
-          }}
-          className="!bg-white/90 !border-gray-200 dark:!bg-gray-900/90 dark:!border-gray-700 !rounded-lg"
-          maskColor="rgba(0,0,0,0.08)"
-        />
+    <div className="flex flex-col h-[calc(100vh-120px)] min-h-[600px] rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-950 overflow-hidden shadow-xl">
+      {/* ══ TOP TOOLBAR (outside canvas, full width) ══ */}
+      <div className="flex items-center gap-1.5 border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-900 shrink-0 flex-wrap">
+        {/* Left: title */}
+        <GitBranch className="h-4 w-4 text-blue-500" />
+        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{t('designer.title')}</span>
+        <span className="text-[10px] text-gray-400 bg-gray-100 dark:bg-gray-800 rounded px-1.5 py-0.5 font-mono">v{graphVersion}</span>
 
-        {/* ── Top Toolbar ── */}
-        <Panel position="top-center">
-          <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white/95 px-3 py-1.5 shadow-lg backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
-            <GitBranch className="h-4 w-4 text-blue-500" />
-            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('designer.title')}</span>
-            <span className="text-[10px] text-gray-400 bg-gray-100 dark:bg-gray-800 rounded px-1.5 py-0.5 font-mono">v{graphVersion}</span>
+        <div className="mx-1.5 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
-            <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
+        {/* Undo/Redo */}
+        <button onClick={undo} disabled={historyIdx <= 0} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition" title={`${t('designer.undo')} (Ctrl+Z)`}>
+          <Undo2 className="h-3.5 w-3.5" />
+        </button>
+        <button onClick={redo} disabled={historyIdx >= history.length - 1} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition" title={`${t('designer.redo')} (Ctrl+Y)`}>
+          <Redo2 className="h-3.5 w-3.5" />
+        </button>
 
-            {/* Undo/Redo */}
-            <button onClick={undo} disabled={historyIdx <= 0} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition" title={`${t('designer.undo')} (Ctrl+Z)`}>
-              <Undo2 className="h-3.5 w-3.5" />
-            </button>
-            <button onClick={redo} disabled={historyIdx >= history.length - 1} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition" title={`${t('designer.redo')} (Ctrl+Y)`}>
-              <Redo2 className="h-3.5 w-3.5" />
-            </button>
+        <div className="mx-1.5 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
-            <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
+        {/* Layout & Zoom & Export */}
+        <button onClick={handleAutoLayout} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title={t('designer.autoLayout')}>
+          <LayoutGrid className="h-3.5 w-3.5" />
+        </button>
+        <button onClick={() => reactFlowInstance.fitView({ padding: 0.2, duration: 300 })} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title={t('designer.fitView')}>
+          <Maximize2 className="h-3.5 w-3.5" />
+        </button>
+        <button onClick={handleExportJSON} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title={t('designer.exportJson')}>
+          <Download className="h-3.5 w-3.5" />
+        </button>
 
-            {/* Layout & Zoom */}
-            <button onClick={handleAutoLayout} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title={t('designer.autoLayout')}>
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </button>
-            <button onClick={() => reactFlowInstance.fitView({ padding: 0.2, duration: 300 })} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title={t('designer.fitView')}>
-              <Maximize2 className="h-3.5 w-3.5" />
-            </button>
-            <button onClick={handleExportJSON} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title={t('designer.exportJson')}>
-              <Download className="h-3.5 w-3.5" />
-            </button>
+        <div className="mx-1.5 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
-            <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
+        {/* Simulate */}
+        {sim.status === 'idle' ? (
+          <button
+            onClick={simPlay}
+            disabled={validationErrors.length > 0 || !hasStart}
+            className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-40 dark:bg-emerald-900/20 dark:text-emerald-400 transition"
+            title="Simulate token flow"
+          >
+            <CircleDot className="h-3.5 w-3.5" />
+            Simulate
+          </button>
+        ) : (
+          <button
+            onClick={simReset}
+            className="flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 transition"
+          >
+            <X className="h-3.5 w-3.5" />
+            Stop
+          </button>
+        )}
 
-            {/* Simulate */}
-            {sim.status === 'idle' ? (
-              <button
-                onClick={simPlay}
-                disabled={validationErrors.length > 0 || !hasStart}
-                className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-40 dark:bg-emerald-900/20 dark:text-emerald-400 transition"
-                title="Simulate token flow"
-              >
-                <CircleDot className="h-3.5 w-3.5" />
-                Simulate
-              </button>
-            ) : (
-              <button
-                onClick={simReset}
-                className="flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 transition"
-              >
-                <X className="h-3.5 w-3.5" />
-                Stop
-              </button>
+        <div className="mx-1.5 h-5 w-px bg-gray-200 dark:bg-gray-700" />
+
+        {/* Node count */}
+        <span className="text-[10px] text-gray-400">
+          {nodes.length} {t('designer.nodes')} · {edges.length} {t('designer.edges')}
+        </span>
+
+        {/* Right side: Save & Close */}
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saveMut.isPending || validationErrors.length > 0}
+            className={cn(
+              'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition',
+              validationErrors.length > 0
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50',
             )}
+            title={validationErrors.length > 0 ? t('designer.fixIssuesFirst', { count: String(validationErrors.length) }) : t('designer.saveWorkflow')}
+          >
+            {saveMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {t('designer.save')}
+          </button>
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 transition"
+          >
+            <X className="h-3.5 w-3.5" /> {t('designer.close')}
+          </button>
+        </div>
+      </div>
 
-            <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
+      {/* ══ SIMULATION RESULTS (shown when finished) ══ */}
+      {sim.status === 'finished' && (
+        <SimulationResults sim={sim} nodes={nodes} onReset={simReset} />
+      )}
 
-            {/* Node count */}
-            <span className="text-[10px] text-gray-400">
-              {nodes.length} {t('designer.nodes')} · {edges.length} {t('designer.edges')}
-            </span>
-
-            <div className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
-
-            {/* Save & Close */}
-            <button
-              onClick={handleSave}
-              disabled={saveMut.isPending || validationErrors.length > 0}
-              className={cn(
-                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition',
-                validationErrors.length > 0
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50',
-              )}
-              title={validationErrors.length > 0 ? t('designer.fixIssuesFirst', { count: String(validationErrors.length) }) : t('designer.saveWorkflow')}
-            >
-              {saveMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              {t('designer.save')}
-            </button>
-            <button
-              onClick={onClose}
-              className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 transition"
-            >
-              <X className="h-3.5 w-3.5" /> {t('designer.close')}
-            </button>
-          </div>
-        </Panel>
-
-        {/* ── Left: Toolbox ── */}
-        <Panel position="top-left">
-          <ToolboxPanel hasStart={hasStart} />
-        </Panel>
-
-        {/* ── Right: Properties ── */}
-        <Panel position="top-right">
-          <PropertiesPanel
-            selectedNode={selectedNode}
-            selectedEdge={selectedEdge}
-            onUpdateNode={handleUpdateNode}
-            onUpdateEdge={handleUpdateEdge}
-            onDeleteNode={handleDeleteNode}
-            onDeleteEdge={handleDeleteEdge}
-            onDuplicate={handleDuplicate}
-            onClose={() => { setSelectedNode(null); setSelectedEdge(null); }}
+      {/* ══ CANVAS ══ */}
+      <div className="flex-1 relative">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          onNodeClick={(_, node) => { setSelectedNode(node); setSelectedEdge(null); }}
+          onEdgeClick={(_, edge) => { setSelectedEdge(edge); setSelectedNode(null); }}
+          onPaneClick={() => { setSelectedNode(null); setSelectedEdge(null); }}
+          nodeTypes={nodeTypes}
+          fitView
+          snapToGrid
+          snapGrid={[20, 20]}
+          defaultEdgeOptions={{
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#6b7280' },
+            style: { stroke: '#6b7280', strokeWidth: 2 },
+          }}
+          deleteKeyCode={null}
+          className="bg-gray-50 dark:bg-gray-950"
+        >
+          <Background gap={20} size={1} color="#e5e7eb" className="dark:opacity-20" />
+          <Controls
+            showInteractive={false}
+            className="!bg-white !border-gray-200 !shadow-lg dark:!bg-gray-900 dark:!border-gray-700 !rounded-lg"
           />
-        </Panel>
-
-        {/* ── Bottom Left: Validation ── */}
-        <Panel position="bottom-left">
-          <ValidationPanel errors={validationErrors} />
-        </Panel>
-
-        {/* ── Bottom Right: Simulation ── */}
-        <Panel position="bottom-right">
-          <SimulationPanel
-            sim={sim}
-            onPlay={simPlay}
-            onPause={simPause}
-            onStep={simStep}
-            onReset={simReset}
-            onSetSpeed={simSetSpeed}
+          <MiniMap
+            nodeColor={(n) => {
+              const kind = n.type;
+              if (kind === 'start') return '#22c55e';
+              if (kind === 'end') return '#ef4444';
+              if (kind === 'decision') return '#f59e0b';
+              if (kind === 'fork') return '#8b5cf6';
+              if (kind === 'join') return '#6366f1';
+              if (kind === 'notification') return '#ec4899';
+              return '#3b82f6';
+            }}
+            className="!bg-white/90 !border-gray-200 dark:!bg-gray-900/90 dark:!border-gray-700 !rounded-lg"
+            maskColor="rgba(0,0,0,0.08)"
           />
-        </Panel>
-      </ReactFlow>
+
+          {/* ── Left: Toolbox ── */}
+          <Panel position="top-left">
+            <ToolboxPanel hasStart={hasStart} />
+          </Panel>
+
+          {/* ── Right: Properties ── */}
+          <Panel position="top-right">
+            <PropertiesPanel
+              selectedNode={selectedNode}
+              selectedEdge={selectedEdge}
+              onUpdateNode={handleUpdateNode}
+              onUpdateEdge={handleUpdateEdge}
+              onDeleteNode={handleDeleteNode}
+              onDeleteEdge={handleDeleteEdge}
+              onDuplicate={handleDuplicate}
+              onClose={() => { setSelectedNode(null); setSelectedEdge(null); }}
+            />
+          </Panel>
+
+          {/* ── Bottom Left: Validation ── */}
+          <Panel position="bottom-left">
+            <ValidationPanel errors={validationErrors} />
+          </Panel>
+
+          {/* ── Bottom Right: Simulation ── */}
+          <Panel position="bottom-right">
+            <SimulationPanel
+              sim={sim}
+              onPlay={simPlay}
+              onPause={simPause}
+              onStep={simStep}
+              onReset={simReset}
+              onSetSpeed={simSetSpeed}
+            />
+          </Panel>
+        </ReactFlow>
+      </div>
     </div>
   );
 }
@@ -1824,6 +1831,101 @@ function SimulationPanel({
           <p className="text-[10px] text-gray-400 italic">Press Play to start simulation</p>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Simulation Results ──
+
+function SimulationResults({ sim, nodes, onReset }: { sim: SimState; nodes: Node[]; onReset: () => void }) {
+  const totalNodes = nodes.length;
+  const visitedCount = sim.visitedNodes.size;
+  const visitedEdges = sim.visitedEdges.size;
+  const coverage = totalNodes > 0 ? Math.round((visitedCount / totalNodes) * 100) : 0;
+  const splits = sim.log.filter((l) => l.type === 'split').length;
+  const endReached = sim.log.filter((l) => l.type === 'end').length;
+  const duration = sim.log.length > 1
+    ? ((sim.log[sim.log.length - 1].time - sim.log[0].time) / 1000).toFixed(1)
+    : '0';
+
+  // Identify unreached nodes
+  const unreached = nodes.filter((n) => !sim.visitedNodes.has(n.id));
+
+  return (
+    <div className="border-b border-emerald-200 bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 dark:from-emerald-900/20 dark:via-green-900/20 dark:to-teal-900/20 dark:border-emerald-800 px-4 py-3 shrink-0">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+          <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Simulation Complete</h3>
+        </div>
+        <button
+          onClick={onReset}
+          className="rounded-lg border border-emerald-300 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/30 transition"
+        >
+          Close Results
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+        {/* Coverage */}
+        <div className="rounded-lg bg-white/80 dark:bg-gray-800/50 p-2.5 border border-emerald-100 dark:border-emerald-800">
+          <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Coverage</div>
+          <div className="flex items-end gap-1 mt-1">
+            <span className={cn(
+              'text-xl font-bold',
+              coverage === 100 ? 'text-emerald-600' : coverage >= 70 ? 'text-amber-600' : 'text-red-600',
+            )}>{coverage}%</span>
+            <span className="text-[10px] text-gray-400 mb-0.5">{visitedCount}/{totalNodes}</span>
+          </div>
+          {/* Mini progress bar */}
+          <div className="mt-1.5 h-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+            <div className={cn('h-full rounded-full transition-all', coverage === 100 ? 'bg-emerald-500' : coverage >= 70 ? 'bg-amber-500' : 'bg-red-500')} style={{ width: `${coverage}%` }} />
+          </div>
+        </div>
+
+        {/* Edges traversed */}
+        <div className="rounded-lg bg-white/80 dark:bg-gray-800/50 p-2.5 border border-emerald-100 dark:border-emerald-800">
+          <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Edges Used</div>
+          <div className="text-xl font-bold text-blue-600 mt-1">{visitedEdges}</div>
+        </div>
+
+        {/* Parallel splits */}
+        <div className="rounded-lg bg-white/80 dark:bg-gray-800/50 p-2.5 border border-emerald-100 dark:border-emerald-800">
+          <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Splits</div>
+          <div className="text-xl font-bold text-purple-600 mt-1">{splits}</div>
+        </div>
+
+        {/* End points reached */}
+        <div className="rounded-lg bg-white/80 dark:bg-gray-800/50 p-2.5 border border-emerald-100 dark:border-emerald-800">
+          <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">End Points</div>
+          <div className="text-xl font-bold text-red-500 mt-1">{endReached}</div>
+        </div>
+
+        {/* Steps count */}
+        <div className="rounded-lg bg-white/80 dark:bg-gray-800/50 p-2.5 border border-emerald-100 dark:border-emerald-800">
+          <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Steps</div>
+          <div className="text-xl font-bold text-gray-700 dark:text-gray-300 mt-1">{sim.log.length}</div>
+        </div>
+
+        {/* Duration */}
+        <div className="rounded-lg bg-white/80 dark:bg-gray-800/50 p-2.5 border border-emerald-100 dark:border-emerald-800">
+          <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Duration</div>
+          <div className="text-xl font-bold text-gray-700 dark:text-gray-300 mt-1">{duration}s</div>
+        </div>
+      </div>
+
+      {/* Unreached nodes warning */}
+      {unreached.length > 0 && (
+        <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-2">
+          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">Unreached nodes ({unreached.length}):</span>
+            <span className="text-xs text-amber-700 dark:text-amber-400 ml-1">
+              {unreached.map((n) => mlDisplay(asStep(n.data).name)).join(', ')}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
