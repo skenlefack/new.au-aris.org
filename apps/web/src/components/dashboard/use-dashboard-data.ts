@@ -648,6 +648,9 @@ export function useDashboardData(filters?: DashboardFilters) {
 
   const isLoading = datasetsQuery.isLoading;
   const isRealData = hasHealth && !countryDistQuery.isError;
+  const hasRealAlerts = (flashAlertsQuery.data?.data?.length ?? 0) > 0;
+  const hasRealActivities = (auditQuery.data?.data?.length ?? 0) > 0;
+  const hasRealRainfall = (climateQuery.data?.data?.length ?? 0) > 0;
 
   return {
     kpis,
@@ -664,5 +667,8 @@ export function useDashboardData(filters?: DashboardFilters) {
     allDiseaseNames,
     isLoading,
     isRealData,
+    hasRealAlerts,
+    hasRealActivities,
+    hasRealRainfall,
   };
 }

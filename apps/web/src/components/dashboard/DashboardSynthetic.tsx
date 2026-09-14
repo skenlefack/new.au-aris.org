@@ -376,7 +376,7 @@ export function DashboardSynthetic() {
               onCountryClick={handleCountryClick}
               height="100%"
               bare
-              demo
+              demo={!dashData.isRealData}
               selectedRec={filters.rec}
               selectedCountry={filters.country}
             />

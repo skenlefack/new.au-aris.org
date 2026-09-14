@@ -368,7 +368,7 @@ function OverviewGrid({
             subtitle={t('activeOutbreaksByCountry')}
             data={filteredCountryData}
             onCountryClick={onCountryClick}
-            demo
+            demo={!dashData.isRealData}
             selectedRec={selectedRec}
             selectedCountry={selectedCountry}
           />
@@ -428,13 +428,13 @@ function OverviewGrid({
           subtitle={t('casesByDiseaseType')}
           data={diseaseForPie}
           donut
-          demo
+          demo={!dashData.isRealData}
         />
         <TableRankedWidget
           title={t('topCountriesBySubmissions')}
           subtitle={t('dataCollectionRanking')}
           rows={rankedRows}
-          demo
+          demo={!dashData.isRealData}
         />
       </div>
 
@@ -450,7 +450,7 @@ function OverviewGrid({
           title={t('recentActivity')}
           subtitle={t('latestSystemEvents')}
           activities={dashData.activities}
-          demo
+          demo={!dashData.hasRealActivities}
         />
       </div>
 
@@ -466,7 +466,7 @@ function OverviewGrid({
           title={t('rainfallVsRvfCases')}
           subtitle={t('rainfallRvfCorrelation')}
           data={dashData.rainfall}
-          demo
+          demo={!dashData.hasRealRainfall}
         />
       </div>
     </>
@@ -499,7 +499,7 @@ function TrendsGrid({ dashData }: { dashData: any }) {
             { dataKey: 'vaccinations', label: t('seriesVaccinations'), color: '#22c55e', type: 'area' },
           ]}
           area
-          demo
+          demo={!dashData.isRealData}
         />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -509,7 +509,7 @@ function TrendsGrid({ dashData }: { dashData: any }) {
           data={dashData.monthlyTrends}
           bars={[{ dataKey: 'submissions', label: t('seriesSubmissions'), color: 'var(--color-accent, #006B3F)' }]}
           xKey="label"
-          demo
+          demo={!dashData.isRealData}
         />
         <ChartHeatmapWidget
           title={t('countryMonthHeatmap')}
@@ -529,7 +529,7 @@ function TrendsGrid({ dashData }: { dashData: any }) {
           title={t('rainfallVsRvf')}
           subtitle={t('climateCorrelation')}
           data={dashData.rainfall}
-          demo
+          demo={!dashData.hasRealRainfall}
         />
       </div>
     </>
@@ -546,13 +546,13 @@ function AlertsGrid({ alerts, dashData }: { alerts: any[]; dashData: any }) {
         title={t('allActiveAlerts')}
         subtitle={t('alertsAcrossContinent')}
         alerts={alerts.length > 0 ? alerts : dashData.alerts}
-        demo
+        demo={!dashData.hasRealAlerts}
       />
       <MetricActivityWidget
         title={t('alertRelatedActivity')}
         subtitle={t('recentActionsOnAlerts')}
         activities={dashData.activities.filter((a: any) => a.type === 'alert' || a.type === 'validation')}
-        demo
+        demo={!dashData.hasRealActivities}
       />
     </div>
   );
