@@ -43,13 +43,15 @@ function AnimatedCounter({ target, suffix }: { target: string; suffix?: string }
 
 interface DashboardKpiBarProps {
   kpis: DashboardKpis;
+  /** Override the first KPI label (e.g. "Regions" for country scope) */
+  coverageLabel?: string;
 }
 
-export function DashboardKpiBar({ kpis }: DashboardKpiBarProps) {
+export function DashboardKpiBar({ kpis, coverageLabel }: DashboardKpiBarProps) {
   const t = useTranslations('dashboard');
   const items: KpiItem[] = [
     {
-      label: t('kpiCountriesReporting'),
+      label: coverageLabel ?? t('kpiCountriesReporting'),
       value: kpis.countriesReporting,
       formatted: `${kpis.countriesReporting}/${kpis.totalCountries}`,
       trend: 0,

@@ -92,8 +92,11 @@ export function DashboardSynthetic() {
   const { filters, setFilter } = useDashboardFilters();
   const dashData = useDashboardData(filters);
 
+  const isCountryScope = filters.country !== 'all';
+  const coverageLabel = isCountryScope ? t('kpiRegions') : t('kpiCountries');
+
   const KPI_ITEMS = useMemo(() => [
-    { key: 'countries', label: t('kpiCountries'), value: `${dashData.kpis.countriesReporting}/${dashData.kpis.totalCountries}`, icon: Globe, color: '#3b82f6' },
+    { key: 'countries', label: coverageLabel, value: `${dashData.kpis.countriesReporting}/${dashData.kpis.totalCountries}`, icon: Globe, color: '#3b82f6' },
     { key: 'reports', label: t('kpiHealthReports'), value: fmt(dashData.kpis.totalReports), icon: FileBarChart, color: '#10b981' },
     { key: 'outbreaks', label: t('kpiOutbreaks'), value: fmt(dashData.kpis.totalOutbreaks), icon: AlertTriangle, color: '#ef4444' },
     { key: 'diseases', label: t('kpiDiseases'), value: String(dashData.kpis.diseasesMonitored), icon: ClipboardCheck, color: '#06b6d4' },
@@ -101,7 +104,7 @@ export function DashboardSynthetic() {
     { key: 'campaigns', label: t('kpiVaccCampaigns'), value: fmt(dashData.kpis.vaccinationCampaigns), icon: ClipboardCheck, color: '#22c55e' },
     { key: 'livestock', label: t('kpiLivestock'), value: fmt(dashData.kpis.livestockCensused), icon: FileBarChart, color: '#f59e0b' },
     { key: 'records', label: t('kpiTotalRecords'), value: fmt(dashData.kpis.totalRecords), icon: FileBarChart, color: '#f97316' },
-  ], [dashData.kpis, t]);
+  ], [dashData.kpis, t, coverageLabel]);
 
   const handleCountryClick = useCallback((code: string) => {
     setFilter('country', code);

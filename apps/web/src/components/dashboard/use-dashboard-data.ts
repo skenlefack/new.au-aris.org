@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { histFetch, HIST_API_BASE } from '@/lib/api/historical-hooks';
 import { analyticsClient } from '@/lib/api/client';
 import type { DashboardFilters } from './GlobalFilterContext';
+import { getRec } from '@/data/recs-config';
+import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
 import {
   DEMO_KPIS,
   DEMO_COUNTRY_DATA,
@@ -347,9 +349,43 @@ export function useDashboardData(filters?: DashboardFilters) {
       ? filteredReportCount
       : allDatasets.reduce((s, d) => s + d.rowCount, 0);
 
-    // countriesReporting / totalCountries adapt to filter scope
-    const countriesReporting = uniqueCountries.size;
-    const totalCountries = hasCountryFilter ? 1 : 55;
+    // ── Coverage KPI: adapts to scope ──────────────────────────────────────
+    // Continental → countries reporting / 55
+    // REC        → countries of REC reporting / total countries of REC
+    // Country    → admin1 divisions reporting / total admin1 of country
+    let coverageReporting: number;
+    let coverageTotal: number;
+
+    if (hasCountryFilter) {
+      // Country scope: count admin1 regions that sent data
+      const cc = filters!.country;
+      const admin1List = ADMIN_DIVISIONS[cc]?.admin1 ?? [];
+      coverageTotal = admin1List.length || 1;
+
+      // Count distinct admin1 from the country distribution query
+      // admin_location format is "Country / Region" — extract region part
+      const admin1Set = new Set<string>();
+      for (const row of countryRaw) {
+        const parts = row.label.split('/');
+        if (parts.length >= 2) {
+          admin1Set.add(parts[1].trim().toLowerCase());
+        }
+      }
+      coverageReporting = admin1Set.size;
+    } else if (hasRecFilter) {
+      // REC scope: countries of this REC that sent data
+      const recConfig = getRec(filters!.rec);
+      const recCountryCodes = recConfig?.countryCodes ?? [];
+      coverageTotal = recCountryCodes.length || 1;
+
+      // Intersect unique countries from data with REC member codes
+      const recSet = new Set(recCountryCodes.map((c) => c.toUpperCase()));
+      coverageReporting = [...uniqueCountries].filter((c) => recSet.has(c.toUpperCase())).length;
+    } else {
+      // Continental scope
+      coverageReporting = uniqueCountries.size;
+      coverageTotal = 55;
+    }
 
     if (!hasHealth) {
       // Fallback: use continental KPIs from analytics matview
@@ -357,8 +393,8 @@ export function useDashboardData(filters?: DashboardFilters) {
       if (ck && ck.length > 0) {
         const kv = (key: string) => ck.find((k) => k.key === key)?.value ?? 0;
         return {
-          countriesReporting: hasCountryFilter ? 1 : kv('countries_reporting'),
-          totalCountries,
+          countriesReporting: coverageReporting || kv('countries_reporting'),
+          totalCountries: coverageTotal,
           totalReports: kv('health_reports'),
           totalOutbreaks: kv('outbreaks'),
           diseasesMonitored: kv('diseases_monitored'),
@@ -375,8 +411,8 @@ export function useDashboardData(filters?: DashboardFilters) {
     }
 
     return {
-      countriesReporting: countriesReporting || (hasCountryFilter ? 1 : DEMO_KPIS.countriesReporting),
-      totalCountries,
+      countriesReporting: coverageReporting || DEMO_KPIS.countriesReporting,
+      totalCountries: coverageTotal,
       totalReports,
       totalOutbreaks: Math.round(totalOutbreaks),
       diseasesMonitored,

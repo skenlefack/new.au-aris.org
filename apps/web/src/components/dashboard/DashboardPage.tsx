@@ -290,7 +290,10 @@ function DashboardContent() {
         {/* Content area */}
         <div className="px-5 py-5 space-y-5">
           {/* KPI Bar */}
-          <DashboardKpiBar kpis={dashData.kpis} />
+          <DashboardKpiBar
+            kpis={dashData.kpis}
+            coverageLabel={filters.country !== 'all' ? t('kpiRegions') : filters.rec !== 'all' ? t('kpiCountries') : undefined}
+          />
 
           {activePage === 'overview' && (
             <OverviewGrid
