@@ -6,6 +6,7 @@ import { ForkNode } from './ForkNode';
 import { JoinNode } from './JoinNode';
 import { NotificationNode } from './NotificationNode';
 import { EndNode } from './EndNode';
+import GroupNode from './GroupNode';
 
 export { StartNode } from './StartNode';
 export { StepNode } from './StepNode';
@@ -14,6 +15,7 @@ export { ForkNode } from './ForkNode';
 export { JoinNode } from './JoinNode';
 export { NotificationNode } from './NotificationNode';
 export { EndNode } from './EndNode';
+export { default as GroupNode } from './GroupNode';
 
 export const nodeTypes: NodeTypes = {
   start: StartNode as any,
@@ -23,4 +25,5 @@ export const nodeTypes: NodeTypes = {
   join: JoinNode as any,
   notification: NotificationNode as any,
   end: EndNode as any,
+  group: GroupNode as any,
 };

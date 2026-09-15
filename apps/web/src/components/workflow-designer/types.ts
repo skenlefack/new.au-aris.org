@@ -4,7 +4,7 @@ import type { Node, Edge } from '@xyflow/react';
 // TYPES
 // ══════════════════════════════════════════════════════════
 
-export type NodeKind = 'start' | 'step' | 'end' | 'decision' | 'fork' | 'join' | 'notification';
+export type NodeKind = 'start' | 'step' | 'end' | 'decision' | 'fork' | 'join' | 'notification' | 'group';
 
 export interface MultiLang { [key: string]: string }
 
@@ -44,6 +44,16 @@ export function mlDisplay(ml: MultiLang | undefined, fallback = ''): string {
 export function mlSecondary(ml: MultiLang | undefined): string | undefined {
   if (!ml || !ml.fr || ml.fr === ml.en) return undefined;
   return ml.fr;
+}
+
+export interface GroupData {
+  groupKey: string;
+  name: MultiLang;
+  description: MultiLang;
+  color: string;
+  isCollapsed: boolean;
+  memberNodeIds: string[];
+  nodeType: 'group';
 }
 
 export interface HistoryEntry {

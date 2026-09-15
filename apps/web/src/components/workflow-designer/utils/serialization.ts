@@ -8,9 +8,39 @@ import { EDGE_STYLES } from '../constants';
 // ══════════════════════════════════════════════════════════
 
 export function apiToReactFlow(graphData: any): { nodes: Node[]; edges: Edge[] } {
-  const nodes: Node[] = (graphData.steps ?? []).map((s: any, i: number) => {
+  // Build group membership map: stepKey -> groupKey
+  const stepKeyToGroupKey = new Map<string, string>();
+  const groups: any[] = graphData.groups ?? [];
+  for (const g of groups) {
+    for (const sk of g.memberStepKeys ?? []) {
+      stepKeyToGroupKey.set(sk, g.groupKey);
+    }
+  }
+
+  // Create group nodes first (they must come before children in the array)
+  const groupNodes: Node[] = groups.map((g: any) => ({
+    id: `group-${g.groupKey}`,
+    type: 'group' as const,
+    position: { x: g.positionX ?? 100, y: g.positionY ?? 100 },
+    style: {
+      width: g.width ?? 400,
+      height: g.height ?? 300,
+    },
+    data: {
+      groupKey: g.groupKey,
+      name: g.name ?? { en: g.groupKey },
+      description: g.description ?? {},
+      color: g.color ?? '#6366f1',
+      isCollapsed: g.isCollapsed ?? false,
+      memberNodeIds: (g.memberStepKeys ?? []).map((sk: string) => sk),
+      nodeType: 'group' as const,
+    },
+  }));
+
+  const stepNodes: Node[] = (graphData.steps ?? []).map((s: any, i: number) => {
     const nt: NodeKind = s.nodeType ?? 'step';
-    return {
+    const groupKey = stepKeyToGroupKey.get(s.stepKey);
+    const node: Node = {
       id: s.id ?? s.stepKey,
       type: nt,
       position: { x: s.positionX ?? 300, y: s.positionY ?? i * 150 },
@@ -27,9 +57,16 @@ export function apiToReactFlow(graphData: any): { nodes: Node[]; edges: Edge[] }
         transmitDelayHours: s.transmitDelayHours ?? null,
         slaHours: s.slaHours ?? null,
         color: s.color ?? '',
-      } as StepData,
+      } as unknown as Record<string, unknown>,
     };
+    if (groupKey) {
+      node.parentId = `group-${groupKey}`;
+      node.extent = 'parent';
+    }
+    return node;
   });
+
+  const nodes: Node[] = [...groupNodes, ...stepNodes];
 
   const edges: Edge[] = (graphData.edges ?? []).map((e: any) => {
     const edgeType: EdgeKind = e.edgeType ?? 'SEQUENTIAL';
@@ -50,7 +87,11 @@ export function apiToReactFlow(graphData: any): { nodes: Node[]; edges: Edge[] }
 }
 
 export function reactFlowToApi(nodes: Node[], edges: Edge[], graphVersion: number) {
-  const steps = nodes.map((n, i) => {
+  // Separate group nodes from step nodes
+  const groupNodes = nodes.filter((n) => n.type === 'group');
+  const stepNodes = nodes.filter((n) => n.type !== 'group');
+
+  const steps = stepNodes.map((n, i) => {
     const d = asStep(n.data);
     return {
       stepKey: d.stepKey,
@@ -70,7 +111,7 @@ export function reactFlowToApi(nodes: Node[], edges: Edge[], graphVersion: numbe
     };
   });
 
-  const idToKey = new Map(nodes.map((n) => [n.id, asStep(n.data).stepKey]));
+  const idToKey = new Map(stepNodes.map((n) => [n.id, asStep(n.data).stepKey]));
 
   const apiEdges = edges.map((e, i) => ({
     sourceStepKey: idToKey.get(e.source) ?? e.source,
@@ -81,5 +122,25 @@ export function reactFlowToApi(nodes: Node[], edges: Edge[], graphVersion: numbe
     sortOrder: i,
   }));
 
-  return { graphVersion, steps, edges: apiEdges };
+  // Serialize groups: find which step nodes have parentId pointing to a group
+  const groups = groupNodes.map((gn) => {
+    const gd = gn.data as any;
+    const memberStepKeys = stepNodes
+      .filter((sn) => sn.parentId === gn.id)
+      .map((sn) => asStep(sn.data).stepKey);
+    return {
+      groupKey: gd.groupKey,
+      name: gd.name,
+      description: gd.description,
+      color: gd.color,
+      isCollapsed: gd.isCollapsed ?? false,
+      positionX: gn.position.x,
+      positionY: gn.position.y,
+      width: (gn.style as any)?.width ?? gn.measured?.width ?? 400,
+      height: (gn.style as any)?.height ?? gn.measured?.height ?? 300,
+      memberStepKeys,
+    };
+  });
+
+  return { graphVersion, steps, edges: apiEdges, groups };
 }

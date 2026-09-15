@@ -301,6 +301,25 @@ export class DefinitionService {
     if (!definition) throw new HttpError(404, `Workflow definition ${definitionId} not found`);
     this.verifyTenantAccess(user, definition.tenant_id);
 
+    // Build step id→key map for group member resolution
+    const stepIdToKey = new Map<string, string>();
+    for (const s of definition.steps ?? []) {
+      stepIdToKey.set(s.id, s.step_key ?? s.id);
+    }
+
+    // Fetch groups + memberships via raw SQL
+    let groupRows: any[] = [];
+    try {
+      groupRows = await (this.prisma as any).$queryRawUnsafe(
+        `SELECT g.*, array_agg(gm.step_id) FILTER (WHERE gm.step_id IS NOT NULL) as member_step_ids
+         FROM workflow.workflow_groups g
+         LEFT JOIN workflow.workflow_group_members gm ON gm.group_id = g.id
+         WHERE g.definition_id = $1::uuid
+         GROUP BY g.id`,
+        definitionId,
+      );
+    } catch { /* groups table may not exist yet */ }
+
     return {
       data: {
         id: definition.id,
@@ -330,6 +349,20 @@ export class DefinitionService {
           label: e.label,
           condition: e.condition,
           sortOrder: e.sort_order,
+        })),
+        groups: groupRows.map((g: any) => ({
+          groupKey: g.group_key,
+          name: g.name ?? {},
+          description: g.description ?? {},
+          color: g.color ?? '#6366f1',
+          isCollapsed: g.is_collapsed ?? false,
+          positionX: g.position_x,
+          positionY: g.position_y,
+          width: g.width,
+          height: g.height,
+          memberStepKeys: (g.member_step_ids ?? [])
+            .map((id: string) => stepIdToKey.get(id))
+            .filter(Boolean),
         })),
       },
     };
@@ -367,6 +400,18 @@ export class DefinitionService {
         label?: Record<string, string>;
         condition?: Record<string, unknown>;
         sortOrder?: number;
+      }>;
+      groups?: Array<{
+        groupKey: string;
+        name?: Record<string, string>;
+        description?: Record<string, string>;
+        color?: string;
+        isCollapsed?: boolean;
+        positionX?: number;
+        positionY?: number;
+        width?: number;
+        height?: number;
+        memberStepKeys?: string[];
       }>;
     },
     user: AuthenticatedUser,
@@ -507,6 +552,79 @@ export class DefinitionService {
     if (edgeOps.length > 0) {
       await (this.prisma as any).$transaction(edgeOps);
     }
+
+    // Save groups (delete all, re-insert)
+    try {
+      await (this.prisma as any).$executeRawUnsafe(
+        `DELETE FROM workflow.workflow_groups WHERE definition_id = $1::uuid`,
+        definitionId,
+      );
+
+      if (body.groups && body.groups.length > 0) {
+        const groupOps: any[] = [];
+        for (const group of body.groups) {
+          const groupId = randomUUID();
+          groupOps.push(
+            (this.prisma as any).$executeRawUnsafe(
+              `INSERT INTO workflow.workflow_groups
+                (id, definition_id, group_key, name, description, color, is_collapsed,
+                 position_x, position_y, width, height, created_at, updated_at)
+               VALUES ($1::uuid, $2::uuid, $3, $4::jsonb, $5::jsonb, $6, $7, $8, $9, $10, $11, NOW(), NOW())`,
+              groupId,
+              definitionId,
+              group.groupKey,
+              JSON.stringify(group.name ?? {}),
+              JSON.stringify(group.description ?? {}),
+              group.color ?? '#6366f1',
+              group.isCollapsed ?? false,
+              group.positionX ?? null,
+              group.positionY ?? null,
+              group.width ?? null,
+              group.height ?? null,
+            ),
+          );
+
+          // Insert memberships
+          for (const stepKey of group.memberStepKeys ?? []) {
+            const stepId = stepKeyToId.get(stepKey);
+            if (!stepId) continue;
+            groupOps.push(
+              (this.prisma as any).$executeRawUnsafe(
+                `INSERT INTO workflow.workflow_group_members (id, group_id, step_id)
+                 VALUES (gen_random_uuid(), $1::uuid, $2::uuid)
+                 ON CONFLICT (group_id, step_id) DO NOTHING`,
+                groupId,
+                stepId,
+              ),
+            );
+          }
+        }
+
+        if (groupOps.length > 0) {
+          await (this.prisma as any).$transaction(groupOps);
+        }
+      }
+    } catch { /* groups table may not exist yet */ }
+
+    // Snapshot for version history
+    try {
+      const snapshotPayload = {
+        steps: body.steps,
+        edges: body.edges,
+        groups: body.groups,
+      };
+      await (this.prisma as any).$executeRawUnsafe(
+        `INSERT INTO workflow.workflow_graph_versions
+          (id, definition_id, version_number, snapshot, change_summary, created_by, created_at)
+         VALUES (gen_random_uuid(), $1::uuid, $2, $3::jsonb, $4, $5::uuid, NOW())
+         ON CONFLICT (definition_id, version_number) DO NOTHING`,
+        definitionId,
+        definition.graph_version + 1,
+        JSON.stringify(snapshotPayload),
+        null,
+        user.userId,
+      );
+    } catch { /* versions table may not exist yet */ }
 
     return this.getGraph(definitionId, user);
   }

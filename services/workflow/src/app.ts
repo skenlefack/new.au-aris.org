@@ -10,9 +10,13 @@ import { WorkflowService } from './services/workflow.service.js';
 import { EscalationService } from './services/escalation.service.js';
 import { DefinitionService } from './services/definition.service.js';
 import { ValidationChainService } from './services/validation-chain.service.js';
+import { VersionService } from './services/version.service.js';
+import { TemplateService } from './services/template.service.js';
 import { registerWorkflowRoutes } from './routes/workflow.routes.js';
 import { registerDefinitionRoutes } from './routes/definition.routes.js';
 import { registerValidationChainRoutes } from './routes/validation-chain.routes.js';
+import { registerVersionRoutes } from './routes/version.routes.js';
+import { registerTemplateRoutes } from './routes/template.routes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -21,6 +25,8 @@ declare module 'fastify' {
     escalationService: EscalationService;
     definitionService: DefinitionService;
     validationChainService: ValidationChainService;
+    versionService: VersionService;
+    templateService: TemplateService;
   }
 }
 
@@ -79,6 +85,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   const validationChainService = new ValidationChainService(app.prisma);
   app.decorate('validationChainService', validationChainService);
 
+  const versionService = new VersionService(app.prisma, definitionService);
+  app.decorate('versionService', versionService);
+
+  const templateService = new TemplateService(app.prisma, definitionService);
+  app.decorate('templateService', templateService);
+
   const escalationService = new EscalationService(app.prisma, workflowService, {
     log: (...args: any[]) => app.log.info(args[0]),
     error: (...args: any[]) => app.log.error(args[0]),
@@ -113,6 +125,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerWorkflowRoutes);
   await app.register(registerDefinitionRoutes);
   await app.register(registerValidationChainRoutes);
+  await app.register(registerVersionRoutes);
+  await app.register(registerTemplateRoutes);
 
   // Kafka consumers
   await app.register(kafkaConsumersPlugin);

@@ -727,3 +727,145 @@ export function useApproveWithRouting() {
     },
   });
 }
+
+// ═══════════════════════════════════════════════════════
+// WORKFLOW VERSIONS (Feature 3: Visual Version Diff)
+// ═══════════════════════════════════════════════════════
+
+/** List all versions for a definition */
+export function useWorkflowVersions(definitionId?: string) {
+  return useQuery({
+    queryKey: ['workflow-versions', definitionId],
+    queryFn: () => wfFetch<any>(
+      `/api/v1/workflow/definitions/${definitionId}/versions`,
+    ),
+    enabled: !!definitionId,
+  });
+}
+
+/** Get the full snapshot for a specific version */
+export function useWorkflowVersion(definitionId?: string, version?: number) {
+  return useQuery({
+    queryKey: ['workflow-version', definitionId, version],
+    queryFn: () => wfFetch<any>(
+      `/api/v1/workflow/definitions/${definitionId}/versions/${version}`,
+    ),
+    enabled: !!definitionId && version !== undefined && version !== null,
+  });
+}
+
+/** Compare two versions and produce a diff */
+export function useWorkflowVersionDiff(definitionId?: string, a?: number, b?: number) {
+  return useQuery({
+    queryKey: ['workflow-version-diff', definitionId, a, b],
+    queryFn: () => wfFetch<any>(
+      `/api/v1/workflow/definitions/${definitionId}/versions/diff?a=${a}&b=${b}`,
+    ),
+    enabled: !!definitionId && a !== undefined && b !== undefined,
+  });
+}
+
+/** Restore a previous version */
+export function useRestoreWorkflowVersion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ definitionId, version }: { definitionId: string; version: number }) =>
+      wfFetch(`/api/v1/workflow/definitions/${definitionId}/versions/${version}/restore`, {
+        method: 'POST',
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['workflow-versions', vars.definitionId] });
+      qc.invalidateQueries({ queryKey: ['workflow-graph', vars.definitionId] });
+      qc.invalidateQueries({ queryKey: ['workflow-definitions'] });
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// WORKFLOW TEMPLATES (Feature 4: Template Library)
+// ═══════════════════════════════════════════════════════
+
+/** List workflow templates (system + tenant) with optional category/search filters */
+export function useWorkflowTemplates(query?: { category?: string; search?: string; page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['workflow-templates', query],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (query?.category) params.set('category', query.category);
+      if (query?.search) params.set('search', query.search);
+      if (query?.page) params.set('page', String(query.page));
+      if (query?.limit) params.set('limit', String(query.limit));
+      return wfFetch<any>(`/api/v1/workflow/templates?${params}`);
+    },
+  });
+}
+
+/** Get a single workflow template by ID */
+export function useWorkflowTemplate(id?: string) {
+  return useQuery({
+    queryKey: ['workflow-template', id],
+    queryFn: () => wfFetch<any>(`/api/v1/workflow/templates/${id}`),
+    enabled: !!id,
+  });
+}
+
+/** Create a new workflow template from a graph snapshot */
+export function useCreateWorkflowTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      name: Record<string, string>;
+      description?: Record<string, string>;
+      category?: string;
+      tags?: string[];
+      graphSnapshot: any;
+    }) => wfFetch('/api/v1/workflow/templates', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['workflow-templates'] }),
+  });
+}
+
+/** Save the current definition's graph as a template */
+export function useSaveDefinitionAsTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ definitionId, ...data }: {
+      definitionId: string;
+      name: Record<string, string>;
+      description?: Record<string, string>;
+      category?: string;
+      tags?: string[];
+    }) => wfFetch(`/api/v1/workflow/templates/from-definition/${definitionId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['workflow-templates'] }),
+  });
+}
+
+/** Apply a template to a definition (replaces current graph) */
+export function useApplyWorkflowTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ templateId, definitionId }: { templateId: string; definitionId: string }) =>
+      wfFetch(`/api/v1/workflow/templates/${templateId}/apply/${definitionId}`, {
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workflow-graph'] });
+      qc.invalidateQueries({ queryKey: ['workflow-definitions'] });
+      qc.invalidateQueries({ queryKey: ['workflow-templates'] });
+    },
+  });
+}
+
+/** Delete a workflow template */
+export function useDeleteWorkflowTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => wfFetch(`/api/v1/workflow/templates/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['workflow-templates'] }),
+  });
+}

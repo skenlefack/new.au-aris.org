@@ -29,6 +29,10 @@ import {
   Download,
   Maximize2,
   CircleDot,
+  Layers,
+  Clock,
+  LayoutTemplate,
+  BookmarkPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkflowGraph, useSaveWorkflowGraph } from '@/lib/api/workflow-hooks';
@@ -49,6 +53,11 @@ import { PropertiesPanel } from './panels/PropertiesPanel';
 import { ValidationPanel } from './panels/ValidationPanel';
 import { SimulationPanel } from './panels/SimulationPanel';
 import { SimulationResults } from './panels/SimulationResults';
+import { VersionHistoryPanel } from './panels/VersionHistoryPanel';
+import { VersionDiffView } from './panels/VersionDiffView';
+import { TemplateLibrary } from './panels/TemplateLibrary';
+import { SaveAsTemplate } from './panels/SaveAsTemplate';
+import { GROUP_COLORS } from './nodes/GroupNode';
 
 // ══════════════════════════════════════════════════════════
 // MAIN DESIGNER (inner component, needs ReactFlowProvider)
@@ -79,6 +88,12 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const nodeCounter = useRef(0);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Feature panels state
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [diffVersions, setDiffVersions] = useState<{ a: number; b: number } | null>(null);
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
 
   // Undo/Redo
   const [history, setHistory] = useState<{ nodes: Node[]; edges: Edge[] }[]>([]);
@@ -277,6 +292,78 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
     setSelectedNode(newNode);
   }, [nodes, setNodes]);
 
+  // ── Groups ──
+  const handleGroupSelected = useCallback(() => {
+    const selectedNodes = nodes.filter((n) => n.selected && n.type !== 'group');
+    if (selectedNodes.length < 2) {
+      toast.error('Select at least 2 nodes to group');
+      return;
+    }
+    const idx = ++nodeCounter.current;
+    const groupKey = `GROUP_${idx}`;
+    const xs = selectedNodes.map((n) => n.position.x);
+    const ys = selectedNodes.map((n) => n.position.y);
+    const minX = Math.min(...xs) - 30;
+    const minY = Math.min(...ys) - 50;
+    const maxX = Math.max(...xs) + 260;
+    const maxY = Math.max(...ys) + 120;
+
+    const groupNode: Node = {
+      id: `group-${groupKey}`,
+      type: 'group',
+      position: { x: minX, y: minY },
+      style: { width: maxX - minX, height: maxY - minY },
+      data: {
+        groupKey,
+        name: { en: `Group ${idx}` },
+        description: {},
+        color: GROUP_COLORS[idx % GROUP_COLORS.length],
+        isCollapsed: false,
+        memberNodeIds: selectedNodes.map((n) => n.id),
+        nodeType: 'group',
+      },
+    };
+
+    setNodes((nds) => [
+      groupNode,
+      ...nds.map((n) => {
+        if (selectedNodes.find((sn) => sn.id === n.id)) {
+          return {
+            ...n,
+            parentId: `group-${groupKey}`,
+            extent: 'parent' as const,
+            position: { x: n.position.x - minX, y: n.position.y - minY },
+          };
+        }
+        return n;
+      }),
+    ]);
+  }, [nodes, setNodes]);
+
+  const handleUngroup = useCallback((groupId: string) => {
+    const groupNode = nodes.find((n) => n.id === groupId);
+    if (!groupNode) return;
+    setNodes((nds) => {
+      const updated = nds
+        .filter((n) => n.id !== groupId)
+        .map((n) => {
+          if (n.parentId === groupId) {
+            return {
+              ...n,
+              parentId: undefined,
+              extent: undefined,
+              position: {
+                x: n.position.x + groupNode.position.x,
+                y: n.position.y + groupNode.position.y,
+              },
+            };
+          }
+          return n;
+        });
+      return updated;
+    });
+  }, [nodes, setNodes]);
+
   const handleAutoLayout = useCallback(() => {
     const laid = autoLayout(nodes, edges);
     setNodes(laid);
@@ -387,6 +474,48 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
         </button>
         <button onClick={handleExportJSON} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition" title={t('designer.exportJson')}>
           <Download className="h-3.5 w-3.5" />
+        </button>
+
+        <div className="mx-1.5 h-5 w-px bg-gray-200 dark:bg-gray-700" />
+
+        {/* Group */}
+        <button
+          onClick={handleGroupSelected}
+          className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-gray-500 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-400 transition"
+          title="Group selected nodes"
+        >
+          <Layers className="h-3.5 w-3.5" />
+          Group
+        </button>
+
+        {/* History */}
+        <button
+          onClick={() => setShowVersionHistory(true)}
+          className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-gray-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition"
+          title={t('designer.versionHistory') || 'Version History'}
+        >
+          <Clock className="h-3.5 w-3.5" />
+          History
+        </button>
+
+        {/* Templates */}
+        <button
+          onClick={() => setShowTemplateLibrary(true)}
+          className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-gray-500 hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 transition"
+          title={t('designer.templateLibrary') || 'Template Library'}
+        >
+          <LayoutTemplate className="h-3.5 w-3.5" />
+          Templates
+        </button>
+
+        {/* Save as Template */}
+        <button
+          onClick={() => setShowSaveAsTemplate(true)}
+          disabled={nodes.length === 0}
+          className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-gray-500 hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/20 dark:hover:text-green-400 disabled:opacity-30 transition"
+          title={t('designer.saveAsTemplate') || 'Save as Template'}
+        >
+          <BookmarkPlus className="h-3.5 w-3.5" />
         </button>
 
         <div className="mx-1.5 h-5 w-px bg-gray-200 dark:bg-gray-700" />
@@ -530,6 +659,47 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
           </Panel>
         </ReactFlow>
       </div>
+
+      {/* ══ VERSION HISTORY PANEL ══ */}
+      {showVersionHistory && (
+        <VersionHistoryPanel
+          definitionId={definitionId}
+          onClose={() => setShowVersionHistory(false)}
+          onOpenDiff={(a, b) => {
+            setShowVersionHistory(false);
+            setDiffVersions({ a, b });
+          }}
+        />
+      )}
+
+      {/* ══ VERSION DIFF VIEW ══ */}
+      {diffVersions && (
+        <VersionDiffView
+          definitionId={definitionId}
+          versionA={diffVersions.a}
+          versionB={diffVersions.b}
+          onClose={() => setDiffVersions(null)}
+          onChangeVersions={(a, b) => setDiffVersions({ a, b })}
+        />
+      )}
+
+      {/* ══ TEMPLATE LIBRARY ══ */}
+      {showTemplateLibrary && (
+        <TemplateLibrary
+          definitionId={definitionId}
+          hasExistingGraph={nodes.length > 0}
+          onClose={() => setShowTemplateLibrary(false)}
+          onApplied={() => setShowTemplateLibrary(false)}
+        />
+      )}
+
+      {/* ══ SAVE AS TEMPLATE ══ */}
+      {showSaveAsTemplate && (
+        <SaveAsTemplate
+          definitionId={definitionId}
+          onClose={() => setShowSaveAsTemplate(false)}
+        />
+      )}
     </div>
   );
 }

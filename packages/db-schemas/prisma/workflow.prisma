@@ -125,6 +125,7 @@ model WorkflowDefinition {
 
   steps                     WorkflowStep[]
   edges                     WorkflowEdge[]
+  groups                    WorkflowGroup[]
 
   @@unique([tenant_id, country_code])
   @@index([tenant_id])
@@ -156,6 +157,7 @@ model WorkflowStep {
   definition           WorkflowDefinition @relation(fields: [definition_id], references: [id], onDelete: Cascade)
   outgoing_edges       WorkflowEdge[]     @relation("outgoing_edges")
   incoming_edges       WorkflowEdge[]     @relation("incoming_edges")
+  group_memberships    WorkflowGroupMember[]
 
   @@index([definition_id])
   @@map("workflow_steps")
@@ -202,6 +204,85 @@ model WorkflowBranchToken {
   @@index([instance_id])
   @@index([instance_id, branch_group])
   @@map("workflow_branch_tokens")
+  @@schema("workflow")
+}
+
+// ── DAG: Collapsible groups of workflow steps ──
+
+model WorkflowGroup {
+  id              String                  @id @default(uuid()) @db.Uuid
+  definition_id   String                  @db.Uuid
+  group_key       String                  @db.VarChar(120)
+  name            Json                    @default("{}")
+  description     Json?
+  color           String                  @default("#6366f1") @db.VarChar(20)
+  is_collapsed    Boolean                 @default(false)
+  position_x      Float?
+  position_y      Float?
+  width           Float?
+  height          Float?
+  created_at      DateTime                @default(now())
+  updated_at      DateTime                @default(now())
+
+  definition      WorkflowDefinition      @relation(fields: [definition_id], references: [id], onDelete: Cascade)
+  members         WorkflowGroupMember[]
+
+  @@index([definition_id])
+  @@map("workflow_groups")
+  @@schema("workflow")
+}
+
+model WorkflowGroupMember {
+  id        String         @id @default(uuid()) @db.Uuid
+  group_id  String         @db.Uuid
+  step_id   String         @db.Uuid
+
+  group     WorkflowGroup  @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  step      WorkflowStep   @relation(fields: [step_id], references: [id], onDelete: Cascade)
+
+  @@unique([group_id, step_id])
+  @@index([group_id])
+  @@index([step_id])
+  @@map("workflow_group_members")
+  @@schema("workflow")
+}
+
+// ── DAG: Version snapshots for visual diff ──
+
+model WorkflowGraphVersion {
+  id               String   @id @default(uuid()) @db.Uuid
+  definition_id    String   @db.Uuid
+  version_number   Int
+  snapshot         Json
+  change_summary   String?  @db.VarChar(500)
+  created_by       String?  @db.Uuid
+  created_at       DateTime @default(now())
+
+  @@unique([definition_id, version_number])
+  @@index([definition_id])
+  @@map("workflow_graph_versions")
+  @@schema("workflow")
+}
+
+// ── DAG: Workflow templates ──
+
+model WorkflowTemplate {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenant_id       String?   @db.Uuid
+  category        String    @default("custom") @db.VarChar(50)
+  name            Json      @default("{}")
+  description     Json?
+  graph_snapshot  Json
+  is_system       Boolean   @default(false)
+  tags            Json?
+  usage_count     Int       @default(0)
+  created_by      String?   @db.Uuid
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @default(now())
+
+  @@index([tenant_id])
+  @@index([category])
+  @@map("workflow_templates")
   @@schema("workflow")
 }
 
