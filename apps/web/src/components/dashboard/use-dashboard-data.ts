@@ -308,20 +308,30 @@ export function useDashboardData(filters?: DashboardFilters) {
 
   // ── Transform: KPIs ──────────────────────────────────────────────────────
 
+  // Whether a country/REC/period filter is active (i.e. not "all")
+  const hasCountryFilter = !!(filters?.country && filters.country !== 'all');
+  const hasRecFilter = !!(filters?.rec && filters.rec !== 'all');
+  const hasActiveFilter = hasCountryFilter || hasRecFilter || hasApiFilters;
+
   const kpis: DashboardKpis = (() => {
     const countryRaw = countryDistQuery.data?.data ?? [];
     const diseaseRaw = diseaseDistQuery.data?.data ?? [];
 
-    // Unique countries
+    // Unique countries from the filtered query results
     const uniqueCountries = new Set<string>();
     for (const row of countryRaw) {
       const code = resolveCountryCode(row.label);
       if (code) uniqueCountries.add(code);
     }
 
-    const totalReports = allDatasets
-      .filter((d) => d.type === 'health')
-      .reduce((s, d) => s + d.rowCount, 0);
+    // When filters are active, derive reports from the filtered country distribution
+    // (sum of all distribution values = total reports matching the filter)
+    const filteredReportCount = countryRaw.reduce((s, r) => s + (r.value ?? 0), 0);
+
+    // Use filtered count when a filter is active, otherwise use dataset totals
+    const totalReports = hasActiveFilter && filteredReportCount > 0
+      ? filteredReportCount
+      : allDatasets.filter((d) => d.type === 'health').reduce((s, d) => s + d.rowCount, 0);
 
     const totalOutbreaks = outbreaksSumQuery.data?.data?.[0]?.value ?? 0;
     const diseasesMonitored = diseaseRaw.filter((d) => d.label && d.value > 0
@@ -332,14 +342,23 @@ export function useDashboardData(filters?: DashboardFilters) {
       .reduce((s, d) => s + d.rowCount, 0);
     const livestockCensused = popSumQuery.data?.data?.[0]?.value ?? 0;
 
+    // totalRecords: when filtered, sum from filtered queries; otherwise dataset totals
+    const totalRecords = hasActiveFilter && filteredReportCount > 0
+      ? filteredReportCount
+      : allDatasets.reduce((s, d) => s + d.rowCount, 0);
+
+    // countriesReporting / totalCountries adapt to filter scope
+    const countriesReporting = uniqueCountries.size;
+    const totalCountries = hasCountryFilter ? 1 : 55;
+
     if (!hasHealth) {
       // Fallback: use continental KPIs from analytics matview
       const ck = continentalKpisQuery.data?.data?.kpis;
       if (ck && ck.length > 0) {
         const kv = (key: string) => ck.find((k) => k.key === key)?.value ?? 0;
         return {
-          countriesReporting: kv('countries_reporting'),
-          totalCountries: 55,
+          countriesReporting: hasCountryFilter ? 1 : kv('countries_reporting'),
+          totalCountries,
           totalReports: kv('health_reports'),
           totalOutbreaks: kv('outbreaks'),
           diseasesMonitored: kv('diseases_monitored'),
@@ -356,8 +375,8 @@ export function useDashboardData(filters?: DashboardFilters) {
     }
 
     return {
-      countriesReporting: uniqueCountries.size || DEMO_KPIS.countriesReporting,
-      totalCountries: 55,
+      countriesReporting: countriesReporting || (hasCountryFilter ? 1 : DEMO_KPIS.countriesReporting),
+      totalCountries,
       totalReports,
       totalOutbreaks: Math.round(totalOutbreaks),
       diseasesMonitored,
@@ -365,7 +384,7 @@ export function useDashboardData(filters?: DashboardFilters) {
       vaccinationCampaigns: massVaccRows,
       livestockCensused: Math.round(livestockCensused),
       datasetsImported: allDatasets.length,
-      totalRecords: allDatasets.reduce((s, d) => s + d.rowCount, 0),
+      totalRecords,
       periodStart: '2007',
       periodEnd: '2025',
     };
