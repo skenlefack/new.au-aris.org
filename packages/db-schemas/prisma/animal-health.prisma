@@ -5,35 +5,35 @@
 // ── Health Events (Outbreaks / Epidemiological Events) ──
 
 model HealthEvent {
-  id                  String   @id @default(uuid()) @db.Uuid
-  tenantId            String   @map("tenant_id") @db.Uuid
-  diseaseId           String   @map("disease_id") @db.Uuid
-  eventType           String   @map("event_type")         // SUSPECT | CONFIRMED | RESOLVED
-  speciesIds          String[] @map("species_ids") @db.Uuid
-  dateOnset           DateTime? @map("date_onset") @db.Timestamptz
-  dateSuspicion       DateTime  @map("date_suspicion") @db.Timestamptz
-  dateConfirmation    DateTime? @map("date_confirmation") @db.Timestamptz
-  dateClosure         DateTime? @map("date_closure") @db.Timestamptz
-  geoEntityId         String   @map("geo_entity_id") @db.Uuid
-  latitude            Float?
-  longitude           Float?
-  holdingsAffected    Int      @map("holdings_affected") @default(0)
-  susceptible         Int      @default(0)
-  cases               Int      @default(0)
-  deaths              Int      @default(0)
-  killed              Int      @default(0)
-  slaughtered         Int      @default(0)
-  controlMeasures     String[] @map("control_measures")   // QUARANTINE, MOVEMENT_CONTROL, etc.
-  confidenceLevel     String   @map("confidence_level")   // RUMOR | VERIFIED | CONFIRMED
-  dataClassification  String   @map("data_classification") @default("RESTRICTED")
-  workflowInstanceId  String?  @map("workflow_instance_id") @db.Uuid
-  wahisReady          Boolean  @map("wahis_ready") @default(false)
-  createdBy           String   @map("created_by") @db.Uuid
-  updatedBy           String   @map("updated_by") @db.Uuid
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  diseaseId          String    @map("disease_id") @db.Uuid
+  eventType          String    @map("event_type") // SUSPECT | CONFIRMED | RESOLVED
+  speciesIds         String[]  @map("species_ids") @db.Uuid
+  dateOnset          DateTime? @map("date_onset") @db.Timestamptz
+  dateSuspicion      DateTime  @map("date_suspicion") @db.Timestamptz
+  dateConfirmation   DateTime? @map("date_confirmation") @db.Timestamptz
+  dateClosure        DateTime? @map("date_closure") @db.Timestamptz
+  geoEntityId        String    @map("geo_entity_id") @db.Uuid
+  latitude           Float?
+  longitude          Float?
+  holdingsAffected   Int       @default(0) @map("holdings_affected")
+  susceptible        Int       @default(0)
+  cases              Int       @default(0)
+  deaths             Int       @default(0)
+  killed             Int       @default(0)
+  slaughtered        Int       @default(0)
+  controlMeasures    String[]  @map("control_measures") // QUARANTINE, MOVEMENT_CONTROL, etc.
+  confidenceLevel    String    @map("confidence_level") // RUMOR | VERIFIED | CONFIRMED
+  dataClassification String    @default("RESTRICTED") @map("data_classification")
+  workflowInstanceId String?   @map("workflow_instance_id") @db.Uuid
+  wahisReady         Boolean   @default(false) @map("wahis_ready")
+  createdBy          String    @map("created_by") @db.Uuid
+  updatedBy          String    @map("updated_by") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
-  labResults          LabResult[]
+  labResults LabResult[]
 
   @@index([tenantId])
   @@index([diseaseId])
@@ -47,25 +47,25 @@ model HealthEvent {
 // ── Lab Results ──
 
 model LabResult {
-  id                  String   @id @default(uuid()) @db.Uuid
-  tenantId            String   @map("tenant_id") @db.Uuid
-  sampleId            String   @map("sample_id") @db.VarChar(100)
-  sampleType          String   @map("sample_type") @db.VarChar(100)
-  dateCollected       DateTime @map("date_collected") @db.Timestamptz
-  dateReceived        DateTime @map("date_received") @db.Timestamptz
-  testType            String   @map("test_type") @db.VarChar(100)
-  result              String                                // POSITIVE | NEGATIVE | INCONCLUSIVE
-  labId               String   @map("lab_id") @db.Uuid
-  turnaroundDays      Int      @map("turnaround_days") @default(0)
-  eqaFlag             Boolean  @map("eqa_flag") @default(false)
-  healthEventId       String?  @map("health_event_id") @db.Uuid
-  dataClassification  String   @map("data_classification") @default("RESTRICTED")
-  createdBy           String   @map("created_by") @db.Uuid
-  updatedBy           String   @map("updated_by") @db.Uuid
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  sampleId           String   @map("sample_id") @db.VarChar(100)
+  sampleType         String   @map("sample_type") @db.VarChar(100)
+  dateCollected      DateTime @map("date_collected") @db.Timestamptz
+  dateReceived       DateTime @map("date_received") @db.Timestamptz
+  testType           String   @map("test_type") @db.VarChar(100)
+  result             String // POSITIVE | NEGATIVE | INCONCLUSIVE
+  labId              String   @map("lab_id") @db.Uuid
+  turnaroundDays     Int      @default(0) @map("turnaround_days")
+  eqaFlag            Boolean  @default(false) @map("eqa_flag")
+  healthEventId      String?  @map("health_event_id") @db.Uuid
+  dataClassification String   @default("RESTRICTED") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  healthEvent         HealthEvent? @relation(fields: [healthEventId], references: [id])
+  healthEvent HealthEvent? @relation(fields: [healthEventId], references: [id])
 
   @@index([tenantId])
   @@index([healthEventId])
@@ -78,22 +78,22 @@ model LabResult {
 // ── Surveillance Activities ──
 
 model SurveillanceActivity {
-  id                  String   @id @default(uuid()) @db.Uuid
-  tenantId            String   @map("tenant_id") @db.Uuid
-  type                String                                // PASSIVE | ACTIVE | SENTINEL | EVENT_BASED
-  diseaseId           String   @map("disease_id") @db.Uuid
-  designType          String?  @map("design_type")         // CLUSTER | RISK_BASED | RANDOM
-  sampleSize          Int      @map("sample_size") @default(0)
-  positivityRate      Float?   @map("positivity_rate")
-  periodStart         DateTime @map("period_start") @db.Timestamptz
-  periodEnd           DateTime @map("period_end") @db.Timestamptz
-  geoEntityId         String   @map("geo_entity_id") @db.Uuid
-  mapLayerId          String?  @map("map_layer_id") @db.Uuid
-  dataClassification  String   @map("data_classification") @default("PARTNER")
-  createdBy           String   @map("created_by") @db.Uuid
-  updatedBy           String   @map("updated_by") @db.Uuid
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  type               String // PASSIVE | ACTIVE | SENTINEL | EVENT_BASED
+  diseaseId          String   @map("disease_id") @db.Uuid
+  designType         String?  @map("design_type") // CLUSTER | RISK_BASED | RANDOM
+  sampleSize         Int      @default(0) @map("sample_size")
+  positivityRate     Float?   @map("positivity_rate")
+  periodStart        DateTime @map("period_start") @db.Timestamptz
+  periodEnd          DateTime @map("period_end") @db.Timestamptz
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  mapLayerId         String?  @map("map_layer_id") @db.Uuid
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([tenantId])
   @@index([diseaseId])
@@ -105,25 +105,25 @@ model SurveillanceActivity {
 // ── Vaccination Campaigns ──
 
 model VaccinationCampaign {
-  id                  String   @id @default(uuid()) @db.Uuid
-  tenantId            String   @map("tenant_id") @db.Uuid
-  diseaseId           String   @map("disease_id") @db.Uuid
-  speciesId           String   @map("species_id") @db.Uuid
-  vaccineType         String   @map("vaccine_type") @db.VarChar(200)
-  vaccineBatch        String?  @map("vaccine_batch") @db.VarChar(100)
-  dosesDelivered      Int      @map("doses_delivered") @default(0)
-  dosesUsed           Int      @map("doses_used") @default(0)
-  targetPopulation    Int      @map("target_population") @default(0)
-  coverageEstimate    Float    @map("coverage_estimate") @default(0)
-  pveSerologyDone     Boolean  @map("pve_serology_done") @default(false)
-  periodStart         DateTime @map("period_start") @db.Timestamptz
-  periodEnd           DateTime @map("period_end") @db.Timestamptz
-  geoEntityId         String   @map("geo_entity_id") @db.Uuid
-  dataClassification  String   @map("data_classification") @default("PARTNER")
-  createdBy           String   @map("created_by") @db.Uuid
-  updatedBy           String   @map("updated_by") @db.Uuid
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  diseaseId          String   @map("disease_id") @db.Uuid
+  speciesId          String   @map("species_id") @db.Uuid
+  vaccineType        String   @map("vaccine_type") @db.VarChar(200)
+  vaccineBatch       String?  @map("vaccine_batch") @db.VarChar(100)
+  dosesDelivered     Int      @default(0) @map("doses_delivered")
+  dosesUsed          Int      @default(0) @map("doses_used")
+  targetPopulation   Int      @default(0) @map("target_population")
+  coverageEstimate   Float    @default(0) @map("coverage_estimate")
+  pveSerologyDone    Boolean  @default(false) @map("pve_serology_done")
+  periodStart        DateTime @map("period_start") @db.Timestamptz
+  periodEnd          DateTime @map("period_end") @db.Timestamptz
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([tenantId])
   @@index([diseaseId])
@@ -155,7 +155,7 @@ model RefSpeciesGroup {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  species     RefSpecies[]
+  species RefSpecies[]
 
   @@unique([code, scope, ownerId], map: "uq_ref_species_group_code_scope")
   @@index([scope], map: "idx_ref_species_group_scope")
@@ -167,27 +167,27 @@ model RefSpeciesGroup {
 // ── Species ──
 
 model RefSpecies {
-  id              String   @id @default(uuid()) @db.Uuid
-  code            String   @db.VarChar(50)
-  name            Json     @db.JsonB
-  scientificName  String?  @map("scientific_name") @db.VarChar(255)
-  description     Json?    @db.JsonB
-  groupId         String   @map("group_id") @db.Uuid
-  scope           String   @default("continental") @db.VarChar(20)
-  ownerId         String?  @map("owner_id") @db.Uuid
-  ownerType       String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive        Boolean  @default(true) @map("is_active")
-  isDefault       Boolean  @default(false) @map("is_default")
-  sortOrder       Int      @default(0) @map("sort_order")
-  metadata        Json?    @db.JsonB
-  createdBy       String?  @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id             String   @id @default(uuid()) @db.Uuid
+  code           String   @db.VarChar(50)
+  name           Json     @db.JsonB
+  scientificName String?  @map("scientific_name") @db.VarChar(255)
+  description    Json?    @db.JsonB
+  groupId        String   @map("group_id") @db.Uuid
+  scope          String   @default("continental") @db.VarChar(20)
+  ownerId        String?  @map("owner_id") @db.Uuid
+  ownerType      String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive       Boolean  @default(true) @map("is_active")
+  isDefault      Boolean  @default(false) @map("is_default")
+  sortOrder      Int      @default(0) @map("sort_order")
+  metadata       Json?    @db.JsonB
+  createdBy      String?  @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  group           RefSpeciesGroup @relation(fields: [groupId], references: [id])
-  ageGroups       RefAgeGroup[]
-  diseaseSpecies  RefDiseaseSpecies[]
-  breeds          RefBreed[]
+  group          RefSpeciesGroup     @relation(fields: [groupId], references: [id])
+  ageGroups      RefAgeGroup[]
+  diseaseSpecies RefDiseaseSpecies[]
+  breeds         RefBreed[]
 
   @@unique([code, scope, ownerId], map: "uq_ref_species_code_scope")
   @@index([groupId], map: "idx_ref_species_group_id")
@@ -200,24 +200,24 @@ model RefSpecies {
 // ── Age Groups ──
 
 model RefAgeGroup {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @db.VarChar(50)
-  name        Json     @db.JsonB
-  minMonths   Int?     @map("min_months")
-  maxMonths   Int?     @map("max_months")
-  speciesId   String   @map("species_id") @db.Uuid
-  scope       String   @default("continental") @db.VarChar(20)
-  ownerId     String?  @map("owner_id") @db.Uuid
-  ownerType   String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive    Boolean  @default(true) @map("is_active")
-  isDefault   Boolean  @default(false) @map("is_default")
-  sortOrder   Int      @default(0) @map("sort_order")
-  metadata    Json?    @db.JsonB
-  createdBy   String?  @map("created_by") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @db.VarChar(50)
+  name      Json     @db.JsonB
+  minMonths Int?     @map("min_months")
+  maxMonths Int?     @map("max_months")
+  speciesId String   @map("species_id") @db.Uuid
+  scope     String   @default("continental") @db.VarChar(20)
+  ownerId   String?  @map("owner_id") @db.Uuid
+  ownerType String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  isDefault Boolean  @default(false) @map("is_default")
+  sortOrder Int      @default(0) @map("sort_order")
+  metadata  Json?    @db.JsonB
+  createdBy String?  @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  species     RefSpecies @relation(fields: [speciesId], references: [id])
+  species RefSpecies @relation(fields: [speciesId], references: [id])
 
   @@unique([code, speciesId, scope, ownerId], map: "uq_ref_age_group_code_species_scope")
   @@index([speciesId], map: "idx_ref_age_group_species_id")
@@ -229,24 +229,24 @@ model RefAgeGroup {
 // ── Diseases ──
 
 model RefDisease {
-  id              String   @id @default(uuid()) @db.Uuid
-  code            String   @db.VarChar(50)
-  name            Json     @db.JsonB
-  description     Json?    @db.JsonB
-  oieCode         String?  @map("oie_code") @db.VarChar(50)
-  isNotifiable    Boolean  @default(false) @map("is_notifiable")
-  isZoonotic      Boolean  @default(false) @map("is_zoonotic")
-  category        String?  @db.VarChar(50)
-  scope           String   @default("continental") @db.VarChar(20)
-  ownerId         String?  @map("owner_id") @db.Uuid
-  ownerType       String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive        Boolean  @default(true) @map("is_active")
-  isDefault       Boolean  @default(false) @map("is_default")
-  sortOrder       Int      @default(0) @map("sort_order")
-  metadata        Json?    @db.JsonB
-  createdBy       String?  @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id           String   @id @default(uuid()) @db.Uuid
+  code         String   @db.VarChar(50)
+  name         Json     @db.JsonB
+  description  Json?    @db.JsonB
+  oieCode      String?  @map("oie_code") @db.VarChar(50)
+  isNotifiable Boolean  @default(false) @map("is_notifiable")
+  isZoonotic   Boolean  @default(false) @map("is_zoonotic")
+  category     String?  @db.VarChar(50)
+  scope        String   @default("continental") @db.VarChar(20)
+  ownerId      String?  @map("owner_id") @db.Uuid
+  ownerType    String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive     Boolean  @default(true) @map("is_active")
+  isDefault    Boolean  @default(false) @map("is_default")
+  sortOrder    Int      @default(0) @map("sort_order")
+  metadata     Json?    @db.JsonB
+  createdBy    String?  @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   diseaseSpecies  RefDiseaseSpecies[]
   clinicalSigns   RefClinicalSign[]
@@ -264,14 +264,14 @@ model RefDisease {
 // ── Disease-Species Junction ──
 
 model RefDiseaseSpecies {
-  id             String   @id @default(uuid()) @db.Uuid
-  diseaseId      String   @map("disease_id") @db.Uuid
-  speciesId      String   @map("species_id") @db.Uuid
-  susceptibility String?  @db.VarChar(50)
-  notes          Json?    @db.JsonB
+  id             String  @id @default(uuid()) @db.Uuid
+  diseaseId      String  @map("disease_id") @db.Uuid
+  speciesId      String  @map("species_id") @db.Uuid
+  susceptibility String? @db.VarChar(50)
+  notes          Json?   @db.JsonB
 
-  disease        RefDisease @relation(fields: [diseaseId], references: [id])
-  species        RefSpecies @relation(fields: [speciesId], references: [id])
+  disease RefDisease @relation(fields: [diseaseId], references: [id])
+  species RefSpecies @relation(fields: [speciesId], references: [id])
 
   @@unique([diseaseId, speciesId], map: "uq_ref_disease_species")
   @@index([diseaseId], map: "idx_ref_disease_species_disease")
@@ -300,7 +300,7 @@ model RefClinicalSign {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  disease     RefDisease @relation(fields: [diseaseId], references: [id])
+  disease RefDisease @relation(fields: [diseaseId], references: [id])
 
   @@unique([code, diseaseId, scope, ownerId], map: "uq_ref_clinical_sign_code_disease_scope")
   @@index([diseaseId], map: "idx_ref_clinical_sign_disease")
@@ -329,7 +329,7 @@ model RefControlMeasure {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  disease     RefDisease? @relation(fields: [diseaseId], references: [id])
+  disease RefDisease? @relation(fields: [diseaseId], references: [id])
 
   @@unique([code, scope, ownerId], map: "uq_ref_control_measure_code_scope")
   @@index([diseaseId], map: "idx_ref_control_measure_disease")
@@ -417,32 +417,32 @@ model RefContaminationSource {
 // ── Abattoirs ──
 
 model RefAbattoir {
-  id             String    @id @default(uuid()) @db.Uuid
-  code           String    @db.VarChar(50)
-  name           Json      @db.JsonB
-  description    Json?     @db.JsonB
-  type           String    @db.VarChar(50)
-  capacity       Int?
-  latitude       Float?
-  longitude      Float?
-  address        String?   @db.Text
-  adminLevel1    String?   @map("admin_level_1") @db.VarChar(50)
-  adminLevel2    String?   @map("admin_level_2") @db.VarChar(50)
-  adminLevel3    String?   @map("admin_level_3") @db.VarChar(50)
-  contactName    String?   @map("contact_name") @db.VarChar(255)
-  contactPhone   String?   @map("contact_phone") @db.VarChar(50)
-  licenseNumber  String?   @map("license_number") @db.VarChar(100)
-  licenseExpiry  DateTime? @map("license_expiry") @db.Date
-  scope          String    @default("national") @db.VarChar(20)
-  ownerId        String?   @map("owner_id") @db.Uuid
-  ownerType      String    @default("country") @map("owner_type") @db.VarChar(20)
-  isActive       Boolean   @default(true) @map("is_active")
-  isDefault      Boolean   @default(false) @map("is_default")
-  sortOrder      Int       @default(0) @map("sort_order")
-  metadata       Json?     @db.JsonB
-  createdBy      String?   @map("created_by") @db.Uuid
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  id            String    @id @default(uuid()) @db.Uuid
+  code          String    @db.VarChar(50)
+  name          Json      @db.JsonB
+  description   Json?     @db.JsonB
+  type          String    @db.VarChar(50)
+  capacity      Int?
+  latitude      Float?
+  longitude     Float?
+  address       String?   @db.Text
+  adminLevel1   String?   @map("admin_level_1") @db.VarChar(50)
+  adminLevel2   String?   @map("admin_level_2") @db.VarChar(50)
+  adminLevel3   String?   @map("admin_level_3") @db.VarChar(50)
+  contactName   String?   @map("contact_name") @db.VarChar(255)
+  contactPhone  String?   @map("contact_phone") @db.VarChar(50)
+  licenseNumber String?   @map("license_number") @db.VarChar(100)
+  licenseExpiry DateTime? @map("license_expiry") @db.Date
+  scope         String    @default("national") @db.VarChar(20)
+  ownerId       String?   @map("owner_id") @db.Uuid
+  ownerType     String    @default("country") @map("owner_type") @db.VarChar(20)
+  isActive      Boolean   @default(true) @map("is_active")
+  isDefault     Boolean   @default(false) @map("is_default")
+  sortOrder     Int       @default(0) @map("sort_order")
+  metadata      Json?     @db.JsonB
+  createdBy     String?   @map("created_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, ownerId], map: "uq_ref_abattoir_code_owner")
   @@index([scope], map: "idx_ref_abattoir_scope")
@@ -454,20 +454,54 @@ model RefAbattoir {
 // ── Markets ──
 
 model RefMarket {
+  id           String   @id @default(uuid()) @db.Uuid
+  code         String   @db.VarChar(50)
+  name         Json     @db.JsonB
+  description  Json?    @db.JsonB
+  type         String   @db.VarChar(50)
+  frequency    String?  @db.VarChar(50)
+  marketDay    String?  @map("market_day") @db.VarChar(50)
+  capacity     Int?
+  latitude     Float?
+  longitude    Float?
+  address      String?  @db.Text
+  adminLevel1  String?  @map("admin_level_1") @db.VarChar(50)
+  adminLevel2  String?  @map("admin_level_2") @db.VarChar(50)
+  adminLevel3  String?  @map("admin_level_3") @db.VarChar(50)
+  contactName  String?  @map("contact_name") @db.VarChar(255)
+  contactPhone String?  @map("contact_phone") @db.VarChar(50)
+  scope        String   @default("national") @db.VarChar(20)
+  ownerId      String?  @map("owner_id") @db.Uuid
+  ownerType    String   @default("country") @map("owner_type") @db.VarChar(20)
+  isActive     Boolean  @default(true) @map("is_active")
+  isDefault    Boolean  @default(false) @map("is_default")
+  sortOrder    Int      @default(0) @map("sort_order")
+  metadata     Json?    @db.JsonB
+  createdBy    String?  @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, ownerId], map: "uq_ref_market_code_owner")
+  @@index([scope], map: "idx_ref_market_scope")
+  @@index([ownerId], map: "idx_ref_market_owner")
+  @@map("ref_markets")
+  @@schema("animal_health")
+}
+
+// ── Checkpoints ──
+
+model RefCheckpoint {
   id             String   @id @default(uuid()) @db.Uuid
   code           String   @db.VarChar(50)
   name           Json     @db.JsonB
   description    Json?    @db.JsonB
   type           String   @db.VarChar(50)
-  frequency      String?  @db.VarChar(50)
-  marketDay      String?  @map("market_day") @db.VarChar(50)
-  capacity       Int?
+  borderWith     String?  @map("border_with") @db.VarChar(5)
   latitude       Float?
   longitude      Float?
   address        String?  @db.Text
   adminLevel1    String?  @map("admin_level_1") @db.VarChar(50)
-  adminLevel2    String?  @map("admin_level_2") @db.VarChar(50)
-  adminLevel3    String?  @map("admin_level_3") @db.VarChar(50)
+  operatingHours String?  @map("operating_hours") @db.VarChar(100)
   contactName    String?  @map("contact_name") @db.VarChar(255)
   contactPhone   String?  @map("contact_phone") @db.VarChar(50)
   scope          String   @default("national") @db.VarChar(20)
@@ -480,40 +514,6 @@ model RefMarket {
   createdBy      String?  @map("created_by") @db.Uuid
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
-
-  @@unique([code, ownerId], map: "uq_ref_market_code_owner")
-  @@index([scope], map: "idx_ref_market_scope")
-  @@index([ownerId], map: "idx_ref_market_owner")
-  @@map("ref_markets")
-  @@schema("animal_health")
-}
-
-// ── Checkpoints ──
-
-model RefCheckpoint {
-  id              String   @id @default(uuid()) @db.Uuid
-  code            String   @db.VarChar(50)
-  name            Json     @db.JsonB
-  description     Json?    @db.JsonB
-  type            String   @db.VarChar(50)
-  borderWith      String?  @map("border_with") @db.VarChar(5)
-  latitude        Float?
-  longitude       Float?
-  address         String?  @db.Text
-  adminLevel1     String?  @map("admin_level_1") @db.VarChar(50)
-  operatingHours  String?  @map("operating_hours") @db.VarChar(100)
-  contactName     String?  @map("contact_name") @db.VarChar(255)
-  contactPhone    String?  @map("contact_phone") @db.VarChar(50)
-  scope           String   @default("national") @db.VarChar(20)
-  ownerId         String?  @map("owner_id") @db.Uuid
-  ownerType       String   @default("country") @map("owner_type") @db.VarChar(20)
-  isActive        Boolean  @default(true) @map("is_active")
-  isDefault       Boolean  @default(false) @map("is_default")
-  sortOrder       Int      @default(0) @map("sort_order")
-  metadata        Json?    @db.JsonB
-  createdBy       String?  @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, ownerId], map: "uq_ref_checkpoint_code_owner")
   @@index([scope], map: "idx_ref_checkpoint_scope")
@@ -529,7 +529,7 @@ model RefProductionSystem {
   code        String   @db.VarChar(50)
   name        Json     @db.JsonB
   description Json?    @db.JsonB
-  category    String?  @db.VarChar(50)    // intensive, extensive, mixed, pastoral, agropastoral
+  category    String?  @db.VarChar(50) // intensive, extensive, mixed, pastoral, agropastoral
   scope       String   @default("continental") @db.VarChar(20)
   ownerId     String?  @map("owner_id") @db.Uuid
   ownerType   String   @default("continental") @map("owner_type") @db.VarChar(20)
@@ -569,7 +569,7 @@ model RefBreed {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  species     RefSpecies @relation(fields: [speciesId], references: [id])
+  species RefSpecies @relation(fields: [speciesId], references: [id])
 
   @@unique([code, speciesId, scope, ownerId], map: "uq_ref_breed_code_species_scope")
   @@index([speciesId], map: "idx_ref_breed_species_id")
@@ -581,27 +581,27 @@ model RefBreed {
 // ── Vaccine Types ──
 
 model RefVaccineType {
-  id              String   @id @default(uuid()) @db.Uuid
-  code            String   @db.VarChar(50)
-  name            Json     @db.JsonB
-  description     Json?    @db.JsonB
-  diseaseId       String   @map("disease_id") @db.Uuid
-  vaccineClass    String?  @map("vaccine_class") @db.VarChar(50) // live, inactivated, subunit, vectored
-  manufacturer    String?  @db.VarChar(200)
-  routeOfAdmin    String?  @map("route_of_admin") @db.VarChar(50)
-  dosesRequired   Int?     @map("doses_required")
-  scope           String   @default("continental") @db.VarChar(20)
-  ownerId         String?  @map("owner_id") @db.Uuid
-  ownerType       String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive        Boolean  @default(true) @map("is_active")
-  isDefault       Boolean  @default(false) @map("is_default")
-  sortOrder       Int      @default(0) @map("sort_order")
-  metadata        Json?    @db.JsonB
-  createdBy       String?  @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id            String   @id @default(uuid()) @db.Uuid
+  code          String   @db.VarChar(50)
+  name          Json     @db.JsonB
+  description   Json?    @db.JsonB
+  diseaseId     String   @map("disease_id") @db.Uuid
+  vaccineClass  String?  @map("vaccine_class") @db.VarChar(50) // live, inactivated, subunit, vectored
+  manufacturer  String?  @db.VarChar(200)
+  routeOfAdmin  String?  @map("route_of_admin") @db.VarChar(50)
+  dosesRequired Int?     @map("doses_required")
+  scope         String   @default("continental") @db.VarChar(20)
+  ownerId       String?  @map("owner_id") @db.Uuid
+  ownerType     String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive      Boolean  @default(true) @map("is_active")
+  isDefault     Boolean  @default(false) @map("is_default")
+  sortOrder     Int      @default(0) @map("sort_order")
+  metadata      Json?    @db.JsonB
+  createdBy     String?  @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  disease         RefDisease @relation(fields: [diseaseId], references: [id])
+  disease RefDisease @relation(fields: [diseaseId], references: [id])
 
   @@unique([code, diseaseId, scope, ownerId], map: "uq_ref_vaccine_type_code_disease_scope")
   @@index([diseaseId], map: "idx_ref_vaccine_type_disease")
@@ -613,22 +613,22 @@ model RefVaccineType {
 // ── Test Types ──
 
 model RefTestType {
-  id              String   @id @default(uuid()) @db.Uuid
-  code            String   @db.VarChar(50)
-  name            Json     @db.JsonB
-  description     Json?    @db.JsonB
-  testCategory    String?  @map("test_category") @db.VarChar(50) // serology, pcr, antigen, culture, microscopy, rapid
-  turnaroundDays  Int?     @map("turnaround_days")
-  scope           String   @default("continental") @db.VarChar(20)
-  ownerId         String?  @map("owner_id") @db.Uuid
-  ownerType       String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive        Boolean  @default(true) @map("is_active")
-  isDefault       Boolean  @default(false) @map("is_default")
-  sortOrder       Int      @default(0) @map("sort_order")
-  metadata        Json?    @db.JsonB
-  createdBy       String?  @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id             String   @id @default(uuid()) @db.Uuid
+  code           String   @db.VarChar(50)
+  name           Json     @db.JsonB
+  description    Json?    @db.JsonB
+  testCategory   String?  @map("test_category") @db.VarChar(50) // serology, pcr, antigen, culture, microscopy, rapid
+  turnaroundDays Int?     @map("turnaround_days")
+  scope          String   @default("continental") @db.VarChar(20)
+  ownerId        String?  @map("owner_id") @db.Uuid
+  ownerType      String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive       Boolean  @default(true) @map("is_active")
+  isDefault      Boolean  @default(false) @map("is_default")
+  sortOrder      Int      @default(0) @map("sort_order")
+  metadata       Json?    @db.JsonB
+  createdBy      String?  @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, scope, ownerId], map: "uq_ref_test_type_code_scope")
   @@index([scope], map: "idx_ref_test_type_scope")
@@ -639,28 +639,28 @@ model RefTestType {
 // ── Laboratories ──
 
 model RefLab {
-  id              String   @id @default(uuid()) @db.Uuid
-  code            String   @db.VarChar(50)
-  name            Json     @db.JsonB
-  description     Json?    @db.JsonB
-  labLevel        String?  @map("lab_level") @db.VarChar(50) // national, regional, reference, field
-  bslLevel        Int?     @map("bsl_level") // 1-4
-  accreditation   String?  @db.VarChar(200)
-  latitude        Float?
-  longitude       Float?
-  address         String?  @db.Text
-  contactName     String?  @map("contact_name") @db.VarChar(255)
-  contactPhone    String?  @map("contact_phone") @db.VarChar(50)
-  scope           String   @default("national") @db.VarChar(20)
-  ownerId         String?  @map("owner_id") @db.Uuid
-  ownerType       String   @default("country") @map("owner_type") @db.VarChar(20)
-  isActive        Boolean  @default(true) @map("is_active")
-  isDefault       Boolean  @default(false) @map("is_default")
-  sortOrder       Int      @default(0) @map("sort_order")
-  metadata        Json?    @db.JsonB
-  createdBy       String?  @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id            String   @id @default(uuid()) @db.Uuid
+  code          String   @db.VarChar(50)
+  name          Json     @db.JsonB
+  description   Json?    @db.JsonB
+  labLevel      String?  @map("lab_level") @db.VarChar(50) // national, regional, reference, field
+  bslLevel      Int?     @map("bsl_level") // 1-4
+  accreditation String?  @db.VarChar(200)
+  latitude      Float?
+  longitude     Float?
+  address       String?  @db.Text
+  contactName   String?  @map("contact_name") @db.VarChar(255)
+  contactPhone  String?  @map("contact_phone") @db.VarChar(50)
+  scope         String   @default("national") @db.VarChar(20)
+  ownerId       String?  @map("owner_id") @db.Uuid
+  ownerType     String   @default("country") @map("owner_type") @db.VarChar(20)
+  isActive      Boolean  @default(true) @map("is_active")
+  isDefault     Boolean  @default(false) @map("is_default")
+  sortOrder     Int      @default(0) @map("sort_order")
+  metadata      Json?    @db.JsonB
+  createdBy     String?  @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, ownerId], map: "uq_ref_lab_code_owner")
   @@index([scope], map: "idx_ref_lab_scope")
@@ -722,21 +722,21 @@ model RefCensusMethodology {
 // ── Gear Types (Fisheries) ──
 
 model RefGearType {
-  id            String   @id @default(uuid()) @db.Uuid
-  code          String   @db.VarChar(50)
-  name          Json     @db.JsonB
-  description   Json?    @db.JsonB
-  gearCategory  String?  @map("gear_category") @db.VarChar(50) // trawl, net, line, trap, other
-  scope         String   @default("continental") @db.VarChar(20)
-  ownerId       String?  @map("owner_id") @db.Uuid
-  ownerType     String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive      Boolean  @default(true) @map("is_active")
-  isDefault     Boolean  @default(false) @map("is_default")
-  sortOrder     Int      @default(0) @map("sort_order")
-  metadata      Json?    @db.JsonB
-  createdBy     String?  @map("created_by") @db.Uuid
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id           String   @id @default(uuid()) @db.Uuid
+  code         String   @db.VarChar(50)
+  name         Json     @db.JsonB
+  description  Json?    @db.JsonB
+  gearCategory String?  @map("gear_category") @db.VarChar(50) // trawl, net, line, trap, other
+  scope        String   @default("continental") @db.VarChar(20)
+  ownerId      String?  @map("owner_id") @db.Uuid
+  ownerType    String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive     Boolean  @default(true) @map("is_active")
+  isDefault    Boolean  @default(false) @map("is_default")
+  sortOrder    Int      @default(0) @map("sort_order")
+  metadata     Json?    @db.JsonB
+  createdBy    String?  @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, scope, ownerId], map: "uq_ref_gear_type_code_scope")
   @@index([scope], map: "idx_ref_gear_type_scope")
@@ -747,22 +747,22 @@ model RefGearType {
 // ── Vessel Types (Fisheries) ──
 
 model RefVesselType {
-  id              String   @id @default(uuid()) @db.Uuid
-  code            String   @db.VarChar(50)
-  name            Json     @db.JsonB
-  description     Json?    @db.JsonB
-  lengthCategory  String?  @map("length_category") @db.VarChar(20) // small, medium, large
-  propulsionType  String?  @map("propulsion_type") @db.VarChar(50)
-  scope           String   @default("continental") @db.VarChar(20)
-  ownerId         String?  @map("owner_id") @db.Uuid
-  ownerType       String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive        Boolean  @default(true) @map("is_active")
-  isDefault       Boolean  @default(false) @map("is_default")
-  sortOrder       Int      @default(0) @map("sort_order")
-  metadata        Json?    @db.JsonB
-  createdBy       String?  @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id             String   @id @default(uuid()) @db.Uuid
+  code           String   @db.VarChar(50)
+  name           Json     @db.JsonB
+  description    Json?    @db.JsonB
+  lengthCategory String?  @map("length_category") @db.VarChar(20) // small, medium, large
+  propulsionType String?  @map("propulsion_type") @db.VarChar(50)
+  scope          String   @default("continental") @db.VarChar(20)
+  ownerId        String?  @map("owner_id") @db.Uuid
+  ownerType      String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive       Boolean  @default(true) @map("is_active")
+  isDefault      Boolean  @default(false) @map("is_default")
+  sortOrder      Int      @default(0) @map("sort_order")
+  metadata       Json?    @db.JsonB
+  createdBy      String?  @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, scope, ownerId], map: "uq_ref_vessel_type_code_scope")
   @@index([scope], map: "idx_ref_vessel_type_scope")
@@ -829,21 +829,21 @@ model RefLandingSite {
 // ── Conservation Statuses (Wildlife) ──
 
 model RefConservationStatus {
-  id        String   @id @default(uuid()) @db.Uuid
-  code      String   @db.VarChar(50)
-  name      Json     @db.JsonB
-  description Json?  @db.JsonB
-  iucnCode  String?  @map("iucn_code") @db.VarChar(5) // LC, NT, VU, EN, CR, EW, EX
-  scope     String   @default("continental") @db.VarChar(20)
-  ownerId   String?  @map("owner_id") @db.Uuid
-  ownerType String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive  Boolean  @default(true) @map("is_active")
-  isDefault Boolean  @default(false) @map("is_default")
-  sortOrder Int      @default(0) @map("sort_order")
-  metadata  Json?    @db.JsonB
-  createdBy String?  @map("created_by") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(50)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  iucnCode    String?  @map("iucn_code") @db.VarChar(5) // LC, NT, VU, EN, CR, EW, EX
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, scope, ownerId], map: "uq_ref_conservation_status_code_scope")
   @@index([scope], map: "idx_ref_conservation_status_scope")
@@ -854,21 +854,21 @@ model RefConservationStatus {
 // ── Habitat Types (Wildlife) ──
 
 model RefHabitatType {
-  id        String   @id @default(uuid()) @db.Uuid
-  code      String   @db.VarChar(50)
-  name      Json     @db.JsonB
-  description Json?  @db.JsonB
-  biome     String?  @db.VarChar(50) // forest, savanna, wetland, desert, marine, mountain, grassland
-  scope     String   @default("continental") @db.VarChar(20)
-  ownerId   String?  @map("owner_id") @db.Uuid
-  ownerType String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive  Boolean  @default(true) @map("is_active")
-  isDefault Boolean  @default(false) @map("is_default")
-  sortOrder Int      @default(0) @map("sort_order")
-  metadata  Json?    @db.JsonB
-  createdBy String?  @map("created_by") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(50)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  biome       String?  @db.VarChar(50) // forest, savanna, wetland, desert, marine, mountain, grassland
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, scope, ownerId], map: "uq_ref_habitat_type_code_scope")
   @@index([scope], map: "idx_ref_habitat_type_scope")
@@ -904,22 +904,22 @@ model RefCrimeType {
 // ── Commodities (Trade & SPS) ──
 
 model RefCommodity {
-  id              String   @id @default(uuid()) @db.Uuid
-  code            String   @db.VarChar(50)
-  name            Json     @db.JsonB
-  description     Json?    @db.JsonB
-  hsCode          String?  @map("hs_code") @db.VarChar(20)
-  commodityGroup  String?  @map("commodity_group") @db.VarChar(50) // live-animals, meat, dairy, fish, hides, honey, feed
-  scope           String   @default("continental") @db.VarChar(20)
-  ownerId         String?  @map("owner_id") @db.Uuid
-  ownerType       String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive        Boolean  @default(true) @map("is_active")
-  isDefault       Boolean  @default(false) @map("is_default")
-  sortOrder       Int      @default(0) @map("sort_order")
-  metadata        Json?    @db.JsonB
-  createdBy       String?  @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id             String   @id @default(uuid()) @db.Uuid
+  code           String   @db.VarChar(50)
+  name           Json     @db.JsonB
+  description    Json?    @db.JsonB
+  hsCode         String?  @map("hs_code") @db.VarChar(20)
+  commodityGroup String?  @map("commodity_group") @db.VarChar(50) // live-animals, meat, dairy, fish, hides, honey, feed
+  scope          String   @default("continental") @db.VarChar(20)
+  ownerId        String?  @map("owner_id") @db.Uuid
+  ownerType      String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive       Boolean  @default(true) @map("is_active")
+  isDefault      Boolean  @default(false) @map("is_default")
+  sortOrder      Int      @default(0) @map("sort_order")
+  metadata       Json?    @db.JsonB
+  createdBy      String?  @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, scope, ownerId], map: "uq_ref_commodity_code_scope")
   @@index([scope], map: "idx_ref_commodity_scope")
@@ -930,21 +930,21 @@ model RefCommodity {
 // ── Hive Types (Apiculture) ──
 
 model RefHiveType {
-  id            String   @id @default(uuid()) @db.Uuid
-  code          String   @db.VarChar(50)
-  name          Json     @db.JsonB
-  description   Json?    @db.JsonB
-  hiveCategory  String?  @map("hive_category") @db.VarChar(50) // langstroth, top-bar, traditional, log, warre
-  scope         String   @default("continental") @db.VarChar(20)
-  ownerId       String?  @map("owner_id") @db.Uuid
-  ownerType     String   @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive      Boolean  @default(true) @map("is_active")
-  isDefault     Boolean  @default(false) @map("is_default")
-  sortOrder     Int      @default(0) @map("sort_order")
-  metadata      Json?    @db.JsonB
-  createdBy     String?  @map("created_by") @db.Uuid
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id           String   @id @default(uuid()) @db.Uuid
+  code         String   @db.VarChar(50)
+  name         Json     @db.JsonB
+  description  Json?    @db.JsonB
+  hiveCategory String?  @map("hive_category") @db.VarChar(50) // langstroth, top-bar, traditional, log, warre
+  scope        String   @default("continental") @db.VarChar(20)
+  ownerId      String?  @map("owner_id") @db.Uuid
+  ownerType    String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive     Boolean  @default(true) @map("is_active")
+  isDefault    Boolean  @default(false) @map("is_default")
+  sortOrder    Int      @default(0) @map("sort_order")
+  metadata     Json?    @db.JsonB
+  createdBy    String?  @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, scope, ownerId], map: "uq_ref_hive_type_code_scope")
   @@index([scope], map: "idx_ref_hive_type_scope")
@@ -1032,21 +1032,21 @@ model RefLegalFrameworkType {
 // ── Stakeholder Types (Governance) ──
 
 model RefStakeholderType {
-  id      String   @id @default(uuid()) @db.Uuid
-  code    String   @db.VarChar(50)
-  name    Json     @db.JsonB
-  description Json? @db.JsonB
-  sector  String?  @db.VarChar(50) // public, private, ngo, international, academic, research
-  scope   String   @default("continental") @db.VarChar(20)
-  ownerId String?  @map("owner_id") @db.Uuid
-  ownerType String @default("continental") @map("owner_type") @db.VarChar(20)
-  isActive  Boolean @default(true) @map("is_active")
-  isDefault Boolean @default(false) @map("is_default")
-  sortOrder Int     @default(0) @map("sort_order")
-  metadata  Json?   @db.JsonB
-  createdBy String? @map("created_by") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(50)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  sector      String?  @db.VarChar(50) // public, private, ngo, international, academic, research
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("continental") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, scope, ownerId], map: "uq_ref_stakeholder_type_code_scope")
   @@index([scope], map: "idx_ref_stakeholder_type_scope")
@@ -1057,42 +1057,42 @@ model RefStakeholderType {
 // ── Infrastructures & Institutions ──
 
 model RefInfrastructure {
-  id               String    @id @default(uuid()) @db.Uuid
-  code             String    @db.VarChar(50)
-  name             Json      @db.JsonB
-  description      Json?     @db.JsonB
-  category         String    @db.VarChar(50)
-  subType          String    @map("sub_type") @db.VarChar(50)
-  year             Int?
-  yearEstablished  Int?      @map("year_established")
-  countryCode      String?   @map("country_code") @db.VarChar(3)
-  adminLevel1      String?   @map("admin_level_1") @db.VarChar(50)
-  adminLevel2      String?   @map("admin_level_2") @db.VarChar(50)
-  adminLevel3      String?   @map("admin_level_3") @db.VarChar(50)
-  adminLevel4      String?   @map("admin_level_4") @db.VarChar(50)
-  adminLevel5      String?   @map("admin_level_5") @db.VarChar(50)
-  locationName     String?   @map("location_name") @db.VarChar(255)
-  latitude         Float?
-  longitude        Float?
-  abbreviation     String?   @db.VarChar(50)
-  quantity         Int?
-  capacity         Int?
-  contactPerson    String?   @map("contact_person") @db.VarChar(255)
-  address          String?   @db.Text
-  email            String?   @db.VarChar(255)
-  telephone        String?   @db.VarChar(50)
-  status           String    @default("operational") @db.VarChar(50)
-  comment          String?   @db.Text
-  scope            String    @default("national") @db.VarChar(20)
-  ownerId          String?   @map("owner_id") @db.Uuid
-  ownerType        String    @default("country") @map("owner_type") @db.VarChar(20)
-  isActive         Boolean   @default(true) @map("is_active")
-  isDefault        Boolean   @default(false) @map("is_default")
-  sortOrder        Int       @default(0) @map("sort_order")
-  metadata         Json?     @db.JsonB
-  createdBy        String?   @map("created_by") @db.Uuid
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  id              String   @id @default(uuid()) @db.Uuid
+  code            String   @db.VarChar(50)
+  name            Json     @db.JsonB
+  description     Json?    @db.JsonB
+  category        String   @db.VarChar(50)
+  subType         String   @map("sub_type") @db.VarChar(50)
+  year            Int?
+  yearEstablished Int?     @map("year_established")
+  countryCode     String?  @map("country_code") @db.VarChar(3)
+  adminLevel1     String?  @map("admin_level_1") @db.VarChar(50)
+  adminLevel2     String?  @map("admin_level_2") @db.VarChar(50)
+  adminLevel3     String?  @map("admin_level_3") @db.VarChar(50)
+  adminLevel4     String?  @map("admin_level_4") @db.VarChar(50)
+  adminLevel5     String?  @map("admin_level_5") @db.VarChar(50)
+  locationName    String?  @map("location_name") @db.VarChar(255)
+  latitude        Float?
+  longitude       Float?
+  abbreviation    String?  @db.VarChar(50)
+  quantity        Int?
+  capacity        Int?
+  contactPerson   String?  @map("contact_person") @db.VarChar(255)
+  address         String?  @db.Text
+  email           String?  @db.VarChar(255)
+  telephone       String?  @db.VarChar(50)
+  status          String   @default("operational") @db.VarChar(50)
+  comment         String?  @db.Text
+  scope           String   @default("national") @db.VarChar(20)
+  ownerId         String?  @map("owner_id") @db.Uuid
+  ownerType       String   @default("country") @map("owner_type") @db.VarChar(20)
+  isActive        Boolean  @default(true) @map("is_active")
+  isDefault       Boolean  @default(false) @map("is_default")
+  sortOrder       Int      @default(0) @map("sort_order")
+  metadata        Json?    @db.JsonB
+  createdBy       String?  @map("created_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, ownerId], map: "uq_ref_infrastructure_code_owner")
   @@index([category], map: "idx_ref_infrastructure_category")
@@ -1108,21 +1108,21 @@ model RefInfrastructure {
 // ── Diagnosis & Clinical ──
 
 model RefDiagnosisBasis {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @db.VarChar(20)
-  name        Json     @db.JsonB
-  description Json?    @db.JsonB
-  abbreviation String? @db.VarChar(20)
-  scope       String   @default("continental") @db.VarChar(20)
-  ownerId     String?  @map("owner_id") @db.Uuid
-  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
-  isActive    Boolean  @default(true) @map("is_active")
-  isDefault   Boolean  @default(false) @map("is_default")
-  sortOrder   Int      @default(0) @map("sort_order")
-  metadata    Json?    @db.JsonB
-  createdBy   String?  @map("created_by") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id           String   @id @default(uuid()) @db.Uuid
+  code         String   @db.VarChar(20)
+  name         Json     @db.JsonB
+  description  Json?    @db.JsonB
+  abbreviation String?  @db.VarChar(20)
+  scope        String   @default("continental") @db.VarChar(20)
+  ownerId      String?  @map("owner_id") @db.Uuid
+  ownerType    String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive     Boolean  @default(true) @map("is_active")
+  isDefault    Boolean  @default(false) @map("is_default")
+  sortOrder    Int      @default(0) @map("sort_order")
+  metadata     Json?    @db.JsonB
+  createdBy    String?  @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([code, scope, ownerId], map: "uq_ref_diagnosis_basis_code_scope")
   @@index([scope], map: "idx_ref_diagnosis_basis_scope")
@@ -1415,12 +1415,12 @@ model SVCapacity {
   id                        String   @id @default(uuid()) @db.Uuid
   tenantId                  String   @map("tenant_id") @db.Uuid
   year                      Int
-  epiStaff                  Int      @map("epi_staff") @default(0)
-  labStaff                  Int      @map("lab_staff") @default(0)
+  epiStaff                  Int      @default(0) @map("epi_staff")
+  labStaff                  Int      @default(0) @map("lab_staff")
   labTestsAvailable         String[] @map("lab_tests_available")
   vaccineProductionCapacity Int?     @map("vaccine_production_capacity")
-  vetServicesScore           Float?   @map("pvs_score")
-  dataClassification        String   @map("data_classification") @default("PARTNER")
+  vetServicesScore          Float?   @map("pvs_score")
+  dataClassification        String   @default("PARTNER") @map("data_classification")
   createdBy                 String   @map("created_by") @db.Uuid
   updatedBy                 String   @map("updated_by") @db.Uuid
   createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz

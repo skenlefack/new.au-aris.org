@@ -25,51 +25,51 @@
 // isSystem = true marks the auto-seeded default categories that cannot be deleted.
 
 model KnowledgeCategory {
-  id              String   @id @default(uuid()) @db.Uuid
-  parentId        String?  @map("parent_id") @db.Uuid
-  parent          KnowledgeCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  children        KnowledgeCategory[] @relation("CategoryTree")
+  id       String              @id @default(uuid()) @db.Uuid
+  parentId String?             @map("parent_id") @db.Uuid
+  parent   KnowledgeCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  children KnowledgeCategory[] @relation("CategoryTree")
 
-  slug            String   @unique @db.VarChar(200)
+  slug String @unique @db.VarChar(200)
 
   // Multilingual labels (required EN, optional others)
-  nameEn          String   @map("name_en") @db.VarChar(200)
-  nameFr          String?  @map("name_fr") @db.VarChar(200)
-  namePt          String?  @map("name_pt") @db.VarChar(200)
-  nameAr          String?  @map("name_ar") @db.VarChar(200)
+  nameEn String  @map("name_en") @db.VarChar(200)
+  nameFr String? @map("name_fr") @db.VarChar(200)
+  namePt String? @map("name_pt") @db.VarChar(200)
+  nameAr String? @map("name_ar") @db.VarChar(200)
 
-  descriptionEn   String?  @map("description_en") @db.Text
-  descriptionFr   String?  @map("description_fr") @db.Text
-  descriptionPt   String?  @map("description_pt") @db.Text
-  descriptionAr   String?  @map("description_ar") @db.Text
+  descriptionEn String? @map("description_en") @db.Text
+  descriptionFr String? @map("description_fr") @db.Text
+  descriptionPt String? @map("description_pt") @db.Text
+  descriptionAr String? @map("description_ar") @db.Text
 
   // Scope of publishing rights
-  scope           String   @db.VarChar(20)                       // CONTINENTAL | REC | COUNTRY
-  scopeTenantId   String?  @map("scope_tenant_id") @db.Uuid      // null if CONTINENTAL ; REC tenant id ; or country tenant id
-  recParentTenantId String? @map("rec_parent_tenant_id") @db.Uuid  // for COUNTRY scope: the REC tenant id of that country (enables REC users to publish in their member countries)
+  scope             String  @db.VarChar(20) // CONTINENTAL | REC | COUNTRY
+  scopeTenantId     String? @map("scope_tenant_id") @db.Uuid // null if CONTINENTAL ; REC tenant id ; or country tenant id
+  recParentTenantId String? @map("rec_parent_tenant_id") @db.Uuid // for COUNTRY scope: the REC tenant id of that country (enables REC users to publish in their member countries)
 
-  icon            String?  @db.VarChar(50)
-  color           String?  @db.VarChar(20)
-  sortOrder       Int      @default(0) @map("sort_order")
-  isSystem        Boolean  @default(false) @map("is_system")
-  isActive        Boolean  @default(true)  @map("is_active")
+  icon      String? @db.VarChar(50)
+  color     String? @db.VarChar(20)
+  sortOrder Int     @default(0) @map("sort_order")
+  isSystem  Boolean @default(false) @map("is_system")
+  isActive  Boolean @default(true) @map("is_active")
 
   // ── Submission workflow ──
   // Categories proposed by REC or COUNTRY users start as PENDING and must be
   // approved by a continental KNOWLEDGE_MANAGER before they appear in the
   // publication picker. System categories (isSystem=true) are auto-APPROVED.
-  status          String   @db.VarChar(20) @default("APPROVED")  // PENDING | APPROVED | REJECTED
-  submittedBy     String?  @map("submitted_by") @db.Uuid
+  status          String    @default("APPROVED") @db.VarChar(20) // PENDING | APPROVED | REJECTED
+  submittedBy     String?   @map("submitted_by") @db.Uuid
   submittedAt     DateTime? @map("submitted_at") @db.Timestamptz
-  reviewedBy      String?  @map("reviewed_by") @db.Uuid
+  reviewedBy      String?   @map("reviewed_by") @db.Uuid
   reviewedAt      DateTime? @map("reviewed_at") @db.Timestamptz
-  rejectionReason String?  @map("rejection_reason") @db.Text
+  rejectionReason String?   @map("rejection_reason") @db.Text
 
-  createdBy       String?  @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy String?  @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  publications    KnowledgePublication[]
+  publications KnowledgePublication[]
 
   @@index([parentId, sortOrder])
   @@index([scope, scopeTenantId])
@@ -86,55 +86,55 @@ model KnowledgeCategory {
 // Type discriminates the kind of content; render template chosen by frontend.
 
 model KnowledgePublication {
-  id              String   @id @default(uuid()) @db.Uuid
-  tenantId        String   @map("tenant_id") @db.Uuid
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
 
-  categoryId      String   @map("category_id") @db.Uuid
-  category        KnowledgeCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  categoryId String            @map("category_id") @db.Uuid
+  category   KnowledgeCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   // Multilingual content (JSON: { en, fr, pt, ar })
   // title is the only required language field at creation (default = author locale).
-  title           Json                                          // { en?: string, fr?: string, pt?: string, ar?: string }
-  summary         Json?                                         // short description per locale
-  contentHtml     Json     @map("content_html")                 // TinyMCE HTML output per locale
-  contentText     Json?    @map("content_text")                 // stripped plain text for search indexing per locale
+  title       Json // { en?: string, fr?: string, pt?: string, ar?: string }
+  summary     Json? // short description per locale
+  contentHtml Json  @map("content_html") // TinyMCE HTML output per locale
+  contentText Json? @map("content_text") // stripped plain text for search indexing per locale
 
-  slug            String   @unique @db.VarChar(250)
-  type            String   @db.VarChar(30)                      // ARTICLE | REPORT | BRIEF | GUIDELINE | NEWS | EVENT | FAQ | DATASET | INFOGRAPHIC | VIDEO | ANNOUNCEMENT
+  slug String @unique @db.VarChar(250)
+  type String @db.VarChar(30) // ARTICLE | REPORT | BRIEF | GUIDELINE | NEWS | EVENT | FAQ | DATASET | INFOGRAPHIC | VIDEO | ANNOUNCEMENT
 
   // Workflow
-  status          String   @db.VarChar(20) @default("DRAFT")    // DRAFT | SUBMITTED | UNDER_REVIEW | APPROVED | REJECTED | PUBLISHED | ARCHIVED
-  visibility      String   @db.VarChar(20) @default("PUBLIC")   // PUBLIC | PRIVATE
-  dataClassification String @map("data_classification") @db.VarChar(20) @default("PUBLIC")
+  status             String @default("DRAFT") @db.VarChar(20) // DRAFT | SUBMITTED | UNDER_REVIEW | APPROVED | REJECTED | PUBLISHED | ARCHIVED
+  visibility         String @default("PUBLIC") @db.VarChar(20) // PUBLIC | PRIVATE
+  dataClassification String @default("PUBLIC") @map("data_classification") @db.VarChar(20)
 
-  authors         String[]
-  tags            String[]
-  coverImageId    String?  @map("cover_image_id") @db.Uuid      // FileRecord (drive)
+  authors      String[]
+  tags         String[]
+  coverImageId String?  @map("cover_image_id") @db.Uuid // FileRecord (drive)
 
   // Workflow audit trail
-  createdBy       String   @map("created_by") @db.Uuid
-  updatedBy       String   @map("updated_by") @db.Uuid
+  createdBy       String    @map("created_by") @db.Uuid
+  updatedBy       String    @map("updated_by") @db.Uuid
   submittedAt     DateTime? @map("submitted_at") @db.Timestamptz
-  reviewedBy      String?  @map("reviewed_by") @db.Uuid
+  reviewedBy      String?   @map("reviewed_by") @db.Uuid
   reviewedAt      DateTime? @map("reviewed_at") @db.Timestamptz
-  rejectionReason String?  @map("rejection_reason") @db.Text
+  rejectionReason String?   @map("rejection_reason") @db.Text
   publishedAt     DateTime? @map("published_at") @db.Timestamptz
-  publishedBy     String?  @map("published_by") @db.Uuid
+  publishedBy     String?   @map("published_by") @db.Uuid
   archivedAt      DateTime? @map("archived_at") @db.Timestamptz
 
   // SEO / metadata
-  metaTitle       Json?    @map("meta_title")
-  metaDescription Json?    @map("meta_description")
+  metaTitle       Json? @map("meta_title")
+  metaDescription Json? @map("meta_description")
 
   // Counters
-  viewCount       Int      @default(0) @map("view_count")
-  downloadCount   Int      @default(0) @map("download_count")
+  viewCount     Int @default(0) @map("view_count")
+  downloadCount Int @default(0) @map("download_count")
 
-  attachments     KnowledgePublicationAttachment[]
-  reviews         KnowledgePublicationReview[]
+  attachments KnowledgePublicationAttachment[]
+  reviews     KnowledgePublicationReview[]
 
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([tenantId, status])
   @@index([categoryId, status, publishedAt])
@@ -148,16 +148,16 @@ model KnowledgePublication {
 // ── Attachments (multi-file support per publication) ──
 
 model KnowledgePublicationAttachment {
-  id              String   @id @default(uuid()) @db.Uuid
-  publicationId   String   @map("publication_id") @db.Uuid
-  publication     KnowledgePublication @relation(fields: [publicationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id            String               @id @default(uuid()) @db.Uuid
+  publicationId String               @map("publication_id") @db.Uuid
+  publication   KnowledgePublication @relation(fields: [publicationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  fileId          String   @map("file_id") @db.Uuid              // FileRecord (drive-service)
-  caption         String?  @db.VarChar(500)
-  kind            String   @db.VarChar(20)                       // DOCUMENT | IMAGE | VIDEO | AUDIO | ARCHIVE | OTHER
-  sortOrder       Int      @default(0) @map("sort_order")
+  fileId    String  @map("file_id") @db.Uuid // FileRecord (drive-service)
+  caption   String? @db.VarChar(500)
+  kind      String  @db.VarChar(20) // DOCUMENT | IMAGE | VIDEO | AUDIO | ARCHIVE | OTHER
+  sortOrder Int     @default(0) @map("sort_order")
 
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@index([publicationId, sortOrder])
   @@map("knowledge_publication_attachments")
@@ -167,20 +167,19 @@ model KnowledgePublicationAttachment {
 // ── Review trail (validation history) ──
 
 model KnowledgePublicationReview {
-  id              String   @id @default(uuid()) @db.Uuid
-  publicationId   String   @map("publication_id") @db.Uuid
-  publication     KnowledgePublication @relation(fields: [publicationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id            String               @id @default(uuid()) @db.Uuid
+  publicationId String               @map("publication_id") @db.Uuid
+  publication   KnowledgePublication @relation(fields: [publicationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  reviewerId      String   @map("reviewer_id") @db.Uuid
-  reviewerRole    String   @map("reviewer_role") @db.VarChar(40)
-  decision        String   @db.VarChar(20)                       // APPROVED | REJECTED | REQUEST_CHANGES | COMMENT
-  comment         String?  @db.Text
+  reviewerId   String  @map("reviewer_id") @db.Uuid
+  reviewerRole String  @map("reviewer_role") @db.VarChar(40)
+  decision     String  @db.VarChar(20) // APPROVED | REJECTED | REQUEST_CHANGES | COMMENT
+  comment      String? @db.Text
 
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@index([publicationId, createdAt])
   @@index([reviewerId])
   @@map("knowledge_publication_reviews")
   @@schema("knowledge_hub")
 }
-

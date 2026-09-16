@@ -63,15 +63,15 @@ enum MlJobTrigger {
 }
 
 model AiUsageLog {
-  id            String        @id @default(uuid()) @db.Uuid
-  userId        String        @db.Uuid
-  endpoint      String        @db.VarChar(255)
-  model         String        @db.VarChar(128)
-  tokensInput   Int           @default(0)
-  tokensOutput  Int           @default(0)
-  durationMs    Int           @default(0)
-  status        AiUsageStatus @default(SUCCESS)
-  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  id           String        @id @default(uuid()) @db.Uuid
+  userId       String        @db.Uuid
+  endpoint     String        @db.VarChar(255)
+  model        String        @db.VarChar(128)
+  tokensInput  Int           @default(0)
+  tokensOutput Int           @default(0)
+  durationMs   Int           @default(0)
+  status       AiUsageStatus @default(SUCCESS)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
 
   @@index([userId, createdAt])
   @@index([createdAt])
@@ -80,15 +80,15 @@ model AiUsageLog {
 }
 
 model AiGenerationDraft {
-  id          String        @id @default(uuid()) @db.Uuid
-  userId      String        @db.Uuid
-  type        AiDraftType
-  prompt      String        @db.Text
-  output      Json          @default("{}")
-  status      AiDraftStatus @default(DRAFT)
-  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
-  acceptedAt  DateTime?     @db.Timestamptz(3)
-  rejectedAt  DateTime?     @db.Timestamptz(3)
+  id         String        @id @default(uuid()) @db.Uuid
+  userId     String        @db.Uuid
+  type       AiDraftType
+  prompt     String        @db.Text
+  output     Json          @default("{}")
+  status     AiDraftStatus @default(DRAFT)
+  createdAt  DateTime      @default(now()) @db.Timestamptz(3)
+  acceptedAt DateTime?     @db.Timestamptz(3)
+  rejectedAt DateTime?     @db.Timestamptz(3)
 
   @@index([userId, status])
   @@index([type, status])
@@ -102,7 +102,7 @@ model MlModel {
   code         String        @unique @db.VarChar(128)
   name         String        @db.VarChar(255)
   type         MlModelType
-  version      String        @db.VarChar(32) @default("1.0.0")
+  version      String        @default("1.0.0") @db.VarChar(32)
   status       MlModelStatus @default(TRAINING)
   trainedAt    DateTime?     @db.Timestamptz(3)
   accuracy     Float?
@@ -209,14 +209,14 @@ enum AiChatRole {
 }
 
 model AiConversation {
-  id           String    @id @default(uuid()) @db.Uuid
-  userId       String    @db.Uuid
-  title        String    @db.VarChar(255) @default("New Conversation")
-  model        String    @db.VarChar(128) @default("qwen2.5:32b")
-  messageCount Int       @default(0)
-  totalTokens  Int       @default(0)
-  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  title        String   @default("New Conversation") @db.VarChar(255)
+  model        String   @default("qwen2.5:32b") @db.VarChar(128)
+  messageCount Int      @default(0)
+  totalTokens  Int      @default(0)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
 
   messages AiChatMessage[]
 
@@ -227,16 +227,16 @@ model AiConversation {
 }
 
 model AiChatMessage {
-  id             String       @id @default(uuid()) @db.Uuid
-  conversationId String       @db.Uuid
+  id             String         @id @default(uuid()) @db.Uuid
+  conversationId String         @db.Uuid
   conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role           AiChatRole
-  content        String       @db.Text
-  fileIds        Json         @default("[]")
-  model          String?      @db.VarChar(128)
-  tokensUsed     Int          @default(0)
-  durationMs     Int          @default(0)
-  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  content        String         @db.Text
+  fileIds        Json           @default("[]")
+  model          String?        @db.VarChar(128)
+  tokensUsed     Int            @default(0)
+  durationMs     Int            @default(0)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
 
   @@index([conversationId, createdAt])
   @@map("ai_chat_messages")

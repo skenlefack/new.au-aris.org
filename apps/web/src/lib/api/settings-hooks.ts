@@ -1145,3 +1145,61 @@ export function useDeleteGeoZone() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'geo-zones'] }),
   });
 }
+
+// ── Country Onboarding ──────────────────────────────────────────────────
+
+export function useOnboardingSubmissions(params?: { page?: number; limit?: number; status?: string; search?: string }) {
+  const tid = getCurrentUserTenantId();
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.status) qs.set('status', params.status);
+  if (params?.search) qs.set('search', params.search);
+  const q = qs.toString();
+  return useQuery({
+    queryKey: ['settings', 'onboarding', tid, q],
+    queryFn: () => tenantFetch(`/api/v1/settings/onboarding${q ? `?${q}` : ''}`),
+  });
+}
+
+export function useOnboardingDetail(id: string | null) {
+  return useQuery({
+    queryKey: ['settings', 'onboarding', id],
+    queryFn: () => tenantFetch(`/api/v1/settings/onboarding/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useUpdateOnboarding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      tenantPut(`/api/v1/settings/onboarding/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'onboarding'] }),
+  });
+}
+
+export function useUpdateOnboardingStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status, notes }: { id: string; status: string; notes?: string }) =>
+      tenantPatch(`/api/v1/settings/onboarding/${id}/status`, { status, notes }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'onboarding'] }),
+  });
+}
+
+export function useProvisionOnboardingUsers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => tenantPost(`/api/v1/settings/onboarding/${id}/provision-users`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'onboarding'] }),
+  });
+}
+
+export function useDeleteOnboarding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => tenantDelete(`/api/v1/settings/onboarding/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'onboarding'] }),
+  });
+}

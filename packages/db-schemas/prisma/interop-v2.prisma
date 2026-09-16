@@ -41,22 +41,22 @@ enum InteropV2Status {
 
 /// Connections to external systems (one per tenant+system pair).
 model InteropConnection {
-  id              String           @id @default(uuid()) @db.Uuid
-  name            String           @db.VarChar(255)
-  system          ExternalSystem
-  base_url        String           @db.VarChar(500)
-  auth_type       AuthType
-  credentials     Json             @default("{}")
-  tenant_id       String           @db.Uuid
-  is_active       Boolean          @default(true)
-  last_sync_at    DateTime?
-  sync_frequency  String?          @db.VarChar(50)
-  config          Json             @default("{}")
-  created_at      DateTime         @default(now())
-  updated_at      DateTime         @updatedAt
+  id             String         @id @default(uuid()) @db.Uuid
+  name           String         @db.VarChar(255)
+  system         ExternalSystem
+  base_url       String         @db.VarChar(500)
+  auth_type      AuthType
+  credentials    Json           @default("{}")
+  tenant_id      String         @db.Uuid
+  is_active      Boolean        @default(true)
+  last_sync_at   DateTime?
+  sync_frequency String?        @db.VarChar(50)
+  config         Json           @default("{}")
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
 
-  mappings        InteropMapping[]
-  transactions    InteropTransaction[]
+  mappings     InteropMapping[]
+  transactions InteropTransaction[]
 
   @@unique([tenant_id, system])
   @@index([tenant_id])
@@ -66,18 +66,18 @@ model InteropConnection {
 
 /// Field mappings for a connection — maps source fields to target fields with optional JSONata transform.
 model InteropMapping {
-  id              String           @id @default(uuid()) @db.Uuid
-  connection_id   String           @db.Uuid
-  source_field    String           @db.VarChar(255)
-  target_field    String           @db.VarChar(255)
-  transformation  String?
-  direction       MappingDirection
-  entity_type     String           @db.VarChar(100)
-  is_active       Boolean          @default(true)
-  created_at      DateTime         @default(now())
-  updated_at      DateTime         @updatedAt
+  id             String           @id @default(uuid()) @db.Uuid
+  connection_id  String           @db.Uuid
+  source_field   String           @db.VarChar(255)
+  target_field   String           @db.VarChar(255)
+  transformation String?
+  direction      MappingDirection
+  entity_type    String           @db.VarChar(100)
+  is_active      Boolean          @default(true)
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
 
-  connection      InteropConnection @relation(fields: [connection_id], references: [id], onDelete: Cascade)
+  connection InteropConnection @relation(fields: [connection_id], references: [id], onDelete: Cascade)
 
   @@index([connection_id, entity_type])
   @@map("interop_mappings")
@@ -86,21 +86,21 @@ model InteropMapping {
 
 /// Transaction log for every sync operation (push/pull).
 model InteropTransaction {
-  id              String           @id @default(uuid()) @db.Uuid
-  connection_id   String           @db.Uuid
-  direction       MappingDirection
-  entity_type     String           @db.VarChar(100)
-  source_payload  Json
-  target_payload  Json?
-  status          InteropV2Status  @default(PENDING)
-  error_message   String?
-  retry_count     Int              @default(0)
-  max_retries     Int              @default(3)
-  tenant_id       String           @db.Uuid
-  created_at      DateTime         @default(now())
-  completed_at    DateTime?
+  id             String           @id @default(uuid()) @db.Uuid
+  connection_id  String           @db.Uuid
+  direction      MappingDirection
+  entity_type    String           @db.VarChar(100)
+  source_payload Json
+  target_payload Json?
+  status         InteropV2Status  @default(PENDING)
+  error_message  String?
+  retry_count    Int              @default(0)
+  max_retries    Int              @default(3)
+  tenant_id      String           @db.Uuid
+  created_at     DateTime         @default(now())
+  completed_at   DateTime?
 
-  connection      InteropConnection @relation(fields: [connection_id], references: [id])
+  connection InteropConnection @relation(fields: [connection_id], references: [id])
 
   @@index([connection_id, status])
   @@index([tenant_id, created_at])

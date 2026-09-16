@@ -43,20 +43,20 @@ model MapLayer {
 }
 
 model AdminBoundary {
-  id           String                              @id @default(uuid()) @db.Uuid
-  code         String                              @unique @db.VarChar(20)
-  name         String                              @db.VarChar(255)
-  name_en      String                              @db.VarChar(255)
-  name_fr      String                              @db.VarChar(255)
-  level        String                              @db.VarChar(20) // COUNTRY, ADMIN1, ADMIN2, ADMIN3
-  parent_code  String?                             @db.VarChar(20)
-  country_code String                              @db.VarChar(3)
+  id           String                                       @id @default(uuid()) @db.Uuid
+  code         String                                       @unique @db.VarChar(20)
+  name         String                                       @db.VarChar(255)
+  name_en      String                                       @db.VarChar(255)
+  name_fr      String                                       @db.VarChar(255)
+  level        String                                       @db.VarChar(20) // COUNTRY, ADMIN1, ADMIN2, ADMIN3
+  parent_code  String?                                      @db.VarChar(20)
+  country_code String                                       @db.VarChar(3)
   geom         Unsupported("geometry(MultiPolygon, 4326)")?
   centroid_lat Float?
   centroid_lng Float?
-  properties   Json                                @default("{}")
-  created_at   DateTime                            @default(now())
-  updated_at   DateTime                            @updatedAt
+  properties   Json                                         @default("{}")
+  created_at   DateTime                                     @default(now())
+  updated_at   DateTime                                     @updatedAt
 
   @@index([level])
   @@index([country_code])
@@ -68,17 +68,17 @@ model AdminBoundary {
 /// Spatial index of domain events for risk map aggregation.
 /// Populated by Kafka consumers from health/livestock/fisheries events.
 model GeoEvent {
-  id          String   @id @default(uuid()) @db.Uuid
-  tenant_id   String   @db.Uuid
-  entity_type String   @db.VarChar(100) // health_event, vaccination, surveillance
-  entity_id   String   @db.Uuid
-  disease_id  String?  @db.Uuid
+  id          String                                @id @default(uuid()) @db.Uuid
+  tenant_id   String                                @db.Uuid
+  entity_type String                                @db.VarChar(100) // health_event, vaccination, surveillance
+  entity_id   String                                @db.Uuid
+  disease_id  String?                               @db.Uuid
   latitude    Float
   longitude   Float
   geom        Unsupported("geometry(Point, 4326)")?
   occurred_at DateTime
-  properties  Json     @default("{}")
-  created_at  DateTime @default(now())
+  properties  Json                                  @default("{}")
+  created_at  DateTime                              @default(now())
 
   @@index([tenant_id])
   @@index([entity_type])
@@ -112,22 +112,22 @@ enum RiskSeverity {
 ///   CREATE INDEX idx_risk_layers_geom
 ///     ON geo_services.risk_layers USING GIST (geom);
 model RiskLayer {
-  id                  String                                @id @default(uuid()) @db.Uuid
-  tenant_id           String                                @db.Uuid
-  name                String                                @db.VarChar(255)
+  id                  String                                   @id @default(uuid()) @db.Uuid
+  tenant_id           String                                   @db.Uuid
+  name                String                                   @db.VarChar(255)
   description         String?
   layer_type          RiskLayerType
   severity            RiskSeverity
   geom                Unsupported("geometry(Geometry, 4326)")?
-  properties          Json                                  @default("{}")
-  data_classification String                                @default("PUBLIC") @db.VarChar(20)
+  properties          Json                                     @default("{}")
+  data_classification String                                   @default("PUBLIC") @db.VarChar(20)
   valid_from          DateTime?
   valid_until         DateTime?
-  source              String?                               @db.VarChar(255)
-  is_active           Boolean                               @default(true)
-  created_by          String?                               @db.Uuid
-  created_at          DateTime                              @default(now())
-  updated_at          DateTime                              @updatedAt
+  source              String?                                  @db.VarChar(255)
+  is_active           Boolean                                  @default(true)
+  created_by          String?                                  @db.Uuid
+  created_at          DateTime                                 @default(now())
+  updated_at          DateTime                                 @updatedAt
 
   @@index([tenant_id])
   @@index([layer_type])

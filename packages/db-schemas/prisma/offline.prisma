@@ -29,20 +29,20 @@ enum ConflictStatus {
 }
 
 model SyncSession {
-  id                String      @id @default(uuid()) @db.Uuid
-  device_id         String      @db.VarChar(255)
-  user_id           String      @db.Uuid
-  tenant_id         String      @db.Uuid
-  started_at        DateTime    @default(now())
-  completed_at      DateTime?
-  status            SyncStatus  @default(PENDING)
-  deltas_sent       Int         @default(0)
-  deltas_received   Int         @default(0)
+  id                 String     @id @default(uuid()) @db.Uuid
+  device_id          String     @db.VarChar(255)
+  user_id            String     @db.Uuid
+  tenant_id          String     @db.Uuid
+  started_at         DateTime   @default(now())
+  completed_at       DateTime?
+  status             SyncStatus @default(PENDING)
+  deltas_sent        Int        @default(0)
+  deltas_received    Int        @default(0)
   conflicts_resolved Int        @default(0)
-  error_message     String?
-  metadata          Json?
+  error_message      String?
+  metadata           Json?
 
-  deltas            SyncDelta[]
+  deltas SyncDelta[]
 
   @@index([device_id, status])
   @@index([tenant_id, user_id])
@@ -51,20 +51,20 @@ model SyncSession {
 }
 
 model SyncDelta {
-  id                String          @id @default(uuid()) @db.Uuid
-  session_id        String          @db.Uuid
-  entity_type       String          @db.VarChar(100)
-  entity_id         String          @db.VarChar(255)
-  operation         DeltaOperation
-  payload           Json
-  version           Int
-  client_timestamp  DateTime
-  server_timestamp  DateTime        @default(now())
-  conflict_status   ConflictStatus  @default(NONE)
-  resolved_payload  Json?
-  tenant_id         String          @db.Uuid
+  id               String         @id @default(uuid()) @db.Uuid
+  session_id       String         @db.Uuid
+  entity_type      String         @db.VarChar(100)
+  entity_id        String         @db.VarChar(255)
+  operation        DeltaOperation
+  payload          Json
+  version          Int
+  client_timestamp DateTime
+  server_timestamp DateTime       @default(now())
+  conflict_status  ConflictStatus @default(NONE)
+  resolved_payload Json?
+  tenant_id        String         @db.Uuid
 
-  session           SyncSession     @relation(fields: [session_id], references: [id])
+  session SyncSession @relation(fields: [session_id], references: [id])
 
   @@index([session_id])
   @@index([entity_type, entity_id])

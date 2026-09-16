@@ -86,25 +86,25 @@ model CitesPermit {
 }
 
 model WildlifeCrime {
-  id                  String   @id @default(uuid()) @db.Uuid
-  tenantId            String   @map("tenant_id") @db.Uuid
-  incidentDate        DateTime @map("incident_date") @db.Timestamptz
-  geoEntityId         String   @map("geo_entity_id") @db.Uuid
-  coordinates         Json?    @default("{}")
-  crimeType           String   @map("crime_type")
-  speciesIds          String[] @map("species_ids") @db.Uuid
-  description         String   @db.Text
-  suspectsCount       Int?     @map("suspects_count")
-  seizureDescription  String?  @map("seizure_description") @db.Text
-  seizureQuantity     Float?   @map("seizure_quantity")
-  seizureUnit         String?  @map("seizure_unit")
-  status              String
-  reportingAgency     String   @map("reporting_agency")
-  dataClassification  String   @default("RESTRICTED") @map("data_classification")
-  createdBy           String   @map("created_by") @db.Uuid
-  updatedBy           String   @map("updated_by") @db.Uuid
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  incidentDate       DateTime @map("incident_date") @db.Timestamptz
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  coordinates        Json?    @default("{}")
+  crimeType          String   @map("crime_type")
+  speciesIds         String[] @map("species_ids") @db.Uuid
+  description        String   @db.Text
+  suspectsCount      Int?     @map("suspects_count")
+  seizureDescription String?  @map("seizure_description") @db.Text
+  seizureQuantity    Float?   @map("seizure_quantity")
+  seizureUnit        String?  @map("seizure_unit")
+  status             String
+  reportingAgency    String   @map("reporting_agency")
+  dataClassification String   @default("RESTRICTED") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([tenantId])
   @@index([geoEntityId])

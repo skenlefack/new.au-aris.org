@@ -376,7 +376,8 @@ export class NotificationConsumer {
           functionName: functionNames.length > 0 ? functionNames.join(', ') : null,
           tenantName: data.tenantName ?? 'ARIS',
           temporaryPassword: data.temporaryPassword,
-          loginUrl: data.loginUrl ?? process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org/login',
+          loginUrl: data.loginUrl ?? process.env['PUBLIC_WEB_URL']
+            ?? (process.env['NODE_ENV'] === 'staging' ? 'https://test.au-aris.org/login' : 'https://au-aris.org/login'),
           locale,
         };
         const rendered = this.templateEngine.renderEmail('WELCOME', templateData);

@@ -6,6 +6,7 @@ import type { TenantService } from './services/tenant.service.js';
 import type { SettingsService } from './services/settings.service.js';
 import type { BiService } from './services/bi.service.js';
 import type { RoleService } from './services/role.service.js';
+import type { OnboardingService } from './services/onboarding.service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -16,6 +17,7 @@ declare module 'fastify' {
     settingsService: SettingsService;
     roleService: RoleService;
     biService: BiService;
+    onboardingService: OnboardingService;
     authHookFn: ReturnType<typeof authHook>;
   }
 }

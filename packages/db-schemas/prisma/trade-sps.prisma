@@ -9,7 +9,7 @@ model TradeFlow {
   importCountryId    String   @map("import_country_id") @db.Uuid
   speciesId          String   @map("species_id") @db.Uuid
   commodity          String
-  flowDirection      String   @map("flow_direction")       // IMPORT | EXPORT | TRANSIT
+  flowDirection      String   @map("flow_direction") // IMPORT | EXPORT | TRANSIT
   quantity           Float
   unit               String
   valueFob           Float?   @map("value_fob")
@@ -50,11 +50,11 @@ model SpsCertificate {
   unit                 String
   originCountryId      String    @map("origin_country_id") @db.Uuid
   destinationCountryId String    @map("destination_country_id") @db.Uuid
-  inspectionResult     String    @map("inspection_result")      // PASS | FAIL | CONDITIONAL | PENDING
+  inspectionResult     String    @map("inspection_result") // PASS | FAIL | CONDITIONAL | PENDING
   inspectionDate       DateTime  @map("inspection_date") @db.Timestamptz
   certifiedBy          String    @map("certified_by") @db.Uuid
   certifiedAt          DateTime? @map("certified_at") @db.Timestamptz
-  status               String                                    // DRAFT | ISSUED | REVOKED | EXPIRED
+  status               String // DRAFT | ISSUED | REVOKED | EXPIRED
   validUntil           DateTime? @map("valid_until") @db.Timestamptz
   remarks              String?   @db.Text
   dataClassification   String    @default("RESTRICTED") @map("data_classification")
@@ -79,7 +79,7 @@ model MarketPrice {
   marketId           String   @map("market_id") @db.Uuid
   speciesId          String   @map("species_id") @db.Uuid
   commodity          String
-  priceType          String   @map("price_type")               // WHOLESALE | RETAIL | FARM_GATE | EXPORT
+  priceType          String   @map("price_type") // WHOLESALE | RETAIL | FARM_GATE | EXPORT
   price              Float
   currency           String
   unit               String

@@ -1908,7 +1908,8 @@ export class SettingsService {
         });
       }
 
-      const publicBase = process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org';
+      const publicBase = process.env['PUBLIC_WEB_URL']
+        ?? (process.env['NODE_ENV'] === 'staging' ? 'https://test.au-aris.org' : 'https://au-aris.org');
       await this.publishEvent(
         TOPIC_SYS_CREDENTIAL_USER_CREATED,
         {
@@ -1977,7 +1978,8 @@ export class SettingsService {
       return String(name || fn.code);
     }).filter(Boolean);
 
-    const publicBase = process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org';
+    const publicBase = process.env['PUBLIC_WEB_URL']
+      ?? (process.env['NODE_ENV'] === 'staging' ? 'https://test.au-aris.org' : 'https://au-aris.org');
     await this.publishEvent(
       TOPIC_SYS_CREDENTIAL_USER_CREATED,
       {

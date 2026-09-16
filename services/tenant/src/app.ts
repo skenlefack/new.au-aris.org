@@ -14,10 +14,12 @@ import { TenantService } from './services/tenant.service.js';
 import { SettingsService } from './services/settings.service.js';
 import { RoleService } from './services/role.service.js';
 import { BiService } from './services/bi.service.js';
+import { OnboardingService } from './services/onboarding.service.js';
 import { registerTenantRoutes } from './routes/tenant.routes.js';
 import { registerSettingsRoutes } from './routes/settings.routes.js';
 import { registerBiRoutes } from './routes/bi.routes.js';
 import { registerPublicRoutes } from './routes/public.routes.js';
+import { registerOnboardingRoutes } from './routes/onboarding.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -99,6 +101,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   const biService = new BiService(app.prisma, redis);
   app.decorate('biService', biService);
 
+  const onboardingService = new OnboardingService(app.prisma, kafka);
+  app.decorate('onboardingService', onboardingService);
+
   // Error handler
   app.setErrorHandler((error: FastifyError, request, reply) => {
     const statusCode = error.statusCode ?? 500;
@@ -121,6 +126,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerSettingsRoutes);
   await app.register(registerBiRoutes);
   await app.register(registerPublicRoutes);
+  await app.register(registerOnboardingRoutes);
 
   return app;
 }

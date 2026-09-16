@@ -13,8 +13,8 @@ model FishCapture {
   quantityKg         Float    @map("quantity_kg")
   gearType           String   @map("gear_type")
   landingSite        String   @map("landing_site")
-  fishingEnvironment String?  @map("fishing_environment") @db.VarChar(30)  // MARINE, INLAND, BRACKISH
-  productionType     String?  @map("production_type") @db.VarChar(30)      // ARTISANAL, INDUSTRIAL, SUBSISTENCE
+  fishingEnvironment String?  @map("fishing_environment") @db.VarChar(30) // MARINE, INLAND, BRACKISH
+  productionType     String?  @map("production_type") @db.VarChar(30) // ARTISANAL, INDUSTRIAL, SUBSISTENCE
   status             String   @default("DRAFT") @map("status") @db.VarChar(20) // DRAFT, SUBMITTED, VALIDATED
   dataClassification String   @default("PARTNER") @map("data_classification")
   createdBy          String   @map("created_by") @db.Uuid
@@ -32,26 +32,26 @@ model FishCapture {
 }
 
 model FishingVessel {
-  id                  String    @id @default(uuid()) @db.Uuid
-  tenantId            String    @map("tenant_id") @db.Uuid
-  name                String
-  registrationNumber  String    @unique @map("registration_number")
-  flagState           String    @map("flag_state")
-  vesselType          String    @map("vessel_type")
-  lengthMeters        Float     @map("length_meters")
-  tonnageGt           Float     @map("tonnage_gt")
-  homePort            String    @map("home_port")
-  licenseNumber       String?   @map("license_number")
-  licenseExpiry       DateTime? @map("license_expiry") @db.Timestamptz
-  enginePowerKw       Float?    @map("engine_power_kw")
-  crewCapacity        Int?      @map("crew_capacity")
-  ownerName           String?   @map("owner_name") @db.VarChar(255)
-  isActive            Boolean   @default(true) @map("is_active")
-  dataClassification  String    @default("PARTNER") @map("data_classification")
-  createdBy           String    @map("created_by") @db.Uuid
-  updatedBy           String    @map("updated_by") @db.Uuid
-  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  name               String
+  registrationNumber String    @unique @map("registration_number")
+  flagState          String    @map("flag_state")
+  vesselType         String    @map("vessel_type")
+  lengthMeters       Float     @map("length_meters")
+  tonnageGt          Float     @map("tonnage_gt")
+  homePort           String    @map("home_port")
+  licenseNumber      String?   @map("license_number")
+  licenseExpiry      DateTime? @map("license_expiry") @db.Timestamptz
+  enginePowerKw      Float?    @map("engine_power_kw")
+  crewCapacity       Int?      @map("crew_capacity")
+  ownerName          String?   @map("owner_name") @db.VarChar(255)
+  isActive           Boolean   @default(true) @map("is_active")
+  dataClassification String    @default("PARTNER") @map("data_classification")
+  createdBy          String    @map("created_by") @db.Uuid
+  updatedBy          String    @map("updated_by") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([tenantId])
   @@index([flagState])
@@ -61,28 +61,28 @@ model FishingVessel {
 }
 
 model AquacultureFarm {
-  id                      String   @id @default(uuid()) @db.Uuid
-  tenantId                String   @map("tenant_id") @db.Uuid
-  name                    String
-  geoEntityId             String   @map("geo_entity_id") @db.Uuid
-  coordinates             Json?    @default("{}")
-  farmType                String   @map("farm_type")
-  waterSource             String   @map("water_source")
-  areaHectares            Float    @map("area_hectares")
-  speciesIds              String[] @map("species_ids") @db.Uuid
-  productionCapacityTonnes Float   @map("production_capacity_tonnes")
-  ownerName               String?  @map("owner_name") @db.VarChar(255)
-  registrationNumber      String?  @map("registration_number") @db.VarChar(100)
-  totalWorkers            Int?     @map("total_workers")
-  maleWorkers             Int?     @map("male_workers")
-  femaleWorkers           Int?     @map("female_workers")
-  pondCount               Int?     @map("pond_count")
-  isActive                Boolean  @default(true) @map("is_active")
-  dataClassification      String   @default("PARTNER") @map("data_classification")
-  createdBy               String   @map("created_by") @db.Uuid
-  updatedBy               String   @map("updated_by") @db.Uuid
-  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id                       String   @id @default(uuid()) @db.Uuid
+  tenantId                 String   @map("tenant_id") @db.Uuid
+  name                     String
+  geoEntityId              String   @map("geo_entity_id") @db.Uuid
+  coordinates              Json?    @default("{}")
+  farmType                 String   @map("farm_type")
+  waterSource              String   @map("water_source")
+  areaHectares             Float    @map("area_hectares")
+  speciesIds               String[] @map("species_ids") @db.Uuid
+  productionCapacityTonnes Float    @map("production_capacity_tonnes")
+  ownerName                String?  @map("owner_name") @db.VarChar(255)
+  registrationNumber       String?  @map("registration_number") @db.VarChar(100)
+  totalWorkers             Int?     @map("total_workers")
+  maleWorkers              Int?     @map("male_workers")
+  femaleWorkers            Int?     @map("female_workers")
+  pondCount                Int?     @map("pond_count")
+  isActive                 Boolean  @default(true) @map("is_active")
+  dataClassification       String   @default("PARTNER") @map("data_classification")
+  createdBy                String   @map("created_by") @db.Uuid
+  updatedBy                String   @map("updated_by") @db.Uuid
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([tenantId])
   @@index([geoEntityId])

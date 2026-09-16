@@ -32,22 +32,22 @@ enum ExportFormat {
 
 /// WAHIS export records — tracks each WAHIS-ready package generation.
 model ExportRecord {
-  id              String        @id @default(uuid()) @db.Uuid
-  tenant_id       String        @db.Uuid
-  connector_type  ConnectorType @default(WAHIS)
-  country_code    String        @db.VarChar(3)
-  period_start    DateTime
-  period_end      DateTime
-  format          ExportFormat  @default(WOAH_JSON)
-  status          InteropStatus @default(PENDING)
-  record_count    Int           @default(0)
-  package_url     String?       @db.VarChar(500)
-  package_size    Int?
-  error_message   String?
-  exported_by     String        @db.Uuid
-  exported_at     DateTime?
-  created_at      DateTime      @default(now())
-  updated_at      DateTime      @updatedAt
+  id             String        @id @default(uuid()) @db.Uuid
+  tenant_id      String        @db.Uuid
+  connector_type ConnectorType @default(WAHIS)
+  country_code   String        @db.VarChar(3)
+  period_start   DateTime
+  period_end     DateTime
+  format         ExportFormat  @default(WOAH_JSON)
+  status         InteropStatus @default(PENDING)
+  record_count   Int           @default(0)
+  package_url    String?       @db.VarChar(500)
+  package_size   Int?
+  error_message  String?
+  exported_by    String        @db.Uuid
+  exported_at    DateTime?
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
 
   @@index([tenant_id])
   @@index([connector_type])
@@ -60,22 +60,22 @@ model ExportRecord {
 
 /// EMPRES feed records — tracks signals pushed to EMPRES format.
 model FeedRecord {
-  id                String        @id @default(uuid()) @db.Uuid
-  tenant_id         String        @db.Uuid
-  connector_type    ConnectorType @default(EMPRES)
-  health_event_id   String        @db.Uuid
-  disease_id        String?       @db.Uuid
-  country_code      String        @db.VarChar(3)
-  confidence_level  String        @db.VarChar(20) // RUMOR, VERIFIED, CONFIRMED
-  status            InteropStatus @default(PENDING)
-  payload           Json
-  response_code     Int?
-  response_body     String?
-  error_message     String?
-  fed_by            String        @db.Uuid
-  fed_at            DateTime?
-  created_at        DateTime      @default(now())
-  updated_at        DateTime      @updatedAt
+  id               String        @id @default(uuid()) @db.Uuid
+  tenant_id        String        @db.Uuid
+  connector_type   ConnectorType @default(EMPRES)
+  health_event_id  String        @db.Uuid
+  disease_id       String?       @db.Uuid
+  country_code     String        @db.VarChar(3)
+  confidence_level String        @db.VarChar(20) // RUMOR, VERIFIED, CONFIRMED
+  status           InteropStatus @default(PENDING)
+  payload          Json
+  response_code    Int?
+  response_body    String?
+  error_message    String?
+  fed_by           String        @db.Uuid
+  fed_at           DateTime?
+  created_at       DateTime      @default(now())
+  updated_at       DateTime      @updatedAt
 
   @@index([tenant_id])
   @@index([health_event_id])
@@ -87,22 +87,22 @@ model FeedRecord {
 
 /// FAOSTAT sync records — tracks denominator import/reconciliation runs.
 model SyncRecord {
-  id                String        @id @default(uuid()) @db.Uuid
-  tenant_id         String        @db.Uuid
-  connector_type    ConnectorType @default(FAOSTAT)
-  country_code      String        @db.VarChar(3)
-  year              Int
-  status            InteropStatus @default(PENDING)
-  records_imported  Int           @default(0)
-  records_updated   Int           @default(0)
-  discrepancies     Int           @default(0)
+  id                  String        @id @default(uuid()) @db.Uuid
+  tenant_id           String        @db.Uuid
+  connector_type      ConnectorType @default(FAOSTAT)
+  country_code        String        @db.VarChar(3)
+  year                Int
+  status              InteropStatus @default(PENDING)
+  records_imported    Int           @default(0)
+  records_updated     Int           @default(0)
+  discrepancies       Int           @default(0)
   discrepancy_details Json?
-  error_message     String?
-  source_url        String?       @db.VarChar(500)
-  synced_by         String        @db.Uuid
-  synced_at         DateTime?
-  created_at        DateTime      @default(now())
-  updated_at        DateTime      @updatedAt
+  error_message       String?
+  source_url          String?       @db.VarChar(500)
+  synced_by           String        @db.Uuid
+  synced_at           DateTime?
+  created_at          DateTime      @default(now())
+  updated_at          DateTime      @updatedAt
 
   @@index([tenant_id])
   @@index([connector_type])
@@ -145,36 +145,36 @@ enum IngestionStatus {
 
 /// Country connections — one per country+domain pair, configures how a country sends data to ARIS.
 model CountryConnection {
-  id                  String            @id @default(uuid()) @db.Uuid
-  tenant_id           String            @db.Uuid
-  country_code        String            @db.VarChar(3)
-  country_name        String            @db.VarChar(100)
-  integration_model   IntegrationModel
-  system_name         String            @db.VarChar(255)  // e.g. "KLHIS", "DHIS2 Ethiopia", "NADIS"
-  system_type         String?           @db.VarChar(50)   // DHIS2, FHIR, KOBO, ODK, REST, EXCEL
-  base_url            String?           @db.VarChar(500)  // For API_PUSH/PULL — external system URL
-  auth_type           String?           @db.VarChar(20)   // BASIC, OAUTH2, API_KEY, CERTIFICATE
-  credentials         Json              @default("{}")     // Encrypted auth config
-  domains             String[]                             // e.g. ["animal-health","livestock-prod"]
-  sync_frequency      String?           @db.VarChar(20)   // REALTIME, HOURLY, DAILY, WEEKLY, MONTHLY
-  sync_time           String?           @db.VarChar(10)   // e.g. "02:00" — preferred sync time (UTC)
-  pull_config         Json?                                // API_PULL specific: programs, dataElements, orgUnitLevel
-  status              ConnectionStatus  @default(DRAFT)
-  data_contract_id    String?           @db.Uuid           // Link to formal data contract
-  focal_technical     Json?                                // { name, email, phone }
-  focal_data_owner    Json?                                // { name, email, phone }
-  last_sync_at        DateTime?
-  last_sync_status    String?           @db.VarChar(20)
-  records_total       Int               @default(0)
-  records_accepted    Int               @default(0)
-  records_rejected    Int               @default(0)
-  notes               String?
-  created_by          String            @db.Uuid
-  created_at          DateTime          @default(now())
-  updated_at          DateTime          @updatedAt
+  id                String           @id @default(uuid()) @db.Uuid
+  tenant_id         String           @db.Uuid
+  country_code      String           @db.VarChar(3)
+  country_name      String           @db.VarChar(100)
+  integration_model IntegrationModel
+  system_name       String           @db.VarChar(255) // e.g. "KLHIS", "DHIS2 Ethiopia", "NADIS"
+  system_type       String?          @db.VarChar(50) // DHIS2, FHIR, KOBO, ODK, REST, EXCEL
+  base_url          String?          @db.VarChar(500) // For API_PUSH/PULL — external system URL
+  auth_type         String?          @db.VarChar(20) // BASIC, OAUTH2, API_KEY, CERTIFICATE
+  credentials       Json             @default("{}") // Encrypted auth config
+  domains           String[] // e.g. ["animal-health","livestock-prod"]
+  sync_frequency    String?          @db.VarChar(20) // REALTIME, HOURLY, DAILY, WEEKLY, MONTHLY
+  sync_time         String?          @db.VarChar(10) // e.g. "02:00" — preferred sync time (UTC)
+  pull_config       Json? // API_PULL specific: programs, dataElements, orgUnitLevel
+  status            ConnectionStatus @default(DRAFT)
+  data_contract_id  String?          @db.Uuid // Link to formal data contract
+  focal_technical   Json? // { name, email, phone }
+  focal_data_owner  Json? // { name, email, phone }
+  last_sync_at      DateTime?
+  last_sync_status  String?          @db.VarChar(20)
+  records_total     Int              @default(0)
+  records_accepted  Int              @default(0)
+  records_rejected  Int              @default(0)
+  notes             String?
+  created_by        String           @db.Uuid
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @updatedAt
 
-  transactions        IngestionTransaction[]
-  mappings            ReferentialMapping[]
+  transactions IngestionTransaction[]
+  mappings     ReferentialMapping[]
 
   @@unique([tenant_id, country_code, system_name])
   @@index([tenant_id])
@@ -187,20 +187,20 @@ model CountryConnection {
 
 /// Referential mappings — maps national codes to ARIS codes for a country connection.
 model ReferentialMapping {
-  id                  String            @id @default(uuid()) @db.Uuid
-  connection_id       String            @db.Uuid
-  referential_type    String            @db.VarChar(50)   // DISEASE, SPECIES, GEO, UNIT, LAB, COMMODITY
-  source_code         String            @db.VarChar(100)  // National code
-  source_label        String?           @db.VarChar(255)  // National label
-  target_code         String            @db.VarChar(100)  // ARIS/international code
-  target_label        String?           @db.VarChar(255)  // ARIS label
-  target_id           String?           @db.Uuid           // ARIS entity UUID (if applicable)
-  is_verified         Boolean           @default(false)
-  notes               String?
-  created_at          DateTime          @default(now())
-  updated_at          DateTime          @updatedAt
+  id               String   @id @default(uuid()) @db.Uuid
+  connection_id    String   @db.Uuid
+  referential_type String   @db.VarChar(50) // DISEASE, SPECIES, GEO, UNIT, LAB, COMMODITY
+  source_code      String   @db.VarChar(100) // National code
+  source_label     String?  @db.VarChar(255) // National label
+  target_code      String   @db.VarChar(100) // ARIS/international code
+  target_label     String?  @db.VarChar(255) // ARIS label
+  target_id        String?  @db.Uuid // ARIS entity UUID (if applicable)
+  is_verified      Boolean  @default(false)
+  notes            String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
 
-  connection          CountryConnection @relation(fields: [connection_id], references: [id], onDelete: Cascade)
+  connection CountryConnection @relation(fields: [connection_id], references: [id], onDelete: Cascade)
 
   @@unique([connection_id, referential_type, source_code])
   @@index([connection_id, referential_type])
@@ -210,32 +210,32 @@ model ReferentialMapping {
 
 /// Ingestion transactions — logs every data exchange (push, pull, or file upload).
 model IngestionTransaction {
-  id                  String            @id @default(uuid()) @db.Uuid
-  connection_id       String            @db.Uuid
-  tenant_id           String            @db.Uuid
-  domain              String            @db.VarChar(50)
-  entity_type         String            @db.VarChar(50)
-  integration_model   IntegrationModel
-  status              IngestionStatus   @default(PENDING)
-  records_received    Int               @default(0)
-  records_accepted    Int               @default(0)
-  records_rejected    Int               @default(0)
-  records_warning     Int               @default(0)
-  source_payload      Json?                                 // Original data (or file metadata)
-  validation_report   Json?                                 // Quality gate results summary
-  rejection_details   Json?                                 // Per-record rejection reasons
-  file_url            String?           @db.VarChar(500)    // For FILE_UPLOAD — MinIO URL
-  file_name           String?           @db.VarChar(255)    // Original file name
-  file_size           Int?                                  // File size in bytes
-  error_message       String?
-  retry_count         Int               @default(0)
-  max_retries         Int               @default(3)
-  initiated_by        String            @db.Uuid            // User or system ID
-  started_at          DateTime?
-  completed_at        DateTime?
-  created_at          DateTime          @default(now())
+  id                String           @id @default(uuid()) @db.Uuid
+  connection_id     String           @db.Uuid
+  tenant_id         String           @db.Uuid
+  domain            String           @db.VarChar(50)
+  entity_type       String           @db.VarChar(50)
+  integration_model IntegrationModel
+  status            IngestionStatus  @default(PENDING)
+  records_received  Int              @default(0)
+  records_accepted  Int              @default(0)
+  records_rejected  Int              @default(0)
+  records_warning   Int              @default(0)
+  source_payload    Json? // Original data (or file metadata)
+  validation_report Json? // Quality gate results summary
+  rejection_details Json? // Per-record rejection reasons
+  file_url          String?          @db.VarChar(500) // For FILE_UPLOAD — MinIO URL
+  file_name         String?          @db.VarChar(255) // Original file name
+  file_size         Int? // File size in bytes
+  error_message     String?
+  retry_count       Int              @default(0)
+  max_retries       Int              @default(3)
+  initiated_by      String           @db.Uuid // User or system ID
+  started_at        DateTime?
+  completed_at      DateTime?
+  created_at        DateTime         @default(now())
 
-  connection          CountryConnection @relation(fields: [connection_id], references: [id])
+  connection CountryConnection @relation(fields: [connection_id], references: [id])
 
   @@index([connection_id, status])
   @@index([tenant_id, created_at])
@@ -246,18 +246,18 @@ model IngestionTransaction {
 
 /// Connector configurations — stores endpoint URLs, credentials, and health status.
 model ConnectorConfig {
-  id              String        @id @default(uuid()) @db.Uuid
-  connector_type  ConnectorType @unique
-  name            String        @db.VarChar(100)
-  description     String?
-  base_url        String        @db.VarChar(500)
-  auth_config     Json          @default("{}")
-  is_active       Boolean       @default(true)
-  last_health_check DateTime?
-  last_health_status String?    @db.VarChar(20) // UP, DOWN, DEGRADED
-  config          Json          @default("{}")
-  created_at      DateTime      @default(now())
-  updated_at      DateTime      @updatedAt
+  id                 String        @id @default(uuid()) @db.Uuid
+  connector_type     ConnectorType @unique
+  name               String        @db.VarChar(100)
+  description        String?
+  base_url           String        @db.VarChar(500)
+  auth_config        Json          @default("{}")
+  is_active          Boolean       @default(true)
+  last_health_check  DateTime?
+  last_health_status String?       @db.VarChar(20) // UP, DOWN, DEGRADED
+  config             Json          @default("{}")
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
 
   @@map("connector_configs")
   @@schema("interop_hub")

@@ -9,7 +9,7 @@ model Apiary {
   geoEntityId        String   @map("geo_entity_id") @db.Uuid
   latitude           Float?
   longitude          Float?
-  hiveCount          Int      @map("hive_count") @default(0)
+  hiveCount          Int      @default(0) @map("hive_count")
   hiveType           String   @map("hive_type")
   ownerName          String   @map("owner_name")
   dataClassification String   @default("PARTNER") @map("data_classification")
@@ -42,7 +42,7 @@ model HoneyProduction {
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  apiary             Apiary   @relation(fields: [apiaryId], references: [id])
+  apiary Apiary @relation(fields: [apiaryId], references: [id])
 
   @@index([tenantId])
   @@index([apiaryId])
@@ -65,7 +65,7 @@ model ColonyHealth {
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  apiary             Apiary   @relation(fields: [apiaryId], references: [id])
+  apiary Apiary @relation(fields: [apiaryId], references: [id])
 
   @@index([tenantId])
   @@index([apiaryId])
@@ -75,17 +75,17 @@ model ColonyHealth {
 }
 
 model BeekeeperTraining {
-  id                  String    @id @default(uuid()) @db.Uuid
-  tenantId            String    @map("tenant_id") @db.Uuid
-  beekeeperId         String    @map("beekeeper_id") @db.Uuid
-  trainingType        String    @map("training_type")
-  completedDate       DateTime  @map("completed_date") @db.Timestamptz
-  certificationNumber String?   @map("certification_number")
-  dataClassification  String    @default("PUBLIC") @map("data_classification")
-  createdBy           String    @map("created_by") @db.Uuid
-  updatedBy           String    @map("updated_by") @db.Uuid
-  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  beekeeperId         String   @map("beekeeper_id") @db.Uuid
+  trainingType        String   @map("training_type")
+  completedDate       DateTime @map("completed_date") @db.Timestamptz
+  certificationNumber String?  @map("certification_number")
+  dataClassification  String   @default("PUBLIC") @map("data_classification")
+  createdBy           String   @map("created_by") @db.Uuid
+  updatedBy           String   @map("updated_by") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([tenantId])
   @@index([beekeeperId])

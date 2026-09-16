@@ -18,43 +18,43 @@ enum FormType {
 }
 
 model FormTemplate {
-  id                String             @id @default(uuid()) @db.Uuid
-  tenant_id         String             @db.Uuid
-  name              String             @db.VarChar(255)
-  domain            String             @db.VarChar(50)
-  form_type         FormType           @default(CAMPAIGN)
-  version           Int                @default(1)
-  parent_template_id String?           @db.Uuid
-  schema            Json
-  ui_schema         Json               @default("{}")
-  data_contract_id  String?            @db.Uuid
-  status            FormTemplateStatus @default(DRAFT)
-  data_classification String           @default("RESTRICTED") @db.VarChar(20)
-  created_by        String             @db.Uuid
-  updated_by        String?            @db.Uuid
-  published_at      DateTime?
-  archived_at       DateTime?
-  created_at        DateTime           @default(now())
-  updated_at        DateTime           @updatedAt
+  id                  String             @id @default(uuid()) @db.Uuid
+  tenant_id           String             @db.Uuid
+  name                String             @db.VarChar(255)
+  domain              String             @db.VarChar(50)
+  form_type           FormType           @default(CAMPAIGN)
+  version             Int                @default(1)
+  parent_template_id  String?            @db.Uuid
+  schema              Json
+  ui_schema           Json               @default("{}")
+  data_contract_id    String?            @db.Uuid
+  status              FormTemplateStatus @default(DRAFT)
+  data_classification String             @default("RESTRICTED") @db.VarChar(20)
+  created_by          String             @db.Uuid
+  updated_by          String?            @db.Uuid
+  published_at        DateTime?
+  archived_at         DateTime?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
 
   // Self-relation for inheritance chain
-  parent            FormTemplate?      @relation("TemplateInheritance", fields: [parent_template_id], references: [id])
-  children          FormTemplate[]     @relation("TemplateInheritance")
+  parent   FormTemplate?  @relation("TemplateInheritance", fields: [parent_template_id], references: [id])
+  children FormTemplate[] @relation("TemplateInheritance")
 
   // Submissions
-  submissions       FormSubmission[]
+  submissions FormSubmission[]
 
   // Collection campaigns using this template
   collectionCampaigns CollectionCampaign[]
 
   // Multi-domain targeting (join table)
-  targets             FormTarget[]
+  targets FormTarget[]
 
   // Multi-tenant overlays (REC/COUNTRY customizations)
-  overlays            FormOverlay[]
+  overlays FormOverlay[]
 
   // Review requests for this template
-  reviews             FormReview[]
+  reviews FormReview[]
 
   @@unique([tenant_id, name, version])
   @@index([tenant_id])
@@ -75,24 +75,24 @@ enum FormSubmissionStatus {
 }
 
 model FormSubmission {
-  id                String                @id @default(uuid()) @db.Uuid
-  tenant_id         String                @db.Uuid
-  template_id       String                @db.Uuid
-  data              Json                  // Field values keyed by field code
-  status            FormSubmissionStatus  @default(DRAFT)
-  submitted_by      String                @db.Uuid
-  submitted_at      DateTime?
-  validated_by      String?               @db.Uuid
-  validated_at      DateTime?
-  rejection_reason  String?
-  geo_location      Json?                 // { lat, lng, accuracy }
-  device_info       Json?                 // { platform, version, offlineId }
-  data_classification String              @default("RESTRICTED") @db.VarChar(20)
-  created_at        DateTime              @default(now())
-  updated_at        DateTime              @updatedAt
+  id                  String               @id @default(uuid()) @db.Uuid
+  tenant_id           String               @db.Uuid
+  template_id         String               @db.Uuid
+  data                Json // Field values keyed by field code
+  status              FormSubmissionStatus @default(DRAFT)
+  submitted_by        String               @db.Uuid
+  submitted_at        DateTime?
+  validated_by        String?              @db.Uuid
+  validated_at        DateTime?
+  rejection_reason    String?
+  geo_location        Json? // { lat, lng, accuracy }
+  device_info         Json? // { platform, version, offlineId }
+  data_classification String               @default("RESTRICTED") @db.VarChar(20)
+  created_at          DateTime             @default(now())
+  updated_at          DateTime             @updatedAt
 
-  template          FormTemplate          @relation(fields: [template_id], references: [id])
-  collecteInstance  CollecteInstance?
+  template         FormTemplate      @relation(fields: [template_id], references: [id])
+  collecteInstance CollecteInstance?
 
   @@index([tenant_id])
   @@index([template_id])
@@ -104,25 +104,25 @@ model FormSubmission {
 
 // Overlay = tenant-level customization (REC or COUNTRY) of a continental template
 model FormOverlay {
-  id                String   @id @default(uuid()) @db.Uuid
-  template_id       String   @db.Uuid
-  template_version  Int      // version of the base template when overlay was created
-  tenant_id         String   @db.Uuid  // REC or COUNTRY tenant
-  tenant_level      String   @db.VarChar(20) // "REC" or "MEMBER_STATE"
-  parent_overlay_id String?  @db.Uuid  // if COUNTRY overlays a form already overlayed by its REC
+  id                String  @id @default(uuid()) @db.Uuid
+  template_id       String  @db.Uuid
+  template_version  Int // version of the base template when overlay was created
+  tenant_id         String  @db.Uuid // REC or COUNTRY tenant
+  tenant_level      String  @db.VarChar(20) // "REC" or "MEMBER_STATE"
+  parent_overlay_id String? @db.Uuid // if COUNTRY overlays a form already overlayed by its REC
 
-  field_overrides   Json     // [{fieldId, action: "MODIFY"|"ADD"|"REMOVE"|"REORDER", data}]
-  section_overrides Json?    // [{sectionId, action, data}]
+  field_overrides    Json // [{fieldId, action: "MODIFY"|"ADD"|"REMOVE"|"REORDER", data}]
+  section_overrides  Json? // [{sectionId, action, data}]
   metadata_overrides Json?
 
-  is_active         Boolean  @default(true)
-  needs_review      Boolean  @default(false) // set when base template changed under this overlay
-  created_by        String   @db.Uuid
-  updated_by        String?  @db.Uuid
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
+  is_active    Boolean  @default(true)
+  needs_review Boolean  @default(false) // set when base template changed under this overlay
+  created_by   String   @db.Uuid
+  updated_by   String?  @db.Uuid
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
 
-  template          FormTemplate @relation(fields: [template_id], references: [id])
+  template FormTemplate @relation(fields: [template_id], references: [id])
 
   @@unique([template_id, tenant_id]) // one overlay per tenant per template
   @@index([template_id, tenant_level])
@@ -133,12 +133,12 @@ model FormOverlay {
 
 // Multi-domain targeting for form templates
 model FormTarget {
-  id              String       @id @default(uuid()) @db.Uuid
-  form_id         String       @db.Uuid
-  domain_code     String       @db.VarChar(50)
-  sub_domain_code String?      @db.VarChar(50)
-  is_primary      Boolean      @default(false)
-  created_at      DateTime     @default(now())
+  id              String   @id @default(uuid()) @db.Uuid
+  form_id         String   @db.Uuid
+  domain_code     String   @db.VarChar(50)
+  sub_domain_code String?  @db.VarChar(50)
+  is_primary      Boolean  @default(false)
+  created_at      DateTime @default(now())
 
   form FormTemplate @relation(fields: [form_id], references: [id], onDelete: Cascade)
 
@@ -152,21 +152,21 @@ model FormTarget {
 
 // Form Review — send form for review/validation to users at lower levels
 model FormReview {
-  id              String             @id @default(uuid()) @db.Uuid
-  template_id     String             @db.Uuid
-  tenant_id       String             @db.Uuid
-  sender_id       String             @db.Uuid
-  sender_name     String             @db.VarChar(255)
-  message         String?            @db.Text
-  status          FormReviewStatus   @default(PENDING)
-  synthesis       String?            @db.Text    // compiled summary of all comments
-  created_at      DateTime           @default(now())
-  updated_at      DateTime           @updatedAt
-  closed_at       DateTime?
+  id          String           @id @default(uuid()) @db.Uuid
+  template_id String           @db.Uuid
+  tenant_id   String           @db.Uuid
+  sender_id   String           @db.Uuid
+  sender_name String           @db.VarChar(255)
+  message     String?          @db.Text
+  status      FormReviewStatus @default(PENDING)
+  synthesis   String?          @db.Text // compiled summary of all comments
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @updatedAt
+  closed_at   DateTime?
 
-  template        FormTemplate       @relation(fields: [template_id], references: [id], onDelete: Cascade)
-  reviewers       FormReviewUser[]
-  comments        FormReviewComment[]
+  template  FormTemplate        @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  reviewers FormReviewUser[]
+  comments  FormReviewComment[]
 
   @@index([template_id])
   @@index([sender_id])
@@ -186,17 +186,17 @@ enum FormReviewStatus {
 
 // Reviewers assigned to a form review
 model FormReviewUser {
-  id          String   @id @default(uuid()) @db.Uuid
-  review_id   String   @db.Uuid
-  user_id     String   @db.Uuid
-  user_name   String   @db.VarChar(255)
-  user_email  String   @db.VarChar(255)
-  tenant_id   String   @db.Uuid
-  has_read    Boolean  @default(false)
-  read_at     DateTime?
-  created_at  DateTime @default(now())
+  id         String    @id @default(uuid()) @db.Uuid
+  review_id  String    @db.Uuid
+  user_id    String    @db.Uuid
+  user_name  String    @db.VarChar(255)
+  user_email String    @db.VarChar(255)
+  tenant_id  String    @db.Uuid
+  has_read   Boolean   @default(false)
+  read_at    DateTime?
+  created_at DateTime  @default(now())
 
-  review      FormReview @relation(fields: [review_id], references: [id], onDelete: Cascade)
+  review FormReview @relation(fields: [review_id], references: [id], onDelete: Cascade)
 
   @@unique([review_id, user_id])
   @@index([user_id])
@@ -206,18 +206,18 @@ model FormReviewUser {
 
 // Comments on a form review
 model FormReviewComment {
-  id          String   @id @default(uuid()) @db.Uuid
-  review_id   String   @db.Uuid
-  user_id     String   @db.Uuid
-  user_name   String   @db.VarChar(255)
-  content     String   @db.Text
-  parent_id   String?  @db.Uuid   // for threaded replies
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id         String   @id @default(uuid()) @db.Uuid
+  review_id  String   @db.Uuid
+  user_id    String   @db.Uuid
+  user_name  String   @db.VarChar(255)
+  content    String   @db.Text
+  parent_id  String?  @db.Uuid // for threaded replies
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-  review      FormReview        @relation(fields: [review_id], references: [id], onDelete: Cascade)
-  parent      FormReviewComment? @relation("CommentThread", fields: [parent_id], references: [id])
-  replies     FormReviewComment[] @relation("CommentThread")
+  review  FormReview          @relation(fields: [review_id], references: [id], onDelete: Cascade)
+  parent  FormReviewComment?  @relation("CommentThread", fields: [parent_id], references: [id])
+  replies FormReviewComment[] @relation("CommentThread")
 
   @@index([review_id])
   @@index([parent_id])
@@ -258,7 +258,7 @@ model FormExtension {
   created_at        DateTime            @default(now())
   updated_at        DateTime            @updatedAt
 
-  fields            FormExtensionField[]
+  fields FormExtensionField[]
 
   @@unique([base_form_id, campaign_id, level, tenant_id, version])
   @@index([campaign_id, tenant_id])
@@ -271,16 +271,16 @@ model FormExtensionField {
   id                String   @id @default(uuid()) @db.Uuid
   extension_id      String   @db.Uuid
   field_key         String   @db.VarChar(255)
-  label_i18n        Json                    // { en, fr, ar, pt }
+  label_i18n        Json // { en, fr, ar, pt }
   type              String   @db.VarChar(50) // text | number | date | select | boolean | ...
   required          Boolean  @default(false)
   validation_rules  Json?
   reference_data_id String?  @db.Uuid
-  properties        Json?                   // type-specific configuration (options, min, max, etc.)
+  properties        Json? // type-specific configuration (options, min, max, etc.)
   order             Int      @default(0)
   created_at        DateTime @default(now())
 
-  extension         FormExtension @relation(fields: [extension_id], references: [id], onDelete: Cascade)
+  extension FormExtension @relation(fields: [extension_id], references: [id], onDelete: Cascade)
 
   @@unique([extension_id, field_key])
   @@index([extension_id])
@@ -290,15 +290,15 @@ model FormExtensionField {
 
 // Version history for audit trail on templates and overlays
 model FormVersionHistory {
-  id            String   @id @default(uuid()) @db.Uuid
-  template_id   String   @db.Uuid
-  overlay_id    String?  @db.Uuid  // null if change was on the base template
-  version       Int
-  change_type   String   @db.VarChar(30) // BASE_UPDATED, OVERLAY_CREATED, OVERLAY_UPDATED, OVERLAY_DELETED
-  change_delta  Json     // the diff
-  changed_by    String   @db.Uuid
-  tenant_id     String   @db.Uuid
-  created_at    DateTime @default(now())
+  id           String   @id @default(uuid()) @db.Uuid
+  template_id  String   @db.Uuid
+  overlay_id   String?  @db.Uuid // null if change was on the base template
+  version      Int
+  change_type  String   @db.VarChar(30) // BASE_UPDATED, OVERLAY_CREATED, OVERLAY_UPDATED, OVERLAY_DELETED
+  change_delta Json // the diff
+  changed_by   String   @db.Uuid
+  tenant_id    String   @db.Uuid
+  created_at   DateTime @default(now())
 
   @@index([template_id, version])
   @@index([overlay_id])

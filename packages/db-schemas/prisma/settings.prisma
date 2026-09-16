@@ -4,25 +4,25 @@
 // RECs, Countries, SystemConfig, Domains for the Settings module + public landing page.
 
 model Rec {
-  id            String       @id @default(uuid()) @db.Uuid
-  code          String       @unique @db.VarChar(20)
-  name          Json         // { "en": "ECOWAS", "fr": "CEDEAO", "pt": "CEDEAO", "ar": "..." }
-  fullName      Json         @map("full_name")
-  description   Json
-  region        Json         // { "en": "West Africa", "fr": "Afrique de l'Ouest", ... }
-  headquarters  String       @db.VarChar(255)
-  established   Int?
-  accentColor   String       @map("accent_color") @db.VarChar(20)
-  logoUrl       String?      @map("logo_url") @db.VarChar(500)
-  website       String?      @db.VarChar(500)
-  currency      String?      @db.VarChar(10)  // ISO 4217 currency code (e.g. XOF, USD, KES)
-  isActive      Boolean      @default(true) @map("is_active")
-  sortOrder     Int          @default(0) @map("sort_order")
-  stats         Json?        // { activeCampaigns: 12, reportsSubmitted: 450, ... }
-  metadata      Json?
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz
-  countries     CountryRec[]
+  id           String       @id @default(uuid()) @db.Uuid
+  code         String       @unique @db.VarChar(20)
+  name         Json // { "en": "ECOWAS", "fr": "CEDEAO", "pt": "CEDEAO", "ar": "..." }
+  fullName     Json         @map("full_name")
+  description  Json
+  region       Json // { "en": "West Africa", "fr": "Afrique de l'Ouest", ... }
+  headquarters String       @db.VarChar(255)
+  established  Int?
+  accentColor  String       @map("accent_color") @db.VarChar(20)
+  logoUrl      String?      @map("logo_url") @db.VarChar(500)
+  website      String?      @db.VarChar(500)
+  currency     String?      @db.VarChar(10) // ISO 4217 currency code (e.g. XOF, USD, KES)
+  isActive     Boolean      @default(true) @map("is_active")
+  sortOrder    Int          @default(0) @map("sort_order")
+  stats        Json? // { activeCampaigns: 12, reportsSubmitted: 450, ... }
+  metadata     Json?
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  countries    CountryRec[]
 
   @@index([isActive], map: "idx_rec_is_active")
   @@index([sortOrder], map: "idx_rec_sort_order")
@@ -31,32 +31,32 @@ model Rec {
 }
 
 model Country {
-  id                String       @id @default(uuid()) @db.Uuid
-  code              String       @unique @db.VarChar(2)     // ISO 3166-1 alpha-2
-  code3             String?      @db.VarChar(3)             // ISO 3166-1 alpha-3
-  name              Json         // { "en": "Kenya", "fr": "Kenya", "pt": "Quénia", "ar": "كينيا" }
-  officialName      Json?        @map("official_name")
-  capital           Json         // { "en": "Nairobi", ... }
-  flag              String       @db.VarChar(20)            // emoji flag
-  population        BigInt?      // total population
-  area              Float?       // km²
-  timezone          String?      @db.VarChar(50)
-  languages         Json?        // ["sw", "en"]
-  currency          String?      @db.VarChar(10)
-  phoneCode         String?      @map("phone_code") @db.VarChar(10)
-  isActive          Boolean      @default(false) @map("is_active")
-  isOperational     Boolean      @default(false) @map("is_operational")
-  tenantId          String?      @map("tenant_id") @db.Uuid
-  sortOrder         Int          @default(0) @map("sort_order")
-  stats             Json?        // { activeOutbreaks: 6, vaccinationCoverage: 52, ... }
-  sectorPerformance Json?        @map("sector_performance") // { vaccination: 52, fisheries: 74, ... }
-  welcomeMessage    String?      @map("welcome_message") @db.Text  // HTML content for inactive country landing page
+  id                String             @id @default(uuid()) @db.Uuid
+  code              String             @unique @db.VarChar(2) // ISO 3166-1 alpha-2
+  code3             String?            @db.VarChar(3) // ISO 3166-1 alpha-3
+  name              Json // { "en": "Kenya", "fr": "Kenya", "pt": "Quénia", "ar": "كينيا" }
+  officialName      Json?              @map("official_name")
+  capital           Json // { "en": "Nairobi", ... }
+  flag              String             @db.VarChar(20) // emoji flag
+  population        BigInt? // total population
+  area              Float? // km²
+  timezone          String?            @db.VarChar(50)
+  languages         Json? // ["sw", "en"]
+  currency          String?            @db.VarChar(10)
+  phoneCode         String?            @map("phone_code") @db.VarChar(10)
+  isActive          Boolean            @default(false) @map("is_active")
+  isOperational     Boolean            @default(false) @map("is_operational")
+  tenantId          String?            @map("tenant_id") @db.Uuid
+  sortOrder         Int                @default(0) @map("sort_order")
+  stats             Json? // { activeOutbreaks: 6, vaccinationCoverage: 52, ... }
+  sectorPerformance Json?              @map("sector_performance") // { vaccination: 52, fisheries: 74, ... }
+  welcomeMessage    String?            @map("welcome_message") @db.Text // HTML content for inactive country landing page
   metadata          Json?
-  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz
   recs              CountryRec[]
   adminLevels       AdminLevel[]
-  tenant            Tenant?      @relation(fields: [tenantId], references: [id])
+  tenant            Tenant?            @relation(fields: [tenantId], references: [id])
   collecteWorkflow  CollecteWorkflow?
   countryStatistics CountryStatistic[]
   kpiScores         CountryKpiScore[]
@@ -85,13 +85,13 @@ model CountryRec {
 
 model SystemConfig {
   id          String   @id @default(uuid()) @db.Uuid
-  category    String   @db.VarChar(50)  // "general", "security", "notifications", "branding", "i18n", "data-quality"
+  category    String   @db.VarChar(50) // "general", "security", "notifications", "branding", "i18n", "data-quality"
   key         String   @db.VarChar(100) // "platform.name", "security.mfa.required", etc.
   value       Json
-  label       Json     // { "en": "Platform Name", "fr": "Nom de la plateforme", ... }
+  label       Json // { "en": "Platform Name", "fr": "Nom de la plateforme", ... }
   description Json?
-  type        String   @db.VarChar(20)  // "string", "number", "boolean", "json", "color", "url", "enum"
-  options     Json?    // for type "enum": ["option1", "option2"]
+  type        String   @db.VarChar(20) // "string", "number", "boolean", "json", "color", "url", "enum"
+  options     Json? // for type "enum": ["option1", "option2"]
   isEditable  Boolean  @default(true) @map("is_editable")
   scope       String   @default("global") @db.VarChar(20) // "global", "rec", "national"
   tenantId    String?  @map("tenant_id") @db.Uuid
@@ -108,17 +108,17 @@ model SystemConfig {
 }
 
 model Domain {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @unique @db.VarChar(30) // "animal-health", "livestock-prod", etc.
-  name        Json     // { "en": "Animal Health & One Health", ... }
+  id          String       @id @default(uuid()) @db.Uuid
+  code        String       @unique @db.VarChar(30) // "animal-health", "livestock-prod", etc.
+  name        Json // { "en": "Animal Health & One Health", ... }
   description Json?
-  icon        String   @db.VarChar(50)         // lucide icon name: "HeartPulse", "Wheat", etc.
-  color       String   @db.VarChar(20)         // "#C62828"
-  isActive    Boolean  @default(true) @map("is_active")
-  sortOrder   Int      @default(0) @map("sort_order")
+  icon        String       @db.VarChar(50) // lucide icon name: "HeartPulse", "Wheat", etc.
+  color       String       @db.VarChar(20) // "#C62828"
+  isActive    Boolean      @default(true) @map("is_active")
+  sortOrder   Int          @default(0) @map("sort_order")
   metadata    Json?
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz
   userDomains UserDomain[]
   subDomains  SubDomain[]
 
@@ -131,7 +131,7 @@ model Domain {
 // ─── Referentiel central des codes de chaines de valeur ──────────────
 // Permet les vues transverses : plusieurs sous-domaines peuvent partager un meme code
 model ValueChainCode {
-  code         String      @id @db.VarChar(30)     // ex: 'DAIRY', 'RED_MEAT', 'POULTRY'
+  code         String      @id @db.VarChar(30) // ex: 'DAIRY', 'RED_MEAT', 'POULTRY'
   labelFr      String      @map("label_fr")
   labelEn      String      @map("label_en")
   labelAr      String?     @map("label_ar")
@@ -149,9 +149,9 @@ model ValueChainCode {
 
 // ─── Type d'un sous-domaine ──────────────────────────────────────────
 enum SubDomainType {
-  VALUE_CHAIN    // Dairy, Red meat, Poultry...
+  VALUE_CHAIN // Dairy, Red meat, Poultry...
   ORGANIZATIONAL // Clinics, Laboratories, Slaughterhouses...
-  PATHOLOGY      // PPR, FMD, ASF...
+  PATHOLOGY // PPR, FMD, ASF...
   OTHER
 
   @@schema("governance")
@@ -161,7 +161,7 @@ enum SubDomainType {
 // Peut porter un tag value_chain_code optionnel pour les vues transverses
 model SubDomain {
   id             String          @id @default(uuid()) @db.Uuid
-  code           String          @db.VarChar(50)               // ex: 'DAIRY', 'CLINICS'
+  code           String          @db.VarChar(50) // ex: 'DAIRY', 'CLINICS'
   domainId       String          @map("domain_id") @db.Uuid
   domain         Domain          @relation(fields: [domainId], references: [id], onDelete: Cascade)
   valueChainCode String?         @map("value_chain_code") @db.VarChar(30)
@@ -174,8 +174,8 @@ model SubDomain {
   active         Boolean         @default(true)
   displayOrder   Int             @default(0) @map("display_order")
   description    String?
-  icon           String?         @db.VarChar(50)    // Lucide icon name
-  color          String?         @db.VarChar(20)    // Hex color e.g. "#2E7D32"
+  icon           String?         @db.VarChar(50) // Lucide icon name
+  color          String?         @db.VarChar(20) // Hex color e.g. "#2E7D32"
   createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -204,15 +204,15 @@ model UserDomain {
 }
 
 model AdminLevel {
-  id          String   @id @default(uuid()) @db.Uuid
-  countryId   String   @map("country_id") @db.Uuid
-  level       Int      // 1-5
-  name        Json     // { "en": "County", "fr": "Comté", ... }
-  code        String   @db.VarChar(50) // "county", "sub_county", etc.
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  country     Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid()) @db.Uuid
+  countryId String   @map("country_id") @db.Uuid
+  level     Int // 1-5
+  name      Json // { "en": "County", "fr": "Comté", ... }
+  code      String   @db.VarChar(50) // "county", "sub_county", etc.
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
 
   @@unique([countryId, level])
   @@unique([countryId, code])
@@ -226,11 +226,11 @@ model AdminLevel {
 model Function {
   id          String         @id @default(uuid()) @db.Uuid
   code        String         @db.VarChar(30)
-  name        Json           // { "en": "Director General", "fr": "Directeur Général", "pt": "...", "ar": "..." }
+  name        Json // { "en": "Director General", "fr": "Directeur Général", "pt": "...", "ar": "..." }
   description Json?
   level       String         @db.VarChar(20) // "continental", "regional", "national"
   category    String?        @db.VarChar(20) // "management", "technical", "data", "admin", "field"
-  permissions Json?          // domain-specific permissions
+  permissions Json? // domain-specific permissions
   isActive    Boolean        @default(true) @map("is_active")
   isDefault   Boolean        @default(false) @map("is_default")
   sortOrder   Int            @default(0) @map("sort_order")
@@ -274,24 +274,24 @@ model UserFunction {
 // ── Roles & Permissions ───────────────────────────────────────────────
 
 model Role {
-  id          String    @id @default(uuid()) @db.Uuid
-  code        String    @db.VarChar(50)
-  name        Json      // { en, fr, pt, ar }
-  description Json?
-  level       String    @db.VarChar(20) // continental, regional, national
-  color       String    @default("#6b7280") @db.VarChar(20)
-  icon        String    @default("Shield") @db.VarChar(50)
-  isSystem    Boolean   @default(false) @map("is_system")
-  isActive    Boolean   @default(true) @map("is_active")
-  sortOrder   Int       @default(0) @map("sort_order")
-  tenantId    String?   @map("tenant_id") @db.Uuid
-  metadata    Json?
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  tenant      Tenant?   @relation(fields: [tenantId], references: [id])
-  permissions RolePermission[]
+  id            String               @id @default(uuid()) @db.Uuid
+  code          String               @db.VarChar(50)
+  name          Json // { en, fr, pt, ar }
+  description   Json?
+  level         String               @db.VarChar(20) // continental, regional, national
+  color         String               @default("#6b7280") @db.VarChar(20)
+  icon          String               @default("Shield") @db.VarChar(50)
+  isSystem      Boolean              @default(false) @map("is_system")
+  isActive      Boolean              @default(true) @map("is_active")
+  sortOrder     Int                  @default(0) @map("sort_order")
+  tenantId      String?              @map("tenant_id") @db.Uuid
+  metadata      Json?
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+  tenant        Tenant?              @relation(fields: [tenantId], references: [id])
+  permissions   RolePermission[]
   functionRoles FunctionRole[]
-  userRoles   UserRoleAssignment[]
+  userRoles     UserRoleAssignment[]
 
   @@unique([tenantId, code], map: "uq_role_tenant_code")
   @@index([isActive], map: "idx_role_is_active")
@@ -301,13 +301,13 @@ model Role {
 }
 
 model Permission {
-  id          String    @id @default(uuid()) @db.Uuid
-  module      String    @db.VarChar(50)
-  feature     String    @db.VarChar(100)
-  action      String    @db.VarChar(20)
-  description Json?
-  isActive    Boolean   @default(true) @map("is_active")
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  id              String           @id @default(uuid()) @db.Uuid
+  module          String           @db.VarChar(50)
+  feature         String           @db.VarChar(100)
+  action          String           @db.VarChar(20)
+  description     Json?
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz
   rolePermissions RolePermission[]
 
   @@unique([module, feature, action], map: "uq_perm_module_feature_action")
@@ -366,21 +366,21 @@ model UserRoleAssignment {
 // ── BI Tools Configuration ──────────────────────────────────────────────
 
 model BiToolConfig {
-  id            String       @id @default(uuid()) @db.Uuid
-  tool          String       @unique @db.VarChar(30) // "superset", "metabase", "grafana"
-  baseUrl       String       @map("base_url") @db.VarChar(500)
-  displayName   Json         @map("display_name")   // { "en": "Apache Superset", "fr": "..." }
-  description   Json?
-  icon          String?      @db.VarChar(50)         // lucide icon name
-  status        String       @default("active") @db.VarChar(20) // "active", "coming_soon", "maintenance", "disabled"
-  embedMode     String       @default("iframe") @map("embed_mode") @db.VarChar(30) // "iframe", "guest_token", "signed_url"
-  sortOrder     Int          @default(0) @map("sort_order")
-  metadata      Json?
-  isActive      Boolean      @default(true) @map("is_active")
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz
-  accessRules   BiDataAccessRule[]
-  dashboards    BiDashboard[]
+  id          String             @id @default(uuid()) @db.Uuid
+  tool        String             @unique @db.VarChar(30) // "superset", "metabase", "grafana"
+  baseUrl     String             @map("base_url") @db.VarChar(500)
+  displayName Json               @map("display_name") // { "en": "Apache Superset", "fr": "..." }
+  description Json?
+  icon        String?            @db.VarChar(50) // lucide icon name
+  status      String             @default("active") @db.VarChar(20) // "active", "coming_soon", "maintenance", "disabled"
+  embedMode   String             @default("iframe") @map("embed_mode") @db.VarChar(30) // "iframe", "guest_token", "signed_url"
+  sortOrder   Int                @default(0) @map("sort_order")
+  metadata    Json?
+  isActive    Boolean            @default(true) @map("is_active")
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  accessRules BiDataAccessRule[]
+  dashboards  BiDashboard[]
 
   @@index([status], map: "idx_bi_tool_config_status")
   @@index([sortOrder], map: "idx_bi_tool_config_sort_order")
@@ -389,22 +389,22 @@ model BiToolConfig {
 }
 
 model BiDataAccessRule {
-  id                String       @id @default(uuid()) @db.Uuid
-  biToolConfigId    String       @map("bi_tool_config_id") @db.Uuid
-  roleLevel         String?      @map("role_level") @db.VarChar(30) // UserRole value
-  entityType        String?      @map("entity_type") @db.VarChar(30) // "tenant", "rec", "country"
-  entityId          String?      @map("entity_id") @db.Uuid
-  allowedSchemas    Json         @default("[]") @map("allowed_schemas")   // ["public", "historical"]
-  allowedTables     Json         @default("[]") @map("allowed_tables")    // ["outbreaks", "campaigns"]
-  excludedTables    Json         @default("[]") @map("excluded_tables")   // ["User", "Session"]
-  dataFilters       Json?        @map("data_filters")   // RLS-like filters
-  canCreateDashboard Boolean     @default(false) @map("can_create_dashboard")
-  canExportData     Boolean      @default(false) @map("can_export_data")
-  canUseSqlLab      Boolean      @default(false) @map("can_use_sql_lab")
-  isActive          Boolean      @default(true) @map("is_active")
-  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz
-  biToolConfig      BiToolConfig @relation(fields: [biToolConfigId], references: [id], onDelete: Cascade)
+  id                 String       @id @default(uuid()) @db.Uuid
+  biToolConfigId     String       @map("bi_tool_config_id") @db.Uuid
+  roleLevel          String?      @map("role_level") @db.VarChar(30) // UserRole value
+  entityType         String?      @map("entity_type") @db.VarChar(30) // "tenant", "rec", "country"
+  entityId           String?      @map("entity_id") @db.Uuid
+  allowedSchemas     Json         @default("[]") @map("allowed_schemas") // ["public", "historical"]
+  allowedTables      Json         @default("[]") @map("allowed_tables") // ["outbreaks", "campaigns"]
+  excludedTables     Json         @default("[]") @map("excluded_tables") // ["User", "Session"]
+  dataFilters        Json?        @map("data_filters") // RLS-like filters
+  canCreateDashboard Boolean      @default(false) @map("can_create_dashboard")
+  canExportData      Boolean      @default(false) @map("can_export_data")
+  canUseSqlLab       Boolean      @default(false) @map("can_use_sql_lab")
+  isActive           Boolean      @default(true) @map("is_active")
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  biToolConfig       BiToolConfig @relation(fields: [biToolConfigId], references: [id], onDelete: Cascade)
 
   @@unique([biToolConfigId, roleLevel, entityType, entityId], map: "uq_bi_access_rule")
   @@index([biToolConfigId], map: "idx_bi_access_rule_tool_id")
@@ -414,22 +414,22 @@ model BiDataAccessRule {
 }
 
 model BiDashboard {
-  id              String       @id @default(uuid()) @db.Uuid
-  biToolConfigId  String       @map("bi_tool_config_id") @db.Uuid
-  externalId      String       @map("external_id") @db.VarChar(255) // ID in Superset/Metabase
-  name            Json         // { "en": "Animal Health Overview", "fr": "..." }
-  description     Json?
-  thumbnail       String?      @db.VarChar(500)
-  category        String?      @db.VarChar(50)    // "animal-health", "livestock", "overview"
-  embedUrl        String       @map("embed_url") @db.VarChar(1000)
-  scope           String       @default("global") @db.VarChar(20) // "global", "rec", "national"
-  allowedRoles    Json         @default("[]") @map("allowed_roles") // ["SUPER_ADMIN", "ANALYST"]
-  sortOrder       Int          @default(0) @map("sort_order")
-  isFeatured      Boolean      @default(false) @map("is_featured")
-  isActive        Boolean      @default(true) @map("is_active")
-  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz
-  biToolConfig    BiToolConfig @relation(fields: [biToolConfigId], references: [id], onDelete: Cascade)
+  id             String       @id @default(uuid()) @db.Uuid
+  biToolConfigId String       @map("bi_tool_config_id") @db.Uuid
+  externalId     String       @map("external_id") @db.VarChar(255) // ID in Superset/Metabase
+  name           Json // { "en": "Animal Health Overview", "fr": "..." }
+  description    Json?
+  thumbnail      String?      @db.VarChar(500)
+  category       String?      @db.VarChar(50) // "animal-health", "livestock", "overview"
+  embedUrl       String       @map("embed_url") @db.VarChar(1000)
+  scope          String       @default("global") @db.VarChar(20) // "global", "rec", "national"
+  allowedRoles   Json         @default("[]") @map("allowed_roles") // ["SUPER_ADMIN", "ANALYST"]
+  sortOrder      Int          @default(0) @map("sort_order")
+  isFeatured     Boolean      @default(false) @map("is_featured")
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  biToolConfig   BiToolConfig @relation(fields: [biToolConfigId], references: [id], onDelete: Cascade)
 
   @@unique([biToolConfigId, externalId], map: "uq_bi_dashboard_external")
   @@index([biToolConfigId], map: "idx_bi_dashboard_tool_id")
@@ -443,22 +443,22 @@ model BiDashboard {
 // ── Statistic Definitions & Country Statistics ──────────────────────────
 
 model StatisticDefinition {
-  id            String   @id @default(uuid()) @db.Uuid
-  code          String   @unique @db.VarChar(50)
-  name          Json     // { en, fr, pt, ar }
-  description   Json?
-  domainCode    String   @map("domain_code") @db.VarChar(30)
-  icon          String?  @db.VarChar(50)
-  color         String?  @db.VarChar(20)
-  unit          String   @default("count") @db.VarChar(20)  // count, percentage, currency, tonnes
-  format        String   @default("number") @db.VarChar(20) // number, currency, compact
-  sourceType    String   @map("source_type") @db.VarChar(20) // form_builder, manual
-  sourceConfig  Json?    @map("source_config") // { templateId?, fieldCode?, aggregation: "count"|"sum"|"avg" }
-  isActive      Boolean  @default(true) @map("is_active")
-  sortOrder     Int      @default(0) @map("sort_order")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  countryStats  CountryStatistic[]
+  id           String             @id @default(uuid()) @db.Uuid
+  code         String             @unique @db.VarChar(50)
+  name         Json // { en, fr, pt, ar }
+  description  Json?
+  domainCode   String             @map("domain_code") @db.VarChar(30)
+  icon         String?            @db.VarChar(50)
+  color        String?            @db.VarChar(20)
+  unit         String             @default("count") @db.VarChar(20) // count, percentage, currency, tonnes
+  format       String             @default("number") @db.VarChar(20) // number, currency, compact
+  sourceType   String             @map("source_type") @db.VarChar(20) // form_builder, manual
+  sourceConfig Json?              @map("source_config") // { templateId?, fieldCode?, aggregation: "count"|"sum"|"avg" }
+  isActive     Boolean            @default(true) @map("is_active")
+  sortOrder    Int                @default(0) @map("sort_order")
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  countryStats CountryStatistic[]
 
   @@index([domainCode], map: "idx_stat_def_domain")
   @@index([isActive], map: "idx_stat_def_active")
@@ -467,18 +467,18 @@ model StatisticDefinition {
 }
 
 model CountryStatistic {
-  id            String   @id @default(uuid()) @db.Uuid
-  countryId     String   @map("country_id") @db.Uuid
-  statisticId   String   @map("statistic_id") @db.Uuid
-  isVisible     Boolean  @default(true) @map("is_visible")
-  displayPeriod String   @default("current_year") @map("display_period") @db.VarChar(30)
-  periodStart   DateTime? @map("period_start") @db.Timestamptz
-  periodEnd     DateTime? @map("period_end") @db.Timestamptz
-  overrideValue Float?   @map("override_value")
-  sortOrder     Int      @default(0) @map("sort_order")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  country       Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  id            String              @id @default(uuid()) @db.Uuid
+  countryId     String              @map("country_id") @db.Uuid
+  statisticId   String              @map("statistic_id") @db.Uuid
+  isVisible     Boolean             @default(true) @map("is_visible")
+  displayPeriod String              @default("current_year") @map("display_period") @db.VarChar(30)
+  periodStart   DateTime?           @map("period_start") @db.Timestamptz
+  periodEnd     DateTime?           @map("period_end") @db.Timestamptz
+  overrideValue Float?              @map("override_value")
+  sortOrder     Int                 @default(0) @map("sort_order")
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  country       Country             @relation(fields: [countryId], references: [id], onDelete: Cascade)
   statistic     StatisticDefinition @relation(fields: [statisticId], references: [id], onDelete: Cascade)
 
   @@unique([countryId, statisticId])
@@ -490,23 +490,23 @@ model CountryStatistic {
 // ── KPI Definitions & Country KPI Scores ────────────────────────────────
 
 model KpiDefinition {
-  id            String   @id @default(uuid()) @db.Uuid
-  code          String   @unique @db.VarChar(50)
-  name          Json     // { en, fr, pt, ar }
+  id            String            @id @default(uuid()) @db.Uuid
+  code          String            @unique @db.VarChar(50)
+  name          Json // { en, fr, pt, ar }
   description   Json?
-  domainCode    String?  @map("domain_code") @db.VarChar(30)
-  icon          String?  @db.VarChar(50)
-  color         String?  @db.VarChar(20)
-  unit          String   @default("percentage") @db.VarChar(20)
-  targetValue   Float    @default(100) @map("target_value")
-  thresholdGood Int      @default(75) @map("threshold_good")
-  thresholdWarn Int      @default(50) @map("threshold_warn")
-  scope         String   @default("both") @db.VarChar(20) // country, rec, both
-  isPreset      Boolean  @default(false) @map("is_preset")
-  isActive      Boolean  @default(true) @map("is_active")
-  sortOrder     Int      @default(0) @map("sort_order")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  domainCode    String?           @map("domain_code") @db.VarChar(30)
+  icon          String?           @db.VarChar(50)
+  color         String?           @db.VarChar(20)
+  unit          String            @default("percentage") @db.VarChar(20)
+  targetValue   Float             @default(100) @map("target_value")
+  thresholdGood Int               @default(75) @map("threshold_good")
+  thresholdWarn Int               @default(50) @map("threshold_warn")
+  scope         String            @default("both") @db.VarChar(20) // country, rec, both
+  isPreset      Boolean           @default(false) @map("is_preset")
+  isActive      Boolean           @default(true) @map("is_active")
+  sortOrder     Int               @default(0) @map("sort_order")
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz
   countryScores CountryKpiScore[]
 
   @@index([domainCode], map: "idx_kpi_def_domain")
@@ -516,23 +516,92 @@ model KpiDefinition {
 }
 
 model CountryKpiScore {
-  id         String   @id @default(uuid()) @db.Uuid
-  countryId  String   @map("country_id") @db.Uuid
-  kpiId      String   @map("kpi_id") @db.Uuid
-  score      Float    // 0-100
-  year       Int
-  quarter    Int?
-  source     String   @default("manual") @db.VarChar(20) // manual, computed
-  notes      String?
-  updatedBy  String?  @map("updated_by") @db.Uuid
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  country    Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
-  kpi        KpiDefinition @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  id        String        @id @default(uuid()) @db.Uuid
+  countryId String        @map("country_id") @db.Uuid
+  kpiId     String        @map("kpi_id") @db.Uuid
+  score     Float // 0-100
+  year      Int
+  quarter   Int?
+  source    String        @default("manual") @db.VarChar(20) // manual, computed
+  notes     String?
+  updatedBy String?       @map("updated_by") @db.Uuid
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  country   Country       @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  kpi       KpiDefinition @relation(fields: [kpiId], references: [id], onDelete: Cascade)
 
   @@unique([countryId, kpiId, year, quarter])
   @@index([countryId], map: "idx_kpi_score_country")
   @@index([kpiId], map: "idx_kpi_score_kpi")
   @@map("country_kpi_scores")
+  @@schema("governance")
+}
+
+// ── Country Onboarding Submissions ────────────────────────────────────
+
+enum OnboardingStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  PROCESSING
+  COMPLETED
+
+  @@schema("governance")
+}
+
+model CountryOnboarding {
+  id     String           @id @default(uuid()) @db.Uuid
+  status OnboardingStatus @default(SUBMITTED)
+
+  // Section 1 — Country identification
+  countryName       String   @map("country_name") @db.VarChar(200)
+  countryCode       String?  @map("country_code") @db.VarChar(3) // ISO alpha-2 or alpha-3
+  officialLanguages String[] @map("official_languages")
+  preferredLanguage String   @map("preferred_language") @db.VarChar(5) // EN, FR, PT, AR, ES, SW
+
+  // Section 2 — Administrative structure (JSON array of levels)
+  // [{ level: 1, denomination: "Region", unitCount: 14, example: "Région Centre" }, ...]
+  adminLevels Json @map("admin_levels")
+
+  // Section 3 — Active domains
+  activeDomains String[] @map("active_domains") // ["animal-health", "livestock-prod", ...]
+
+  // Section 3 — User accounts (JSON array of user objects)
+  // [{ firstName, lastName, email, phone, role, title, institution, level, location, domains, mfa, supervisorName, supervisorEmail, alternateName, alternateEmail }]
+  users Json @default("[]")
+
+  // Section 8 — Historical data
+  hasHistoricalData Boolean  @default(false) @map("has_historical_data")
+  historicalPeriod  String?  @map("historical_period") @db.VarChar(50) // "2010-2025"
+  historicalFormat  String[] @map("historical_format") // ["excel", "csv", "database", "paper"]
+  historicalVolume  String?  @map("historical_volume") @db.VarChar(255)
+
+  // Section 11 — Contact info (requestor)
+  contactFullName    String @map("contact_full_name") @db.VarChar(200)
+  contactTitle       String @map("contact_title") @db.VarChar(200)
+  contactInstitution String @map("contact_institution") @db.VarChar(200)
+  contactEmail       String @map("contact_email") @db.VarChar(200)
+  contactPhone       String @map("contact_phone") @db.VarChar(50)
+
+  // Section 11 — CVO approval
+  cvoName  String? @map("cvo_name") @db.VarChar(200)
+  cvoTitle String? @map("cvo_title") @db.VarChar(200)
+  cvoEmail String? @map("cvo_email") @db.VarChar(200)
+
+  // Processing
+  notes       String?   @db.Text // admin notes
+  processedBy String?   @map("processed_by") @db.Uuid
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+  tenantId    String?   @map("tenant_id") @db.Uuid // linked after processing
+  submittedAt DateTime  @default(now()) @map("submitted_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([status], map: "idx_onboarding_status")
+  @@index([countryCode], map: "idx_onboarding_country_code")
+  @@index([tenantId], map: "idx_onboarding_tenant_id")
+  @@map("country_onboardings")
   @@schema("governance")
 }

@@ -49,18 +49,18 @@ model Notification {
 }
 
 model NotificationPreference {
-  id         String   @id @default(uuid()) @db.Uuid
-  tenantId   String   @map("tenant_id") @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  eventType  String   @map("event_type") @db.VarChar(100)
-  email      Boolean  @default(true)
-  sms        Boolean  @default(false)
-  push       Boolean  @default(false)
-  inApp      Boolean  @default(true) @map("in_app")
-  whatsapp   Boolean  @default(false)
-  telegram   Boolean  @default(false)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  eventType String   @map("event_type") @db.VarChar(100)
+  email     Boolean  @default(true)
+  sms       Boolean  @default(false)
+  push      Boolean  @default(false)
+  inApp     Boolean  @default(true) @map("in_app")
+  whatsapp  Boolean  @default(false)
+  telegram  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([userId, eventType], map: "uq_notification_pref_user_event")
   @@index([tenantId], map: "idx_notification_pref_tenant")

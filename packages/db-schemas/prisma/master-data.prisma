@@ -117,17 +117,17 @@ model GeoEntity {
 // ── GeoZone — Domain-specific geographic zones grouping Admin1 divisions ──
 
 model GeoZone {
-  id           String   @id @default(uuid()) @db.Uuid
-  countryCode  String   @map("country_code") @db.VarChar(3)
-  domainCode   String   @map("domain_code")
-  code         String
-  name         Json
-  description  Json?
-  memberIds    String[] @map("member_ids") @db.Uuid
-  isActive     Boolean  @default(true) @map("is_active")
-  sortOrder    Int      @default(0) @map("sort_order")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  id          String   @id @default(uuid()) @db.Uuid
+  countryCode String   @map("country_code") @db.VarChar(3)
+  domainCode  String   @map("domain_code")
+  code        String
+  name        Json
+  description Json?
+  memberIds   String[] @map("member_ids") @db.Uuid
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   @@unique([countryCode, domainCode, code])
   @@index([countryCode], map: "idx_geo_zone_country_code")
@@ -157,9 +157,9 @@ model Species {
   createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
-  faoAlphaCode    String?  @map("fao_alpha_code") @db.VarChar(10)
-  speciesGroup    String?  @map("species_group") @db.VarChar(30)
-  habitatType     String?  @map("habitat_type") @db.VarChar(30)
+  faoAlphaCode String? @map("fao_alpha_code") @db.VarChar(10)
+  speciesGroup String? @map("species_group") @db.VarChar(30)
+  habitatType  String? @map("habitat_type") @db.VarChar(30)
 
   denominators Denominator[]
 
@@ -270,7 +270,7 @@ model Identifier {
   latitude    Float?
   longitude   Float?
   address     String?        @db.Text
-  contactInfo Json?          @map("contact_info") @default("{}")
+  contactInfo Json?          @default("{}") @map("contact_info")
   isActive    Boolean        @default(true) @map("is_active")
   version     Int            @default(1)
   createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz

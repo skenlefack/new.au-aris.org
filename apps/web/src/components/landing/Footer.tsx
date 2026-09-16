@@ -82,6 +82,7 @@ export function Footer() {
               <li><Link href="#" className="transition-colors hover:text-[#3E2100]">{t('apiReference')}</Link></li>
               {/* Data Standards — hidden until content is available */}
               <li><Link href="#" className="transition-colors hover:text-[#3E2100]">{t('trainingPortal')}</Link></li>
+              <li><Link href="/onboarding" className="transition-colors hover:text-[#3E2100]">{t('countryOnboarding')}</Link></li>
             </ul>
           </div>
 

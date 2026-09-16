@@ -42,7 +42,7 @@ model DatasetColumn {
   dataType       String  @map("data_type") @db.VarChar(50) // TEXT, INTEGER, FLOAT, DATE, BOOLEAN, JSON
   pgColumnName   String  @map("pg_column_name") @db.VarChar(128)
   nullable       Boolean @default(true)
-  ordinal        Int     // column order
+  ordinal        Int // column order
   sampleValues   Json?   @map("sample_values") @db.JsonB
   stats          Json?   @db.JsonB // { min, max, avg, nullCount, uniqueCount, distribution }
   linkedRefType  String? @map("linked_ref_type") @db.VarChar(100) // e.g. "species", "country", "disease"
@@ -50,8 +50,8 @@ model DatasetColumn {
 
   dataset HistoricalDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
 
-  @@index([datasetId])
   @@unique([datasetId, ordinal])
+  @@index([datasetId])
   @@map("dataset_column")
   @@schema("public")
 }

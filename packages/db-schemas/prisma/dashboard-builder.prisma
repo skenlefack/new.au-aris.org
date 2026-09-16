@@ -73,44 +73,44 @@ enum SharePermission {
 // ── Dashboard ──────────────────────────────────────────────────────────
 
 model Dashboard {
-  id              String               @id @default(uuid()) @db.Uuid
-  ownership       DashboardOwnership   @default(USER_OWNED)
-  scope           DashboardScope       @default(PERSONAL)
+  id        String             @id @default(uuid()) @db.Uuid
+  ownership DashboardOwnership @default(USER_OWNED)
+  scope     DashboardScope     @default(PERSONAL)
 
   // ── Domain linkage (optional, loose coupling via codes/UUIDs) ──
-  domainId        String?              @map("domain_id") @db.Uuid
-  subDomainId     String?              @map("sub_domain_id") @db.Uuid
-  valueChainCode  String?              @map("value_chain_code") @db.VarChar(30)
-  recCode         String?              @map("rec_code") @db.VarChar(20)
-  countryCode     String?              @map("country_code") @db.VarChar(2)
-  campaignId      String?              @map("campaign_id") @db.Uuid
+  domainId       String? @map("domain_id") @db.Uuid
+  subDomainId    String? @map("sub_domain_id") @db.Uuid
+  valueChainCode String? @map("value_chain_code") @db.VarChar(30)
+  recCode        String? @map("rec_code") @db.VarChar(20)
+  countryCode    String? @map("country_code") @db.VarChar(2)
+  campaignId     String? @map("campaign_id") @db.Uuid
 
   // ── Multilingual titles ──
-  titleFr         String               @map("title_fr")
-  titleEn         String               @map("title_en")
-  titleAr         String?              @map("title_ar")
-  titlePt         String?              @map("title_pt")
-  titleEs      String?  @map("title_es")
-  titleSw      String?  @map("title_sw")
-  description     String?              @db.Text
+  titleFr     String  @map("title_fr")
+  titleEn     String  @map("title_en")
+  titleAr     String? @map("title_ar")
+  titlePt     String? @map("title_pt")
+  titleEs     String? @map("title_es")
+  titleSw     String? @map("title_sw")
+  description String? @db.Text
 
   // ── Grid configuration ──
-  gridColumns     Int                  @default(12) @map("grid_columns")
-  rowHeight       Int                  @default(80) @map("row_height")
+  gridColumns Int @default(12) @map("grid_columns")
+  rowHeight   Int @default(80) @map("row_height")
 
   // ── Ownership ──
-  ownerUserId     String?              @map("owner_user_id") @db.Uuid
-  isDefault       Boolean              @default(false) @map("is_default")
+  ownerUserId String? @map("owner_user_id") @db.Uuid
+  isDefault   Boolean @default(false) @map("is_default")
 
   // ── Timestamps ──
-  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // ── Relations ──
-  sections        DashboardSection[]
-  widgets         DashboardWidget[]
-  shares          DashboardShare[]
-  preferences     UserDashboardPreference[]
+  sections    DashboardSection[]
+  widgets     DashboardWidget[]
+  shares      DashboardShare[]
+  preferences UserDashboardPreference[]
 
   @@index([ownership], map: "idx_dashboard_ownership")
   @@index([scope], map: "idx_dashboard_scope")
@@ -125,30 +125,30 @@ model Dashboard {
 // ── Dashboard Section ──────────────────────────────────────────────────
 
 model DashboardSection {
-  id              String             @id @default(uuid()) @db.Uuid
-  dashboardId     String             @map("dashboard_id") @db.Uuid
-  dashboard       Dashboard          @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid()) @db.Uuid
+  dashboardId String    @map("dashboard_id") @db.Uuid
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
 
   // ── Multilingual titles ──
-  titleFr         String             @default("") @map("title_fr") @db.VarChar(255)
-  titleEn         String             @default("") @map("title_en") @db.VarChar(255)
-  titleAr         String?            @map("title_ar") @db.VarChar(255)
-  titlePt         String?            @map("title_pt") @db.VarChar(255)
-  titleEs      String?  @map("title_es")
-  titleSw      String?  @map("title_sw")
+  titleFr String  @default("") @map("title_fr") @db.VarChar(255)
+  titleEn String  @default("") @map("title_en") @db.VarChar(255)
+  titleAr String? @map("title_ar") @db.VarChar(255)
+  titlePt String? @map("title_pt") @db.VarChar(255)
+  titleEs String? @map("title_es")
+  titleSw String? @map("title_sw")
 
   // ── Layout ──
-  columnCount     Int                @default(2) @map("column_count") @db.SmallInt // 1-12
-  sortOrder       Int                @default(0) @map("sort_order")
-  isCollapsed     Boolean            @default(false) @map("is_collapsed")
-  config          Json               @default("{}")
+  columnCount Int     @default(2) @map("column_count") @db.SmallInt // 1-12
+  sortOrder   Int     @default(0) @map("sort_order")
+  isCollapsed Boolean @default(false) @map("is_collapsed")
+  config      Json    @default("{}")
 
   // ── Timestamps ──
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // ── Relations ──
-  widgets         DashboardWidget[]
+  widgets DashboardWidget[]
 
   @@index([dashboardId], map: "idx_section_dashboard_id")
   @@index([dashboardId, sortOrder], map: "idx_section_sort_order")
@@ -159,41 +159,41 @@ model DashboardSection {
 // ── Dashboard Widget ───────────────────────────────────────────────────
 
 model DashboardWidget {
-  id              String             @id @default(uuid()) @db.Uuid
-  dashboardId     String             @map("dashboard_id") @db.Uuid
-  dashboard       Dashboard          @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid()) @db.Uuid
+  dashboardId String    @map("dashboard_id") @db.Uuid
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
 
   // ── Section assignment ──
-  sectionId       String?            @map("section_id") @db.Uuid
-  section         DashboardSection?  @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  columnIndex     Int                @default(0) @map("column_index") @db.SmallInt
-  sortOrder       Int                @default(0) @map("sort_order")
+  sectionId   String?           @map("section_id") @db.Uuid
+  section     DashboardSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  columnIndex Int               @default(0) @map("column_index") @db.SmallInt
+  sortOrder   Int               @default(0) @map("sort_order")
 
   // ── Widget type & data source ──
-  type            WidgetType
-  dataSource      WidgetDataSource   @default(INDICATOR) @map("data_source")
+  type       WidgetType
+  dataSource WidgetDataSource @default(INDICATOR) @map("data_source")
 
   // ── Grid position (legacy, kept for backward compat) ──
-  gridX           Int                @default(0) @map("grid_x")
-  gridY           Int                @default(0) @map("grid_y")
-  gridW           Int                @default(3) @map("grid_w")
-  gridH           Int                @default(2) @map("grid_h")
+  gridX Int @default(0) @map("grid_x")
+  gridY Int @default(0) @map("grid_y")
+  gridW Int @default(3) @map("grid_w")
+  gridH Int @default(2) @map("grid_h")
 
   // ── Multilingual titles ──
-  titleFr         String             @map("title_fr")
-  titleEn         String             @map("title_en")
-  titleAr         String?            @map("title_ar")
-  titlePt         String?            @map("title_pt")
-  titleEs      String?  @map("title_es")
-  titleSw      String?  @map("title_sw")
+  titleFr String  @map("title_fr")
+  titleEn String  @map("title_en")
+  titleAr String? @map("title_ar")
+  titlePt String? @map("title_pt")
+  titleEs String? @map("title_es")
+  titleSw String? @map("title_sw")
 
   // ── Configuration (JSON blobs) ──
-  config          Json               @default("{}")
-  filters         Json               @default("{}")
+  config  Json @default("{}")
+  filters Json @default("{}")
 
   // ── Timestamps ──
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([dashboardId], map: "idx_widget_dashboard_id")
   @@index([sectionId], map: "idx_widget_section_id")
@@ -206,28 +206,28 @@ model DashboardWidget {
 // ── Dashboard Share ────────────────────────────────────────────────────
 
 model DashboardShare {
-  id               String           @id @default(uuid()) @db.Uuid
-  dashboardId      String           @map("dashboard_id") @db.Uuid
-  dashboard        Dashboard        @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid()) @db.Uuid
+  dashboardId String    @map("dashboard_id") @db.Uuid
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
 
   // ── Target (user, role, or public) ──
-  sharedWithUserId String?          @map("shared_with_user_id") @db.Uuid
-  sharedWithRole   String?          @map("shared_with_role") @db.VarChar(30)
-  isPublic         Boolean          @default(false) @map("is_public")
+  sharedWithUserId String? @map("shared_with_user_id") @db.Uuid
+  sharedWithRole   String? @map("shared_with_role") @db.VarChar(30)
+  isPublic         Boolean @default(false) @map("is_public")
 
   // ── Permission ──
-  permission       SharePermission  @default(VIEW)
+  permission SharePermission @default(VIEW)
 
   // ── Extended sharing (5 target types) ──
-  sharedWithTenantId String?  @map("shared_with_tenant_id") @db.Uuid
-  shareType          String   @default("USER") @map("share_type") @db.VarChar(10)
-  shareLabel         String?  @map("share_label") @db.VarChar(120)
+  sharedWithTenantId String?   @map("shared_with_tenant_id") @db.Uuid
+  shareType          String    @default("USER") @map("share_type") @db.VarChar(10)
+  shareLabel         String?   @map("share_label") @db.VarChar(120)
   expiresAt          DateTime? @map("expires_at") @db.Timestamptz
-  status             String   @default("ACTIVE") @map("status") @db.VarChar(10)
+  status             String    @default("ACTIVE") @map("status") @db.VarChar(10)
 
   // ── Audit ──
-  createdBy        String           @map("created_by") @db.Uuid
-  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@index([dashboardId], map: "idx_share_dashboard_id")
   @@index([sharedWithUserId], map: "idx_share_user_id")
@@ -242,17 +242,17 @@ model DashboardShare {
 // ── User Dashboard Preference ──────────────────────────────────────────
 
 model UserDashboardPreference {
-  id              String         @id @default(uuid()) @db.Uuid
-  userId          String         @map("user_id") @db.Uuid
-  scope           DashboardScope
-  domainId        String?        @map("domain_id") @db.Uuid
-  subDomainId     String?        @map("sub_domain_id") @db.Uuid
-  valueChainCode  String?        @map("value_chain_code") @db.VarChar(30)
-  dashboardId     String         @map("dashboard_id") @db.Uuid
-  dashboard       Dashboard      @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  scope          DashboardScope
+  domainId       String?        @map("domain_id") @db.Uuid
+  subDomainId    String?        @map("sub_domain_id") @db.Uuid
+  valueChainCode String?        @map("value_chain_code") @db.VarChar(30)
+  dashboardId    String         @map("dashboard_id") @db.Uuid
+  dashboard      Dashboard      @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
 
-  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@unique([userId, scope, domainId, subDomainId, valueChainCode], map: "uq_user_dashboard_pref")
   @@index([userId], map: "idx_pref_user_id")
@@ -281,29 +281,29 @@ enum SlideshowTransition {
 }
 
 model DashboardSlideshow {
-  id              String               @id @default(uuid()) @db.Uuid
-  tenantId        String               @map("tenant_id") @db.Uuid
-  titleFr         String               @map("title_fr")
-  titleEn         String               @map("title_en")
-  titleAr         String?              @map("title_ar")
-  titlePt         String?              @map("title_pt")
-  titleEs      String?  @map("title_es")
-  titleSw      String?  @map("title_sw")
-  description     String?              @db.Text
-  publicToken     String               @unique @default(uuid()) @map("public_token") @db.Uuid
-  isActive        Boolean              @default(true) @map("is_active")
-  transition      SlideshowTransition  @default(FADE)
-  intervalMs      Int                  @default(15000) @map("interval_ms")
-  autoPlay        Boolean              @default(true) @map("auto_play")
-  loop            Boolean              @default(true)
-  showProgress    Boolean              @default(true) @map("show_progress")
-  showControls    Boolean              @default(false) @map("show_controls")
-  scrollMode      SlideshowScrollMode  @default(CONTINUOUS) @map("scroll_mode")
-  createdBy       String               @map("created_by") @db.Uuid
-  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+  id           String              @id @default(uuid()) @db.Uuid
+  tenantId     String              @map("tenant_id") @db.Uuid
+  titleFr      String              @map("title_fr")
+  titleEn      String              @map("title_en")
+  titleAr      String?             @map("title_ar")
+  titlePt      String?             @map("title_pt")
+  titleEs      String?             @map("title_es")
+  titleSw      String?             @map("title_sw")
+  description  String?             @db.Text
+  publicToken  String              @unique @default(uuid()) @map("public_token") @db.Uuid
+  isActive     Boolean             @default(true) @map("is_active")
+  transition   SlideshowTransition @default(FADE)
+  intervalMs   Int                 @default(15000) @map("interval_ms")
+  autoPlay     Boolean             @default(true) @map("auto_play")
+  loop         Boolean             @default(true)
+  showProgress Boolean             @default(true) @map("show_progress")
+  showControls Boolean             @default(false) @map("show_controls")
+  scrollMode   SlideshowScrollMode @default(CONTINUOUS) @map("scroll_mode")
+  createdBy    String              @map("created_by") @db.Uuid
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz
 
-  slides          DashboardSlideshowSlide[]
+  slides DashboardSlideshowSlide[]
 
   @@index([tenantId], map: "idx_slideshow_tenant_id")
   @@index([publicToken], map: "idx_slideshow_public_token")
@@ -313,13 +313,13 @@ model DashboardSlideshow {
 }
 
 model DashboardSlideshowSlide {
-  id              String               @id @default(uuid()) @db.Uuid
-  slideshowId     String               @map("slideshow_id") @db.Uuid
-  slideshow       DashboardSlideshow   @relation(fields: [slideshowId], references: [id], onDelete: Cascade)
-  dashboardId     String               @map("dashboard_id") @db.Uuid
-  sortOrder       Int                  @default(0) @map("sort_order")
-  durationMs      Int?                 @map("duration_ms")
-  transition      SlideshowTransition?
+  id          String               @id @default(uuid()) @db.Uuid
+  slideshowId String               @map("slideshow_id") @db.Uuid
+  slideshow   DashboardSlideshow   @relation(fields: [slideshowId], references: [id], onDelete: Cascade)
+  dashboardId String               @map("dashboard_id") @db.Uuid
+  sortOrder   Int                  @default(0) @map("sort_order")
+  durationMs  Int?                 @map("duration_ms")
+  transition  SlideshowTransition?
 
   @@unique([slideshowId, dashboardId], map: "uq_slideshow_dashboard")
   @@index([slideshowId], map: "idx_slide_slideshow_id")

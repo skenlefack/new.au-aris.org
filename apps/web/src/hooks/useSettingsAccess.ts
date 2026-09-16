@@ -93,6 +93,8 @@ export function useSettingsAccess() {
         case 'indicator-types':
         case 'indicators':
           return false; // global catalogues — super/continental admins only
+        case 'onboarding':
+          return isRecAdmin || isNationalAdmin;
         case 'sessions':
         case 'sync-monitoring':
         case 'ai-console':
