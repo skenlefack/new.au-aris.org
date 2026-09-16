@@ -1,28 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { useTranslations } from '@/lib/i18n/translations';
 import {
   CheckCircle2, ChevronLeft, ChevronRight, Globe, Users, Building2,
-  FileText, Send, Plus, Trash2, AlertCircle, MapPin, Shield,
+  FileText, Send, Plus, Trash2, AlertCircle, MapPin, Shield, ChevronDown,
 } from 'lucide-react';
 
 const TENANT_API = process.env['NEXT_PUBLIC_TENANT_API_URL'] ?? '';
 
 const LANGUAGES = ['EN', 'FR', 'PT', 'AR', 'ES', 'SW'];
 const ROLES = ['NATIONAL_ADMIN', 'DATA_STEWARD', 'WAHIS_FOCAL_POINT', 'ANALYST', 'FIELD_AGENT'];
-const DOMAINS = [
-  { code: 'animal-health', labelEn: 'Animal Health & One Health', labelFr: 'Sante Animale & One Health' },
-  { code: 'livestock-prod', labelEn: 'Livestock Production & Pastoralism', labelFr: 'Production Animale & Pastoralisme' },
-  { code: 'fisheries', labelEn: 'Fisheries & Aquaculture', labelFr: 'Peche & Aquaculture' },
-  { code: 'trade-sps', labelEn: 'Trade, Markets & SPS', labelFr: 'Commerce, Marches & SPS' },
-  { code: 'governance', labelEn: 'Governance & Capacities', labelFr: 'Gouvernance & Capacites' },
-];
 const LEVELS = ['National', 'Admin1', 'Admin2', 'Admin3', 'Admin4', 'Admin5'];
 const HISTORICAL_FORMATS = ['excel', 'csv', 'database', 'paper'];
+
+interface DomainFromApi {
+  id: string;
+  code: string;
+  name: Record<string, string>; // { en: "...", fr: "..." }
+  description?: Record<string, string>;
+  icon?: string;
+  color?: string;
+}
 
 interface AdminLevel {
   level: number;
@@ -41,7 +43,7 @@ interface UserEntry {
   institution: string;
   level: string;
   location: string;
-  domains: string;
+  domains: string[];
   mfa: boolean;
   supervisorName: string;
   supervisorEmail: string;
@@ -51,11 +53,16 @@ interface UserEntry {
 
 const emptyUser = (): UserEntry => ({
   firstName: '', lastName: '', email: '', phone: '', role: 'FIELD_AGENT',
-  title: '', institution: '', level: 'National', location: '', domains: '',
+  title: '', institution: '', level: 'National', location: '', domains: [],
   mfa: false, supervisorName: '', supervisorEmail: '', alternateName: '', alternateEmail: '',
 });
 
 const STEPS = ['country', 'admin', 'domains', 'users', 'historical', 'contact'];
+
+/** Get localized domain name from multilingual object */
+function getDomainName(name: Record<string, string>, locale: string): string {
+  return name[locale] || name['en'] || name['fr'] || Object.values(name)[0] || '';
+}
 
 export default function OnboardingPage() {
   const t = useTranslations('onboarding');
@@ -64,6 +71,27 @@ export default function OnboardingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Domains from API
+  const [apiDomains, setApiDomains] = useState<DomainFromApi[]>([]);
+  const [domainsLoading, setDomainsLoading] = useState(true);
+
+  // Detect locale
+  const locale = typeof window !== 'undefined'
+    ? (localStorage.getItem('aris-locale') ? JSON.parse(localStorage.getItem('aris-locale')!)?.state?.locale : null) || 'en'
+    : 'en';
+
+  // Fetch domains from API
+  useEffect(() => {
+    fetch(`${TENANT_API}/api/v1/public/domains`)
+      .then((r) => r.json())
+      .then((res) => {
+        const list = res.data ?? res;
+        setApiDomains(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {})
+      .finally(() => setDomainsLoading(false));
+  }, []);
 
   // Section 1 — Country
   const [countryName, setCountryName] = useState('');
@@ -98,6 +126,27 @@ export default function OnboardingPage() {
   const [cvoTitle, setCvoTitle] = useState('');
   const [cvoEmail, setCvoEmail] = useState('');
 
+  // Selected domains objects (for multi-select in users)
+  const selectedDomains = useMemo(
+    () => apiDomains.filter((d) => activeDomains.includes(d.code)),
+    [apiDomains, activeDomains],
+  );
+
+  // Users with names for supervisor/alternate/contact selects (exclude current user)
+  const userOptions = useMemo(
+    () => users
+      .filter((u) => u.firstName || u.lastName)
+      .map((u, i) => ({
+        idx: i,
+        label: `${u.firstName} ${u.lastName}`.trim(),
+        email: u.email,
+        title: u.title,
+        institution: u.institution,
+        phone: u.phone,
+      })),
+    [users],
+  );
+
   const addAdminLevel = () => {
     if (adminLevels.length < 5) {
       setAdminLevels([...adminLevels, { level: adminLevels.length + 1, denomination: '', unitCount: '', example: '' }]);
@@ -121,10 +170,52 @@ export default function OnboardingPage() {
     if (users.length > 1) setUsers(users.filter((_, i) => i !== idx));
   };
 
-  const updateUser = (idx: number, field: keyof UserEntry, value: string | boolean) => {
+  const updateUser = (idx: number, field: keyof UserEntry, value: string | boolean | string[]) => {
     const next = [...users];
-    next[idx] = { ...next[idx], [field]: value };
+    next[idx] = { ...next[idx], [field]: value } as UserEntry;
     setUsers(next);
+  };
+
+  const toggleUserDomain = (userIdx: number, domainCode: string) => {
+    const u = users[userIdx];
+    const next = u.domains.includes(domainCode)
+      ? u.domains.filter((c) => c !== domainCode)
+      : [...u.domains, domainCode];
+    updateUser(userIdx, 'domains', next);
+  };
+
+  const selectSupervisor = (userIdx: number, selectedUserIdx: number) => {
+    const sup = users[selectedUserIdx];
+    if (!sup) return;
+    const next = [...users];
+    next[userIdx] = {
+      ...next[userIdx],
+      supervisorName: `${sup.firstName} ${sup.lastName}`.trim(),
+      supervisorEmail: sup.email,
+    };
+    setUsers(next);
+  };
+
+  const selectAlternate = (userIdx: number, selectedUserIdx: number) => {
+    const alt = users[selectedUserIdx];
+    if (!alt) return;
+    const next = [...users];
+    next[userIdx] = {
+      ...next[userIdx],
+      alternateName: `${alt.firstName} ${alt.lastName}`.trim(),
+      alternateEmail: alt.email,
+    };
+    setUsers(next);
+  };
+
+  const selectContact = (selectedUserIdx: number) => {
+    const u = users[selectedUserIdx];
+    if (!u) return;
+    setContactFullName(`${u.firstName} ${u.lastName}`.trim());
+    setContactTitle(u.title);
+    setContactInstitution(u.institution);
+    setContactEmail(u.email);
+    setContactPhone(u.phone);
   };
 
   const toggleDomain = (code: string) => {
@@ -144,7 +235,7 @@ export default function OnboardingPage() {
         preferredLanguage,
         adminLevels,
         activeDomains,
-        users,
+        users: users.map((u) => ({ ...u, domains: u.domains.join(', ') })),
         hasHistoricalData,
         historicalPeriod: historicalPeriod || undefined,
         historicalFormat,
@@ -413,36 +504,40 @@ export default function OnboardingPage() {
                 <p className="mt-1 text-sm text-gray-500">{t('section3Desc')}</p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                {DOMAINS.map((d) => (
-                  <button
-                    key={d.code}
-                    onClick={() => toggleDomain(d.code)}
-                    className={`flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
-                      activeDomains.includes(d.code)
-                        ? 'border-[#006B3F] bg-green-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
-                      activeDomains.includes(d.code)
-                        ? 'border-[#006B3F] bg-[#006B3F]'
-                        : 'border-gray-300'
-                    }`}>
-                      {activeDomains.includes(d.code) && (
-                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{d.labelEn}</p>
-                      <p className="text-xs text-gray-500">{d.labelFr}</p>
-                      <p className="mt-0.5 font-mono text-xs text-gray-400">{d.code}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              {domainsLoading ? (
+                <div className="py-8 text-center text-gray-400">{t('loading') || 'Loading...'}</div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {apiDomains.map((d) => (
+                    <button
+                      key={d.code}
+                      onClick={() => toggleDomain(d.code)}
+                      className={`flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
+                        activeDomains.includes(d.code)
+                          ? 'border-[#006B3F] bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
+                        activeDomains.includes(d.code)
+                          ? 'border-[#006B3F] bg-[#006B3F]'
+                          : 'border-gray-300'
+                      }`}>
+                        {activeDomains.includes(d.code) && (
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{getDomainName(d.name, 'en')}</p>
+                        {d.name.fr && <p className="text-xs text-gray-500">{d.name.fr}</p>}
+                        <p className="mt-0.5 font-mono text-xs text-gray-400">{d.code}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -496,7 +591,7 @@ export default function OnboardingPage() {
                           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-600">{t('emailField')} *</label>
+                        <label className="mb-1 block text-xs font-medium text-gray-600">Email *</label>
                         <input type="email" value={u.email} onChange={(e) => updateUser(idx, 'email', e.target.value)}
                           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
                       </div>
@@ -537,12 +632,31 @@ export default function OnboardingPage() {
                           placeholder={t('locationPlaceholder')}
                           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
                       </div>
+
+                      {/* Domain multi-select */}
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-600">{t('domainCodes')} *</label>
-                        <input type="text" value={u.domains} onChange={(e) => updateUser(idx, 'domains', e.target.value)}
-                          placeholder="animal-health, livestock-prod"
-                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
+                        <label className="mb-1 block text-xs font-medium text-gray-600">{t('domainLabel') || 'Domain'} *</label>
+                        <div className="rounded-md border border-gray-300 bg-white p-2">
+                          {selectedDomains.length === 0 ? (
+                            <p className="px-1 text-xs text-gray-400">{t('noDomainsSelected') || 'Select domains in the Domains tab first'}</p>
+                          ) : (
+                            <div className="space-y-1">
+                              {selectedDomains.map((d) => (
+                                <label key={d.code} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 hover:bg-gray-50">
+                                  <input
+                                    type="checkbox"
+                                    checked={u.domains.includes(d.code)}
+                                    onChange={() => toggleUserDomain(idx, d.code)}
+                                    className="h-3.5 w-3.5 rounded border-gray-300 text-[#006B3F] focus:ring-[#006B3F]"
+                                  />
+                                  <span className="text-xs text-gray-700">{getDomainName(d.name, locale)}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
+
                       <div className="flex items-end gap-2 pb-1">
                         <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-600">
                           <input type="checkbox" checked={u.mfa} onChange={(e) => updateUser(idx, 'mfa', e.target.checked)}
@@ -552,29 +666,59 @@ export default function OnboardingPage() {
                       </div>
                     </div>
 
-                    {/* Supervisor info */}
+                    {/* Supervisor info — select from entered users */}
                     <div className="mt-3 border-t border-gray-100 pt-3">
                       <p className="mb-2 text-xs font-semibold text-gray-500">{t('validationChain')}</p>
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
                           <label className="mb-1 block text-xs font-medium text-gray-600">{t('supervisorName')}</label>
-                          <input type="text" value={u.supervisorName} onChange={(e) => updateUser(idx, 'supervisorName', e.target.value)}
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
+                          <select
+                            value={userOptions.find((o) => o.label === u.supervisorName)?.idx.toString() ?? ''}
+                            onChange={(e) => {
+                              if (e.target.value === '') {
+                                updateUser(idx, 'supervisorName', '');
+                                updateUser(idx, 'supervisorEmail', '');
+                              } else {
+                                selectSupervisor(idx, Number(e.target.value));
+                              }
+                            }}
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none"
+                          >
+                            <option value="">-- {t('selectUser') || 'Select a user'} --</option>
+                            {userOptions.filter((o) => o.idx !== idx).map((o) => (
+                              <option key={o.idx} value={o.idx}>{o.label}</option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="mb-1 block text-xs font-medium text-gray-600">{t('supervisorEmail')}</label>
-                          <input type="email" value={u.supervisorEmail} onChange={(e) => updateUser(idx, 'supervisorEmail', e.target.value)}
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
+                          <input type="email" value={u.supervisorEmail} readOnly
+                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500" />
                         </div>
                         <div>
                           <label className="mb-1 block text-xs font-medium text-gray-600">{t('alternateName')}</label>
-                          <input type="text" value={u.alternateName} onChange={(e) => updateUser(idx, 'alternateName', e.target.value)}
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
+                          <select
+                            value={userOptions.find((o) => o.label === u.alternateName)?.idx.toString() ?? ''}
+                            onChange={(e) => {
+                              if (e.target.value === '') {
+                                updateUser(idx, 'alternateName', '');
+                                updateUser(idx, 'alternateEmail', '');
+                              } else {
+                                selectAlternate(idx, Number(e.target.value));
+                              }
+                            }}
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none"
+                          >
+                            <option value="">-- {t('selectUser') || 'Select a user'} --</option>
+                            {userOptions.filter((o) => o.idx !== idx).map((o) => (
+                              <option key={o.idx} value={o.idx}>{o.label}</option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="mb-1 block text-xs font-medium text-gray-600">{t('alternateEmail')}</label>
-                          <input type="email" value={u.alternateEmail} onChange={(e) => updateUser(idx, 'alternateEmail', e.target.value)}
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
+                          <input type="email" value={u.alternateEmail} readOnly
+                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500" />
                         </div>
                       </div>
                     </div>
@@ -671,6 +815,25 @@ export default function OnboardingPage() {
                 <p className="mt-1 text-sm text-gray-500">{t('section6Desc')}</p>
               </div>
 
+              {/* Select from entered users */}
+              {userOptions.length > 0 && (
+                <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                  <label className="mb-2 block text-xs font-semibold text-blue-800">{t('selectFromUsers') || 'Pre-fill from entered users'}</label>
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) selectContact(Number(e.target.value));
+                    }}
+                    className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none"
+                    defaultValue=""
+                  >
+                    <option value="">-- {t('selectUser') || 'Select a user'} --</option>
+                    {userOptions.map((o) => (
+                      <option key={o.idx} value={o.idx}>{o.label} ({o.email})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Request contact */}
               <div>
                 <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -694,7 +857,7 @@ export default function OnboardingPage() {
                       className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-600">{t('emailField')} *</label>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Email *</label>
                     <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
                       className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
                   </div>
@@ -706,12 +869,37 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* CVO approval */}
+              {/* CVO approval — select from users */}
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                 <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-800">
                   <Shield className="h-4 w-4" />
                   {t('cvoApproval')}
                 </h3>
+
+                {userOptions.length > 0 && (
+                  <div className="mb-3">
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const u = users[Number(e.target.value)];
+                          if (u) {
+                            setCvoName(`${u.firstName} ${u.lastName}`.trim());
+                            setCvoTitle(u.title);
+                            setCvoEmail(u.email);
+                          }
+                        }
+                      }}
+                      className="w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none"
+                      defaultValue=""
+                    >
+                      <option value="">-- {t('selectUser') || 'Select a user'} --</option>
+                      {userOptions.map((o) => (
+                        <option key={o.idx} value={o.idx}>{o.label} ({o.email})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-amber-700">{t('cvoDirectorName')}</label>
@@ -724,7 +912,7 @@ export default function OnboardingPage() {
                       className="w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-amber-700">{t('emailField')}</label>
+                    <label className="mb-1 block text-xs font-medium text-amber-700">Email</label>
                     <input type="email" value={cvoEmail} onChange={(e) => setCvoEmail(e.target.value)}
                       className="w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm focus:border-[#006B3F] focus:outline-none" />
                   </div>
