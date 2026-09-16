@@ -1139,7 +1139,19 @@
       "nameEn": "Name (EN)",
       "nameFr": "Name (FR)",
       "descriptionEn": "Description (EN)",
-      "descPlaceholder": "Brief description of this workflow template"
+      "descPlaceholder": "Brief description of this workflow template",
+      "dataPreview": "Data Preview",
+      "schema": "Schema",
+      "recentData": "Recent Data",
+      "fieldName": "Field",
+      "fieldType": "Type",
+      "noSchemaFound": "No form templates linked to this workflow",
+      "noRecentData": "No recent submissions found",
+      "submittedAt": "Submitted at",
+      "dataFields": "Data Fields",
+      "recentSubmissions": "Recent Submissions",
+      "expandAll": "Expand All",
+      "collapseAll": "Collapse All"
     }
   },
   "quality": {

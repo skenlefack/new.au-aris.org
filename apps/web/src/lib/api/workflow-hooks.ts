@@ -869,3 +869,36 @@ export function useDeleteWorkflowTemplate() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['workflow-templates'] }),
   });
 }
+
+// ═══════════════════════════════════════════════════════
+// DATA PREVIEW (Feature 2: Make-style data preview)
+// ═══════════════════════════════════════════════════════
+
+/** Get form schema fields linked to a workflow definition */
+export function useDataPreviewSchema(definitionId?: string) {
+  return useQuery({
+    queryKey: ['data-preview-schema', definitionId],
+    queryFn: () => wfFetch<any>(`/api/v1/workflow/definitions/${definitionId}/data-preview/schema`),
+    enabled: !!definitionId,
+    staleTime: 300_000,
+  });
+}
+
+/** Get recent submissions that went through a workflow definition */
+export function useDataPreviewRecent(definitionId?: string) {
+  return useQuery({
+    queryKey: ['data-preview-recent', definitionId],
+    queryFn: () => wfFetch<any>(`/api/v1/workflow/definitions/${definitionId}/data-preview/recent`),
+    enabled: !!definitionId,
+    staleTime: 60_000,
+  });
+}
+
+/** Get data flow through each step of a workflow instance */
+export function useInstanceDataFlow(instanceId?: string) {
+  return useQuery({
+    queryKey: ['instance-data-flow', instanceId],
+    queryFn: () => wfFetch<any>(`/api/v1/workflow/instances/${instanceId}/data-preview`),
+    enabled: !!instanceId,
+  });
+}

@@ -1139,7 +1139,19 @@
       "nameEn": "Nom (EN)",
       "nameFr": "Nom (FR)",
       "descriptionEn": "Description (EN)",
-      "descPlaceholder": "Breve description de ce modele de workflow"
+      "descPlaceholder": "Breve description de ce modele de workflow",
+      "dataPreview": "Apercu des donnees",
+      "schema": "Schema",
+      "recentData": "Donnees recentes",
+      "fieldName": "Champ",
+      "fieldType": "Type",
+      "noSchemaFound": "Aucun formulaire lie a ce workflow",
+      "noRecentData": "Aucune soumission recente trouvee",
+      "submittedAt": "Soumis le",
+      "dataFields": "Champs de donnees",
+      "recentSubmissions": "Soumissions recentes",
+      "expandAll": "Tout deployer",
+      "collapseAll": "Tout replier"
     }
   },
   "quality": {

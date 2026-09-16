@@ -12,11 +12,13 @@ import { DefinitionService } from './services/definition.service.js';
 import { ValidationChainService } from './services/validation-chain.service.js';
 import { VersionService } from './services/version.service.js';
 import { TemplateService } from './services/template.service.js';
+import { DataPreviewService } from './services/data-preview.service.js';
 import { registerWorkflowRoutes } from './routes/workflow.routes.js';
 import { registerDefinitionRoutes } from './routes/definition.routes.js';
 import { registerValidationChainRoutes } from './routes/validation-chain.routes.js';
 import { registerVersionRoutes } from './routes/version.routes.js';
 import { registerTemplateRoutes } from './routes/template.routes.js';
+import { registerDataPreviewRoutes } from './routes/data-preview.routes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -27,6 +29,7 @@ declare module 'fastify' {
     validationChainService: ValidationChainService;
     versionService: VersionService;
     templateService: TemplateService;
+    dataPreviewService: DataPreviewService;
   }
 }
 
@@ -91,6 +94,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   const templateService = new TemplateService(app.prisma, definitionService);
   app.decorate('templateService', templateService);
 
+  const dataPreviewService = new DataPreviewService(app.prisma);
+  app.decorate('dataPreviewService', dataPreviewService);
+
   const escalationService = new EscalationService(app.prisma, workflowService, {
     log: (...args: any[]) => app.log.info(args[0]),
     error: (...args: any[]) => app.log.error(args[0]),
@@ -127,6 +133,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerValidationChainRoutes);
   await app.register(registerVersionRoutes);
   await app.register(registerTemplateRoutes);
+  await app.register(registerDataPreviewRoutes);
 
   // Kafka consumers
   await app.register(kafkaConsumersPlugin);

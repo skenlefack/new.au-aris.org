@@ -33,6 +33,7 @@ import {
   Clock,
   LayoutTemplate,
   BookmarkPlus,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkflowGraph, useSaveWorkflowGraph } from '@/lib/api/workflow-hooks';
@@ -57,6 +58,7 @@ import { VersionHistoryPanel } from './panels/VersionHistoryPanel';
 import { VersionDiffView } from './panels/VersionDiffView';
 import { TemplateLibrary } from './panels/TemplateLibrary';
 import { SaveAsTemplate } from './panels/SaveAsTemplate';
+import { DataPreviewPanel } from './panels/DataPreviewPanel';
 import { GROUP_COLORS } from './nodes/GroupNode';
 
 // ══════════════════════════════════════════════════════════
@@ -94,6 +96,7 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
   const [diffVersions, setDiffVersions] = useState<{ a: number; b: number } | null>(null);
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
   const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
+  const [showDataPreview, setShowDataPreview] = useState(false);
 
   // Undo/Redo
   const [history, setHistory] = useState<{ nodes: Node[]; edges: Edge[] }[]>([]);
@@ -518,6 +521,21 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
           <BookmarkPlus className="h-3.5 w-3.5" />
         </button>
 
+        {/* Data Preview */}
+        <button
+          onClick={() => setShowDataPreview(!showDataPreview)}
+          className={cn(
+            'flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition',
+            showDataPreview
+              ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400'
+              : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800',
+          )}
+          title={t('designer.dataPreview') || 'Data Preview'}
+        >
+          <Database className="h-3.5 w-3.5" />
+          Data
+        </button>
+
         <div className="mx-1.5 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
         {/* Simulate */}
@@ -698,6 +716,14 @@ function WorkflowDesignerInner({ definitionId, onClose }: WorkflowDesignerInnerP
         <SaveAsTemplate
           definitionId={definitionId}
           onClose={() => setShowSaveAsTemplate(false)}
+        />
+      )}
+
+      {/* ══ DATA PREVIEW ══ */}
+      {showDataPreview && (
+        <DataPreviewPanel
+          definitionId={definitionId}
+          onClose={() => setShowDataPreview(false)}
         />
       )}
     </div>
