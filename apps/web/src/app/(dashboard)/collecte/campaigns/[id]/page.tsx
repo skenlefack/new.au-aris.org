@@ -37,6 +37,7 @@ import {
 } from '@/lib/api/workflow-hooks';
 import {
   useFormBuilderTemplates,
+  useFormBuilderTemplatesByIds,
   type FormTemplateListItem,
 } from '@/lib/api/form-builder-hooks';
 import { COUNTRIES } from '@/data/countries-config';
@@ -181,6 +182,25 @@ export default function CampaignDetailPage() {
   const apiTemplates = useMemo(() => templatesData?.data ?? [], [templatesData]);
 
   const campaign = (campaignRes as AnyCampaign)?.data as AnyCampaign | undefined;
+
+  // Extract campaign template IDs for individual lookup (bypasses domain filtering)
+  const campaignTplIds = useMemo(() => {
+    if (!campaign) return [];
+    const multiIds: string[] = Array.isArray(campaign.formTemplateIds) && campaign.formTemplateIds.length > 0
+      ? campaign.formTemplateIds : [];
+    const singleId = campaign.formTemplateId ?? campaign.templateId;
+    return multiIds.length > 0 ? multiIds : (singleId ? [singleId] : []);
+  }, [campaign]);
+  const individualTplResults = useFormBuilderTemplatesByIds(campaignTplIds);
+  const individualTplMap = useMemo(() => {
+    const map = new Map<string, FormTemplateListItem>();
+    campaignTplIds.forEach((id, i) => {
+      const res = individualTplResults[i];
+      const tpl = (res?.data as any)?.data as FormTemplateListItem | undefined;
+      if (tpl) map.set(id, tpl);
+    });
+    return map;
+  }, [campaignTplIds, individualTplResults]);
 
   const user = useAuthStore((s) => s.user);
   const editable = canEditCampaign(user, campaign);
@@ -340,9 +360,13 @@ export default function CampaignDetailPage() {
         return { name: seed.name, tpl: seed, tplId: id };
       }
 
+      // 3. Individual lookup (bypasses domain filtering in list endpoint)
+      const individual = individualTplMap.get(id);
+      if (individual) return { name: individual.name, tpl: individual, tplId: id };
+
       return { name: id.slice(0, 8) + '...', tpl: undefined, tplId: id };
     });
-  }, [campaign, apiTemplates]);
+  }, [campaign, apiTemplates, individualTplMap]);
 
   const templateNames = useMemo(
     () => resolvedTemplates.map((r) => resolveTemplateName(r.name, locale)),

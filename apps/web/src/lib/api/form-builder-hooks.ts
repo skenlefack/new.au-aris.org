@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from './client';
 
 // Form-builder service: proxied via Next.js rewrites in dev (no CORS).
@@ -130,6 +130,18 @@ export function useFormBuilderTemplate(id: string | undefined) {
     queryFn: () => fb.get<ApiResponse<FormTemplateListItem>>(`/templates/${id}`),
     enabled: !!id,
     staleTime: 10_000,
+  });
+}
+
+// ---- Get multiple templates by IDs (bypasses domain filtering) ----
+export function useFormBuilderTemplatesByIds(ids: string[]) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: ['form-builder', 'template', id],
+      queryFn: () => fb.get<ApiResponse<FormTemplateListItem>>(`/templates/${id}`),
+      enabled: !!id,
+      staleTime: 10_000,
+    })),
   });
 }
 

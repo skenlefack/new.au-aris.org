@@ -36,8 +36,19 @@ const SEED_TEMPLATE_NAMES: Record<string, string> = {
 
 function extractSchema(tpl: FormTemplateListItem | undefined): FormSchema | null {
   if (!tpl?.schema) return null;
-  if (typeof tpl.schema === 'object' && 'sections' in (tpl.schema as object)) {
-    return tpl.schema as FormSchema;
+  let s: unknown = tpl.schema;
+  // Handle stringified JSON
+  if (typeof s === 'string') { try { s = JSON.parse(s); } catch { return null; } }
+  if (typeof s !== 'object' || s === null) return null;
+  // Unwrap double-wrapped { schema: { sections: [...] } }
+  if ('schema' in (s as any) && typeof (s as any).schema === 'object' && 'sections' in (s as any).schema) {
+    return (s as any).schema as FormSchema;
+  }
+  // Standard format with sections array
+  if ('sections' in (s as object)) return s as FormSchema;
+  // Legacy/flat format — wrap in a single section so FormRenderer can display it
+  if ('fields' in (s as object) || 'properties' in (s as object)) {
+    return { sections: [{ id: 'default', title: '', fields: (s as any).fields ?? [] }], settings: (s as any).settings ?? {} } as unknown as FormSchema;
   }
   return null;
 }
@@ -55,7 +66,7 @@ export default function CampaignSubmitPage() {
   const submitMutation = useSubmitCampaignForm();
 
   // Try direct lookup by ID first (works when campaign uses real DB IDs)
-  const { data: directRes, isFetching: directFetching } = useFormBuilderTemplate(templateId);
+  const { data: directRes, isFetching: directFetching, error: directError } = useFormBuilderTemplate(templateId);
 
   // Also load all templates to match by name (fallback for hardcoded seed IDs)
   const seedName = SEED_TEMPLATE_NAMES[templateId];
@@ -81,18 +92,17 @@ export default function CampaignSubmitPage() {
 
   // Resolve the template: direct ID match → name-based fallback
   const resolvedTemplate = useMemo((): FormTemplateListItem | undefined => {
-    // 1. Direct lookup succeeded
+    // 1. Direct lookup succeeded (use it regardless of schema — it bypasses domain filtering)
     const direct = (directRes as any)?.data as FormTemplateListItem | undefined;
-    if (direct?.schema) return direct;
+    if (direct) return direct;
 
-    // 2. Fallback: find by name among all templates
+    // 2. Fallback: find by name among all templates (for seed IDs)
     const all = allTemplatesRes?.data ?? [];
     if (seedName && all.length > 0) {
       return all.find((t) => t.name === seedName);
     }
 
-    // 3. Still try direct even without schema (for name display)
-    return direct;
+    return undefined;
   }, [directRes, allTemplatesRes, seedName]);
 
   const locale = useLocaleStore((s) => s.locale);
@@ -253,7 +263,9 @@ export default function CampaignSubmitPage() {
             {t('formSchemaNotAvailable')}
           </h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t('formSchemaNotAvailableDesc').replace('{name}', templateName)}
+            {directError
+              ? `Error loading template: ${(directError as any)?.message ?? 'Access denied or not found'}`
+              : t('formSchemaNotAvailableDesc').replace('{name}', templateName)}
           </p>
           <Link
             href={`/collecte/campaigns/${campaignId}`}
