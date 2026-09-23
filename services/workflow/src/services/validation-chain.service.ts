@@ -278,7 +278,7 @@ export class ValidationChainService {
            OR t.id = (SELECT parent_id FROM public.tenants WHERE id = $1::uuid)
            OR t.level = 'CONTINENTAL'
          )
-           AND u.role = ANY($2::text[])
+           AND u.role::text = ANY($2::text[])
            AND u.id != $3::uuid
            AND u.is_active = true
          ORDER BY
