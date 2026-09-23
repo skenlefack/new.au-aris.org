@@ -33,6 +33,7 @@ export const UpdateStatusSchema = Type.Object({
   status: Type.Union([
     Type.Literal('VALIDATED'),
     Type.Literal('REJECTED'),
+    Type.Literal('RETURNED'),
   ]),
   reason: Type.Optional(Type.String({ maxLength: 500 })),
 });

@@ -223,6 +223,8 @@ export interface PotentialValidator {
   displayName: string;
   email: string;
   role: string;
+  tenantLevel?: string;
+  tenantName?: string;
 }
 
 export function usePotentialValidators(enabled = true) {

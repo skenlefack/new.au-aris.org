@@ -662,6 +662,16 @@ services:
       - "traefik.http.routers.collecte-wf-campaigns.entrypoints=websecure"
       - "traefik.http.routers.collecte-wf-campaigns.service=collecte"
       - "traefik.http.routers.collecte-wf-campaigns.priority=20"
+      # Dashboard endpoints (my-tasks, stats, overdue, timeline, my-submissions) live in collecte
+      - "traefik.http.routers.collecte-wf-dashboard.rule=PathPrefix(`/api/v1/workflow/dashboard`)"
+      - "traefik.http.routers.collecte-wf-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.collecte-wf-dashboard.service=collecte"
+      - "traefik.http.routers.collecte-wf-dashboard.priority=20"
+      # Workflow submissions start (POST /api/v1/workflow/submissions/:id/start) lives in collecte
+      - "traefik.http.routers.collecte-wf-submissions.rule=PathPrefix(`/api/v1/workflow/submissions`)"
+      - "traefik.http.routers.collecte-wf-submissions.entrypoints=websecure"
+      - "traefik.http.routers.collecte-wf-submissions.service=collecte"
+      - "traefik.http.routers.collecte-wf-submissions.priority=20"
 
   workflow:
     container_name: aris-workflow

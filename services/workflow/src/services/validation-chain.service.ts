@@ -263,8 +263,13 @@ export class ValidationChainService {
     try {
       // For MEMBER_STATE users, also look in parent REC and continental tenants
       // For REC users, also look in continental tenant
+      // Note: $queryRawUnsafe doesn't auto-convert JS arrays to PG arrays,
+      // so we build a PG array literal: '{val1,val2}'
+      const rolesLiteral = `{${higherRoles.join(',')}}`;
+
       const users: any[] = await (this.prisma as any).$queryRawUnsafe(
-        `SELECT u.id, u.first_name || ' ' || u.last_name AS display_name, u.email, u.role
+        `SELECT u.id, u.first_name || ' ' || u.last_name AS display_name, u.email, u.role,
+                t.level AS tenant_level, t.name AS tenant_name
          FROM public.users u
          JOIN public.tenants t ON t.id = u.tenant_id
          WHERE (
@@ -276,10 +281,17 @@ export class ValidationChainService {
            AND u.role = ANY($2::text[])
            AND u.id != $3::uuid
            AND u.is_active = true
-         ORDER BY u.role, u.first_name, u.last_name
+         ORDER BY
+           CASE t.level
+             WHEN 'MEMBER_STATE' THEN 1
+             WHEN 'REC' THEN 2
+             WHEN 'CONTINENTAL' THEN 3
+             ELSE 4
+           END,
+           u.role, u.first_name, u.last_name
          LIMIT 50`,
         user.tenantId,
-        higherRoles,
+        rolesLiteral,
         user.userId,
       );
 
@@ -289,9 +301,13 @@ export class ValidationChainService {
           displayName: u.display_name,
           email: u.email,
           role: u.role,
+          tenantLevel: u.tenant_level,
+          tenantName: u.tenant_name,
         })),
       };
-    } catch {
+    } catch (err) {
+      // Log the error for debugging instead of silently swallowing
+      console.error('[ValidationChainService] findPotentialValidators error:', err);
       return { data: [] };
     }
   }

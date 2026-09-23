@@ -267,10 +267,11 @@ function ChooseValidatorDialog({ onClose, onSelect, t }: {
   const filtered = useMemo(() => {
     if (!searchTerm) return validators;
     const q = searchTerm.toLowerCase();
-    return validators.filter(v =>
+    return validators.filter((v: any) =>
       v.displayName.toLowerCase().includes(q) ||
       v.email.toLowerCase().includes(q) ||
-      (ROLE_LABELS[v.role] ?? v.role).toLowerCase().includes(q)
+      (ROLE_LABELS[v.role] ?? v.role).toLowerCase().includes(q) ||
+      (v.tenantName ?? '').toLowerCase().includes(q)
     );
   }, [validators, searchTerm]);
 
@@ -324,10 +325,26 @@ function ChooseValidatorDialog({ onClose, onSelect, t }: {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{v.displayName}</p>
                     <p className="text-xs text-gray-500 truncate">{v.email}</p>
+                    {(v as any).tenantName && (
+                      <p className="text-[10px] text-gray-400 truncate mt-0.5">{(v as any).tenantName}</p>
+                    )}
                   </div>
-                  <span className="shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                    {ROLE_LABELS[v.role] ?? v.role}
-                  </span>
+                  <div className="shrink-0 flex flex-col items-end gap-1">
+                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                      {ROLE_LABELS[v.role] ?? v.role}
+                    </span>
+                    {(v as any).tenantLevel && (
+                      <span className={cn(
+                        'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                        (v as any).tenantLevel === 'CONTINENTAL' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                        (v as any).tenantLevel === 'REC' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                      )}>
+                        {(v as any).tenantLevel === 'CONTINENTAL' ? 'Continental' :
+                         (v as any).tenantLevel === 'REC' ? 'REC' : 'National'}
+                      </span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
