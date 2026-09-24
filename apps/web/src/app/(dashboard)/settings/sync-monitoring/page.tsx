@@ -12,6 +12,7 @@ import { apiClient } from '@/lib/api/client';
 import { useTenantId } from '@/lib/api/hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
+import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 
 /* ─── Types ────────────────────────────────────────────────────────────────── */
 
@@ -205,6 +206,7 @@ export default function SyncMonitoringPage() {
   }, [devices]);
 
   return (
+    <SuperAdminGuard>
     <div className="space-y-6 pb-20">
       <SettingsBackButton />
       {/* ── Header ── */}
@@ -498,6 +500,7 @@ export default function SyncMonitoringPage() {
         </section>
       )}
     </div>
+    </SuperAdminGuard>
   );
 }
 

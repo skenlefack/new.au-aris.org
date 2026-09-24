@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
+import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 
 /* ─── Types ────────────────────────────────────────────────────────────────── */
 
@@ -321,6 +322,7 @@ export default function KafkaHealthPage() {
   ];
 
   return (
+    <SuperAdminGuard>
     <div className="space-y-6">
       <SettingsBackButton />
       {/* Header */}
@@ -465,5 +467,6 @@ export default function KafkaHealthPage() {
         </div>
       )}
     </div>
+    </SuperAdminGuard>
   );
 }

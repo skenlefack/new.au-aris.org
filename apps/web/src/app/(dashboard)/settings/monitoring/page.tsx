@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
+import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 
 // ── Types ──
 
@@ -519,6 +520,7 @@ export default function MonitoringPage() {
   }, []);
 
   return (
+    <SuperAdminGuard>
     <div className="space-y-6">
       <SettingsBackButton />
       {/* ── Header ── */}
@@ -667,5 +669,6 @@ export default function MonitoringPage() {
         </>
       )}
     </div>
+    </SuperAdminGuard>
   );
 }

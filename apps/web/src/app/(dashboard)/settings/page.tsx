@@ -106,6 +106,11 @@ export default function SettingsOverviewPage() {
     .map((g) => ({
       ...g,
       items: g.items.filter((item) => {
+        const superAdminOnly = [
+          'bulk-import', 'bulk-export', 'monitoring', 'kafka-health',
+          'sync-monitoring', 'config', 'maintenance', 'system',
+        ];
+        if (superAdminOnly.includes(item.section)) return isSuperAdmin;
         if (isSuperAdmin || isContinentalAdmin) return true;
         return canViewSection(item.section);
       }),

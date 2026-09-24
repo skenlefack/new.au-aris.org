@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
+import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 
 // ── Types ──
 
@@ -174,6 +175,7 @@ export default function MaintenancePage() {
   }
 
   return (
+    <SuperAdminGuard>
     <div className="space-y-6">
       <SettingsBackButton />
       <div>
@@ -507,5 +509,6 @@ export default function MaintenancePage() {
         </div>
       </div>
     </div>
+    </SuperAdminGuard>
   );
 }

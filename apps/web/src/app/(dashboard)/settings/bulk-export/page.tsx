@@ -13,6 +13,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
+import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 
 // ── Auth helper for blob download ──
 
@@ -144,6 +145,7 @@ export default function BulkExportPage() {
   const canExport = service && entity;
 
   return (
+    <SuperAdminGuard>
     <div className="space-y-6">
       <SettingsBackButton />
       {/* Page Header */}
@@ -311,5 +313,6 @@ export default function BulkExportPage() {
         </div>
       )}
     </div>
+    </SuperAdminGuard>
   );
 }

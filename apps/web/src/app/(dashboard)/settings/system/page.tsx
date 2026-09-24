@@ -4,10 +4,12 @@ import React from 'react';
 import { useTranslations } from '@/lib/i18n/translations';
 import { Server, Download, Upload, Activity, Database, Cpu } from 'lucide-react';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
+import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 
 export default function SystemInfoPage() {
   const t = useTranslations('settings');
   return (
+    <SuperAdminGuard>
     <div className="space-y-6">
       <SettingsBackButton />
       <div>
@@ -72,6 +74,7 @@ export default function SystemInfoPage() {
         </div>
       </section>
     </div>
+    </SuperAdminGuard>
   );
 }
 

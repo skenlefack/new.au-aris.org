@@ -17,6 +17,7 @@ import { apiClient } from '@/lib/api/client';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
+import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 
 // ── Auth helper for FormData uploads ──
 
@@ -214,6 +215,7 @@ export default function BulkImportPage() {
   }, [previewMutation, executeMutation]);
 
   return (
+    <SuperAdminGuard>
     <div className="space-y-6">
       <SettingsBackButton />
       {/* Page Header */}
@@ -308,6 +310,7 @@ export default function BulkImportPage() {
         />
       )}
     </div>
+    </SuperAdminGuard>
   );
 }
 
