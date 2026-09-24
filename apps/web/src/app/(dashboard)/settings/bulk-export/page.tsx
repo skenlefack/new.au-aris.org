@@ -34,7 +34,7 @@ function getToken() {
 function useTenants() {
   return useQuery<{ data: Array<{ id: string; name: string; code: string; level: string }> }>({
     queryKey: ['tenants'],
-    queryFn: () => apiClient.get('/tenants?limit=200'),
+    queryFn: () => apiClient.get('/tenants?limit=100'),
   });
 }
 

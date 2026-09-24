@@ -22,6 +22,7 @@ import { registerPublicRoutes } from './routes/public.routes.js';
 import { registerOnboardingRoutes } from './routes/onboarding.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 import { registerKafkaAdminRoutes } from './routes/kafka-admin.routes.js';
+import { registerAdminRoutes } from './routes/admin.routes.js';
 import { KafkaHealthService } from './services/kafka-health.service.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -136,6 +137,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerPublicRoutes);
   await app.register(registerOnboardingRoutes);
   await app.register(registerKafkaAdminRoutes);
+  await app.register(registerAdminRoutes);
 
   return app;
 }
