@@ -21,6 +21,8 @@ import { registerBiRoutes } from './routes/bi.routes.js';
 import { registerPublicRoutes } from './routes/public.routes.js';
 import { registerOnboardingRoutes } from './routes/onboarding.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
+import { registerKafkaAdminRoutes } from './routes/kafka-admin.routes.js';
+import { KafkaHealthService } from './services/kafka-health.service.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -104,6 +106,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   const onboardingService = new OnboardingService(app.prisma, kafka);
   app.decorate('onboardingService', onboardingService);
 
+  // Kafka health monitoring
+  const kafkaHealthService = new KafkaHealthService(prisma, app.log);
+  app.decorate('kafkaHealthService', kafkaHealthService);
+  kafkaHealthService.startScheduler();
+  app.addHook('onClose', () => kafkaHealthService.stopScheduler());
+
   // Error handler
   app.setErrorHandler((error: FastifyError, request, reply) => {
     const statusCode = error.statusCode ?? 500;
@@ -127,6 +135,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerBiRoutes);
   await app.register(registerPublicRoutes);
   await app.register(registerOnboardingRoutes);
+  await app.register(registerKafkaAdminRoutes);
 
   return app;
 }

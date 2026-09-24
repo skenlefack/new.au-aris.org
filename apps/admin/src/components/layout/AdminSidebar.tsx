@@ -19,6 +19,7 @@ import {
   Download,
   Settings,
   Wrench,
+  Radio,
 } from 'lucide-react';
 
 interface NavItem {
@@ -34,6 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Data Contracts', href: '/data-contracts', icon: <FileText className="w-5 h-5" /> },
   { label: 'Audit Log', href: '/audit', icon: <ScrollText className="w-5 h-5" /> },
   { label: 'Monitoring', href: '/monitoring', icon: <Activity className="w-5 h-5" /> },
+  { label: 'Kafka Health', href: '/kafka-health', icon: <Radio className="w-5 h-5" /> },
   { label: 'Bulk Import', href: '/bulk-import', icon: <Upload className="w-5 h-5" /> },
   { label: 'Bulk Export', href: '/bulk-export', icon: <Download className="w-5 h-5" /> },
   { label: 'Configuration', href: '/config', icon: <Settings className="w-5 h-5" /> },

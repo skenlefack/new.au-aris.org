@@ -64,6 +64,12 @@ export async function buildApp() {
     timestamp: new Date().toISOString(),
   }));
 
+  // Force-restart (called by kafka-health monitoring)
+  app.post('/admin/force-restart', async (_request, reply) => {
+    reply.send({ status: 'restarting' });
+    setTimeout(() => process.exit(1), 500);
+  });
+
   // Error handler — maps HttpError.statusCode to HTTP response
   app.setErrorHandler((error: Error & { statusCode?: number; errors?: unknown[] }, _request, reply) => {
     const statusCode = error.statusCode ?? 500;

@@ -552,6 +552,79 @@ export function useAuditRetention() {
 
 const BASE_URL = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? '/api/v1';
 
+// ── Kafka Health Monitoring ──
+
+export interface KafkaPartitionLag {
+  topic: string;
+  partition: number;
+  currentOffset: string;
+  logEndOffset: string;
+  lag: number;
+}
+
+export interface ConsumerGroupHealth {
+  groupId: string;
+  state: string;
+  healthStatus: 'healthy' | 'warning' | 'critical';
+  members: number;
+  totalLag: number;
+  partitions: KafkaPartitionLag[];
+  serviceName: string | null;
+}
+
+export interface KafkaHealthSummary {
+  totalGroups: number;
+  healthy: number;
+  warning: number;
+  critical: number;
+  totalLag: number;
+  consumers: ConsumerGroupHealth[];
+  polledAt: string;
+}
+
+export function useKafkaHealth() {
+  return useQuery<KafkaHealthSummary>({
+    queryKey: ['admin', 'kafka-health'],
+    queryFn: () => apiClient.get('/admin/kafka/health'),
+    refetchInterval: 15_000,
+  });
+}
+
+export function useKafkaAlertRecipients() {
+  return useQuery<{ recipients: string[] }>({
+    queryKey: ['admin', 'kafka-alert-recipients'],
+    queryFn: () => apiClient.get('/admin/kafka/alert-recipients'),
+  });
+}
+
+export function useUpdateKafkaAlertRecipients() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (recipients: string[]) =>
+      apiClient.put('/admin/kafka/alert-recipients', { recipients }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'kafka-alert-recipients'] }),
+  });
+}
+
+export function useRestartService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (serviceName: string) =>
+      apiClient.post('/admin/kafka/restart-service', { serviceName }),
+    onSuccess: () => {
+      setTimeout(() => qc.invalidateQueries({ queryKey: ['admin', 'kafka-health'] }), 5000);
+    },
+  });
+}
+
+export function useTestKafkaAlert() {
+  return useMutation({
+    mutationFn: () => apiClient.post('/admin/kafka/test-alert'),
+  });
+}
+
+// ── Helpers ──
+
 function getTokensFromStorage(): { accessToken: string | null } {
   if (typeof window === 'undefined') return { accessToken: null };
   try {

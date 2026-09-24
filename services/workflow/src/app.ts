@@ -127,6 +127,12 @@ export async function buildApp(): Promise<FastifyInstance> {
     timestamp: new Date().toISOString(),
   }));
 
+  // Force-restart (called by kafka-health monitoring)
+  app.post('/admin/force-restart', async (_request, reply) => {
+    reply.send({ status: 'restarting' });
+    setTimeout(() => process.exit(1), 500);
+  });
+
   // Routes
   await app.register(registerWorkflowRoutes);
   await app.register(registerDefinitionRoutes);

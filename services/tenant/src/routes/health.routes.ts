@@ -7,6 +7,12 @@ export async function registerHealthRoutes(app: FastifyInstance): Promise<void> 
     return { status: 'ok', service: 'tenant', timestamp: new Date().toISOString() };
   });
 
+  // Force-restart endpoint (called by kafka-health monitoring to restart this service)
+  app.post('/admin/force-restart', async (_request, reply) => {
+    reply.send({ status: 'restarting' });
+    setTimeout(() => process.exit(1), 500);
+  });
+
   // Prometheus-compatible metrics endpoint
   app.get('/metrics', async (_request, reply) => {
     const mem = process.memoryUsage();
