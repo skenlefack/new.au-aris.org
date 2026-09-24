@@ -41,6 +41,11 @@ RUN pnpm turbo build --filter=@aris/${SERVICE_NAME}-service || true
 RUN test -d services/${SERVICE_NAME}/dist || \
     (echo "ERROR: No dist output for ${SERVICE_NAME}" && exit 1)
 
+# Copy non-TS assets (e.g. Handlebars templates) that tsc does not emit
+RUN if [ -d services/${SERVICE_NAME}/src/templates ]; then \
+      cp -r services/${SERVICE_NAME}/src/templates services/${SERVICE_NAME}/dist/templates; \
+    fi
+
 # Remove frontend-only packages whose names trigger false-positive malware scans
 # (e.g., 'internmap' contains substring 'nmap', flagged by Veeam as TA0007 IoC)
 RUN find node_modules -maxdepth 5 -name 'internmap' -type d -exec rm -rf {} + 2>/dev/null; \
