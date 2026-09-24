@@ -85,7 +85,10 @@ interface SystemMetrics {
 function useInfraHealth() {
   return useQuery<InfraHealth>({
     queryKey: ['settings', 'infra-health'],
-    queryFn: () => apiClient.get('/admin/infra/health'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/infra/health');
+      return res?.data ?? res;
+    },
     refetchInterval: 15_000,
   });
 }
@@ -93,7 +96,10 @@ function useInfraHealth() {
 function useServiceHealth() {
   return useQuery<ServiceHealth[]>({
     queryKey: ['settings', 'service-health'],
-    queryFn: () => apiClient.get('/admin/services/health'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/services/health');
+      return res?.data ?? res;
+    },
     refetchInterval: 15_000,
   });
 }
@@ -101,7 +107,10 @@ function useServiceHealth() {
 function useSystemMetrics() {
   return useQuery<SystemMetrics>({
     queryKey: ['settings', 'system-metrics'],
-    queryFn: () => apiClient.get('/admin/system/metrics'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/system/metrics');
+      return res?.data ?? res;
+    },
     refetchInterval: 30_000,
     placeholderData: {
       totalUsers: 0,

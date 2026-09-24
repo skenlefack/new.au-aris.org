@@ -46,7 +46,10 @@ interface KafkaHealthSummary {
 function useKafkaHealth() {
   return useQuery<KafkaHealthSummary>({
     queryKey: ['kafka-health'],
-    queryFn: () => apiClient.get('/admin/kafka/health'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/kafka/health');
+      return res?.data ?? res;
+    },
     refetchInterval: 15_000,
   });
 }
@@ -54,15 +57,20 @@ function useKafkaHealth() {
 function useAlertRecipients() {
   return useQuery<{ recipients: string[] }>({
     queryKey: ['kafka-alert-recipients'],
-    queryFn: () => apiClient.get('/admin/kafka/alert-recipients'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/kafka/alert-recipients');
+      return res?.data ?? res;
+    },
   });
 }
 
 function useUpdateAlertRecipients() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (recipients: string[]) =>
-      apiClient.put('/admin/kafka/alert-recipients', { recipients }),
+    mutationFn: async (recipients: string[]) => {
+      const res: any = await apiClient.put('/admin/kafka/alert-recipients', { recipients });
+      return res?.data ?? res;
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['kafka-alert-recipients'] }),
   });
 }
@@ -70,8 +78,10 @@ function useUpdateAlertRecipients() {
 function useRestartService() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (serviceName: string) =>
-      apiClient.post('/admin/kafka/restart-service', { serviceName }),
+    mutationFn: async (serviceName: string) => {
+      const res: any = await apiClient.post('/admin/kafka/restart-service', { serviceName });
+      return res?.data ?? res;
+    },
     onSuccess: () => {
       setTimeout(() => qc.invalidateQueries({ queryKey: ['kafka-health'] }), 5000);
     },
@@ -80,7 +90,10 @@ function useRestartService() {
 
 function useTestAlert() {
   return useMutation({
-    mutationFn: () => apiClient.post('/admin/kafka/test-alert'),
+    mutationFn: async () => {
+      const res: any = await apiClient.post('/admin/kafka/test-alert');
+      return res?.data ?? res;
+    },
   });
 }
 

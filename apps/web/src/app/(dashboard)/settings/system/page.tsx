@@ -11,7 +11,10 @@ import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 function useSystemMetrics() {
   return useQuery<{ totalUsers: number; totalTenants: number; healthyServices: number; totalServices: number }>({
     queryKey: ['admin', 'system-metrics'],
-    queryFn: () => apiClient.get('/admin/system/metrics'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/system/metrics');
+      return res?.data ?? res;
+    },
     refetchInterval: 30_000,
   });
 }
@@ -19,7 +22,10 @@ function useSystemMetrics() {
 function useServicesHealth() {
   return useQuery<Array<{ name: string; port: number; group: string; status: string; responseTime?: number; uptime?: number; memoryUsage?: number }>>({
     queryKey: ['admin', 'services-health'],
-    queryFn: () => apiClient.get('/admin/services/health'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/services/health');
+      return res?.data ?? res;
+    },
     refetchInterval: 15_000,
   });
 }

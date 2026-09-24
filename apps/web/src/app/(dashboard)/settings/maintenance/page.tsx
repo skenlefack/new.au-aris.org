@@ -40,7 +40,10 @@ interface MaintenanceStatus {
 function useMaintenanceStatus() {
   return useQuery<MaintenanceStatus>({
     queryKey: ['settings', 'maintenance'],
-    queryFn: () => apiClient.get('/admin/maintenance'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/maintenance');
+      return res?.data ?? res;
+    },
     refetchInterval: 30_000,
   });
 }
@@ -48,8 +51,10 @@ function useMaintenanceStatus() {
 function useToggleMaintenance() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { enabled: boolean; message?: string; scheduledEnd?: string }) =>
-      apiClient.post<MaintenanceStatus>('/admin/maintenance/toggle', data),
+    mutationFn: async (data: { enabled: boolean; message?: string; scheduledEnd?: string }) => {
+      const res: any = await apiClient.post<MaintenanceStatus>('/admin/maintenance/toggle', data);
+      return res?.data ?? res;
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'maintenance'] }),
   });
 }
@@ -57,8 +62,10 @@ function useToggleMaintenance() {
 function useScheduleMaintenance() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { reason: string; startAt: string; endAt: string }) =>
-      apiClient.post<MaintenanceWindow>('/admin/maintenance/schedule', data),
+    mutationFn: async (data: { reason: string; startAt: string; endAt: string }) => {
+      const res: any = await apiClient.post<MaintenanceWindow>('/admin/maintenance/schedule', data);
+      return res?.data ?? res;
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'maintenance'] }),
   });
 }
@@ -66,7 +73,10 @@ function useScheduleMaintenance() {
 function useDeleteMaintenanceWindow() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => apiClient.delete(`/admin/maintenance/schedule/${id}`),
+    mutationFn: async (id: string) => {
+      const res: any = await apiClient.delete(`/admin/maintenance/schedule/${id}`);
+      return res?.data ?? res;
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'maintenance'] }),
   });
 }

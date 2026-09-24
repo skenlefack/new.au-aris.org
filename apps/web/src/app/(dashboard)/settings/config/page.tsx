@@ -52,15 +52,20 @@ interface KafkaTopicInfo {
 function useFeatureFlags() {
   return useQuery<FeatureFlag[]>({
     queryKey: ['settings', 'feature-flags'],
-    queryFn: () => apiClient.get('/admin/config/feature-flags'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/config/feature-flags');
+      return res?.data ?? res;
+    },
   });
 }
 
 function useUpdateFeatureFlag() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Partial<FeatureFlag>) =>
-      apiClient.patch<FeatureFlag>(`/admin/config/feature-flags/${id}`, data),
+    mutationFn: async ({ id, ...data }: { id: string } & Partial<FeatureFlag>) => {
+      const res: any = await apiClient.patch<FeatureFlag>(`/admin/config/feature-flags/${id}`, data);
+      return res?.data ?? res;
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'feature-flags'] }),
   });
 }
@@ -68,17 +73,22 @@ function useUpdateFeatureFlag() {
 function useRateLimits() {
   return useQuery<RateLimitOverride[]>({
     queryKey: ['settings', 'rate-limits'],
-    queryFn: () => apiClient.get('/admin/config/rate-limits'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/config/rate-limits');
+      return res?.data ?? res;
+    },
   });
 }
 
 function useUpdateRateLimit() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<RateLimitOverride> & { id?: string }) =>
-      data.id
-        ? apiClient.patch<RateLimitOverride>(`/admin/config/rate-limits/${data.id}`, data)
-        : apiClient.post<RateLimitOverride>('/admin/config/rate-limits', data),
+    mutationFn: async (data: Partial<RateLimitOverride> & { id?: string }) => {
+      const res: any = data.id
+        ? await apiClient.patch<RateLimitOverride>(`/admin/config/rate-limits/${data.id}`, data)
+        : await apiClient.post<RateLimitOverride>('/admin/config/rate-limits', data);
+      return res?.data ?? res;
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'rate-limits'] }),
   });
 }
@@ -86,7 +96,10 @@ function useUpdateRateLimit() {
 function useKafkaTopics() {
   return useQuery<KafkaTopicInfo[]>({
     queryKey: ['settings', 'kafka-topics'],
-    queryFn: () => apiClient.get('/admin/config/kafka/topics'),
+    queryFn: async () => {
+      const res: any = await apiClient.get('/admin/config/kafka/topics');
+      return res?.data ?? res;
+    },
   });
 }
 
