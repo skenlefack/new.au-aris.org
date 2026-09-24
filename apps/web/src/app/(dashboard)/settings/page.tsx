@@ -6,9 +6,10 @@ import {
   Globe, Flag, Cog, Shield, ShieldAlert, Bell, Languages, ShieldCheck,
   Layers, ClipboardList, Server, Briefcase, Users, GitPullRequestArrow,
   Link2, BarChart3, Building2, TrendingUp, Activity, Wand2, Monitor,
-  Network, Sparkles, RefreshCw, Globe2, Radio, Upload, Download, Wrench,
-  ChevronLeft,
+  Network, Sparkles, RefreshCw, Globe2, Radio, Wrench,
+  ChevronLeft, ArrowRight,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -16,8 +17,10 @@ import { useTranslations } from '@/lib/i18n/translations';
 interface SettingsItem {
   href: string;
   label: string;
+  desc?: string;
   icon: React.ReactNode;
-  color: string;
+  iconColor: string;
+  iconBg: string;
   section: string;
 }
 
@@ -35,66 +38,65 @@ export default function SettingsOverviewPage() {
     {
       title: 'Organization',
       items: [
-        { href: '/settings/recs', label: t('recsManagement'), icon: <Globe className="h-5 w-5" />, color: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30', section: 'recs' },
-        { href: '/settings/countries', label: t('countriesManagement'), icon: <Flag className="h-5 w-5" />, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30', section: 'countries' },
-        { href: '/settings/functions', label: t('functions'), icon: <Briefcase className="h-5 w-5" />, color: 'text-violet-600 bg-violet-50 dark:text-violet-400 dark:bg-violet-900/30', section: 'functions' },
-        { href: '/settings/onboarding', label: t('onboardingTitle') !== 'onboardingTitle' ? t('onboardingTitle') : 'Country Onboarding', icon: <Globe2 className="h-5 w-5" />, color: 'text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-900/30', section: 'onboarding' },
+        { href: '/settings/recs', label: t('recsManagement'), desc: 'Regional Economic Communities', icon: <Globe className="h-[18px] w-[18px]" />, iconColor: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-500/10', section: 'recs' },
+        { href: '/settings/countries', label: t('countriesManagement'), desc: '55 Member States', icon: <Flag className="h-[18px] w-[18px]" />, iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-500/10', section: 'countries' },
+        { href: '/settings/functions', label: t('functions'), desc: 'Organizational roles', icon: <Briefcase className="h-[18px] w-[18px]" />, iconColor: 'text-violet-600 dark:text-violet-400', iconBg: 'bg-violet-50 dark:bg-violet-500/10', section: 'functions' },
+        { href: '/settings/onboarding', label: t('onboardingTitle') !== 'onboardingTitle' ? t('onboardingTitle') : 'Onboarding', desc: 'Country activation', icon: <Globe2 className="h-[18px] w-[18px]" />, iconColor: 'text-teal-600 dark:text-teal-400', iconBg: 'bg-teal-50 dark:bg-teal-500/10', section: 'onboarding' },
       ],
     },
     {
       title: 'Users & Security',
       items: [
-        { href: '/settings/users', label: t('users'), icon: <Users className="h-5 w-5" />, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30', section: 'users' },
-        { href: '/settings/roles', label: t('rolesPermissions'), icon: <ShieldAlert className="h-5 w-5" />, color: 'text-violet-600 bg-violet-50 dark:text-violet-400 dark:bg-violet-900/30', section: 'roles' },
-        { href: '/settings/security', label: t('security'), icon: <Shield className="h-5 w-5" />, color: 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30', section: 'security' },
-        { href: '/settings/sessions', label: t('sessions') !== 'sessions' ? t('sessions') : 'Sessions', icon: <Monitor className="h-5 w-5" />, color: 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-800', section: 'sessions' },
-        { href: '/settings/audit', label: t('auditLog'), icon: <ClipboardList className="h-5 w-5" />, color: 'text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/30', section: 'audit' },
+        { href: '/settings/users', label: t('users'), desc: 'Accounts & access', icon: <Users className="h-[18px] w-[18px]" />, iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-500/10', section: 'users' },
+        { href: '/settings/roles', label: t('rolesPermissions'), desc: 'RBAC configuration', icon: <ShieldAlert className="h-[18px] w-[18px]" />, iconColor: 'text-violet-600 dark:text-violet-400', iconBg: 'bg-violet-50 dark:bg-violet-500/10', section: 'roles' },
+        { href: '/settings/security', label: t('security'), desc: 'MFA, passwords', icon: <Shield className="h-[18px] w-[18px]" />, iconColor: 'text-red-500 dark:text-red-400', iconBg: 'bg-red-50 dark:bg-red-500/10', section: 'security' },
+        { href: '/settings/sessions', label: t('sessions') !== 'sessions' ? t('sessions') : 'Sessions', desc: 'Active sessions', icon: <Monitor className="h-[18px] w-[18px]" />, iconColor: 'text-slate-500 dark:text-slate-400', iconBg: 'bg-slate-50 dark:bg-slate-500/10', section: 'sessions' },
+        { href: '/settings/audit', label: t('auditLog'), desc: 'Activity log', icon: <ClipboardList className="h-[18px] w-[18px]" />, iconColor: 'text-orange-500 dark:text-orange-400', iconBg: 'bg-orange-50 dark:bg-orange-500/10', section: 'audit' },
       ],
     },
     {
       title: 'General',
       items: [
-        { href: '/settings/general', label: t('generalSettings'), icon: <Cog className="h-5 w-5" />, color: 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-800', section: 'general' },
-        { href: '/settings/notifications', label: t('notificationsSettings'), icon: <Bell className="h-5 w-5" />, color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30', section: 'notifications' },
-        { href: '/settings/i18n', label: t('languages'), icon: <Languages className="h-5 w-5" />, color: 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-900/30', section: 'i18n' },
-        { href: '/settings/translations', label: t('translations'), icon: <Wand2 className="h-5 w-5" />, color: 'text-pink-600 bg-pink-50 dark:text-pink-400 dark:bg-pink-900/30', section: 'translations' },
+        { href: '/settings/general', label: t('generalSettings'), desc: 'Platform preferences', icon: <Cog className="h-[18px] w-[18px]" />, iconColor: 'text-gray-500 dark:text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-500/10', section: 'general' },
+        { href: '/settings/notifications', label: t('notificationsSettings'), desc: 'Email & push alerts', icon: <Bell className="h-[18px] w-[18px]" />, iconColor: 'text-amber-500 dark:text-amber-400', iconBg: 'bg-amber-50 dark:bg-amber-500/10', section: 'notifications' },
+        { href: '/settings/i18n', label: t('languages'), desc: 'EN, FR, PT, AR, SW', icon: <Languages className="h-[18px] w-[18px]" />, iconColor: 'text-indigo-500 dark:text-indigo-400', iconBg: 'bg-indigo-50 dark:bg-indigo-500/10', section: 'i18n' },
+        { href: '/settings/translations', label: t('translations'), desc: 'UI translations', icon: <Wand2 className="h-[18px] w-[18px]" />, iconColor: 'text-pink-500 dark:text-pink-400', iconBg: 'bg-pink-50 dark:bg-pink-500/10', section: 'translations' },
       ],
     },
     {
       title: 'Data & Domains',
       items: [
-        { href: '/settings/domains', label: t('domains'), icon: <Layers className="h-5 w-5" />, color: 'text-cyan-600 bg-cyan-50 dark:text-cyan-400 dark:bg-cyan-900/30', section: 'domains' },
-        { href: '/settings/sub-domains', label: t('subDomains') !== 'subDomains' ? t('subDomains') : 'Sub-domains', icon: <Network className="h-5 w-5" />, color: 'text-sky-600 bg-sky-50 dark:text-sky-400 dark:bg-sky-900/30', section: 'sub-domains' },
-        { href: '/settings/data-quality', label: t('dataQuality'), icon: <ShieldCheck className="h-5 w-5" />, color: 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30', section: 'data-quality' },
-        { href: '/settings/statistics', label: t('statistics'), icon: <TrendingUp className="h-5 w-5" />, color: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30', section: 'statistics' },
-        { href: '/settings/indicator-types', label: t('indicatorTypes') !== 'indicatorTypes' ? t('indicatorTypes') : 'Indicator Types', icon: <BarChart3 className="h-5 w-5" />, color: 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/30', section: 'indicator-types' },
-        { href: '/settings/indicators', label: t('indicators') !== 'indicators' ? t('indicators') : 'Indicators', icon: <Activity className="h-5 w-5" />, color: 'text-rose-600 bg-rose-50 dark:text-rose-400 dark:bg-rose-900/30', section: 'indicators' },
-        { href: '/settings/infrastructures', label: t('infraTypes'), icon: <Building2 className="h-5 w-5" />, color: 'text-stone-600 bg-stone-50 dark:text-stone-400 dark:bg-stone-900/30', section: 'infrastructures' },
+        { href: '/settings/domains', label: t('domains'), desc: 'Business domains', icon: <Layers className="h-[18px] w-[18px]" />, iconColor: 'text-cyan-600 dark:text-cyan-400', iconBg: 'bg-cyan-50 dark:bg-cyan-500/10', section: 'domains' },
+        { href: '/settings/sub-domains', label: t('subDomains') !== 'subDomains' ? t('subDomains') : 'Sub-domains', desc: 'Domain categories', icon: <Network className="h-[18px] w-[18px]" />, iconColor: 'text-sky-500 dark:text-sky-400', iconBg: 'bg-sky-50 dark:bg-sky-500/10', section: 'sub-domains' },
+        { href: '/settings/data-quality', label: t('dataQuality'), desc: 'Quality gates', icon: <ShieldCheck className="h-[18px] w-[18px]" />, iconColor: 'text-green-600 dark:text-green-400', iconBg: 'bg-green-50 dark:bg-green-500/10', section: 'data-quality' },
+        { href: '/settings/statistics', label: t('statistics'), desc: 'Stats config', icon: <TrendingUp className="h-[18px] w-[18px]" />, iconColor: 'text-emerald-500 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-500/10', section: 'statistics' },
+        { href: '/settings/indicator-types', label: t('indicatorTypes') !== 'indicatorTypes' ? t('indicatorTypes') : 'Indicator Types', icon: <BarChart3 className="h-[18px] w-[18px]" />, iconColor: 'text-purple-500 dark:text-purple-400', iconBg: 'bg-purple-50 dark:bg-purple-500/10', section: 'indicator-types' },
+        { href: '/settings/indicators', label: t('indicators') !== 'indicators' ? t('indicators') : 'Indicators', desc: 'KPI definitions', icon: <Activity className="h-[18px] w-[18px]" />, iconColor: 'text-rose-500 dark:text-rose-400', iconBg: 'bg-rose-50 dark:bg-rose-500/10', section: 'indicators' },
+        { href: '/settings/infrastructures', label: t('infraTypes'), desc: 'Infrastructure types', icon: <Building2 className="h-[18px] w-[18px]" />, iconColor: 'text-stone-500 dark:text-stone-400', iconBg: 'bg-stone-50 dark:bg-stone-500/10', section: 'infrastructures' },
       ],
     },
     {
-      title: 'Workflow & Validation',
+      title: 'Workflow & Integration',
       items: [
-        { href: '/settings/workflow', label: t('workflowConfig'), icon: <GitPullRequestArrow className="h-5 w-5" />, color: 'text-fuchsia-600 bg-fuchsia-50 dark:text-fuchsia-400 dark:bg-fuchsia-900/30', section: 'workflow' },
-        { href: '/settings/validation-chains', label: t('validationChains'), icon: <Link2 className="h-5 w-5" />, color: 'text-violet-600 bg-violet-50 dark:text-violet-400 dark:bg-violet-900/30', section: 'validation-chains' },
-        { href: '/settings/bi-access', label: t('biDataAccess'), icon: <BarChart3 className="h-5 w-5" />, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30', section: 'bi-access' },
-        { href: '/settings/ai-console', label: t('aiConsole') !== 'aiConsole' ? t('aiConsole') : 'AI Console', icon: <Sparkles className="h-5 w-5" />, color: 'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/30', section: 'ai-console' },
+        { href: '/settings/workflow', label: t('workflowConfig'), desc: 'Validation engine', icon: <GitPullRequestArrow className="h-[18px] w-[18px]" />, iconColor: 'text-fuchsia-500 dark:text-fuchsia-400', iconBg: 'bg-fuchsia-50 dark:bg-fuchsia-500/10', section: 'workflow' },
+        { href: '/settings/validation-chains', label: t('validationChains'), desc: 'Approval chains', icon: <Link2 className="h-[18px] w-[18px]" />, iconColor: 'text-violet-500 dark:text-violet-400', iconBg: 'bg-violet-50 dark:bg-violet-500/10', section: 'validation-chains' },
+        { href: '/settings/bi-access', label: t('biDataAccess'), desc: 'BI tools access', icon: <BarChart3 className="h-[18px] w-[18px]" />, iconColor: 'text-blue-500 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-500/10', section: 'bi-access' },
+        { href: '/settings/ai-console', label: t('aiConsole') !== 'aiConsole' ? t('aiConsole') : 'AI Console', desc: 'AI orchestration', icon: <Sparkles className="h-[18px] w-[18px]" />, iconColor: 'text-yellow-600 dark:text-yellow-400', iconBg: 'bg-yellow-50 dark:bg-yellow-500/10', section: 'ai-console' },
       ],
     },
     {
       title: 'System & Monitoring',
       items: [
-        { href: '/settings/monitoring', label: 'Monitoring', icon: <Activity className="h-5 w-5" />, color: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30', section: 'monitoring' },
-        { href: '/settings/kafka-health', label: 'Kafka Health', icon: <Radio className="h-5 w-5" />, color: 'text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/30', section: 'kafka-health' },
-        { href: '/settings/sync-monitoring', label: 'Sync Monitoring', icon: <RefreshCw className="h-5 w-5" />, color: 'text-cyan-600 bg-cyan-50 dark:text-cyan-400 dark:bg-cyan-900/30', section: 'sync-monitoring' },
-        { href: '/settings/config', label: 'Configuration', icon: <Cog className="h-5 w-5" />, color: 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-800', section: 'config' },
-        { href: '/settings/maintenance', label: 'Maintenance', icon: <Wrench className="h-5 w-5" />, color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30', section: 'maintenance' },
-        { href: '/settings/system', label: t('systemInfo'), icon: <Server className="h-5 w-5" />, color: 'text-slate-600 bg-slate-50 dark:text-slate-400 dark:bg-slate-900/30', section: 'system' },
+        { href: '/settings/monitoring', label: 'Monitoring', desc: '22 microservices', icon: <Activity className="h-[18px] w-[18px]" />, iconColor: 'text-emerald-500 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-500/10', section: 'monitoring' },
+        { href: '/settings/kafka-health', label: 'Kafka Health', desc: 'Consumer groups', icon: <Radio className="h-[18px] w-[18px]" />, iconColor: 'text-orange-500 dark:text-orange-400', iconBg: 'bg-orange-50 dark:bg-orange-500/10', section: 'kafka-health' },
+        { href: '/settings/sync-monitoring', label: 'Sync Monitoring', desc: 'Mobile sync', icon: <RefreshCw className="h-[18px] w-[18px]" />, iconColor: 'text-cyan-500 dark:text-cyan-400', iconBg: 'bg-cyan-50 dark:bg-cyan-500/10', section: 'sync-monitoring' },
+        { href: '/settings/config', label: 'Configuration', desc: 'Flags & limits', icon: <Cog className="h-[18px] w-[18px]" />, iconColor: 'text-gray-500 dark:text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-500/10', section: 'config' },
+        { href: '/settings/maintenance', label: 'Maintenance', desc: 'Maintenance mode', icon: <Wrench className="h-[18px] w-[18px]" />, iconColor: 'text-amber-500 dark:text-amber-400', iconBg: 'bg-amber-50 dark:bg-amber-500/10', section: 'maintenance' },
+        { href: '/settings/system', label: t('systemInfo'), desc: 'Version & stack', icon: <Server className="h-[18px] w-[18px]" />, iconColor: 'text-slate-500 dark:text-slate-400', iconBg: 'bg-slate-50 dark:bg-slate-500/10', section: 'system' },
       ],
     },
   ];
 
-  // Filter items by access
   const visibleGroups = groups
     .map((g) => ({
       ...g,
@@ -111,64 +113,85 @@ export default function SettingsOverviewPage() {
     .filter((g) => g.items.length > 0);
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/home"
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          {t('backToDashboard')}
-        </Link>
-      </div>
+    <div className="max-w-5xl mx-auto space-y-8 pb-12">
+      {/* Back link */}
+      <Link
+        href="/home"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+      >
+        <ChevronLeft className="h-3.5 w-3.5" />
+        {t('backToDashboard')}
+      </Link>
 
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('manageAccountPrefs')}</p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">
+          {t('title')}
+        </h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          {t('manageAccountPrefs')}
+        </p>
       </div>
 
       {/* User card */}
       {user && (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            {t('welcomeBack')},{' '}
-            <span className="font-semibold text-gray-900 dark:text-white">
+        <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-r from-gray-50 to-white border border-gray-100 p-5 dark:from-gray-800/50 dark:to-gray-900 dark:border-gray-700/50">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-aris-primary-100 text-aris-primary-700 dark:bg-aris-primary-900/40 dark:text-aris-primary-400 font-semibold text-sm">
+            {(user.firstName?.[0] ?? '').toUpperCase()}{(user.lastName?.[0] ?? '').toUpperCase()}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
               {user.firstName} {user.lastName}
-            </span>
-          </p>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            {user.email} &middot; {user.role.replace(/_/g, ' ')}
-          </p>
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {user.email} &middot; {user.role.replace(/_/g, ' ')}
+            </p>
+          </div>
         </div>
       )}
 
       {/* Groups */}
       {visibleGroups.map((group) => (
-        <div key={group.title}>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
+        <section key={group.title}>
+          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3 pl-1">
             {group.title}
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {group.items.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="group flex flex-col items-center gap-2.5 rounded-xl border border-gray-100 bg-white p-4
-                  hover:border-gray-200 hover:shadow-sm hover:-translate-y-0.5
-                  dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700
-                  transition-all duration-150"
+                className={cn(
+                  'group flex items-center gap-3.5 rounded-xl px-4 py-3.5',
+                  'bg-white border border-gray-100',
+                  'dark:bg-gray-900/60 dark:border-gray-800',
+                  'hover:bg-gray-50/80 hover:border-gray-200 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)]',
+                  'dark:hover:bg-gray-800/60 dark:hover:border-gray-700',
+                  'transition-all duration-200 ease-out',
+                )}
               >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${item.color} transition-transform group-hover:scale-110`}>
+                <div className={cn(
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+                  item.iconBg, item.iconColor,
+                  'transition-transform duration-200 group-hover:scale-105',
+                )}>
                   {item.icon}
                 </div>
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400 text-center leading-tight">
-                  {item.label}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-medium text-gray-800 dark:text-gray-200 leading-tight">
+                    {item.label}
+                  </p>
+                  {item.desc && (
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                      {item.desc}
+                    </p>
+                  )}
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-300 dark:text-gray-600 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       ))}
     </div>
   );
