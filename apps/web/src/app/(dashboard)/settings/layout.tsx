@@ -33,6 +33,7 @@ import {
   Sparkles,
   RefreshCw,
   Globe2,
+  Radio,
 } from 'lucide-react';
 
 interface SettingsNavItem {
@@ -78,6 +79,7 @@ export default function SettingsLayout({
     { href: '/settings/sessions', label: t('sessions') !== 'sessions' ? t('sessions') : 'Sessions', icon: <Monitor className="h-4 w-4" />, section: 'sessions' },
     { href: '/settings/onboarding', label: t('onboardingTitle') !== 'onboardingTitle' ? t('onboardingTitle') : 'Country Onboarding', icon: <Globe2 className="h-4 w-4" />, section: 'onboarding' },
     { href: '/settings/sync-monitoring', label: 'Sync Monitoring', icon: <RefreshCw className="h-4 w-4" />, section: 'sync-monitoring' },
+    { href: '/settings/kafka-health', label: 'Kafka Health', icon: <Radio className="h-4 w-4" />, section: 'kafka-health' },
     { href: '/settings/system', label: t('systemInfo'), icon: <Server className="h-4 w-4" />, section: 'system' },
   ];
 
