@@ -183,20 +183,22 @@ export default function ValidationChainsPage() {
 
   return (
     <div className="space-y-6">
-      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('validationChainsTitle')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('validationChainsDesc')}</p>
         </div>
-        <button
-          onClick={() => setShowCreate(!showCreate)}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showCreate ? (isFr ? 'Fermer' : 'Close') : t('newChain')}
-        </button>
+        <div className="flex items-center gap-2">
+          <SettingsBackButton />
+          <button
+            onClick={() => setShowCreate(!showCreate)}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showCreate ? (isFr ? 'Fermer' : 'Close') : t('newChain')}
+          </button>
+        </div>
       </div>
 
       {/* Create form */}

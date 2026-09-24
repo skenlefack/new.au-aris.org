@@ -99,20 +99,22 @@ export default function TranslationsPage() {
 
   return (
     <div className="space-y-6">
-      <SettingsBackButton />
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-aris-primary-500 to-aris-primary-700 text-white shadow-sm">
-          <Languages className="h-5 w-5" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-aris-primary-500 to-aris-primary-700 text-white shadow-sm">
+            <Languages className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {t('translationsTitle')}
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t('translationsDesc')}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {t('translationsTitle')}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {t('translationsDesc')}
-          </p>
-        </div>
+        <SettingsBackButton />
       </div>
 
       {/* Tabs */}

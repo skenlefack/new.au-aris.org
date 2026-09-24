@@ -1623,7 +1623,6 @@ export default function UsersPage() {
   /* ---- List View ---- */
   return (
     <div className="space-y-6">
-      <SettingsBackButton />
       {/* Delete confirm */}
       {deletingUser && (
         <DeleteConfirm
@@ -1654,13 +1653,16 @@ export default function UsersPage() {
             {t('pageSubtitle')}
           </p>
         </div>
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md"
-        >
-          <Plus className="h-4 w-4" />
-          {t('addUser')}
-        </button>
+        <div className="flex items-center gap-2">
+          <SettingsBackButton />
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md"
+          >
+            <Plus className="h-4 w-4" />
+            {t('addUser')}
+          </button>
+        </div>
       </div>
 
       {/* Stats Row */}

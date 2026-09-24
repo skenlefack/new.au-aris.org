@@ -126,7 +126,6 @@ function SubDomainsList() {
 
   return (
     <div className="space-y-6 pb-20">
-      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -142,13 +141,16 @@ function SubDomainsList() {
             </p>
           </div>
         </div>
-        <Link
-          href="/settings/sub-domains/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#1F4E79]/90"
-        >
-          <Plus className="h-4 w-4" />
-          {t('btnNewSubDomain')}
-        </Link>
+        <div className="flex items-center gap-2">
+          <SettingsBackButton />
+          <Link
+            href="/settings/sub-domains/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#1F4E79]/90"
+          >
+            <Plus className="h-4 w-4" />
+            {t('btnNewSubDomain')}
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

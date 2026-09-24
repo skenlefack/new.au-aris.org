@@ -320,7 +320,6 @@ export default function InfrastructureTypesConfigPage() {
 
   return (
     <div className="space-y-6">
-      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -332,15 +331,18 @@ export default function InfrastructureTypesConfigPage() {
             {t('infraSubtitle')}
           </p>
         </div>
-        {canEdit && (
-          <button
-            onClick={handleCreate}
-            className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            {t('addType')}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <SettingsBackButton />
+          {canEdit && (
+            <button
+              onClick={handleCreate}
+              className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              {t('addType')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}

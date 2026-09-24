@@ -110,16 +110,18 @@ export default function SessionsPage() {
 
   return (
     <div className="space-y-6 pb-20">
-      <SettingsBackButton />
       {/* ── Header ── */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-sm">
-          <Monitor className="h-5 w-5" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-sm">
+            <Monitor className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('sessionsTitle') !== 'sessionsTitle' ? t('sessionsTitle') : 'Session Management'}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('sessionsSubtitle') !== 'sessionsSubtitle' ? t('sessionsSubtitle') : 'Monitor login activity, active sessions, and connection locations'}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('sessionsTitle') !== 'sessionsTitle' ? t('sessionsTitle') : 'Session Management'}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t('sessionsSubtitle') !== 'sessionsSubtitle' ? t('sessionsSubtitle') : 'Monitor login activity, active sessions, and connection locations'}</p>
-        </div>
+        <SettingsBackButton />
       </div>
 
       {/* ── Time range selector ── */}

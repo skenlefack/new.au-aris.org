@@ -221,9 +221,8 @@ export default function AuditLogPage() {
 
   return (
     <div className="space-y-6 pb-20">
-      <SettingsBackButton />
       {/* ── Header ── */}
-      <div>
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-sm">
             <ClipboardList className="h-5 w-5" />
@@ -237,6 +236,7 @@ export default function AuditLogPage() {
             </p>
           </div>
         </div>
+        <SettingsBackButton />
       </div>
 
       {/* ── Info Banner ── */}

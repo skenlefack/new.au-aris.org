@@ -60,7 +60,6 @@ function AiConsoleContent() {
 
   return (
     <div className="space-y-6 pb-12">
-      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -75,6 +74,7 @@ function AiConsoleContent() {
 
         {/* Health status badge */}
         <div className="flex items-center gap-2">
+          <SettingsBackButton />
           {healthLoading ? (
             <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
           ) : (

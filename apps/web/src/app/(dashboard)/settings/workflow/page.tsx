@@ -117,7 +117,6 @@ export default function WorkflowConfigPage() {
 
   return (
     <div className="space-y-6">
-      <SettingsBackButton />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('workflowConfigTitle')}</h1>
@@ -125,15 +124,18 @@ export default function WorkflowConfigPage() {
             {t('workflowConfigDesc')}
           </p>
         </div>
-        {!isNational && (
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" />
-            {t('newWorkflow')}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <SettingsBackButton />
+          {!isNational && (
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              {t('newWorkflow')}
+            </button>
+          )}
+        </div>
       </div>
 
       {showCreateForm && (

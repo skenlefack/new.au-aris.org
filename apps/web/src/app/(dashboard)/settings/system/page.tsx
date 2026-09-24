@@ -35,19 +35,21 @@ export default function SystemInfoPage() {
   return (
     <SuperAdminGuard>
     <div className="space-y-6">
-      <SettingsBackButton />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('systemInfo')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('systemInfoDesc')}</p>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <SettingsBackButton />
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Version info */}

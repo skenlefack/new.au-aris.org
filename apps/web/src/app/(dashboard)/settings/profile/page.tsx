@@ -121,22 +121,24 @@ export default function ProfileSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <SettingsBackButton />
       {/* Back link and header */}
-      <div>
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('backToSettings')}
-        </Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-          {t('profile')}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {t('editYourInfo')}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <Link
+            href="/settings"
+            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t('backToSettings')}
+          </Link>
+          <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            {t('profile')}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {t('editYourInfo')}
+          </p>
+        </div>
+        <SettingsBackButton />
       </div>
 
       {/* Toast notifications */}

@@ -67,7 +67,6 @@ export default function CountriesListPage() {
 
   return (
     <div className="space-y-6">
-      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -78,15 +77,18 @@ export default function CountriesListPage() {
             {t('memberStatesCount', { count: meta.total })}
           </p>
         </div>
-        {canCreateCountry && (
-          <Link
-            href="/settings/countries/new"
-            className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-aris-primary-700"
-          >
-            <Plus className="h-4 w-4" />
-            {t('addCountry')}
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <SettingsBackButton />
+          {canCreateCountry && (
+            <Link
+              href="/settings/countries/new"
+              className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-aris-primary-700"
+            >
+              <Plus className="h-4 w-4" />
+              {t('addCountry')}
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filters */}

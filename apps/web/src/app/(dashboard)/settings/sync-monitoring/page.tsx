@@ -208,7 +208,6 @@ export default function SyncMonitoringPage() {
   return (
     <SuperAdminGuard>
     <div className="space-y-6 pb-20">
-      <SettingsBackButton />
       {/* ── Header ── */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 text-white shadow-sm">
@@ -218,9 +217,12 @@ export default function SyncMonitoringPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('syncMonitoringTitle')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">{t('syncMonitoringDesc')}</p>
         </div>
-        <div className="ml-auto flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-          {t('autoRefresh30s')}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            {t('autoRefresh30s')}
+          </div>
+          <SettingsBackButton />
         </div>
       </div>
 

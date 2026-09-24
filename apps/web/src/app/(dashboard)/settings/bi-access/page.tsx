@@ -182,7 +182,6 @@ export default function BiAccessPage() {
 
   return (
     <div className="space-y-6">
-      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -191,8 +190,10 @@ export default function BiAccessPage() {
             {t('biDataAccessSubtitle')}
           </p>
         </div>
-        {isSuperAdmin && (
-          <button
+        <div className="flex items-center gap-2">
+          <SettingsBackButton />
+          {isSuperAdmin && (
+            <button
             onClick={handleSave}
             disabled={saving || (!hasEdits && saveStatus === 'idle')}
             className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all ${
@@ -219,8 +220,9 @@ export default function BiAccessPage() {
                 : saveStatus === 'error'
                   ? t('biSaveFailed')
                   : t('saveChanges')}
-          </button>
-        )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Enforcement info */}

@@ -324,7 +324,6 @@ export default function KafkaHealthPage() {
   return (
     <SuperAdminGuard>
     <div className="space-y-6">
-      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -337,6 +336,7 @@ export default function KafkaHealthPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <SettingsBackButton />
           <span className="text-xs text-gray-400">{lastUpdated}</span>
           <button
             onClick={() => refetch()}

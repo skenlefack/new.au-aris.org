@@ -166,7 +166,6 @@ export default function KpisPage() {
 
   return (
     <div className="space-y-8 pb-20">
-      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -182,16 +181,19 @@ export default function KpisPage() {
             </p>
           </div>
         </div>
-        {canManage && !showAddForm && !editingId && (
-          <button
-            type="button"
-            onClick={openAdd}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
-          >
-            <Plus className="h-4 w-4" />
-            {t('addKpi')}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <SettingsBackButton />
+          {canManage && !showAddForm && !editingId && (
+            <button
+              type="button"
+              onClick={openAdd}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
+            >
+              <Plus className="h-4 w-4" />
+              {t('addKpi')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Add Form */}

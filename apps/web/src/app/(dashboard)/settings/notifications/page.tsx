@@ -182,21 +182,23 @@ export default function NotificationPreferencesPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <SettingsBackButton />
-      <div>
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('backToSettings')}
-        </Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-          {t('notificationPreferences')}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {t('notificationPreferencesDesc')}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <Link
+            href="/settings"
+            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t('backToSettings')}
+          </Link>
+          <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            {t('notificationPreferences')}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {t('notificationPreferencesDesc')}
+          </p>
+        </div>
+        <SettingsBackButton />
       </div>
 
       {/* Preferences table */}

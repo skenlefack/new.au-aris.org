@@ -177,14 +177,16 @@ export default function MaintenancePage() {
   return (
     <SuperAdminGuard>
     <div className="space-y-6">
-      <SettingsBackButton />
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Maintenance Mode
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Control system-wide maintenance mode and schedule maintenance windows
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Maintenance Mode
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Control system-wide maintenance mode and schedule maintenance windows
+          </p>
+        </div>
+        <SettingsBackButton />
       </div>
 
       {/* ── Current Status Card ── */}

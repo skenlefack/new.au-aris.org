@@ -172,9 +172,8 @@ export default function I18nSettingsPage() {
 
   return (
     <div className="space-y-8 pb-20">
-      <SettingsBackButton />
       {/* Header */}
-      <div>
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-aris-primary-500 to-aris-primary-700 text-white shadow-sm">
             <Globe className="h-5 w-5" />
@@ -188,6 +187,7 @@ export default function I18nSettingsPage() {
             </p>
           </div>
         </div>
+        <SettingsBackButton />
       </div>
 
       {/* Auto-detect browser language */}

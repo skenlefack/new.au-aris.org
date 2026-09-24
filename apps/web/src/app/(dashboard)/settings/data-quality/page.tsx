@@ -123,9 +123,8 @@ export default function DataQualitySettingsPage() {
 
   return (
     <div className="space-y-8 pb-20">
-      <SettingsBackButton />
       {/* Header */}
-      <div>
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-sm">
             <ShieldCheck className="h-5 w-5" />
@@ -139,6 +138,7 @@ export default function DataQualitySettingsPage() {
             </p>
           </div>
         </div>
+        <SettingsBackButton />
       </div>
 
       {/* 8 Quality Gates Info Banner */}
