@@ -63,7 +63,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   // GET /api/v1/admin/system/metrics — high-level KPIs
   app.get('/api/v1/admin/system/metrics', { preHandler: superAdminOnly }, async () => {
     const [userCount, tenantCount] = await Promise.all([
-      prisma.$queryRawUnsafe<[{ count: bigint }]>('SELECT COUNT(*) as count FROM credential.users').then(r => Number(r[0]?.count ?? 0)),
+      prisma.$queryRawUnsafe<[{ count: bigint }]>('SELECT COUNT(*) as count FROM public.users').then(r => Number(r[0]?.count ?? 0)),
       prisma.$queryRawUnsafe<[{ count: bigint }]>('SELECT COUNT(*) as count FROM public.tenants').then(r => Number(r[0]?.count ?? 0)),
     ]);
 
@@ -290,29 +290,41 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   // GET /api/v1/admin/config/kafka/topics
   app.get('/api/v1/admin/config/kafka/topics', { preHandler: superAdminOnly }, async () => {
     try {
-      const kafkaHealth = await (app as any).kafkaHealthService.getHealth();
-      // Extract unique topics from consumer partitions
-      const topicMap = new Map<string, { partitions: Set<number>; consumerGroups: Set<string>; messageCount: number }>();
+      // Use KafkaJS Admin API to list all topics
+      const { Kafka } = await import('kafkajs');
+      const brokers = (process.env['KAFKA_BROKERS'] ?? 'localhost:9092').split(',');
+      const kafka = new Kafka({ clientId: 'aris-topic-lister', brokers, connectionTimeout: 10_000 });
+      const admin = kafka.admin();
+      await admin.connect();
+
+      const topicMetadata = await admin.fetchTopicMetadata();
+      const kafkaHealth = await (app as any).kafkaHealthService.getHealth().catch(() => ({ consumers: [] }));
+
+      // Build consumer group map from health data
+      const topicConsumers = new Map<string, Set<string>>();
       for (const consumer of kafkaHealth.consumers ?? []) {
-        for (const p of consumer.partitions ?? []) {
-          if (!topicMap.has(p.topic)) {
-            topicMap.set(p.topic, { partitions: new Set(), consumerGroups: new Set(), messageCount: 0 });
-          }
-          const entry = topicMap.get(p.topic)!;
-          entry.partitions.add(p.partition);
-          entry.consumerGroups.add(consumer.groupId);
-          entry.messageCount += parseInt(p.logEndOffset) || 0;
+        const offsets = await admin.fetchOffsets({ groupId: consumer.groupId }).catch(() => []);
+        for (const o of offsets) {
+          if (!topicConsumers.has(o.topic)) topicConsumers.set(o.topic, new Set());
+          topicConsumers.get(o.topic)!.add(consumer.groupId);
         }
       }
-      const topics = [...topicMap.entries()].map(([name, info]) => ({
-        name,
-        partitions: info.partitions.size,
-        replicationFactor: 3,
-        messageCount: info.messageCount,
-        consumerGroups: [...info.consumerGroups],
-      })).sort((a, b) => a.name.localeCompare(b.name));
+
+      const topics = topicMetadata.topics
+        .filter(t => !t.name.startsWith('__')) // exclude internal topics
+        .map(t => ({
+          name: t.name,
+          partitions: t.partitions.length,
+          replicationFactor: t.partitions[0]?.replicas?.length ?? 1,
+          messageCount: 0,
+          consumerGroups: [...(topicConsumers.get(t.name) ?? [])],
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      await admin.disconnect();
       return { data: topics };
-    } catch {
+    } catch (err) {
+      app.log.warn(err, 'Failed to fetch Kafka topics');
       return { data: [] };
     }
   });
