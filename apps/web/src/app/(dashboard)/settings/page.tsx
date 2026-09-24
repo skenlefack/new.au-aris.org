@@ -10,7 +10,6 @@ import {
   ChevronLeft, ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/lib/stores/auth-store';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { useTranslations } from '@/lib/i18n/translations';
 
@@ -30,7 +29,6 @@ interface SettingsGroup {
 }
 
 export default function SettingsOverviewPage() {
-  const user = useAuthStore((s) => s.user);
   const { canViewSection, isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
   const t = useTranslations('settings');
 
@@ -132,23 +130,6 @@ export default function SettingsOverviewPage() {
           {t('manageAccountPrefs')}
         </p>
       </div>
-
-      {/* User card */}
-      {user && (
-        <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-r from-gray-50 to-white border border-gray-100 p-5 dark:from-gray-800/50 dark:to-gray-900 dark:border-gray-700/50">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-aris-primary-100 text-aris-primary-700 dark:bg-aris-primary-900/40 dark:text-aris-primary-400 font-semibold text-sm">
-            {(user.firstName?.[0] ?? '').toUpperCase()}{(user.lastName?.[0] ?? '').toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {user.firstName} {user.lastName}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {user.email} &middot; {user.role.replace(/_/g, ' ')}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Groups */}
       {visibleGroups.map((group) => (
