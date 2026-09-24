@@ -82,13 +82,6 @@ export default function SettingsOverviewPage() {
       ],
     },
     {
-      title: 'Data Operations',
-      items: [
-        { href: '/settings/bulk-import', label: 'Bulk Import', icon: <Upload className="h-5 w-5" />, color: 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30', section: 'bulk-import' },
-        { href: '/settings/bulk-export', label: 'Bulk Export', icon: <Download className="h-5 w-5" />, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30', section: 'bulk-export' },
-      ],
-    },
-    {
       title: 'System & Monitoring',
       items: [
         { href: '/settings/monitoring', label: 'Monitoring', icon: <Activity className="h-5 w-5" />, color: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30', section: 'monitoring' },
@@ -107,7 +100,7 @@ export default function SettingsOverviewPage() {
       ...g,
       items: g.items.filter((item) => {
         const superAdminOnly = [
-          'bulk-import', 'bulk-export', 'monitoring', 'kafka-health',
+          'monitoring', 'kafka-health',
           'sync-monitoring', 'config', 'maintenance', 'system',
         ];
         if (superAdminOnly.includes(item.section)) return isSuperAdmin;

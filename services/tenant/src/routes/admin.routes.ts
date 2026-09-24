@@ -440,33 +440,4 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
     return { data: { success: true } };
   });
 
-  // ═══════════════════════════════════════════════════════════════
-  //  BULK IMPORT / EXPORT
-  // ═══════════════════════════════════════════════════════════════
-
-  // POST /api/v1/admin/bulk-import/preview — Proxy to target service
-  app.post('/api/v1/admin/bulk-import/preview', { preHandler: superAdminOnly }, async (request, reply) => {
-    // Forward the multipart body to the target service
-    // For now, parse the CSV directly here
-    return reply.code(501).send({
-      statusCode: 501,
-      message: 'Bulk import preview is not yet implemented. Use the direct service APIs for data import.',
-    });
-  });
-
-  // POST /api/v1/admin/bulk-import/execute
-  app.post('/api/v1/admin/bulk-import/execute', { preHandler: superAdminOnly }, async (_request, reply) => {
-    return reply.code(501).send({
-      statusCode: 501,
-      message: 'Bulk import execute is not yet implemented. Use the direct service APIs for data import.',
-    });
-  });
-
-  // GET /api/v1/admin/bulk-export
-  app.get('/api/v1/admin/bulk-export', { preHandler: superAdminOnly }, async (_request, reply) => {
-    return reply.code(501).send({
-      statusCode: 501,
-      message: 'Bulk export is not yet implemented. Use the direct service APIs for data export.',
-    });
-  });
 }

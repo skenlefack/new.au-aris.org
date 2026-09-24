@@ -103,8 +103,6 @@ export function useSettingsAccess() {
         case 'bi-access':
           return false; // only super/continental admins
         // Super admin only sections
-        case 'bulk-import':
-        case 'bulk-export':
         case 'monitoring':
         case 'kafka-health':
         case 'sync-monitoring':
