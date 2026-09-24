@@ -7,6 +7,7 @@ import { useTenantConfig, useUpdateTenantConfig } from '@/lib/api/hooks';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations } from '@/lib/i18n/translations';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 const ADMIN_ROLES: UserRole[] = [
   'SUPER_ADMIN',
@@ -75,6 +76,7 @@ export default function TenantSettingsPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      <SettingsBackButton />
       <div>
         <Link
           href="/settings"

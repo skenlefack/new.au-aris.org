@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   Network,
 } from 'lucide-react';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -125,6 +126,7 @@ function SubDomainsList() {
 
   return (
     <div className="space-y-6 pb-20">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">

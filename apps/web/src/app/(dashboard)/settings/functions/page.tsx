@@ -33,6 +33,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { toast } from 'sonner';
 import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 const LEVEL_DEFS = [
   { key: 'continental', labelKey: 'continental', icon: Globe, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30' },
@@ -509,6 +510,7 @@ export default function FunctionsPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

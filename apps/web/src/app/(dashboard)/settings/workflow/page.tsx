@@ -37,6 +37,7 @@ import {
   useDeleteWorkflowStep,
 } from '@/lib/api/workflow-hooks';
 import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 /* ── Helpers ── */
 
@@ -116,6 +117,7 @@ export default function WorkflowConfigPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('workflowConfigTitle')}</h1>

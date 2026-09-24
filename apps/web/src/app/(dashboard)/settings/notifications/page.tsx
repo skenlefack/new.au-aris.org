@@ -13,6 +13,7 @@ import {
   type NotificationPreferences,
 } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 // WhatsApp SVG icon (brand icon)
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -181,6 +182,7 @@ export default function NotificationPreferencesPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      <SettingsBackButton />
       <div>
         <Link
           href="/settings"

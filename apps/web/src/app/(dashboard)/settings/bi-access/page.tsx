@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useBiTools, useBiAccessRules, useUpsertBiAccessRule, type BiToolConfig, type BiAccessRule } from '@/lib/api/bi-hooks';
 import { useSettingsRoles, type RoleItem } from '@/lib/api/settings-hooks';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 /* ── Constants ── */
 
@@ -181,6 +182,7 @@ export default function BiAccessPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

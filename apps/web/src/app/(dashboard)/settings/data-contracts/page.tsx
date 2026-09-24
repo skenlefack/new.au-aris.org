@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useDataContracts } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 function ComplianceBadge({ rate }: { rate: number }) {
   if (rate >= 0.95) {
@@ -48,6 +49,7 @@ export default function DataContractsSettingsPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       <div>
         <Link
           href="/settings"

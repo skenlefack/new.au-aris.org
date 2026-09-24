@@ -8,6 +8,7 @@ import { SaveBar } from '@/components/settings/SaveBar';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 export default function SecuritySettingsPage() {
   const t = useTranslations('settings');
@@ -76,6 +77,7 @@ export default function SecuritySettingsPage() {
 
   return (
     <div className="space-y-6 pb-20">
+      <SettingsBackButton />
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('securitySettings')}</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">

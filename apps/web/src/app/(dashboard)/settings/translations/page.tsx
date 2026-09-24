@@ -40,6 +40,7 @@ import ptMessages from '@/messages/pt.json';
 import arMessages from '@/messages/ar.json';
 import esMessages from '@/messages/es.json';
 import swMessages from '@/messages/sw.json';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 const ALL_MESSAGES: Record<string, Record<string, unknown>> = {
   en: enMessages,
@@ -98,6 +99,7 @@ export default function TranslationsPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-aris-primary-500 to-aris-primary-700 text-white shadow-sm">

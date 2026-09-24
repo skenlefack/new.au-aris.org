@@ -3,11 +3,13 @@
 import React from 'react';
 import { useTranslations } from '@/lib/i18n/translations';
 import { Server, Download, Upload, Activity, Database, Cpu } from 'lucide-react';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 export default function SystemInfoPage() {
   const t = useTranslations('settings');
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('systemInfo')}</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">

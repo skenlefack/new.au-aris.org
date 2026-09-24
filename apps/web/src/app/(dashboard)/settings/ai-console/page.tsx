@@ -22,6 +22,7 @@ import {
   useAiRecentDrafts,
 } from '@/lib/api/ai-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN']);
 
@@ -59,6 +60,7 @@ function AiConsoleContent() {
 
   return (
     <div className="space-y-6 pb-12">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

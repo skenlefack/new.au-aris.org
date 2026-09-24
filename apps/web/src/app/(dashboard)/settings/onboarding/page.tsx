@@ -15,6 +15,7 @@ import {
   XCircle, Clock, AlertCircle, FileText, MapPin, Building2, Download,
   Shield, Search, Filter,
 } from 'lucide-react';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
   SUBMITTED: { color: 'text-blue-700', bg: 'bg-blue-100', icon: <Clock className="h-3.5 w-3.5" /> },
@@ -329,6 +330,7 @@ export default function OnboardingSettingsPage() {
   // List view
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       <div>
         <h1 className="text-xl font-bold text-gray-900">{t('onboardingTitle') || 'Country Onboarding'}</h1>
         <p className="text-sm text-gray-500">{t('onboardingSubtitle') || 'Review and process country activation requests'}</p>

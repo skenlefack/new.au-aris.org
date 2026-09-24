@@ -15,6 +15,7 @@ import {
   useDeleteRefData,
   type RefDataItem,
 } from '@/lib/api/ref-data-hooks';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 const CATEGORY_OPTIONS = [
   { value: 'laboratory', en: 'Laboratory', fr: 'Laboratoire' },
@@ -319,6 +320,7 @@ export default function InfrastructureTypesConfigPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -15,6 +15,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 // ── Types ──
 
@@ -110,6 +111,7 @@ export default function ConfigPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           Runtime Configuration

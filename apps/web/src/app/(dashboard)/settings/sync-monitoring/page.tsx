@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { useTenantId } from '@/lib/api/hooks';
 import { useTranslations } from '@/lib/i18n/translations';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 /* ─── Types ────────────────────────────────────────────────────────────────── */
 
@@ -205,6 +206,7 @@ export default function SyncMonitoringPage() {
 
   return (
     <div className="space-y-6 pb-20">
+      <SettingsBackButton />
       {/* ── Header ── */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 text-white shadow-sm">

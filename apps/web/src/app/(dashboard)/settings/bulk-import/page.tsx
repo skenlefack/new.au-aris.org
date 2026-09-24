@@ -16,6 +16,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 // ── Auth helper for FormData uploads ──
 
@@ -214,6 +215,7 @@ export default function BulkImportPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bulk Import</h1>

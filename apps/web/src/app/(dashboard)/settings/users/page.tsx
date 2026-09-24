@@ -58,6 +58,7 @@ import { usePublicDomains } from '@/lib/api/settings-hooks';
 import { useGeoEntities, useGeoChildren } from '@/lib/api/geo-hooks';
 import { COUNTRIES } from '@/data/countries-config';
 import * as LucideIcons from 'lucide-react';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 /* ================================================================ */
 /*  Types & Constants                                                */
@@ -1622,6 +1623,7 @@ export default function UsersPage() {
   /* ---- List View ---- */
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Delete confirm */}
       {deletingUser && (
         <DeleteConfirm

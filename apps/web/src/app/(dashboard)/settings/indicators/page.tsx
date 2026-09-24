@@ -21,6 +21,7 @@ import {
   Activity,
   Eye,
 } from 'lucide-react';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN']);
 
@@ -90,6 +91,7 @@ function IndicatorsList() {
 
   return (
     <div className="space-y-6 pb-20">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">

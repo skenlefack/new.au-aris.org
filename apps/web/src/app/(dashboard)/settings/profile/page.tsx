@@ -7,6 +7,7 @@ import { useUserProfile, useUpdateProfile, useChangePassword } from '@/lib/api/h
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations } from '@/lib/i18n/translations';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 type PasswordStrength = 'weak' | 'medium' | 'strong';
 
@@ -120,6 +121,7 @@ export default function ProfileSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      <SettingsBackButton />
       {/* Back link and header */}
       <div>
         <Link

@@ -8,6 +8,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { Pagination } from '@/components/ui/Pagination';
 import { Plus, Search, Pencil, Users, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 export default function RecsListPage() {
   const [search, setSearch] = useState('');
@@ -25,6 +26,7 @@ export default function RecsListPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

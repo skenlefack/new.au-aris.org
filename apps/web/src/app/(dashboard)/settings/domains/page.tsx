@@ -24,6 +24,7 @@ import {
   Circle,
 } from 'lucide-react';
 import { IconPicker, ICON_MAP } from '@/components/ui/IconPicker';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 interface DomainForm {
   code: string;
@@ -134,6 +135,7 @@ export default function DomainsPage() {
 
   return (
     <div className="space-y-8 pb-20">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">

@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 /* ─── Types ────────────────────────────────────────────────────────────────── */
 
@@ -321,6 +322,7 @@ export default function KafkaHealthPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

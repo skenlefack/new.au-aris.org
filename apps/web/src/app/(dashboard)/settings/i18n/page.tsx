@@ -9,6 +9,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { Loader2, Globe, ArrowRightLeft, Calendar, Check, Hash, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 const LANGUAGES = [
   { code: 'en', name: 'English',    native: 'English',    rtl: false },
@@ -171,6 +172,7 @@ export default function I18nSettingsPage() {
 
   return (
     <div className="space-y-8 pb-20">
+      <SettingsBackButton />
       {/* Header */}
       <div>
         <div className="flex items-center gap-3">

@@ -27,6 +27,7 @@ import {
   useDeleteValidationChain,
 } from '@/lib/api/workflow-hooks';
 import { useSettingsUsers, type ManagedUser } from '@/lib/api/settings-hooks';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 const LEVEL_TYPES = ['national', 'regional', 'continental', 'admin1', 'admin2', 'admin3', 'admin4', 'admin5'];
 
@@ -182,6 +183,7 @@ export default function ValidationChainsPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

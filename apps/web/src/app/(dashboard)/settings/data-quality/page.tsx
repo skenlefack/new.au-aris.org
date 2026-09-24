@@ -19,6 +19,7 @@ import {
   Timer,
   TrendingUp,
 } from 'lucide-react';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 interface SectionDef {
   title: string;
@@ -122,6 +123,7 @@ export default function DataQualitySettingsPage() {
 
   return (
     <div className="space-y-8 pb-20">
+      <SettingsBackButton />
       {/* Header */}
       <div>
         <div className="flex items-center gap-3">

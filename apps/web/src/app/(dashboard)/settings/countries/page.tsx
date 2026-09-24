@@ -9,6 +9,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { Pagination } from '@/components/ui/Pagination';
 import { Plus, Search, Pencil, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 export default function CountriesListPage() {
   const searchParams = useSearchParams();
@@ -66,6 +67,7 @@ export default function CountriesListPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

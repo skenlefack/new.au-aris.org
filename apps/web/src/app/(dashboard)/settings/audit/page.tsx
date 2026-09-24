@@ -28,6 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useAuditLog, type AuditEntry } from '@/lib/api/hooks';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 /* ─── Constants ─────────────────────────────────────────────────────────────── */
 
@@ -220,6 +221,7 @@ export default function AuditLogPage() {
 
   return (
     <div className="space-y-6 pb-20">
+      <SettingsBackButton />
       {/* ── Header ── */}
       <div>
         <div className="flex items-center gap-3">

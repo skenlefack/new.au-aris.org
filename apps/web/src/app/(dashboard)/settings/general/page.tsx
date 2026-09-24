@@ -10,6 +10,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useRealtimeStore } from '@/lib/realtime/realtime-store';
 import { cn } from '@/lib/utils';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 // Explicit display order for general config keys
 const GENERAL_KEY_ORDER = [
@@ -284,6 +285,7 @@ export default function GeneralSettingsPage() {
 
   return (
     <div className="space-y-6 pb-20">
+      <SettingsBackButton />
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('generalSettings')}</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">

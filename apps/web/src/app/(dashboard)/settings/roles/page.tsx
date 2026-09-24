@@ -36,6 +36,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { toast } from 'sonner';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 /* ── Constants ── */
 
@@ -772,6 +773,7 @@ export default function RolesPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

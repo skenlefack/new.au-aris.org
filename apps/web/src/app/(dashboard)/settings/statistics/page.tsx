@@ -24,6 +24,7 @@ import {
   Check,
   AlertTriangle,
 } from 'lucide-react';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 interface StatForm {
   code: string;
@@ -198,6 +199,7 @@ export default function StatisticsPage() {
 
   return (
     <div className="space-y-8 pb-20">
+      <SettingsBackButton />
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">

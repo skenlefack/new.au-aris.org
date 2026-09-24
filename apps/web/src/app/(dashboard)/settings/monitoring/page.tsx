@@ -17,6 +17,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
+import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 // ── Types ──
 
@@ -519,6 +520,7 @@ export default function MonitoringPage() {
 
   return (
     <div className="space-y-6">
+      <SettingsBackButton />
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
