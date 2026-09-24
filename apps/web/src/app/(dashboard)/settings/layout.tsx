@@ -34,6 +34,9 @@ import {
   RefreshCw,
   Globe2,
   Radio,
+  Upload,
+  Download,
+  Wrench,
 } from 'lucide-react';
 
 interface SettingsNavItem {
@@ -80,6 +83,11 @@ export default function SettingsLayout({
     { href: '/settings/onboarding', label: t('onboardingTitle') !== 'onboardingTitle' ? t('onboardingTitle') : 'Country Onboarding', icon: <Globe2 className="h-4 w-4" />, section: 'onboarding' },
     { href: '/settings/sync-monitoring', label: 'Sync Monitoring', icon: <RefreshCw className="h-4 w-4" />, section: 'sync-monitoring' },
     { href: '/settings/kafka-health', label: 'Kafka Health', icon: <Radio className="h-4 w-4" />, section: 'kafka-health' },
+    { href: '/settings/monitoring', label: 'Monitoring', icon: <Activity className="h-4 w-4" />, section: 'monitoring' },
+    { href: '/settings/config', label: 'Configuration', icon: <Cog className="h-4 w-4" />, section: 'config' },
+    { href: '/settings/bulk-import', label: 'Bulk Import', icon: <Upload className="h-4 w-4" />, section: 'bulk-import' },
+    { href: '/settings/bulk-export', label: 'Bulk Export', icon: <Download className="h-4 w-4" />, section: 'bulk-export' },
+    { href: '/settings/maintenance', label: 'Maintenance', icon: <Wrench className="h-4 w-4" />, section: 'maintenance' },
     { href: '/settings/system', label: t('systemInfo'), icon: <Server className="h-4 w-4" />, section: 'system' },
   ];
 
