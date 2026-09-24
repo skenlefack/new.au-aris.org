@@ -1636,15 +1636,6 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="mb-2">
-            <Link
-              href="/settings"
-              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              {t('backToSettings')}
-            </Link>
-          </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Users className="h-6 w-6 text-blue-600" />
             {t('pageTitle')}
