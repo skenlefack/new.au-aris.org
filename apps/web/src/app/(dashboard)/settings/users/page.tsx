@@ -615,10 +615,13 @@ function UserForm({
 
   // ── Access Levels state ──
   const [userScopes, setUserScopes] = useState<Record<string, string[]>>({});
+  const [expandedDomainId, setExpandedDomainId] = useState<string | null>(null);
+  const [selectedSubDomainCode, setSelectedSubDomainCode] = useState<string | null>(null);
   const { data: allLevelsRes } = useAccessLevels();
   const { data: existingScopesRes } = useUserScopes(editingUser?.id ?? null);
   const setUserScopesMut = useSetUserScopes();
   const allAccessLevels: Array<{ id: string; nodeCode: string; code: string; labels: Record<string, string>; isActive: boolean }> = (allLevelsRes as any)?.data ?? [];
+  const subDomainsMetadata = useDomainStore((s) => s.subDomainsMetadata) ?? [];
 
   // Load existing scopes when editing
   React.useEffect(() => {
@@ -639,19 +642,35 @@ function UserForm({
     return form.domainIds.map((id) => domainCodeById[id]).filter(Boolean);
   }, [form.domainIds, domainCodeById]);
 
-  // Get active levels for selected domains (grouped by nodeCode)
-  const levelsByNode = useMemo(() => {
-    const result: Record<string, Array<{ code: string; label: string }>> = {};
-    for (const domCode of selectedDomainCodes) {
-      const nodeLevels = allAccessLevels.filter((l) => l.nodeCode === domCode && l.isActive);
-      if (nodeLevels.length > 0) {
-        result[domCode] = nodeLevels.map((l) => ({ code: l.code, label: l.labels[locale] ?? l.labels['en'] ?? l.code }));
-      }
-    }
-    return result;
-  }, [selectedDomainCodes, allAccessLevels, locale]);
+  // Get active levels for a given nodeCode
+  const getLevelsForNode = useCallback((nodeCode: string): Array<{ code: string; label: string }> => {
+    return allAccessLevels
+      .filter((l) => l.nodeCode === nodeCode && l.isActive)
+      .map((l) => ({ code: l.code, label: l.labels[locale] ?? l.labels['en'] ?? l.code }));
+  }, [allAccessLevels, locale]);
 
-  const hasAnyLevels = Object.keys(levelsByNode).length > 0;
+  // Expanded domain info
+  const expandedDomain = expandedDomainId ? allDomains.find((d) => d.id === expandedDomainId) : null;
+  const expandedDomainCode = expandedDomain?.code ?? '';
+  const expandedDomainLevels = expandedDomainCode ? getLevelsForNode(expandedDomainCode) : [];
+  const expandedSubDomains = useMemo(() => {
+    if (!expandedDomainCode) return [];
+    return subDomainsMetadata
+      .filter((sd: any) => sd.domainCode === expandedDomainCode && sd.active)
+      .sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [expandedDomainCode, subDomainsMetadata]);
+
+  // Selected subdomain levels
+  const selectedSubNodeCode = selectedSubDomainCode && expandedDomainCode
+    ? `${expandedDomainCode}.${selectedSubDomainCode}` : null;
+  const selectedSubLevels = selectedSubNodeCode ? getLevelsForNode(selectedSubNodeCode) : [];
+  const selectedSubLabel = useMemo(() => {
+    if (!selectedSubDomainCode) return '';
+    const sd = expandedSubDomains.find((s: any) => s.code === selectedSubDomainCode);
+    if (!sd) return selectedSubDomainCode;
+    const key = `label${locale.charAt(0).toUpperCase()}${locale.slice(1)}`;
+    return (sd as any)[key] ?? sd.labelEn ?? selectedSubDomainCode;
+  }, [selectedSubDomainCode, expandedSubDomains, locale]);
 
   const toggleUserLevel = useCallback((nodeCode: string, levelCode: string) => {
     setUserScopes((prev) => {
@@ -725,13 +744,11 @@ function UserForm({
           body.tenantId = form.tenantId;
         }
         await updateMut.mutateAsync(body as any);
-        // Save access level scopes if any levels are configured
-        if (hasAnyLevels) {
-          const scopeEntries = Object.entries(userScopes)
-            .filter(([, codes]) => codes.length > 0)
-            .map(([nodeCode, levelCodes]) => ({ nodeCode, levelCodes }));
-          await setUserScopesMut.mutateAsync({ userId: editingUser.id, scopes: scopeEntries });
-        }
+        // Save access level scopes (always sync — allows clearing scopes too)
+        const scopeEntries = Object.entries(userScopes)
+          .filter(([, codes]) => codes.length > 0)
+          .map(([nodeCode, levelCodes]) => ({ nodeCode, levelCodes }));
+        await setUserScopesMut.mutateAsync({ userId: editingUser.id, scopes: scopeEntries });
         toast.success(t('toastUserUpdated'), {
           description: t('toastUserUpdatedDesc').replace('{name}', fullName),
         });
@@ -1385,12 +1402,8 @@ function UserForm({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {allDomains.map((d) => {
                   const selected = form.domainIds.includes(d.id);
-                  // Use the user's current locale with a cascading fallback so
-                  // Kenyan/French/Portuguese/Arabic users see the localized name
-                  // instead of always reading the English one.
+                  const expanded = expandedDomainId === d.id;
                   const label = d.name?.[locale] || d.name?.en || d.code;
-                  // Render the real domain icon (lucide-react name stored in
-                  // domain.icon) falling back to a colored dot for unknown names.
                   const IconComp = d.icon
                     ? (LucideIcons as any)[d.icon] as React.ComponentType<{ className?: string }> | undefined
                     : undefined;
@@ -1398,7 +1411,19 @@ function UserForm({
                     <button
                       key={d.id}
                       type="button"
-                      onClick={() => toggleDomain(d.id)}
+                      onClick={() => {
+                        toggleDomain(d.id);
+                        if (!selected) {
+                          setExpandedDomainId(d.id);
+                          setSelectedSubDomainCode(null);
+                        } else if (expanded) {
+                          setExpandedDomainId(null);
+                          setSelectedSubDomainCode(null);
+                        } else {
+                          setExpandedDomainId(d.id);
+                          setSelectedSubDomainCode(null);
+                        }
+                      }}
                       aria-pressed={selected}
                       title={`${label} (${d.code})`}
                       className={cn(
@@ -1406,11 +1431,12 @@ function UserForm({
                         selected
                           ? 'border-transparent shadow-sm'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600',
+                        expanded && selected && 'ring-2 ring-offset-1',
                       )}
-                      style={selected ? {
-                        backgroundColor: `${d.color}12`,
-                        borderColor: `${d.color}30`,
-                      } : undefined}
+                      style={{
+                        ...(selected ? { backgroundColor: `${d.color}12`, borderColor: `${d.color}30` } : {}),
+                        ...(expanded && selected ? { ringColor: d.color } : {}),
+                      }}
                     >
                       <span
                         className={cn('flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 transition-colors')}
@@ -1439,45 +1465,67 @@ function UserForm({
                 })}
               </div>
             </div>
-          </div>
-        )}
 
-        {/* ---- Section: Access Levels ---- */}
-        {hasAnyLevels && form.domainIds.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
-            <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
-              <div className="flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-amber-500" />
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Access Levels</h2>
-              </div>
-              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                Select specific access levels for each domain. Leave empty to grant access to all open campaigns on that domain.
-              </p>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              {Object.entries(levelsByNode).map(([nodeCode, levels]) => {
-                const domain = allDomains.find((d) => d.code === nodeCode);
-                const domLabel = domain ? (domain.name?.[locale] ?? domain.name?.en ?? nodeCode) : nodeCode;
-                const selectedOnNode = userScopes[nodeCode] ?? [];
-                return (
-                  <div key={nodeCode}>
+            {/* ---- Expanded domain panel: Sub-domains + Domain Access Levels ---- */}
+            {expandedDomain && form.domainIds.includes(expandedDomainId!) && (
+              <div className="border-t border-gray-100 dark:border-gray-800 px-6 py-5 space-y-5" style={{ backgroundColor: `${expandedDomain.color}06` }}>
+
+                {/* Sub-domains of expanded domain */}
+                {expandedSubDomains.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: expandedDomain.color }} />
+                      <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        Sub-domains — {expandedDomain.name?.[locale] ?? expandedDomain.name?.en ?? expandedDomain.code}
+                      </h3>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {expandedSubDomains.map((sd: any) => {
+                        const sdLabel = sd[`label${locale.charAt(0).toUpperCase()}${locale.slice(1)}`] ?? sd.labelEn ?? sd.code;
+                        const isSelected = selectedSubDomainCode === sd.code;
+                        return (
+                          <button
+                            key={sd.code}
+                            type="button"
+                            onClick={() => setSelectedSubDomainCode(isSelected ? null : sd.code)}
+                            className={cn(
+                              'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
+                              isSelected
+                                ? 'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
+                                : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800',
+                            )}
+                          >
+                            {sdLabel}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Domain Access Levels */}
+                {expandedDomainLevels.length > 0 && (
+                  <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: domain?.color ?? '#6b7280' }} />
-                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{domLabel}</span>
-                      {selectedOnNode.length > 0 && (
+                      <KeyRound className="h-3.5 w-3.5 text-amber-500" />
+                      <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Domain Access Levels</h3>
+                      {(userScopes[expandedDomainCode] ?? []).length > 0 && (
                         <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                          {selectedOnNode.length}
+                          {(userScopes[expandedDomainCode] ?? []).length}
                         </span>
                       )}
                     </div>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                      Leave empty to grant access to all open campaigns on this domain.
+                    </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {levels.map((lvl) => {
-                        const checked = selectedOnNode.includes(lvl.code);
+                      {expandedDomainLevels.map((lvl) => {
+                        const checked = (userScopes[expandedDomainCode] ?? []).includes(lvl.code);
                         return (
                           <button
                             key={lvl.code}
                             type="button"
-                            onClick={() => toggleUserLevel(nodeCode, lvl.code)}
+                            onClick={() => toggleUserLevel(expandedDomainCode, lvl.code)}
                             className={cn(
                               'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
                               checked
@@ -1491,9 +1539,54 @@ function UserForm({
                       })}
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                )}
+
+                {/* Sub-domain Access Levels (when a sub-domain is selected) */}
+                {selectedSubNodeCode && selectedSubLevels.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <KeyRound className="h-3.5 w-3.5 text-blue-500" />
+                      <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        Sub-domain Access Levels — {selectedSubLabel}
+                      </h3>
+                      {(userScopes[selectedSubNodeCode] ?? []).length > 0 && (
+                        <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                          {(userScopes[selectedSubNodeCode] ?? []).length}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                      Leave empty to grant access to all open campaigns on this sub-domain.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedSubLevels.map((lvl) => {
+                        const checked = (userScopes[selectedSubNodeCode!] ?? []).includes(lvl.code);
+                        return (
+                          <button
+                            key={lvl.code}
+                            type="button"
+                            onClick={() => toggleUserLevel(selectedSubNodeCode!, lvl.code)}
+                            className={cn(
+                              'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
+                              checked
+                                ? 'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
+                                : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800',
+                            )}
+                          >
+                            {lvl.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty state when no levels and no subdomains */}
+                {expandedDomainLevels.length === 0 && expandedSubDomains.length === 0 && (
+                  <p className="text-xs text-gray-400 italic">No sub-domains or access levels configured for this domain.</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
