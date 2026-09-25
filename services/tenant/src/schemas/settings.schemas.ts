@@ -460,6 +460,8 @@ const MultilingualLabels = Type.Object({
   fr: Type.String({ minLength: 1 }),
   ar: Type.String({ minLength: 1 }),
   pt: Type.String({ minLength: 1 }),
+  es: Type.Optional(Type.String()),
+  sw: Type.Optional(Type.String()),
 });
 
 export const AccessLevelQuerySchema = Type.Object({

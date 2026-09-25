@@ -19,6 +19,8 @@ import {
 } from '@/lib/api/settings-hooks';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
+import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { useRealtimeStore } from '@/lib/realtime/realtime-store';
 
 // ── Types ──
@@ -74,7 +76,7 @@ function levelLabel(lvl: AccessLevel, locale: string): string {
   return lvl.labels[locale] ?? lvl.labels['en'] ?? lvl.code;
 }
 
-const EMPTY_FORM = { code: '', labels: { en: '', fr: '', ar: '', pt: '' }, description: { en: '', fr: '', ar: '', pt: '' }, sortOrder: 0 };
+const EMPTY_FORM = { code: '', labels: { en: '', fr: '', ar: '', pt: '', es: '', sw: '' }, description: { en: '', fr: '', ar: '', pt: '', es: '', sw: '' }, sortOrder: 0 };
 
 // ── Main Page ──
 
@@ -211,7 +213,12 @@ export default function AccessLevelsPage() {
   const startEdit = (level: AccessLevel) => {
     setEditingId(level.id);
     setShowAddForm(false);
-    setForm({ code: level.code, labels: { en: level.labels.en ?? '', fr: level.labels.fr ?? '', ar: level.labels.ar ?? '', pt: level.labels.pt ?? '' }, description: { en: level.description?.en ?? '', fr: level.description?.fr ?? '', ar: level.description?.ar ?? '', pt: level.description?.pt ?? '' }, sortOrder: level.sortOrder });
+    setForm({
+      code: level.code,
+      labels: { en: level.labels.en ?? '', fr: level.labels.fr ?? '', ar: level.labels.ar ?? '', pt: level.labels.pt ?? '', es: (level.labels as Record<string, string>).es ?? '', sw: (level.labels as Record<string, string>).sw ?? '' },
+      description: { en: level.description?.en ?? '', fr: level.description?.fr ?? '', ar: level.description?.ar ?? '', pt: level.description?.pt ?? '', es: (level.description as Record<string, string> | null)?.es ?? '', sw: (level.description as Record<string, string> | null)?.sw ?? '' },
+      sortOrder: level.sortOrder,
+    });
   };
 
   const isLoading = loadingDomains || loadingLevels;
@@ -479,52 +486,45 @@ function LevelForm({
   isLoading: boolean;
   isNew: boolean;
 }) {
-  const updateLabel = (lang: string, value: string) => setForm((prev) => ({ ...prev, labels: { ...prev.labels, [lang]: value } }));
-  const updateDesc = (lang: string, value: string) => setForm((prev) => ({ ...prev, description: { ...prev.description, [lang]: value } }));
+  const hasRequiredLabels = !!(form.labels.en && form.labels.fr);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {isNew && (
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Code (immutable)</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Code (immutable)</label>
           <input
             value={form.code}
             onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '') }))}
             placeholder="FIELD_LEVEL"
-            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-mono dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
           />
         </div>
       )}
-      <div className="grid grid-cols-2 gap-2">
-        {(['en', 'fr', 'ar', 'pt'] as const).map((lang) => (
-          <div key={lang}>
-            <label className="mb-1 block text-[10px] font-medium uppercase text-gray-500 dark:text-gray-400">{lang}</label>
-            <input
-              value={form.labels[lang]}
-              onChange={(e) => updateLabel(lang, e.target.value)}
-              placeholder={`Label (${lang})`}
-              dir={lang === 'ar' ? 'rtl' : 'ltr'}
-              className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-            />
-          </div>
-        ))}
-      </div>
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Description (EN, optional)</label>
-        <input
-          value={form.description?.en ?? ''}
-          onChange={(e) => updateDesc('en', e.target.value)}
-          placeholder="Short description"
-          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-        />
-      </div>
+
+      <MultilingualInput
+        label="Label"
+        value={form.labels}
+        onChange={(labels) => setForm((prev) => ({ ...prev, labels: { ...prev.labels, ...labels } }))}
+        required
+        placeholder="Access level name..."
+      />
+
+      <MultilingualTextarea
+        label="Description"
+        value={form.description ?? {}}
+        onChange={(description) => setForm((prev) => ({ ...prev, description: { ...prev.description, ...description } }))}
+        placeholder="Short description (optional)..."
+        rows={2}
+      />
+
       <div className="flex items-center justify-end gap-2 pt-1">
         <button onClick={onCancel} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
           Cancel
         </button>
         <button
           onClick={onSubmit}
-          disabled={isLoading || !form.labels.en || !form.labels.fr || !form.labels.ar || !form.labels.pt || (isNew && !form.code)}
+          disabled={isLoading || !hasRequiredLabels || (isNew && !form.code)}
           className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
         >
           {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}

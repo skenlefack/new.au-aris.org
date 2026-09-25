@@ -17,12 +17,14 @@ export const levelCodeSchema = z
   .max(60)
   .regex(/^[A-Z][A-Z0-9_]*$/, 'levelCode must be UPPER_SNAKE_CASE');
 
-/** Multilingual labels — all 4 required */
+/** Multilingual labels — 4 required + 2 optional */
 export const labelsSchema = z.object({
   en: z.string().min(1),
   fr: z.string().min(1),
   ar: z.string().min(1),
   pt: z.string().min(1),
+  es: z.string().optional(),
+  sw: z.string().optional(),
 });
 
 /** Create a domain access level */
