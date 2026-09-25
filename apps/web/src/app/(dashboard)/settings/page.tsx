@@ -6,7 +6,7 @@ import {
   Globe, Flag, Cog, Shield, ShieldAlert, Bell, Languages, ShieldCheck,
   Layers, ClipboardList, Server, Briefcase, Users, GitPullRequestArrow,
   Link2, BarChart3, Building2, TrendingUp, Activity, Wand2, Monitor,
-  Network, Sparkles, RefreshCw, Globe2, Radio, Wrench,
+  Network, Sparkles, RefreshCw, Globe2, Radio, Wrench, KeyRound,
   ChevronLeft, ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -66,6 +66,7 @@ export default function SettingsOverviewPage() {
       items: [
         { href: '/settings/domains', label: t('domains'), desc: 'Business domains', icon: <Layers className="h-[18px] w-[18px]" />, iconColor: 'text-cyan-600 dark:text-cyan-400', iconBg: 'bg-cyan-50 dark:bg-cyan-500/10', section: 'domains' },
         { href: '/settings/sub-domains', label: t('subDomains') !== 'subDomains' ? t('subDomains') : 'Sub-domains', desc: 'Domain categories', icon: <Network className="h-[18px] w-[18px]" />, iconColor: 'text-sky-500 dark:text-sky-400', iconBg: 'bg-sky-50 dark:bg-sky-500/10', section: 'sub-domains' },
+        { href: '/settings/access-levels', label: t('accessLevels') !== 'accessLevels' ? t('accessLevels') : 'Access Levels', desc: 'Domain access levels', icon: <KeyRound className="h-[18px] w-[18px]" />, iconColor: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-50 dark:bg-amber-500/10', section: 'access-levels' },
         { href: '/settings/data-quality', label: t('dataQuality'), desc: 'Quality gates', icon: <ShieldCheck className="h-[18px] w-[18px]" />, iconColor: 'text-green-600 dark:text-green-400', iconBg: 'bg-green-50 dark:bg-green-500/10', section: 'data-quality' },
         { href: '/settings/statistics', label: t('statistics'), desc: 'Stats config', icon: <TrendingUp className="h-[18px] w-[18px]" />, iconColor: 'text-emerald-500 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-500/10', section: 'statistics' },
         { href: '/settings/indicator-types', label: t('indicatorTypes') !== 'indicatorTypes' ? t('indicatorTypes') : 'Indicator Types', icon: <BarChart3 className="h-[18px] w-[18px]" />, iconColor: 'text-purple-500 dark:text-purple-400', iconBg: 'bg-purple-50 dark:bg-purple-500/10', section: 'indicator-types' },

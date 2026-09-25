@@ -31,6 +31,7 @@ import {
   Clock,
   CalendarDays,
   MapPin,
+  KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -54,7 +55,7 @@ import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTenantStore, type TenantNode } from '@/lib/stores/tenant-store';
-import { usePublicDomains } from '@/lib/api/settings-hooks';
+import { usePublicDomains, useAccessLevels, useUserScopes, useSetUserScopes } from '@/lib/api/settings-hooks';
 import { useGeoEntities, useGeoChildren } from '@/lib/api/geo-hooks';
 import { COUNTRIES } from '@/data/countries-config';
 import * as LucideIcons from 'lucide-react';
@@ -612,6 +613,56 @@ function UserForm({
     return { ...EMPTY_FORM, tenantId: currentUser?.tenantId ?? '' };
   });
 
+  // ── Access Levels state ──
+  const [userScopes, setUserScopes] = useState<Record<string, string[]>>({});
+  const { data: allLevelsRes } = useAccessLevels();
+  const { data: existingScopesRes } = useUserScopes(editingUser?.id ?? null);
+  const setUserScopesMut = useSetUserScopes();
+  const allAccessLevels: Array<{ id: string; nodeCode: string; code: string; labels: Record<string, string>; isActive: boolean }> = (allLevelsRes as any)?.data ?? [];
+
+  // Load existing scopes when editing
+  React.useEffect(() => {
+    if (existingScopesRes && editingUser) {
+      setUserScopes((existingScopesRes as any)?.data?.scopes ?? {});
+    }
+  }, [existingScopesRes, editingUser]);
+
+  // Build domain code → id mapping for nodeCode resolution
+  const domainCodeById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const d of allDomains) map[d.id] = d.code;
+    return map;
+  }, [allDomains]);
+
+  // Get selected domain codes from selected domain IDs
+  const selectedDomainCodes = useMemo(() => {
+    return form.domainIds.map((id) => domainCodeById[id]).filter(Boolean);
+  }, [form.domainIds, domainCodeById]);
+
+  // Get active levels for selected domains (grouped by nodeCode)
+  const levelsByNode = useMemo(() => {
+    const result: Record<string, Array<{ code: string; label: string }>> = {};
+    for (const domCode of selectedDomainCodes) {
+      const nodeLevels = allAccessLevels.filter((l) => l.nodeCode === domCode && l.isActive);
+      if (nodeLevels.length > 0) {
+        result[domCode] = nodeLevels.map((l) => ({ code: l.code, label: l.labels[locale] ?? l.labels['en'] ?? l.code }));
+      }
+    }
+    return result;
+  }, [selectedDomainCodes, allAccessLevels, locale]);
+
+  const hasAnyLevels = Object.keys(levelsByNode).length > 0;
+
+  const toggleUserLevel = useCallback((nodeCode: string, levelCode: string) => {
+    setUserScopes((prev) => {
+      const current = prev[nodeCode] ?? [];
+      const next = current.includes(levelCode)
+        ? current.filter((c) => c !== levelCode)
+        : [...current, levelCode];
+      return { ...prev, [nodeCode]: next };
+    });
+  }, []);
+
   const selectedTenantLabel = useMemo(() => {
     const t = assignableTenants.find((x) => x.id === form.tenantId);
     if (!t) return '';
@@ -674,6 +725,13 @@ function UserForm({
           body.tenantId = form.tenantId;
         }
         await updateMut.mutateAsync(body as any);
+        // Save access level scopes if any levels are configured
+        if (hasAnyLevels) {
+          const scopeEntries = Object.entries(userScopes)
+            .filter(([, codes]) => codes.length > 0)
+            .map(([nodeCode, levelCodes]) => ({ nodeCode, levelCodes }));
+          await setUserScopesMut.mutateAsync({ userId: editingUser.id, scopes: scopeEntries });
+        }
         toast.success(t('toastUserUpdated'), {
           description: t('toastUserUpdatedDesc').replace('{name}', fullName),
         });
@@ -1380,6 +1438,61 @@ function UserForm({
                   );
                 })}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ---- Section: Access Levels ---- */}
+        {hasAnyLevels && form.domainIds.length > 0 && (
+          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
+            <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+              <div className="flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-amber-500" />
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Access Levels</h2>
+              </div>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Select specific access levels for each domain. Leave empty to grant access to all open campaigns on that domain.
+              </p>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              {Object.entries(levelsByNode).map(([nodeCode, levels]) => {
+                const domain = allDomains.find((d) => d.code === nodeCode);
+                const domLabel = domain ? (domain.name?.[locale] ?? domain.name?.en ?? nodeCode) : nodeCode;
+                const selectedOnNode = userScopes[nodeCode] ?? [];
+                return (
+                  <div key={nodeCode}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: domain?.color ?? '#6b7280' }} />
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{domLabel}</span>
+                      {selectedOnNode.length > 0 && (
+                        <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                          {selectedOnNode.length}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {levels.map((lvl) => {
+                        const checked = selectedOnNode.includes(lvl.code);
+                        return (
+                          <button
+                            key={lvl.code}
+                            type="button"
+                            onClick={() => toggleUserLevel(nodeCode, lvl.code)}
+                            className={cn(
+                              'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
+                              checked
+                                ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300'
+                                : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800',
+                            )}
+                          >
+                            {lvl.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

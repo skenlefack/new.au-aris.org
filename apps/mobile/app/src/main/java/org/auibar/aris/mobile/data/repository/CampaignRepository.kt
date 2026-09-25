@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.local.dao.CampaignTargetDao
+import org.auibar.aris.mobile.data.local.dao.SubmissionDao
 import org.auibar.aris.mobile.data.local.entity.CampaignEntity
 import org.auibar.aris.mobile.data.local.entity.CampaignTargetEntity
 import org.auibar.aris.mobile.data.mapper.TargetMapper
@@ -78,6 +79,7 @@ private val DOMAIN_LABELS = mapOf(
 class CampaignRepository @Inject constructor(
     private val campaignDao: CampaignDao,
     private val campaignTargetDao: CampaignTargetDao,
+    private val submissionDao: SubmissionDao,
     private val campaignApi: CampaignApi,
 ) {
     companion object {
@@ -149,6 +151,20 @@ class CampaignRepository @Inject constructor(
             val response = campaignApi.getActiveCampaigns()
             val now = System.currentTimeMillis()
             val entities = response.data.map { it.toEntity(now) }
+
+            // Reconciliation: find campaigns that are no longer visible (access revoked)
+            val serverIds = entities.map { it.id }.toSet()
+            val localIds = campaignDao.getAllIds().toSet()
+            val revokedIds = (localIds - serverIds).toList()
+
+            if (revokedIds.isNotEmpty()) {
+                // Mark pending/draft submissions as REVOKED (never lost)
+                submissionDao.markRevokedByCampaigns(revokedIds)
+                // Remove revoked campaigns from local DB (targets cascade-delete)
+                campaignDao.deleteByIds(revokedIds)
+                Timber.i("Revoked ${revokedIds.size} campaigns no longer visible")
+            }
+
             campaignDao.upsertAll(entities)
             // Persist targets for each campaign
             response.data.forEach { dto ->

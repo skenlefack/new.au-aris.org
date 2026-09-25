@@ -467,3 +467,18 @@ model CampaignAssignment {
   @@map("campaign_assignments")
   @@schema("public")
 }
+
+// ── Campaign Scope Access Levels ──────────────────────────────────────
+// Maps a campaign to its required access levels on each domain/subdomain node.
+// Empty levels on a node = campaign is "open" to everyone with access to that node.
+
+model CampaignScopeAccessLevel {
+  campaignId String @map("campaign_id") @db.Uuid
+  nodeCode   String @map("node_code") @db.VarChar(120)
+  levelCode  String @map("level_code") @db.VarChar(60)
+
+  @@id([campaignId, nodeCode, levelCode])
+  @@index([nodeCode, levelCode], map: "idx_csal_node_level")
+  @@map("campaign_scope_access_levels")
+  @@schema("public")
+}

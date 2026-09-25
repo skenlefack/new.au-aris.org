@@ -33,6 +33,12 @@ import {
   DomainCreateBodySchema,
   DomainBodySchema,
   DomainSortBodySchema,
+  AccessLevelQuerySchema,
+  AccessLevelCreateBodySchema,
+  AccessLevelUpdateBodySchema,
+  AccessLevelReorderBodySchema,
+  AccessLevelCopyBodySchema,
+  UserScopesBodySchema,
   SearchQuerySchema,
   AdminLevelsBulkBodySchema,
   AdminLevelParamSchema,
@@ -72,6 +78,12 @@ import {
   type DomainCreateBodyInput,
   type DomainBodyInput,
   type DomainSortBodyInput,
+  type AccessLevelQueryInput,
+  type AccessLevelCreateBodyInput,
+  type AccessLevelUpdateBodyInput,
+  type AccessLevelReorderBodyInput,
+  type AccessLevelCopyBodyInput,
+  type UserScopesBodyInput,
   type SearchQueryInput,
   type AdminLevelsBulkBodyInput,
   type AdminLevelParamInput,
@@ -378,6 +390,62 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
     return app.settingsService.updateDomainSort(request.body.items, user);
   });
 
+  // ───────────────────── Domain Access Levels ─────────────────────
+
+  // GET /api/v1/settings/access-levels?nodeCode=
+  app.get<{ Querystring: AccessLevelQueryInput }>('/api/v1/settings/access-levels', {
+    schema: { querystring: AccessLevelQuerySchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    return app.settingsService.listAccessLevels(request.query.nodeCode);
+  });
+
+  // POST /api/v1/settings/access-levels — create level (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  app.post<{ Body: AccessLevelCreateBodyInput }>('/api/v1/settings/access-levels', {
+    schema: { body: AccessLevelCreateBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request, reply) => {
+    const user = request.user as AuthenticatedUser;
+    const result = await app.settingsService.createAccessLevel(request.body as Record<string, unknown>, user);
+    return reply.code(201).send(result);
+  });
+
+  // PATCH /api/v1/settings/access-levels/:id — update level (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  app.patch<{ Params: UuidParamInput; Body: AccessLevelUpdateBodyInput }>('/api/v1/settings/access-levels/:id', {
+    schema: { params: UuidParamSchema, body: AccessLevelUpdateBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.updateAccessLevel(request.params.id, request.body as Record<string, unknown>, user);
+  });
+
+  // POST /api/v1/settings/access-levels/:id/deactivate (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  app.post<{ Params: UuidParamInput }>('/api/v1/settings/access-levels/:id/deactivate', {
+    schema: { params: UuidParamSchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.deactivateAccessLevel(request.params.id, user);
+  });
+
+  // POST /api/v1/settings/access-levels/reorder (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  app.post<{ Body: AccessLevelReorderBodyInput }>('/api/v1/settings/access-levels/reorder', {
+    schema: { body: AccessLevelReorderBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.reorderAccessLevels(request.body.nodeCode, request.body.orderedIds, user);
+  });
+
+  // POST /api/v1/settings/access-levels/copy (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  app.post<{ Body: AccessLevelCopyBodyInput }>('/api/v1/settings/access-levels/copy', {
+    schema: { body: AccessLevelCopyBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.copyAccessLevels(request.body.fromNodeCode, request.body.toNodeCode, user);
+  });
+
   // ───────────────────── Functions ─────────────────────
 
   // GET /api/v1/settings/functions — list functions (tenant-scoped)
@@ -525,6 +593,25 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.deleteUser(request.params.id, user);
+  });
+
+  // ───────────────────── User Scope Access Levels ─────────────────────
+
+  // GET /api/v1/settings/users/:id/scopes — get user's access level scopes
+  app.get<{ Params: UuidParamInput }>('/api/v1/settings/users/:id/scopes', {
+    schema: { params: UuidParamSchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
+  }, async (request) => {
+    return app.settingsService.getUserScopes(request.params.id);
+  });
+
+  // PUT /api/v1/settings/users/:id/scopes — replace all access level scopes
+  app.put<{ Params: UuidParamInput; Body: UserScopesBodyInput }>('/api/v1/settings/users/:id/scopes', {
+    schema: { params: UuidParamSchema, body: UserScopesBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.setUserScopes(request.params.id, request.body.scopes, user);
   });
 
   // ───────────────────── Statistic Definitions ─────────────────────

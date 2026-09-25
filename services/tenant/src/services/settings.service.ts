@@ -23,6 +23,10 @@ const TOPIC_SETTINGS_STAT_DEF_UPDATED = 'sys.settings.statistic-definition.updat
 const TOPIC_SETTINGS_KPI_DEF_UPDATED = 'sys.settings.kpi-definition.updated.v1';
 const TOPIC_SETTINGS_COUNTRY_STAT_UPDATED = 'sys.settings.country-statistic.updated.v1';
 const TOPIC_SETTINGS_COUNTRY_KPI_UPDATED = 'sys.settings.country-kpi-score.updated.v1';
+const TOPIC_ACCESS_LEVEL_CREATED = 'sys.config.access-level.created.v1';
+const TOPIC_ACCESS_LEVEL_UPDATED = 'sys.config.access-level.updated.v1';
+const TOPIC_ACCESS_LEVEL_DEACTIVATED = 'sys.config.access-level.deactivated.v1';
+const TOPIC_USER_ACCESS_LEVELS_UPDATED = 'sys.credential.user.access-levels-updated.v1';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -892,6 +896,274 @@ export class SettingsService {
     await this.cacheInvalidate('aris:settings:domains:*');
     await this.cacheInvalidate('aris:public:domains');
     return { data: { id, deleted: true } };
+  }
+
+  // ───────────────────── User Scope Access Levels ─────────────────────
+
+  async getUserScopes(userId: string) {
+    const rows = await (this.prisma as any).userScopeAccessLevel.findMany({
+      where: { userId },
+      orderBy: [{ nodeCode: 'asc' }, { levelCode: 'asc' }],
+    });
+
+    // Group by nodeCode
+    const scopes: Record<string, string[]> = {};
+    for (const row of rows) {
+      if (!scopes[row.nodeCode]) scopes[row.nodeCode] = [];
+      scopes[row.nodeCode].push(row.levelCode);
+    }
+
+    return { data: { userId, scopes } };
+  }
+
+  async setUserScopes(
+    userId: string,
+    scopeEntries: Array<{ nodeCode: string; levelCodes: string[] }>,
+    caller: AuthenticatedUser,
+  ) {
+    // Verify user exists
+    const user = await (this.prisma as any).user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+    if (!user) throw new HttpError(404, `User ${userId} not found`);
+
+    // Validate all (nodeCode, levelCode) pairs exist and are active
+    for (const entry of scopeEntries) {
+      for (const levelCode of entry.levelCodes) {
+        const level = await (this.prisma as any).domainAccessLevel.findUnique({
+          where: { nodeCode_code: { nodeCode: entry.nodeCode, code: levelCode } },
+        });
+        if (!level) throw new HttpError(400, `Access level "${levelCode}" not found on node "${entry.nodeCode}"`);
+        if (!level.isActive) throw new HttpError(400, `Access level "${levelCode}" on node "${entry.nodeCode}" is inactive`);
+      }
+    }
+
+    // Get previous state for audit
+    const previousRows = await (this.prisma as any).userScopeAccessLevel.findMany({
+      where: { userId },
+    });
+
+    // Replace all scopes atomically
+    await (this.prisma as any).$transaction([
+      (this.prisma as any).userScopeAccessLevel.deleteMany({ where: { userId } }),
+      ...(scopeEntries.flatMap((entry) =>
+        entry.levelCodes.map((levelCode) =>
+          (this.prisma as any).userScopeAccessLevel.create({
+            data: { userId, nodeCode: entry.nodeCode, levelCode },
+          }),
+        ),
+      )),
+    ]);
+
+    // Build the new scopes map
+    const newScopes: Record<string, string[]> = {};
+    for (const entry of scopeEntries) {
+      if (entry.levelCodes.length > 0) {
+        newScopes[entry.nodeCode] = entry.levelCodes;
+      }
+    }
+
+    // Build previous scopes map for audit
+    const prevScopes: Record<string, string[]> = {};
+    for (const row of previousRows) {
+      if (!prevScopes[row.nodeCode]) prevScopes[row.nodeCode] = [];
+      prevScopes[row.nodeCode].push(row.levelCode);
+    }
+
+    // Update Redis accessContext
+    await this.setAccessContext(userId, newScopes);
+
+    // Publish Kafka event with full state
+    await this.publishEvent(TOPIC_USER_ACCESS_LEVELS_UPDATED, {
+      userId,
+      scopes: newScopes,
+      action: 'updated',
+    }, caller);
+
+    // Audit
+    await this.writeAudit('user_scope_access_level', userId, 'UPDATE', caller, {
+      previousVersion: prevScopes,
+      newVersion: newScopes,
+      classification: 'RESTRICTED',
+    });
+
+    // Invalidate caches
+    if (this.redis) {
+      try { await this.redis.del(`aris:permissions:${userId}`); } catch { /* */ }
+      try { await this.redis.del(`aris:credential:user:${userId}`); } catch { /* */ }
+    }
+    await this.invalidateUserCache();
+
+    return { data: { userId, scopes: newScopes } };
+  }
+
+  /** Write user access context to Redis for fast lookup by other services */
+  private async setAccessContext(userId: string, scopes: Record<string, string[]>): Promise<void> {
+    try {
+      const key = `accessContext:${userId}`;
+      const existing = await this.redis.get(key);
+      const prevVersion = existing ? (JSON.parse(existing).version ?? 0) : 0;
+      const ctx = { version: prevVersion + 1, scopes };
+      await this.redis.set(key, JSON.stringify(ctx), 'EX', CACHE_TTL_SCOPE);
+    } catch {
+      // Redis failure is non-blocking
+    }
+  }
+
+  // ───────────────────── Domain Access Levels ─────────────────────
+
+  async listAccessLevels(nodeCode?: string) {
+    const where: Record<string, unknown> = {};
+    if (nodeCode) where['nodeCode'] = nodeCode;
+
+    const cacheKey = `aris:settings:access-levels:${nodeCode ?? 'all'}`;
+    const cached = await this.cacheGet<{ data: unknown[] }>(cacheKey);
+    if (cached) return cached;
+
+    const levels = await (this.prisma as any).domainAccessLevel.findMany({
+      where,
+      orderBy: [{ nodeCode: 'asc' }, { sortOrder: 'asc' }],
+    });
+
+    const result = { data: levels };
+    await this.cacheSet(cacheKey, result, CACHE_TTL_LIST);
+    return result;
+  }
+
+  async createAccessLevel(dto: Record<string, unknown>, user: AuthenticatedUser) {
+    const nodeCode = dto.nodeCode as string;
+    const code = dto.code as string;
+
+    const existing = await (this.prisma as any).domainAccessLevel.findUnique({
+      where: { nodeCode_code: { nodeCode, code } },
+    });
+    if (existing) throw new HttpError(409, `Access level "${code}" already exists on node "${nodeCode}"`);
+
+    const level = await (this.prisma as any).domainAccessLevel.create({
+      data: {
+        nodeCode,
+        code,
+        labels: dto.labels as any,
+        description: (dto.description ?? null) as any,
+        sortOrder: (dto.sortOrder as number) ?? 0,
+        createdBy: user.userId,
+      },
+    });
+
+    await this.publishEvent(TOPIC_ACCESS_LEVEL_CREATED, { ...level, action: 'created' }, user);
+    await this.writeAudit('domain_access_level', level.id, 'CREATE', user, {
+      newVersion: { nodeCode, code },
+      classification: 'PUBLIC',
+    });
+    await this.cacheInvalidate('aris:settings:access-levels:*');
+    return { data: level };
+  }
+
+  async updateAccessLevel(id: string, dto: Record<string, unknown>, user: AuthenticatedUser) {
+    const existing = await (this.prisma as any).domainAccessLevel.findUnique({ where: { id } });
+    if (!existing) throw new HttpError(404, `Access level ${id} not found`);
+
+    const updateData: Record<string, unknown> = { updatedBy: user.userId };
+    if (dto.labels !== undefined) updateData.labels = dto.labels as any;
+    if (dto.description !== undefined) updateData.description = dto.description as any;
+    if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
+
+    const level = await (this.prisma as any).domainAccessLevel.update({
+      where: { id },
+      data: updateData,
+    });
+
+    await this.publishEvent(TOPIC_ACCESS_LEVEL_UPDATED, { ...level, action: 'updated' }, user);
+    await this.writeAudit('domain_access_level', id, 'UPDATE', user, {
+      previousVersion: { labels: existing.labels },
+      newVersion: { labels: level.labels },
+      classification: 'PUBLIC',
+    });
+    await this.cacheInvalidate('aris:settings:access-levels:*');
+    return { data: level };
+  }
+
+  async deactivateAccessLevel(id: string, user: AuthenticatedUser) {
+    const existing = await (this.prisma as any).domainAccessLevel.findUnique({ where: { id } });
+    if (!existing) throw new HttpError(404, `Access level ${id} not found`);
+    if (!existing.isActive) throw new HttpError(409, `Access level ${id} is already inactive`);
+
+    const level = await (this.prisma as any).domainAccessLevel.update({
+      where: { id },
+      data: { isActive: false, updatedBy: user.userId },
+    });
+
+    await this.publishEvent(TOPIC_ACCESS_LEVEL_DEACTIVATED, { ...level, action: 'deactivated' }, user);
+    await this.writeAudit('domain_access_level', id, 'UPDATE', user, {
+      previousVersion: { isActive: true },
+      newVersion: { isActive: false },
+      classification: 'PUBLIC',
+    });
+    await this.cacheInvalidate('aris:settings:access-levels:*');
+    return { data: level };
+  }
+
+  async reorderAccessLevels(nodeCode: string, orderedIds: string[], user: AuthenticatedUser) {
+    const results = await Promise.all(
+      orderedIds.map((id, index) =>
+        (this.prisma as any).domainAccessLevel.update({
+          where: { id },
+          data: { sortOrder: index, updatedBy: user.userId },
+        }),
+      ),
+    );
+
+    await this.cacheInvalidate('aris:settings:access-levels:*');
+    return { data: results };
+  }
+
+  async copyAccessLevels(fromNodeCode: string, toNodeCode: string, user: AuthenticatedUser) {
+    const sourceLevels = await (this.prisma as any).domainAccessLevel.findMany({
+      where: { nodeCode: fromNodeCode, isActive: true },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    if (sourceLevels.length === 0) {
+      throw new HttpError(404, `No active access levels found on node "${fromNodeCode}"`);
+    }
+
+    const created: unknown[] = [];
+    for (const src of sourceLevels) {
+      // Skip if code already exists on target
+      const existing = await (this.prisma as any).domainAccessLevel.findUnique({
+        where: { nodeCode_code: { nodeCode: toNodeCode, code: src.code } },
+      });
+      if (existing) continue;
+
+      const level = await (this.prisma as any).domainAccessLevel.create({
+        data: {
+          nodeCode: toNodeCode,
+          code: src.code,
+          labels: src.labels,
+          description: src.description,
+          sortOrder: src.sortOrder,
+          createdBy: user.userId,
+        },
+      });
+      created.push(level);
+    }
+
+    if (created.length > 0) {
+      await this.publishEvent(TOPIC_ACCESS_LEVEL_CREATED, {
+        action: 'copied',
+        fromNodeCode,
+        toNodeCode,
+        count: created.length,
+      }, user);
+      await this.writeAudit('domain_access_level', toNodeCode, 'CREATE', user, {
+        newVersion: { fromNodeCode, toNodeCode, count: created.length },
+        classification: 'PUBLIC',
+      });
+    }
+
+    await this.cacheInvalidate('aris:settings:access-levels:*');
+    return { data: created, meta: { copied: created.length, skipped: sourceLevels.length - created.length } };
   }
 
   // ───────────────────── Public ─────────────────────

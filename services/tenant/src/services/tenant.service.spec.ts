@@ -130,8 +130,10 @@ describe('TenantService', () => {
     it('throws 409 if code already exists', async () => {
       prisma.tenant.findUnique.mockResolvedValueOnce(makeTenant({ code: 'KE' }));
 
-      await expect(service.create(dto, superAdmin)).rejects.toThrow('already exists');
-      await expect(service.create(dto, superAdmin)).rejects.toMatchObject({ statusCode: 409 });
+      await expect(service.create(dto, superAdmin)).rejects.toMatchObject({
+        statusCode: 409,
+        message: expect.stringContaining('already exists'),
+      });
       expect(prisma.tenant.create).not.toHaveBeenCalled();
     });
 

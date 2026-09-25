@@ -27,7 +27,7 @@ export default async function syncRoutes(app: FastifyInstance): Promise<void> {
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     const { since, types } = request.query;
-    return service.getDelta(user.tenantId, user.userId, since, types as any);
+    return service.getDelta(user, since, types as any);
   });
 
   // GET /api/v1/collecte/sync/status?deviceId=optional

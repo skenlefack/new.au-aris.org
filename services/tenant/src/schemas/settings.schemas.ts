@@ -441,6 +441,60 @@ export const CountryKpiScoresQuerySchema = Type.Object({
 });
 export type CountryKpiScoresQueryInput = Static<typeof CountryKpiScoresQuerySchema>;
 
+// ---------- User Scope Access Levels ----------
+
+const ScopeEntrySchema = Type.Object({
+  nodeCode: Type.String({ minLength: 1, maxLength: 120 }),
+  levelCodes: Type.Array(Type.String({ minLength: 1, maxLength: 60 })),
+});
+
+export const UserScopesBodySchema = Type.Object({
+  scopes: Type.Array(ScopeEntrySchema),
+});
+export type UserScopesBodyInput = Static<typeof UserScopesBodySchema>;
+
+// ---------- Domain Access Levels ----------
+
+const MultilingualLabels = Type.Object({
+  en: Type.String({ minLength: 1 }),
+  fr: Type.String({ minLength: 1 }),
+  ar: Type.String({ minLength: 1 }),
+  pt: Type.String({ minLength: 1 }),
+});
+
+export const AccessLevelQuerySchema = Type.Object({
+  nodeCode: Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
+});
+export type AccessLevelQueryInput = Static<typeof AccessLevelQuerySchema>;
+
+export const AccessLevelCreateBodySchema = Type.Object({
+  nodeCode: Type.String({ minLength: 1, maxLength: 120 }),
+  code: Type.String({ minLength: 1, maxLength: 60, pattern: '^[A-Z][A-Z0-9_]*$' }),
+  labels: MultilingualLabels,
+  description: Type.Optional(Type.Union([Type.Partial(MultilingualLabels), Type.Null()])),
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type AccessLevelCreateBodyInput = Static<typeof AccessLevelCreateBodySchema>;
+
+export const AccessLevelUpdateBodySchema = Type.Object({
+  labels: Type.Optional(MultilingualLabels),
+  description: Type.Optional(Type.Union([Type.Partial(MultilingualLabels), Type.Null()])),
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type AccessLevelUpdateBodyInput = Static<typeof AccessLevelUpdateBodySchema>;
+
+export const AccessLevelReorderBodySchema = Type.Object({
+  nodeCode: Type.String({ minLength: 1, maxLength: 120 }),
+  orderedIds: Type.Array(Type.String({ format: 'uuid' }), { minItems: 1 }),
+});
+export type AccessLevelReorderBodyInput = Static<typeof AccessLevelReorderBodySchema>;
+
+export const AccessLevelCopyBodySchema = Type.Object({
+  fromNodeCode: Type.String({ minLength: 1, maxLength: 120 }),
+  toNodeCode: Type.String({ minLength: 1, maxLength: 120 }),
+});
+export type AccessLevelCopyBodyInput = Static<typeof AccessLevelCopyBodySchema>;
+
 // ---------- Search Query ----------
 
 export const SearchQuerySchema = Type.Object({

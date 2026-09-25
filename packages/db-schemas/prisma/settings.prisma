@@ -605,3 +605,26 @@ model CountryOnboarding {
   @@map("country_onboardings")
   @@schema("governance")
 }
+
+// ── Domain Access Levels ──────────────────────────────────────────────
+// Catalogue of access levels per domain/subdomain node.
+// nodeCode = "animal-health" (domain) or "animal-health.PPR" (subdomain).
+
+model DomainAccessLevel {
+  id          String   @id @default(uuid()) @db.Uuid
+  nodeCode    String   @map("node_code") @db.VarChar(120) // "animal-health" or "animal-health.PPR"
+  code        String   @db.VarChar(60) // UPPER_SNAKE_CASE, immutable after creation
+  labels      Json // { "en": "...", "fr": "...", "ar": "...", "pt": "..." }
+  description Json?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy   String   @map("created_by") @db.Uuid
+  updatedBy   String?  @map("updated_by") @db.Uuid
+
+  @@unique([nodeCode, code], map: "uq_dal_node_code")
+  @@index([nodeCode, isActive], map: "idx_dal_node_active")
+  @@map("domain_access_levels")
+  @@schema("governance")
+}

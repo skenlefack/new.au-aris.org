@@ -75,4 +75,22 @@ export default async function campaignRoutes(app: FastifyInstance): Promise<void
     const result = await service.delete(request.params.id, user);
     return reply.code(200).send(result);
   });
+
+  // GET /api/v1/collecte/campaigns/:id/scopes — get campaign access level scopes
+  app.get<{ Params: IdParam }>('/api/v1/collecte/campaigns/:id/scopes', {
+    schema: { params: IdParamSchema },
+    preHandler: [auth, tenant],
+  }, async (request) => {
+    const scopes = await service.getCampaignScopes(request.params.id);
+    return { data: { campaignId: request.params.id, scopes } };
+  });
+
+  // PUT /api/v1/collecte/campaigns/:id/scopes — replace campaign access level scopes
+  app.put<{ Params: IdParam; Body: { scopes: Array<{ nodeCode: string; levelCodes: string[] }> } }>('/api/v1/collecte/campaigns/:id/scopes', {
+    schema: { params: IdParamSchema },
+    preHandler: [auth, tenant, rolesHook(...WRITE_ROLES)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return service.setCampaignScopes(request.params.id, request.body.scopes, user);
+  });
 }

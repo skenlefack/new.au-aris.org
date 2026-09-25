@@ -213,6 +213,13 @@ export const TOPIC_AI_GENERATION_FAILED = 'sys.ai.generation.failed.v1' as const
 export const TOPIC_AI_ANOMALY_DETECTED = 'sys.ai.anomaly.detected.v1' as const;
 export const TOPIC_AI_PREDICTION_COMPLETED = 'sys.ai.prediction.completed.v1' as const;
 
+// ── Access Level Topics ──
+export const TOPIC_SYS_CONFIG_ACCESS_LEVEL_CREATED = 'sys.config.access-level.created.v1' as const;
+export const TOPIC_SYS_CONFIG_ACCESS_LEVEL_UPDATED = 'sys.config.access-level.updated.v1' as const;
+export const TOPIC_SYS_CONFIG_ACCESS_LEVEL_DEACTIVATED = 'sys.config.access-level.deactivated.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_USER_ACCESS_LEVELS_UPDATED = 'sys.credential.user.access-levels-updated.v1' as const;
+export const TOPIC_MS_COLLECTE_CAMPAIGN_ACCESS_LEVELS_UPDATED = 'ms.collecte.campaign.access-levels-updated.v1' as const;
+
 // ── DLQ Topics ──
 export const TOPIC_DLQ_ALL = 'dlq.all.v1' as const;
 export const TOPIC_DLQ_HEALTH = 'dlq.health.v1' as const;
@@ -387,6 +394,11 @@ export const ALL_TOPICS = [
   TOPIC_AI_GENERATION_FAILED,
   TOPIC_AI_ANOMALY_DETECTED,
   TOPIC_AI_PREDICTION_COMPLETED,
+  TOPIC_SYS_CONFIG_ACCESS_LEVEL_CREATED,
+  TOPIC_SYS_CONFIG_ACCESS_LEVEL_UPDATED,
+  TOPIC_SYS_CONFIG_ACCESS_LEVEL_DEACTIVATED,
+  TOPIC_SYS_CREDENTIAL_USER_ACCESS_LEVELS_UPDATED,
+  TOPIC_MS_COLLECTE_CAMPAIGN_ACCESS_LEVELS_UPDATED,
   TOPIC_DLQ_ALL,
   TOPIC_DLQ_HEALTH,
   TOPIC_DLQ_COLLECTE,

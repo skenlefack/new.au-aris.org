@@ -54,8 +54,9 @@ object AppModule {
     fun provideCampaignRepository(
         campaignDao: CampaignDao,
         campaignTargetDao: CampaignTargetDao,
+        submissionDao: SubmissionDao,
         campaignApi: CampaignApi,
-    ): CampaignRepository = CampaignRepository(campaignDao, campaignTargetDao, campaignApi)
+    ): CampaignRepository = CampaignRepository(campaignDao, campaignTargetDao, submissionDao, campaignApi)
 
     @Provides
     @Singleton

@@ -81,6 +81,13 @@ interface SubmissionDao {
 
     @Query("SELECT domain, COUNT(*) as cnt FROM submissions WHERE domain IS NOT NULL GROUP BY domain")
     suspend fun getCountByDomain(): List<DomainCount>
+
+    /**
+     * Mark pending/draft submissions as REVOKED when their campaign is no longer visible.
+     * These submissions are preserved for later sync or supervisor review.
+     */
+    @Query("UPDATE submissions SET syncStatus = 'REVOKED' WHERE campaignId IN (:campaignIds) AND syncStatus IN ('PENDING', 'DRAFT')")
+    suspend fun markRevokedByCampaigns(campaignIds: List<String>): Int
 }
 
 data class DomainCount(

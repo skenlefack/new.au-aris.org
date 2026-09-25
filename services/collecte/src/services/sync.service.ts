@@ -11,6 +11,14 @@ import {
 import type { KafkaHeaders } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 
+import {
+  canViewCampaign,
+  isAccessLevelsEnabled,
+  ADMIN_BYPASS_ROLES,
+  type CampaignScopes,
+  type VisibilityInput,
+} from '@aris/access-control';
+
 const SERVICE_NAME = 'collecte-service';
 
 /** Lightweight HTTP error for Fastify error handler */
@@ -350,15 +358,30 @@ export class SyncService {
     user: AuthenticatedUser,
     lastSyncAt: Date,
   ): Promise<CampaignUpdate[]> {
+    // Domain filter: non-admins only see campaigns in their domains
+    const isAdmin = ADMIN_BYPASS_ROLES.includes(user.role as any);
+    const userDomainCodes = Object.keys(user.domains ?? {});
+    const where: Record<string, unknown> = {
+      tenantId: user.tenantId,
+      updatedAt: { gt: lastSyncAt },
+    };
+    if (!isAdmin && userDomainCodes.length > 0) {
+      const expanded = userDomainCodes.flatMap((c) => {
+        const alt = c.includes('-') ? c.replace(/-/g, '_') : c.replace(/_/g, '-');
+        return alt !== c ? [c, alt] : [c];
+      });
+      where['domain'] = { in: expanded };
+    } else if (!isAdmin && userDomainCodes.length === 0) {
+      return []; // No domains = no campaigns
+    }
+
     const campaigns = await (this.prisma as any).campaign.findMany({
-      where: {
-        tenantId: user.tenantId,
-        updatedAt: { gt: lastSyncAt },
-      },
+      where,
       select: {
         id: true,
         status: true,
         name: true,
+        domain: true,
         startDate: true,
         endDate: true,
         updatedAt: true,
@@ -367,7 +390,37 @@ export class SyncService {
       take: 50,
     });
 
-    return campaigns.map((c: any) => ({
+    // Access-level filtering
+    let filtered = campaigns;
+    if (isAccessLevelsEnabled() && !isAdmin) {
+      const userScopes = await this.getUserAccessContext(user.userId);
+      const assignedIds = await (this.prisma as any).campaignAssignment.findMany({
+        where: { userId: user.userId }, select: { campaignId: true },
+      }).then((rows: Array<{ campaignId: string }>) => rows.map((r) => r.campaignId));
+
+      const allScopes = await (this.prisma as any).campaignScopeAccessLevel.findMany({
+        select: { campaignId: true, nodeCode: true, levelCode: true },
+      });
+      const scopesByCampaign: Record<string, CampaignScopes> = {};
+      for (const row of allScopes) {
+        if (!scopesByCampaign[row.campaignId]) scopesByCampaign[row.campaignId] = {};
+        if (!scopesByCampaign[row.campaignId][row.nodeCode]) scopesByCampaign[row.campaignId][row.nodeCode] = [];
+        scopesByCampaign[row.campaignId][row.nodeCode].push(row.levelCode);
+      }
+
+      filtered = campaigns.filter((c: any) => {
+        if (assignedIds.includes(c.id)) return true;
+        const scopes = scopesByCampaign[c.id];
+        if (!scopes || Object.keys(scopes).length === 0) return true; // Open campaign
+        const input: VisibilityInput = {
+          userNodeCodes: userDomainCodes, userScopes, campaignScopes: scopes,
+          options: { userRole: user.role as any, isAssignedAgent: false, featureEnabled: true },
+        };
+        return canViewCampaign(input);
+      });
+    }
+
+    return filtered.map((c: any) => ({
       id: c.id,
       status: c.status,
       name: c.name,
@@ -375,6 +428,18 @@ export class SyncService {
       endDate: c.endDate,
       updatedAt: c.updatedAt,
     }));
+  }
+
+  private async getUserAccessContext(userId: string): Promise<Record<string, string[]>> {
+    try {
+      const rows = await (this.prisma as any).userScopeAccessLevel.findMany({ where: { userId } });
+      const scopes: Record<string, string[]> = {};
+      for (const row of rows) {
+        if (!scopes[row.nodeCode]) scopes[row.nodeCode] = [];
+        scopes[row.nodeCode].push(row.levelCode);
+      }
+      return scopes;
+    } catch { return {}; }
   }
 
   private async validateSchema(
@@ -480,24 +545,44 @@ export class SyncService {
    * Used by mobile clients to pull updates without pushing submissions.
    */
   async getDelta(
-    tenantId: string,
-    userId: string,
+    user: AuthenticatedUser,
     since: string,
     types?: ('campaigns' | 'templates' | 'referentials' | 'submissions')[],
   ) {
+    const tenantId = user.tenantId;
+    const userId = user.userId;
     const sinceDate = new Date(since);
     const includeAll = !types || types.length === 0;
+
+    // Domain filter for campaigns
+    const isAdmin = ADMIN_BYPASS_ROLES.includes(user.role as any);
+    const userDomainCodes = Object.keys(user.domains ?? {});
+    let domainClause = '';
+    const domainParams: string[] = [];
+    if (!isAdmin && userDomainCodes.length > 0) {
+      const expanded = userDomainCodes.flatMap((c) => {
+        const alt = c.includes('-') ? c.replace(/-/g, '_') : c.replace(/_/g, '-');
+        return alt !== c ? [c, alt] : [c];
+      });
+      const placeholders = expanded.map((_, i) => `$${i + 3}`).join(', ');
+      domainClause = ` AND domain IN (${placeholders})`;
+      domainParams.push(...expanded);
+    } else if (!isAdmin && userDomainCodes.length === 0) {
+      // No domains → no campaigns
+      domainClause = ' AND 1=0';
+    }
 
     // Updated campaigns
     const updatedCampaigns = includeAll || types!.includes('campaigns')
       ? await (this.prisma as any).$queryRawUnsafe(
           `SELECT id, name, status, target, updated_at as "updatedAt"
            FROM collecte.campaigns
-           WHERE tenant_id = $1 AND updated_at > $2 AND status != 'ARCHIVED'
+           WHERE tenant_id = $1 AND updated_at > $2 AND status != 'ARCHIVED'${domainClause}
            ORDER BY updated_at DESC
            LIMIT 100`,
           tenantId,
           sinceDate,
+          ...domainParams,
         )
       : [];
 
@@ -505,9 +590,10 @@ export class SyncService {
     const deletedCampaigns = includeAll || types!.includes('campaigns')
       ? (await (this.prisma as any).$queryRawUnsafe(
           `SELECT id FROM collecte.campaigns
-           WHERE tenant_id = $1 AND status = 'ARCHIVED' AND updated_at > $2`,
+           WHERE tenant_id = $1 AND status = 'ARCHIVED' AND updated_at > $2${domainClause}`,
           tenantId,
           sinceDate,
+          ...domainParams,
         )).map((r: any) => r.id)
       : [];
 

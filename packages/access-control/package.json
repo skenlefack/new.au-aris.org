@@ -1,0 +1,34 @@
+{
+  "name": "@aris/access-control",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ARIS 4.0 — Domain access level visibility logic (pure functions)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@aris/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0",
+    "zod": "^3.23.0"
+  },
+  "peerDependencies": {
+    "zod": "^3.22.0"
+  }
+}

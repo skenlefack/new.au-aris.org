@@ -1203,3 +1203,82 @@ export function useDeleteOnboarding() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'onboarding'] }),
   });
 }
+
+// ── User Scope Access Levels ──
+
+export function useUserScopes(userId: string | null) {
+  return useQuery({
+    queryKey: ['settings', 'user-scopes', userId],
+    queryFn: () => tenantFetch(`/api/v1/settings/users/${userId}/scopes`),
+    enabled: !!userId,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSetUserScopes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, scopes }: { userId: string; scopes: Array<{ nodeCode: string; levelCodes: string[] }> }) =>
+      tenantPut(`/api/v1/settings/users/${userId}/scopes`, { scopes }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['settings', 'user-scopes', variables.userId] });
+      qc.invalidateQueries({ queryKey: ['settings', 'users'] });
+    },
+  });
+}
+
+// ── Domain Access Levels ──
+
+export function useAccessLevels(nodeCode?: string) {
+  const qs = nodeCode ? `?nodeCode=${encodeURIComponent(nodeCode)}` : '';
+  return useQuery({
+    queryKey: ['settings', 'access-levels', nodeCode ?? 'all'],
+    queryFn: () => tenantFetch(`/api/v1/settings/access-levels${qs}`),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useCreateAccessLevel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      tenantPost('/api/v1/settings/access-levels', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'access-levels'] }),
+  });
+}
+
+export function useUpdateAccessLevel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & Record<string, unknown>) =>
+      tenantPatch(`/api/v1/settings/access-levels/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'access-levels'] }),
+  });
+}
+
+export function useDeactivateAccessLevel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      tenantPost(`/api/v1/settings/access-levels/${id}/deactivate`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'access-levels'] }),
+  });
+}
+
+export function useReorderAccessLevels() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { nodeCode: string; orderedIds: string[] }) =>
+      tenantPost('/api/v1/settings/access-levels/reorder', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'access-levels'] }),
+  });
+}
+
+export function useCopyAccessLevels() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { fromNodeCode: string; toNodeCode: string }) =>
+      tenantPost('/api/v1/settings/access-levels/copy', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'access-levels'] }),
+  });
+}

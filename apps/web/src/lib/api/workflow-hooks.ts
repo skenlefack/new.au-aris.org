@@ -904,3 +904,29 @@ export function useInstanceDataFlow(instanceId?: string) {
     enabled: !!instanceId,
   });
 }
+
+// ── Campaign Scope Access Levels ──
+
+export function useCampaignScopes(campaignId?: string) {
+  return useQuery({
+    queryKey: ['campaign-scopes', campaignId],
+    queryFn: () => wfFetch<any>(`/api/v1/collecte/campaigns/${campaignId}/scopes`),
+    enabled: !!campaignId,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSetCampaignScopes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ campaignId, scopes }: { campaignId: string; scopes: Array<{ nodeCode: string; levelCodes: string[] }> }) =>
+      wfFetch(`/api/v1/collecte/campaigns/${campaignId}/scopes`, {
+        method: 'PUT',
+        body: JSON.stringify({ scopes }),
+      }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['campaign-scopes', variables.campaignId] });
+      qc.invalidateQueries({ queryKey: ['collection-campaigns'] });
+    },
+  });
+}

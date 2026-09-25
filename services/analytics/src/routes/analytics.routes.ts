@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { domainsHook, tenantHook } from '@aris/auth-middleware/fastify';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+import { hasAccessToDomain } from '@aris/auth-middleware';
 
 /** Resolve country_code for MEMBER_STATE users (returns undefined for REC/Continental). */
 async function resolveCountryCode(app: FastifyInstance, user?: AuthenticatedUser): Promise<string | undefined> {
@@ -220,6 +221,15 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as { domainKey: string };
     const { domainKey } = params;
+    const user = (request as any).user as AuthenticatedUser | undefined;
+
+    // Enforce domain access — admins bypass
+    if (user && user.role !== 'SUPER_ADMIN' && user.role !== 'CONTINENTAL_ADMIN') {
+      if (!hasAccessToDomain(user, domainKey)) {
+        return reply.code(404).send({ statusCode: 404, message: 'Domain not found' });
+      }
+    }
+
     const data = await app.crossDomainService.getDomainKpis(domainKey);
     return reply.code(200).send({ data });
   });

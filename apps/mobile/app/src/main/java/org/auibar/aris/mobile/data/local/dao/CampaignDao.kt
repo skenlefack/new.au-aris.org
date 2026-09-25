@@ -36,6 +36,12 @@ interface CampaignDao {
     @Query("SELECT * FROM campaigns WHERE UPPER(status) = 'ACTIVE'")
     suspend fun getAllActiveSync(): List<CampaignEntity>
 
+    @Query("SELECT id FROM campaigns")
+    suspend fun getAllIds(): List<String>
+
+    @Query("DELETE FROM campaigns WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<String>)
+
     @Query("DELETE FROM campaigns")
     suspend fun deleteAll()
 }

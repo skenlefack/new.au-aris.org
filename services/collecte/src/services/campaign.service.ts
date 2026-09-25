@@ -15,6 +15,13 @@ import type {
   ApiResponse,
 } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+import {
+  canViewCampaign,
+  isAccessLevelsEnabled,
+  ADMIN_BYPASS_ROLES,
+  type CampaignScopes,
+  type VisibilityInput,
+} from '@aris/access-control';
 import type {
   CampaignEntity,
   CampaignWithProgress,
@@ -23,6 +30,7 @@ import type {
 import type { CampaignTargetInput } from '../schemas/campaign.schema';
 
 const SERVICE_NAME = 'collecte-service';
+const TOPIC_CAMPAIGN_ACCESS_LEVELS_UPDATED = 'ms.collecte.campaign.access-levels-updated.v1';
 
 /** Lightweight HTTP error for Fastify error handler */
 export class HttpError extends Error {
@@ -182,6 +190,12 @@ export class CampaignService {
       if (!canAccess) {
         throw new HttpError(404, `Campaign ${id} not found`);
       }
+    }
+
+    // Access-level check (R4): returns 404 to not reveal existence
+    const canView = await this.canUserViewCampaign(user, id);
+    if (!canView) {
+      throw new HttpError(404, `Campaign ${id} not found`);
     }
 
     // Compute progress stats
@@ -402,6 +416,51 @@ export class CampaignService {
       where['name'] = { contains: query.search, mode: 'insensitive' };
     }
 
+    // Access-level filtering (R4, R5, R8)
+    if (isAccessLevelsEnabled() && !isAdmin) {
+      // Check if user is assigned as agent → those campaigns bypass access-level filter
+      const assignedCampaignIds = await (this.prisma as any).campaignAssignment.findMany({
+        where: { userId: user.userId },
+        select: { campaignId: true },
+      }).then((rows: Array<{ campaignId: string }>) => rows.map((r) => r.campaignId));
+
+      const userScopes = await this.getUserAccessContext(user.userId);
+      const userNodeCodes = Object.keys(user.domains ?? {});
+
+      // Build a list of campaign IDs that have scopes and are NOT visible
+      // Strategy: fetch all campaign scope entries, group by campaign, then filter
+      const allCampaignScopes = await (this.prisma as any).campaignScopeAccessLevel.findMany({
+        select: { campaignId: true, nodeCode: true, levelCode: true },
+      });
+
+      // Group by campaignId
+      const scopesByCampaign: Record<string, CampaignScopes> = {};
+      for (const row of allCampaignScopes) {
+        if (!scopesByCampaign[row.campaignId]) scopesByCampaign[row.campaignId] = {};
+        if (!scopesByCampaign[row.campaignId][row.nodeCode]) scopesByCampaign[row.campaignId][row.nodeCode] = [];
+        scopesByCampaign[row.campaignId][row.nodeCode].push(row.levelCode);
+      }
+
+      // Find campaigns that are NOT visible (have scopes and don't match)
+      const hiddenIds: string[] = [];
+      for (const [campaignId, scopes] of Object.entries(scopesByCampaign)) {
+        if (assignedCampaignIds.includes(campaignId)) continue; // agent bypass
+        const input: VisibilityInput = {
+          userNodeCodes,
+          userScopes,
+          campaignScopes: scopes,
+          options: { userRole: user.role as any, isAssignedAgent: false, featureEnabled: true },
+        };
+        if (!canViewCampaign(input)) {
+          hiddenIds.push(campaignId);
+        }
+      }
+
+      if (hiddenIds.length > 0) {
+        where['NOT'] = { id: { in: hiddenIds } };
+      }
+    }
+
     return where;
   }
 
@@ -600,5 +659,124 @@ export class CampaignService {
         error instanceof Error ? error.stack : String(error),
       );
     }
+  }
+
+  // ───────────────────── Campaign Scope Access Levels ─────────────────────
+
+  async getCampaignScopes(campaignId: string): Promise<CampaignScopes> {
+    const rows = await (this.prisma as any).campaignScopeAccessLevel.findMany({
+      where: { campaignId },
+    });
+    const scopes: CampaignScopes = {};
+    for (const row of rows) {
+      if (!scopes[row.nodeCode]) scopes[row.nodeCode] = [];
+      scopes[row.nodeCode].push(row.levelCode);
+    }
+    return scopes;
+  }
+
+  async setCampaignScopes(
+    campaignId: string,
+    scopeEntries: Array<{ nodeCode: string; levelCodes: string[] }>,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<{ campaignId: string; scopes: CampaignScopes }>> {
+    const campaign = await (this.prisma as any).campaign.findUnique({ where: { id: campaignId } });
+    if (!campaign) throw new HttpError(404, `Campaign ${campaignId} not found`);
+
+    // Replace all scopes atomically
+    await (this.prisma as any).$transaction([
+      (this.prisma as any).campaignScopeAccessLevel.deleteMany({ where: { campaignId } }),
+      ...(scopeEntries.flatMap((entry) =>
+        entry.levelCodes.map((levelCode) =>
+          (this.prisma as any).campaignScopeAccessLevel.create({
+            data: { campaignId, nodeCode: entry.nodeCode, levelCode },
+          }),
+        ),
+      )),
+    ]);
+
+    const newScopes: CampaignScopes = {};
+    for (const entry of scopeEntries) {
+      if (entry.levelCodes.length > 0) {
+        newScopes[entry.nodeCode] = entry.levelCodes;
+      }
+    }
+
+    // Publish Kafka event
+    const headers: KafkaHeaders = {
+      correlationId: uuidv4(),
+      sourceService: SERVICE_NAME,
+      tenantId: user.tenantId,
+      userId: user.userId,
+      schemaVersion: '1',
+      timestamp: new Date().toISOString(),
+    };
+    try {
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Kafka send timeout')), 5000),
+      );
+      await Promise.race([
+        this.kafkaProducer.send(TOPIC_CAMPAIGN_ACCESS_LEVELS_UPDATED, campaignId, {
+          campaignId,
+          scopes: newScopes,
+          action: 'updated',
+        }, headers),
+        timeout,
+      ]);
+    } catch { /* non-blocking */ }
+
+    return { data: { campaignId, scopes: newScopes } };
+  }
+
+  /**
+   * Resolve a user's access levels from DB (UserScopeAccessLevel table).
+   * Used by buildFilter and findOne for access-level checks.
+   */
+  private async getUserAccessContext(userId: string): Promise<Record<string, string[]>> {
+    try {
+      const rows = await (this.prisma as any).userScopeAccessLevel.findMany({
+        where: { userId },
+      });
+      const scopes: Record<string, string[]> = {};
+      for (const row of rows) {
+        if (!scopes[row.nodeCode]) scopes[row.nodeCode] = [];
+        scopes[row.nodeCode].push(row.levelCode);
+      }
+      return scopes;
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Check if a user can view a specific campaign based on access levels.
+   * Returns true if visible, false otherwise.
+   */
+  async canUserViewCampaign(user: AuthenticatedUser, campaignId: string): Promise<boolean> {
+    if (!isAccessLevelsEnabled()) return true;
+    if (ADMIN_BYPASS_ROLES.includes(user.role as any)) return true;
+
+    // Check if user is assigned to the campaign
+    const assignment = await (this.prisma as any).campaignAssignment.findFirst({
+      where: { campaignId, userId: user.userId },
+    });
+    if (assignment) return true;
+
+    const campaignScopes = await this.getCampaignScopes(campaignId);
+    const userScopes = await this.getUserAccessContext(user.userId);
+    const userNodeCodes = Object.keys(user.domains ?? {});
+
+    const input: VisibilityInput = {
+      userNodeCodes,
+      userScopes,
+      campaignScopes,
+      options: {
+        userRole: user.role as any,
+        isAssignedAgent: false,
+        featureEnabled: true,
+      },
+    };
+
+    return canViewCampaign(input);
   }
 }

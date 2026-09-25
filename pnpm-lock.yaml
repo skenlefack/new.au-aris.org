@@ -312,6 +312,22 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@20.19.33)(jsdom@24.1.3)
 
+  packages/access-control:
+    dependencies:
+      '@aris/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
+    devDependencies:
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@25.3.0)(jsdom@24.1.3)
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+
   packages/auth-middleware:
     dependencies:
       fastify-plugin:
@@ -1000,6 +1016,9 @@ importers:
 
   services/collecte:
     dependencies:
+      '@aris/access-control':
+        specifier: workspace:*
+        version: link:../../packages/access-control
       '@aris/auth-middleware':
         specifier: workspace:*
         version: link:../../packages/auth-middleware

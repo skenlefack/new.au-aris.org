@@ -22,6 +22,13 @@ import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
 } from '@aris/shared-types';
+import {
+  canViewCampaign,
+  isAccessLevelsEnabled,
+  ADMIN_BYPASS_ROLES,
+  type CampaignScopes,
+  type VisibilityInput,
+} from '@aris/access-control';
 import type {
   KafkaHeaders,
   PaginationQuery,
@@ -926,7 +933,63 @@ export class SubmissionService {
       where['submittedBy'] = { in: submitterIds };
     }
 
+    // Access-level filtering: exclude submissions from hidden campaigns
+    const isAdmin = ADMIN_BYPASS_ROLES.includes(user.role as any);
+    if (isAccessLevelsEnabled() && !isAdmin) {
+      try {
+        const userScopes = await this.getUserAccessContext(user.userId);
+        const userNodeCodes = Object.keys(user.domains ?? {});
+        const assignedIds = await (this.prisma as any).campaignAssignment.findMany({
+          where: { userId: user.userId },
+          select: { campaignId: true },
+        }).then((rows: Array<{ campaignId: string }>) => rows.map((r) => r.campaignId));
+
+        const allScopes = await (this.prisma as any).campaignScopeAccessLevel.findMany({
+          select: { campaignId: true, nodeCode: true, levelCode: true },
+        });
+        const scopesByCampaign: Record<string, CampaignScopes> = {};
+        for (const row of allScopes) {
+          if (!scopesByCampaign[row.campaignId]) scopesByCampaign[row.campaignId] = {};
+          if (!scopesByCampaign[row.campaignId][row.nodeCode]) scopesByCampaign[row.campaignId][row.nodeCode] = [];
+          scopesByCampaign[row.campaignId][row.nodeCode].push(row.levelCode);
+        }
+
+        const hiddenIds: string[] = [];
+        for (const [campaignId, scopes] of Object.entries(scopesByCampaign)) {
+          if (assignedIds.includes(campaignId)) continue;
+          const input: VisibilityInput = {
+            userNodeCodes, userScopes, campaignScopes: scopes,
+            options: { userRole: user.role as any, isAssignedAgent: false, featureEnabled: true },
+          };
+          if (!canViewCampaign(input)) hiddenIds.push(campaignId);
+        }
+
+        if (hiddenIds.length > 0) {
+          if (where['campaignId'] && typeof where['campaignId'] === 'string') {
+            // Single campaign filter — block if hidden
+            if (hiddenIds.includes(where['campaignId'] as string)) {
+              where['id'] = '__NO_MATCH__';
+            }
+          } else {
+            where['NOT'] = { ...(where['NOT'] as Record<string, unknown> ?? {}), campaignId: { in: hiddenIds } };
+          }
+        }
+      } catch { /* access-level filtering is best-effort */ }
+    }
+
     return where;
+  }
+
+  private async getUserAccessContext(userId: string): Promise<Record<string, string[]>> {
+    try {
+      const rows = await (this.prisma as any).userScopeAccessLevel.findMany({ where: { userId } });
+      const scopes: Record<string, string[]> = {};
+      for (const row of rows) {
+        if (!scopes[row.nodeCode]) scopes[row.nodeCode] = [];
+        scopes[row.nodeCode].push(row.levelCode);
+      }
+      return scopes;
+    } catch { return {}; }
   }
 
   private async publishSubmittedEvent(
