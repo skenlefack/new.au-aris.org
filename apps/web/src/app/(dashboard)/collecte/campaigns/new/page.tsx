@@ -15,12 +15,10 @@ import {
   Sparkles,
   Eye,
   Shield,
-  Users,
   KeyRound,
 } from 'lucide-react';
 import { useCreateCollectionCampaign, useSetCampaignScopes } from '@/lib/api/workflow-hooks';
 import { useAccessLevels } from '@/lib/api/settings-hooks';
-import { useSettingsFunctions, type FunctionItem } from '@/lib/api/settings-hooks';
 import {
   useFormBuilderTemplates,
   type FormTemplateListItem,
@@ -160,7 +158,6 @@ function NewCampaignPage() {
 
   // Visibility scope & target function
   const [visibilityScope, setVisibilityScope] = useState<'continental' | 'rec' | 'country'>('continental');
-  const [selectedFunctions, setSelectedFunctions] = useState<FunctionItem[]>([]);
 
   // Admin division targeting (country-level users)
   const [targetAdminZones, setTargetAdminZones] = useState<Array<{ id: string; label: string; level: string }>>([]);
@@ -222,8 +219,6 @@ function NewCampaignPage() {
   };
 
   // Fetch functions for visibility filter
-  const { data: functionsData } = useSettingsFunctions({ limit: 100, status: 'active' });
-  const allFunctions: FunctionItem[] = functionsData?.data ?? [];
 
   // Fetch published templates only
   const { data: templatesData, isLoading: templatesLoading } = useFormBuilderTemplates({
@@ -393,13 +388,6 @@ function NewCampaignPage() {
         subDomains: selectedSubDomains,
         recCodes: selectedRecs.map((r) => r.code),
         targetAdminZones: targetAdminZones.length > 0 ? targetAdminZones : undefined,
-        ...(selectedFunctions.length > 0
-          ? {
-              targetFunctionId: selectedFunctions[0].id,
-              targetFunctionCode: selectedFunctions[0].code,
-              targetFunctions: selectedFunctions.map((f) => ({ id: f.id, code: f.code })),
-            }
-          : {}),
       },
     };
 
@@ -697,49 +685,6 @@ function NewCampaignPage() {
                 </p>
               </div>
 
-              {/* Target function (optional) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <Users className="h-3.5 w-3.5 text-gray-400" />
-                    {t('targetFunction') || 'Target Function'}
-                    <span className="text-xs font-normal text-gray-400">({t('optionalField')})</span>
-                  </span>
-                </label>
-                <p className="text-[10px] text-gray-400 mb-2">
-                  {t('targetFunctionDesc') || 'Restrict to specific functions. If none selected, all users in scope can see the campaign.'}
-                </p>
-                <MultiSearchCombobox<FunctionItem>
-                  value={selectedFunctions}
-                  onChange={setSelectedFunctions}
-                  items={allFunctions}
-                  labelKey={(f) => {
-                    const n = f.name as any;
-                    return typeof n === 'object' ? (n.en || n.fr || f.code) : (n || f.code);
-                  }}
-                  idKey={(f) => f.id}
-                  filterKey={(f) => {
-                    const n = f.name as any;
-                    const label = typeof n === 'object' ? `${n.en || ''} ${n.fr || ''}` : (n || '');
-                    return `${label} ${f.code}`;
-                  }}
-                  placeholder={t('searchFunctions') || 'Search functions...'}
-                  allLabel={t('allFunctions') || 'All functions'}
-                  renderItem={(f) => {
-                    const n = f.name as any;
-                    return (
-                      <span className="flex items-center gap-2">
-                        <span>{typeof n === 'object' ? (n.en || n.fr || f.code) : (n || f.code)}</span>
-                        <span className="text-[10px] text-gray-400 font-mono">{f.code}</span>
-                      </span>
-                    );
-                  }}
-                  renderChip={(f) => {
-                    const n = f.name as any;
-                    return <span>{typeof n === 'object' ? (n.en || n.fr || f.code) : (n || f.code)}</span>;
-                  }}
-                />
-              </div>
             </div>
 
             {/* Options */}
