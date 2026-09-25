@@ -91,7 +91,7 @@ function useRestartService() {
 function useTestAlert() {
   return useMutation({
     mutationFn: async () => {
-      const res: any = await apiClient.post('/admin/kafka/test-alert');
+      const res: any = await apiClient.post('/admin/kafka/test-alert', {});
       return res?.data ?? res;
     },
   });
