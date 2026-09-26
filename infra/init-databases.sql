@@ -76,6 +76,9 @@ GRANT ALL ON ALL TABLES IN SCHEMA historical TO aris;
 -- AI / ML schema
 CREATE SCHEMA IF NOT EXISTS ai;
 
+-- Ingest schema (intelligent file import)
+CREATE SCHEMA IF NOT EXISTS ingest;
+
 CREATE TABLE IF NOT EXISTS ai.ml_models (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     code VARCHAR(100) NOT NULL UNIQUE,

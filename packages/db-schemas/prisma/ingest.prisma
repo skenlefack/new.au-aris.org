@@ -1,0 +1,232 @@
+// ARIS 4.0 — Ingest Models
+// Managed by: ingest service (port 3046)
+// Schema: ingest
+
+enum IngestFileStatus {
+  QUARANTINE
+  PROFILING
+  MATCHED
+  MAPPED
+  DRY_RUN
+  COMMITTED
+  FAILED
+  CANCELLED
+
+  @@schema("ingest")
+}
+
+enum MatchStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+
+  @@schema("ingest")
+}
+
+model IngestFile {
+  id           String           @id @default(uuid()) @db.Uuid
+  tenantId     String           @map("tenant_id") @db.Uuid
+  domainCode   String           @map("domain_code") @db.VarChar(50)
+  filename     String           @db.VarChar(500)
+  mimeType     String           @map("mime_type") @db.VarChar(100)
+  fileSize     BigInt           @map("file_size")
+  sha256       String           @db.VarChar(64)
+  minioKey     String           @map("minio_key") @db.VarChar(500)
+  minioBucket  String           @map("minio_bucket") @db.VarChar(100)
+  status       IngestFileStatus @default(QUARANTINE)
+  uploadedBy   String           @map("uploaded_by") @db.Uuid
+  errorMessage String?          @map("error_message") @db.Text
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  profile            SourceProfile?
+  matchProposals     MatchProposal[]
+  campaignResolution CampaignResolution?
+  runs               IngestRun[]
+
+  @@index([tenantId, createdAt], map: "idx_if_tenant_created")
+  @@index([status], map: "idx_if_status")
+  @@index([sha256], map: "idx_if_sha256")
+  @@map("ingest_files")
+  @@schema("ingest")
+}
+
+model SourceProfile {
+  id            String   @id @default(uuid()) @db.Uuid
+  fileId        String   @unique @map("file_id") @db.Uuid
+  sheetCount    Int      @map("sheet_count")
+  headerRow     Int      @map("header_row")
+  encoding      String   @db.VarChar(30)
+  delimiter     String?  @db.VarChar(5)
+  rowCount      Int      @map("row_count")
+  structureHash String   @map("structure_hash") @db.VarChar(64)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  file    IngestFile      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  columns ColumnProfile[]
+
+  @@index([structureHash], map: "idx_sp_structure_hash")
+  @@map("source_profiles")
+  @@schema("ingest")
+}
+
+model ColumnProfile {
+  id                String   @id @default(uuid()) @db.Uuid
+  profileId         String   @map("profile_id") @db.Uuid
+  sheetIndex        Int      @default(0) @map("sheet_index")
+  columnIndex       Int      @map("column_index")
+  rawName           String   @map("raw_name") @db.VarChar(500)
+  normalizedName    String   @map("normalized_name") @db.VarChar(500)
+  inferredType      String   @map("inferred_type") @db.VarChar(30)
+  cardinality       Int
+  nullRate          Float    @map("null_rate")
+  minLength         Int?     @map("min_length")
+  maxLength         Int?     @map("max_length")
+  sampleValues      Json     @map("sample_values")
+  detectedPatterns  Json?    @map("detected_patterns")
+  semanticConcept   String?  @map("semantic_concept") @db.VarChar(100)
+  confidenceScore   Float?   @map("confidence_score")
+  attributionMethod String?  @map("attribution_method") @db.VarChar(10)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  profile SourceProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId], map: "idx_cp_profile")
+  @@map("column_profiles")
+  @@schema("ingest")
+}
+
+model FormSignature {
+  id              String   @id @default(uuid()) @db.Uuid
+  templateId      String   @map("template_id") @db.Uuid
+  templateVersion Int      @map("template_version")
+  tenantId        String   @map("tenant_id") @db.Uuid
+  domainCode      String   @map("domain_code") @db.VarChar(50)
+  fieldCodes      Json     @map("field_codes")
+  fieldTypes      Json     @map("field_types")
+  referentialLinks Json?   @map("referential_links")
+  embeddingVector Json?    @map("embedding_vector")
+  acceptanceCount Int      @default(0) @map("acceptance_count")
+  computedAt      DateTime @map("computed_at") @db.Timestamptz
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([templateId, templateVersion], map: "uq_fs_template_version")
+  @@index([tenantId, domainCode], map: "idx_fs_tenant_domain")
+  @@map("form_signatures")
+  @@schema("ingest")
+}
+
+model MatchProposal {
+  id                String      @id @default(uuid()) @db.Uuid
+  fileId            String      @map("file_id") @db.Uuid
+  templateId        String      @map("template_id") @db.Uuid
+  templateName      String      @map("template_name") @db.VarChar(255)
+  rank              Int
+  scoreGlobal       Float       @map("score_global")
+  scoreCoverage     Float       @map("score_coverage")
+  scoreSemantic     Float       @map("score_semantic")
+  scoreTypes        Float       @map("score_types")
+  scoreReferentials Float       @map("score_referentials")
+  scoreHistory      Float       @map("score_history")
+  status            MatchStatus @default(PROPOSED)
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  file          IngestFile     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  fieldMappings FieldMapping[]
+
+  @@index([fileId, rank], map: "idx_mp_file_rank")
+  @@map("match_proposals")
+  @@schema("ingest")
+}
+
+model FieldMapping {
+  id              String   @id @default(uuid()) @db.Uuid
+  proposalId      String   @map("proposal_id") @db.Uuid
+  sourceColumn    String   @map("source_column") @db.VarChar(500)
+  targetFieldCode String   @map("target_field_code") @db.VarChar(100)
+  targetFieldLabel String? @map("target_field_label") @db.VarChar(500)
+  transformation  Json?
+  origin          String   @db.VarChar(10) // PROPOSED | CORRECTED
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  proposal MatchProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@map("field_mappings")
+  @@schema("ingest")
+}
+
+model CampaignResolution {
+  id            String   @id @default(uuid()) @db.Uuid
+  fileId        String   @unique @map("file_id") @db.Uuid
+  campaignId    String?  @map("campaign_id") @db.Uuid
+  campaignCode  String?  @map("campaign_code") @db.VarChar(100)
+  isNewCampaign Boolean  @default(false) @map("is_new_campaign")
+  derivedParams Json?    @map("derived_params")
+  status        String   @default("PENDING") @db.VarChar(20)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  file IngestFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("campaign_resolutions")
+  @@schema("ingest")
+}
+
+model IngestRun {
+  id           String    @id @default(uuid()) @db.Uuid
+  fileId       String    @map("file_id") @db.Uuid
+  type         String    @db.VarChar(10) // DRY_RUN | COMMIT
+  totalRows    Int       @map("total_rows")
+  acceptedRows Int       @default(0) @map("accepted_rows")
+  rejectedRows Int       @default(0) @map("rejected_rows")
+  warningRows  Int       @default(0) @map("warning_rows")
+  duplicateRows Int      @default(0) @map("duplicate_rows")
+  durationMs   Int?      @map("duration_ms")
+  status       String    @default("RUNNING") @db.VarChar(20)
+  errorMessage String?   @map("error_message") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz
+
+  file        IngestFile   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  rowOutcomes RowOutcome[]
+
+  @@index([fileId], map: "idx_ir_file")
+  @@map("ingest_runs")
+  @@schema("ingest")
+}
+
+model RowOutcome {
+  id             String   @id @default(uuid()) @db.Uuid
+  runId          String   @map("run_id") @db.Uuid
+  rowIndex       Int      @map("row_index")
+  idempotencyKey String   @map("idempotency_key") @db.VarChar(128)
+  status         String   @db.VarChar(10) // ACCEPTED | REJECTED | WARNING | DUPLICATE
+  reasons        Json?
+  submissionId   String?  @map("submission_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  run IngestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, status], map: "idx_ro_run_status")
+  @@index([idempotencyKey], map: "idx_ro_idempotency")
+  @@map("row_outcomes")
+  @@schema("ingest")
+}
+
+model MappingCorrection {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  domainCode       String   @map("domain_code") @db.VarChar(50)
+  sourceColumnName String   @map("source_column_name") @db.VarChar(500)
+  originalConcept  String?  @map("original_concept") @db.VarChar(100)
+  correctedConcept String   @map("corrected_concept") @db.VarChar(100)
+  targetFieldCode  String   @map("target_field_code") @db.VarChar(100)
+  templateId       String   @map("template_id") @db.Uuid
+  correctedBy      String   @map("corrected_by") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([tenantId, domainCode], map: "idx_mc_tenant_domain")
+  @@index([sourceColumnName], map: "idx_mc_source_col")
+  @@map("mapping_corrections")
+  @@schema("ingest")
+}

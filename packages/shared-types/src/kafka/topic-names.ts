@@ -220,6 +220,16 @@ export const TOPIC_SYS_CONFIG_ACCESS_LEVEL_DEACTIVATED = 'sys.config.access-leve
 export const TOPIC_SYS_CREDENTIAL_USER_ACCESS_LEVELS_UPDATED = 'sys.credential.user.access-levels-updated.v1' as const;
 export const TOPIC_MS_COLLECTE_CAMPAIGN_ACCESS_LEVELS_UPDATED = 'ms.collecte.campaign.access-levels-updated.v1' as const;
 
+// ── Ingest Topics ──
+export const TOPIC_INGEST_FILE_RECEIVED = 'ingest.file.received.v1' as const;
+export const TOPIC_INGEST_PROFILE_COMPLETED = 'ingest.profile.completed.v1' as const;
+export const TOPIC_INGEST_MATCH_PROPOSED = 'ingest.match.proposed.v1' as const;
+export const TOPIC_INGEST_MAPPING_CONFIRMED = 'ingest.mapping.confirmed.v1' as const;
+export const TOPIC_INGEST_LOAD_COMPLETED = 'ingest.load.completed.v1' as const;
+export const TOPIC_INGEST_MAPPING_CORRECTED = 'ingest.mapping.corrected.v1' as const;
+export const TOPIC_INGEST_FORM_DRAFT_CREATED = 'ingest.form.draft.created.v1' as const;
+export const TOPIC_INGEST_DLQ = 'ingest.dlq.v1' as const;
+
 // ── DLQ Topics ──
 export const TOPIC_DLQ_ALL = 'dlq.all.v1' as const;
 export const TOPIC_DLQ_HEALTH = 'dlq.health.v1' as const;
@@ -399,6 +409,14 @@ export const ALL_TOPICS = [
   TOPIC_SYS_CONFIG_ACCESS_LEVEL_DEACTIVATED,
   TOPIC_SYS_CREDENTIAL_USER_ACCESS_LEVELS_UPDATED,
   TOPIC_MS_COLLECTE_CAMPAIGN_ACCESS_LEVELS_UPDATED,
+  TOPIC_INGEST_FILE_RECEIVED,
+  TOPIC_INGEST_PROFILE_COMPLETED,
+  TOPIC_INGEST_MATCH_PROPOSED,
+  TOPIC_INGEST_MAPPING_CONFIRMED,
+  TOPIC_INGEST_LOAD_COMPLETED,
+  TOPIC_INGEST_MAPPING_CORRECTED,
+  TOPIC_INGEST_FORM_DRAFT_CREATED,
+  TOPIC_INGEST_DLQ,
   TOPIC_DLQ_ALL,
   TOPIC_DLQ_HEALTH,
   TOPIC_DLQ_COLLECTE,
