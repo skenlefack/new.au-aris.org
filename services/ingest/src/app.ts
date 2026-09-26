@@ -14,6 +14,7 @@ import { registerRunRoutes } from './routes/runs';
 import { handleFileReceived } from './workers/profiler.worker';
 import { handleProfileCompleted } from './workers/matcher.worker';
 import { handleMappingConfirmed } from './workers/loader.worker';
+import { LearningService } from './services/learning.service';
 
 const SERVICE_NAME = 'ingest-service';
 
@@ -123,9 +124,22 @@ export async function buildApp() {
     });
   });
 
+  // ── Learning service ──
+  const learningService = new LearningService(prisma);
+
   // ── Routes ──
   await app.register(registerFileRoutes);
   await app.register(registerRunRoutes);
+
+  // GET /api/v1/ingest/metrics — Quality metrics for the user's domain
+  app.get('/api/v1/ingest/metrics', {
+    preHandler: [authHookFn],
+  }, async (request) => {
+    const user = (request as any).user as { tenantId: string; domains: Record<string, string[]> };
+    const domainCode = Object.keys(user.domains ?? {})[0] ?? '';
+    const metrics = await learningService.getQualityMetrics(user.tenantId, domainCode);
+    return { data: metrics };
+  });
 
   // ── Kafka Consumers ──
   app.addHook('onReady', async () => {
@@ -166,7 +180,30 @@ export async function buildApp() {
         },
       );
 
-      app.log.info('Kafka consumers started (profiler + matcher + loader)');
+      // Worker: load completed → record acceptance for learning
+      await consumer.subscribe(
+        { topic: 'ingest.load.completed.v1', groupId: 'ingest-learning', fromBeginning: false },
+        async (payload: unknown) => {
+          const p = payload as Record<string, unknown>;
+          if (p.type === 'COMMIT' && (p.accepted as number) > 0) {
+            // Find accepted proposal for this file
+            const proposal = await (prisma as any).matchProposal.findFirst({
+              where: { fileId: p.fileId as string, status: 'ACCEPTED' },
+              select: { templateId: true },
+            });
+            if (proposal) {
+              await learningService.recordAcceptance(
+                proposal.templateId,
+                p.tenantId as string,
+                p.domainCode as string,
+              );
+              app.log.info({ fileId: p.fileId, templateId: proposal.templateId }, 'Recorded acceptance for learning');
+            }
+          }
+        },
+      );
+
+      app.log.info('Kafka consumers started (profiler + matcher + loader + learning)');
     } catch (err) {
       app.log.warn(`Kafka consumers failed to start: ${err}`);
     }
