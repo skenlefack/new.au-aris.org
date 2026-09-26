@@ -43,6 +43,7 @@ import {
   NotebookPen,
   LifeBuoy,
   Presentation,
+  FileUp,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -95,6 +96,7 @@ const STATIC_GROUPS: NavGroup[] = [
     tKey: 'sectionOperations',
     items: [
       { tKey: 'collecte', href: '/collecte', icon: ClipboardList, matchPrefix: '/collecte' },
+      { tKey: 'dataImport', href: '/ingest', icon: FileUp, matchPrefix: '/ingest' },
       { tKey: 'workflow', href: '/workflow', icon: GitPullRequestArrow, matchPrefix: '/workflow' },
       { tKey: 'masterData', href: '/master-data', icon: Database, matchPrefix: '/master-data' },
     ],
@@ -214,7 +216,7 @@ function buildDomainGroup(
 
 /** Non-domain routes that each role can access */
 const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
-  FIELD_AGENT: new Set(['/home', '/collecte', '/workflow', '/data-sharing', '/support']),
+  FIELD_AGENT: new Set(['/home', '/collecte', '/ingest', '/workflow', '/data-sharing', '/support']),
   ANALYST: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/analytics', '/historical', '/reports', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
@@ -224,16 +226,16 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   DATA_STEWARD: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing', '/support',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   NATIONAL_ADMIN: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/reports/flash-console', '/quality', '/workflow',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/analytics', '/historical', '/reports', '/reports/flash-console', '/quality', '/workflow',
     '/master-data', '/settings', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   REC_ADMIN: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/workflow', '/master-data', '/quality',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/workflow', '/master-data', '/quality',
     '/interop', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
