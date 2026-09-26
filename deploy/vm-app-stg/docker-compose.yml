@@ -1079,6 +1079,36 @@ services:
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
   # ═══════════════════════════════════════════════════
+  #  INGEST SERVICE — Intelligent File Import
+  # ═══════════════════════════════════════════════════
+  ingest:
+    container_name: aris-stg-ingest
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: ingest
+        SERVICE_PORT: "3046"
+    ports:
+      - "3046:3046"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3046"
+      KAFKA_CLIENT_ID: aris-stg-ingest-service
+      COLLECTE_URL: http://aris-stg-collecte:3011
+      OLLAMA_URL: http://10.202.101.142:11434
+      ML_SERVICE_URL: http://10.202.101.142:8000
+      ML_EMBEDDINGS_URL: http://10.202.101.142:8000/api/embeddings
+      INGEST_MAX_FILE_SIZE: "104857600"
+      INGEST_BATCH_SIZE: "50"
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ingest.rule=PathPrefix(`/api/v1/ingest`)"
+      - "traefik.http.routers.ingest.entrypoints=websecure"
+      - "traefik.http.services.ingest.loadbalancer.server.port=3046"
+
+  # ═══════════════════════════════════════════════════
   #  UPTIME KUMA — Service Status Monitor
   # ═══════════════════════════════════════════════════
   uptime-kuma:
