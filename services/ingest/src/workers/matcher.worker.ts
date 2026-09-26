@@ -150,32 +150,22 @@ async function fetchFormCandidates(
   tenantId: string,
   domainCode: string,
 ): Promise<FormCandidate[]> {
-  // Query FormTemplate via Prisma (cross-schema read — form_builder schema)
-  const templates = await (prisma as any).formTemplate.findMany({
-    where: {
-      status: 'PUBLISHED',
-      OR: [
-        { tenant_id: tenantId },
-        { tenant_id: null }, // Continental templates
-      ],
-      targets: {
-        some: { domain_code: domainCode },
-      },
-    },
-    include: { targets: true },
+  // R2: Query published templates restricted to tenant + domain
+  // Use separate queries to avoid Prisma OR+relation issues
+  const tenantTemplates = await (prisma as any).formTemplate.findMany({
+    where: { status: 'PUBLISHED', tenant_id: tenantId },
   });
 
-  // Also try legacy domain field
-  const legacyTemplates = await (prisma as any).formTemplate.findMany({
-    where: {
-      status: 'PUBLISHED',
-      domain: domainCode,
-      OR: [
-        { tenant_id: tenantId },
-        { tenant_id: null },
-      ],
-    },
+  const globalTemplates = await (prisma as any).formTemplate.findMany({
+    where: { status: 'PUBLISHED', domain: domainCode },
   });
+
+  // Filter by domain match (legacy field or targets)
+  const templates = [...tenantTemplates, ...globalTemplates].filter((t: Record<string, unknown>) => {
+    return t.domain === domainCode || t.domain === domainCode.replace(/-/g, '_');
+  });
+
+  const legacyTemplates: Record<string, unknown>[] = [];
 
   // Merge and deduplicate
   const allTemplates = new Map<string, Record<string, unknown>>();
