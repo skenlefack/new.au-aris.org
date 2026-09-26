@@ -132,7 +132,8 @@ export class FileService {
   // ── List ──
 
   async list(user: AuthenticatedUser, query: { page: number; limit: number; status?: string }) {
-    const where: Record<string, unknown> = { tenantId: user.tenantId };
+    const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'CONTINENTAL_ADMIN';
+    const where: Record<string, unknown> = isAdmin ? {} : { tenantId: user.tenantId };
     if (query.status) where['status'] = query.status;
 
     const [data, total] = await Promise.all([
@@ -361,7 +362,9 @@ export class FileService {
 
   private async assertFileAccess(id: string, user: AuthenticatedUser) {
     const file = await (this.prisma as any).ingestFile.findUnique({ where: { id } });
-    if (!file || file.tenantId !== user.tenantId) {
+    if (!file) throw new HttpError(404, `File ${id} not found`);
+    const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'CONTINENTAL_ADMIN';
+    if (!isAdmin && file.tenantId !== user.tenantId) {
       throw new HttpError(404, `File ${id} not found`);
     }
     return file;
