@@ -34,12 +34,18 @@ export class FileService {
 
   // ── Upload ──
 
-  async upload(data: UploadedFile, user: AuthenticatedUser) {
+  async upload(data: UploadedFile, user: AuthenticatedUser, requestedDomain?: string) {
+    const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'CONTINENTAL_ADMIN';
     const domainCodes = Object.keys(user.domains ?? {});
-    if (domainCodes.length === 0) {
-      throw new HttpError(403, 'User has no domain access');
+
+    // Resolve domain: from request param, JWT domains, or default for admins
+    let domainCode = requestedDomain ?? domainCodes[0] ?? '';
+    if (!domainCode && isAdmin) {
+      domainCode = 'animal-health'; // Default for admins with no domain in JWT
     }
-    const domainCode = domainCodes[0]; // Primary domain
+    if (!domainCode) {
+      throw new HttpError(403, 'User has no domain access. Specify a domain query parameter.');
+    }
 
     // Validate MIME type
     const allowedMimes = [

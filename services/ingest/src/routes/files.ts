@@ -18,7 +18,8 @@ export async function registerFileRoutes(app: FastifyInstance): Promise<void> {
     if (!data) {
       return reply.code(400).send({ statusCode: 400, message: 'No file provided' });
     }
-    const result = await fileService.upload(data, user);
+    const query = request.query as { domain?: string };
+    const result = await fileService.upload(data, user, query.domain);
     return reply.code(201).send(result);
   });
 
