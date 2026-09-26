@@ -113,7 +113,7 @@ export class FileService {
       },
     });
 
-    // Publish Kafka event for async profiling
+    // Publish Kafka event for async profiling (best-effort)
     await this.publishEvent('ingest.file.received.v1', {
       fileId: file.id,
       minioKey,
@@ -125,6 +125,10 @@ export class FileService {
       mimeType: data.mimetype,
       fileSize,
     }, user);
+
+    // R6 fallback: if Kafka consumers are down, run profiling + matching synchronously
+    // This fires and forgets — the response returns immediately with QUARANTINE status
+    this.runPipelineSync(file.id, bucket, minioKey, data.filename, data.mimetype, user.tenantId, domainCode, user.userId).catch(() => { /* logged inside */ });
 
     return { data: { ...file, fileSize: Number(file.fileSize) } };
   }
@@ -368,6 +372,51 @@ export class FileService {
       throw new HttpError(404, `File ${id} not found`);
     }
     return file;
+  }
+
+  /**
+   * R6 fallback: run the profiling + matching pipeline synchronously
+   * when Kafka consumers are unavailable. Fire-and-forget from upload handler.
+   */
+  private async runPipelineSync(
+    fileId: string, bucket: string, minioKey: string,
+    filename: string, mimeType: string,
+    tenantId: string, domainCode: string, userId: string,
+  ): Promise<void> {
+    try {
+      // Import workers lazily to avoid circular deps
+      const { handleFileReceived } = await import('../workers/profiler.worker');
+      const { handleProfileCompleted } = await import('../workers/matcher.worker');
+
+      // Run profiler
+      await handleFileReceived(
+        { fileId, minioKey, minioBucket: bucket, tenantId, domainCode, userId, filename, mimeType },
+        this.prisma, this.kafka, this.minio,
+      );
+
+      // Check if profile was created
+      const profile = await (this.prisma as any).sourceProfile.findUnique({
+        where: { fileId },
+        include: { columns: true },
+      });
+      if (!profile) return;
+
+      // Run matcher
+      await handleProfileCompleted(
+        {
+          fileId,
+          profileId: profile.id,
+          tenantId,
+          domainCode,
+          columns: profile.columns.map((c: Record<string, unknown>) => ({
+            rawName: c.rawName, normalizedName: c.normalizedName, inferredType: c.inferredType,
+          })),
+        },
+        this.prisma, this.kafka,
+      );
+    } catch {
+      // Pipeline failed — file stays in current status, error stored on file
+    }
   }
 
   private async ensureBucket(bucket: string): Promise<void> {

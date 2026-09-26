@@ -113,6 +113,16 @@ export async function buildApp() {
     timestamp: new Date().toISOString(),
   }));
 
+  // ── Allow empty JSON body on POST (cancel, dry-run, commit) ──
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    try {
+      const str = (body as string).trim();
+      done(null, str ? JSON.parse(str) : {});
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  });
+
   // ── Error handler ──
   app.setErrorHandler((error: Error & { statusCode?: number; errors?: unknown[] }, _request, reply) => {
     const statusCode = error.statusCode ?? 500;
