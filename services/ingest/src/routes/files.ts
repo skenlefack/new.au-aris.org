@@ -116,4 +116,13 @@ export async function registerFileRoutes(app: FastifyInstance): Promise<void> {
     const { id } = request.params as { id: string };
     return fileService.cancel(id, user);
   });
+
+  // DELETE /api/v1/ingest/files/:id — Delete file record permanently
+  app.delete('/api/v1/ingest/files/:id', {
+    preHandler: [auth, tenant],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+    return fileService.deleteFile(id, user);
+  });
 }

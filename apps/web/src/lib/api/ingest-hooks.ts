@@ -155,3 +155,16 @@ export function useCancelIngest() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ingest'] }),
   });
 }
+
+export function useDeleteIngestFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (fileId: string) => {
+      const { 'Content-Type': _, ...headers } = getHeaders();
+      const res = await fetch(`${INGEST_API}/api/v1/ingest/files/${fileId}`, { method: 'DELETE', headers });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error((err as Record<string, string>).message ?? 'Delete failed'); }
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ingest'] }),
+  });
+}

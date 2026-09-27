@@ -362,6 +362,22 @@ export class FileService {
     return { data: { fileId: id, status: 'CANCELLED' } };
   }
 
+  // ── Delete ──
+
+  async deleteFile(id: string, user: AuthenticatedUser) {
+    const file = await this.assertFileAccess(id, user);
+
+    // Purge from MinIO
+    try {
+      await this.minio.removeObject(file.minioBucket, file.minioKey);
+    } catch { /* best-effort */ }
+
+    // Delete record and all related data (cascades via FK)
+    await (this.prisma as any).ingestFile.delete({ where: { id } });
+
+    return { data: { fileId: id, deleted: true } };
+  }
+
   // ── Helpers ──
 
   private async assertFileAccess(id: string, user: AuthenticatedUser) {

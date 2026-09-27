@@ -8,7 +8,7 @@ import {
   Clock, Eye, Trash2, RotateCw, Search,
   ChevronLeft, ChevronRight, Filter, Ban,
 } from 'lucide-react';
-import { useIngestFiles, useUploadIngestFile, useCancelIngest } from '@/lib/api/ingest-hooks';
+import { useIngestFiles, useUploadIngestFile, useCancelIngest, useDeleteIngestFile } from '@/lib/api/ingest-hooks';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string; bg: string; label: string }> = {
@@ -32,8 +32,10 @@ export default function IngestPage() {
   const { data: filesRes, isLoading, refetch } = useIngestFiles({ page, limit: 20, status: statusFilter || undefined });
   const uploadMut = useUploadIngestFile();
   const cancelMut = useCancelIngest();
+  const deleteMut = useDeleteIngestFile();
   const [dragOver, setDragOver] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const files: Array<Record<string, unknown>> = (filesRes as Record<string, unknown>)?.data as Array<Record<string, unknown>> ?? [];
   const meta = (filesRes as Record<string, unknown>)?.meta as Record<string, number> | undefined;
@@ -62,6 +64,13 @@ export default function IngestPage() {
     if (!cancellingId) return;
     await cancelMut.mutateAsync(cancellingId);
     setCancellingId(null);
+    refetch();
+  };
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    await deleteMut.mutateAsync(deletingId);
+    setDeletingId(null);
     refetch();
   };
 
@@ -154,6 +163,9 @@ export default function IngestPage() {
                               <span className="flex items-center gap-1"><Ban className="h-3 w-3" /> Annuler</span>
                             </button>
                           )}
+                          <button onClick={() => setDeletingId(f.id as string)} className="rounded-md border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-500 hover:bg-gray-100 hover:text-red-600 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-red-400">
+                            <span className="flex items-center gap-1"><Trash2 className="h-3 w-3" /> Supprimer</span>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -178,6 +190,7 @@ export default function IngestPage() {
       </div>
 
       <ConfirmDialog open={!!cancellingId} title="Annuler l'import" message="Le fichier sera supprime et l'import annule. Les donnees non chargees seront perdues." confirmLabel="Annuler l'import" variant="danger" loading={cancelMut.isPending} onConfirm={handleCancel} onCancel={() => setCancellingId(null)} />
+      <ConfirmDialog open={!!deletingId} title="Supprimer le fichier" message="Le fichier et toutes ses donnees associees (profil, propositions, resultats) seront definitivement supprimes." confirmLabel="Supprimer" variant="danger" loading={deleteMut.isPending} onConfirm={handleDelete} onCancel={() => setDeletingId(null)} />
     </div>
   );
 }
