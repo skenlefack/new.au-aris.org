@@ -12,7 +12,7 @@ import { IDENTIFIER_SEEDS } from './identifier-seed-data';
 import { INFRASTRUCTURE_SEEDS } from './infrastructure-seed-data';
 import { seedFisheryReferentials } from './fishery-referentials';
 import { GEO_ZONE_SEEDS } from './geo-zone-seed-data';
-import { UG_ADMIN1_SEEDS, UG_ADMIN2_SEEDS, UG_ADMIN3_SEEDS, UG_ADMIN4_SEEDS } from './geo-uganda-seed-data';
+import { UG_ADMIN1_SEEDS, UG_ADMIN2_SEEDS, UG_ADMIN3_SEEDS, UG_ADMIN4_SEEDS, UG_ADMIN5_SEEDS } from './geo-uganda-seed-data';
 
 const prisma = new PrismaClient();
 
@@ -150,10 +150,15 @@ async function main(): Promise<void> {
   }
   console.log(`  ✓ ${UG_ADMIN4_SEEDS.length} Uganda Admin-4 (Parishes)`);
 
+  for (const admin5 of UG_ADMIN5_SEEDS) {
+    await seedGeoEntity(admin5, true);
+  }
+  console.log(`  ✓ ${UG_ADMIN5_SEEDS.length} Uganda Admin-5 (Villages)`);
+
   const totalGeo = REC_SEEDS.length + COUNTRY_SEEDS.length +
     ADMIN1_SEEDS.length + ADMIN1_EXTENDED_SEEDS.length + ADMIN1_MZ_SEEDS.length +
     ADMIN2_SEEDS.length + LUSOPHONE_ADMIN1_SEEDS.length + LUSOPHONE_ADMIN2_SEEDS.length +
-    UG_ADMIN1_SEEDS.length + UG_ADMIN2_SEEDS.length + UG_ADMIN3_SEEDS.length + UG_ADMIN4_SEEDS.length;
+    UG_ADMIN1_SEEDS.length + UG_ADMIN2_SEEDS.length + UG_ADMIN3_SEEDS.length + UG_ADMIN4_SEEDS.length + UG_ADMIN5_SEEDS.length;
   console.log(`  Total geo entities: ${totalGeo}`);
 
   // ── 2. Species ──

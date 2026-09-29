@@ -7255,7 +7255,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'UG': {
     code3: 'UGA',
-    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"County","fr":"Comté","pt":"Condado"},"3":{"en":"Sub-county","fr":"Sous-comté","pt":"Subcondado"}},
+    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"County","fr":"Comté","pt":"Condado"},"3":{"en":"Sub-county","fr":"Sous-comté","pt":"Subcondado"},"4":{"en":"Parish","fr":"Paroisse","pt":"Paróquia"},"5":{"en":"Village","fr":"Village","pt":"Aldeia"}},
     admin1: [
       { gid: 'UGA.1_1', code: 'UG.AD', name: 'Adjumani' },
       { gid: 'UGA.2_1', code: 'UG.AC', name: 'Apac' },
