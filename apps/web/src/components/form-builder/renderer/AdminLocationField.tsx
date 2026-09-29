@@ -33,8 +33,8 @@ const GENERIC_LEVEL_LABELS: Record<number, Record<string, string>> = {
   1: { en: 'Region / Province', fr: 'Région / Province', pt: 'Região / Província', ar: 'المنطقة / المحافظة', es: 'Región / Provincia' },
   2: { en: 'District / Department', fr: 'District / Département', pt: 'Distrito / Departamento', ar: 'المقاطعة / الإدارة', es: 'Distrito / Departamento' },
   3: { en: 'Sub-district / Commune', fr: 'Sous-district / Commune', pt: 'Sub-distrito / Comuna', ar: 'البلدية / الناحية', es: 'Subdistrito / Comuna' },
-  4: { en: 'Ward / Village', fr: 'Quartier / Village', pt: 'Bairro / Aldeia', ar: 'الحي / القرية', es: 'Barrio / Aldea' },
-  5: { en: 'Locality / Hamlet', fr: 'Localité / Hameau', pt: 'Localidade', ar: 'المحلة', es: 'Localidad' },
+  4: { en: 'Ward / Parish', fr: 'Quartier / Paroisse', pt: 'Bairro / Paróquia', ar: 'الحي / الرعية', es: 'Barrio / Parroquia' },
+  5: { en: 'Village / Locality', fr: 'Village / Localité', pt: 'Aldeia / Localidade', ar: 'القرية / المحلة', es: 'Aldea / Localidad' },
 };
 
 function getLevelLabel(
