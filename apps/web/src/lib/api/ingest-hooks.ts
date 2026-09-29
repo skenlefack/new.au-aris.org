@@ -92,6 +92,15 @@ export function useIngestQualityReport(id?: string) {
   });
 }
 
+export function useIngestCampaigns(id?: string) {
+  return useQuery({
+    queryKey: ['ingest', 'campaigns', id],
+    queryFn: () => ingestFetch(`/api/v1/ingest/files/${id}/campaigns`),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
+}
+
 export function useUploadIngestFile() {
   const qc = useQueryClient();
   return useMutation({

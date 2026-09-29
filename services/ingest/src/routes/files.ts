@@ -63,6 +63,15 @@ export async function registerFileRoutes(app: FastifyInstance): Promise<void> {
     return fileService.getProposals(id, user);
   });
 
+  // GET /api/v1/ingest/files/:id/campaigns — Compatible campaigns for loading
+  app.get('/api/v1/ingest/files/:id/campaigns', {
+    preHandler: [auth, tenant],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+    return fileService.getCompatibleCampaigns(id, user);
+  });
+
   // POST /api/v1/ingest/files/:id/mapping — Confirm or correct mapping
   app.post('/api/v1/ingest/files/:id/mapping', {
     preHandler: [auth, tenant],

@@ -378,6 +378,37 @@ export class FileService {
     return { data: { fileId: id, deleted: true } };
   }
 
+  // ── Compatible Campaigns ──
+
+  async getCompatibleCampaigns(id: string, user: AuthenticatedUser) {
+    const file = await this.assertFileAccess(id, user);
+    // Find the accepted proposal to get templateId
+    const accepted = await (this.prisma as any).matchProposal.findFirst({
+      where: { fileId: id, status: 'ACCEPTED' },
+    });
+    const templateId = accepted?.templateId;
+    if (!templateId) {
+      // No accepted proposal — try first ranked proposal
+      const first = await (this.prisma as any).matchProposal.findFirst({
+        where: { fileId: id },
+        orderBy: { rank: 'asc' },
+      });
+      if (!first) return { data: { campaigns: [], derivedParams: null } };
+      const { findCompatibleCampaigns, deriveCampaignParams } = await import('./campaign-resolver.service');
+      const campaigns = await findCompatibleCampaigns(this.prisma, user.tenantId, file.domainCode, first.templateId);
+      const profile = await (this.prisma as any).sourceProfile.findUnique({ where: { fileId: id } });
+      const derived = deriveCampaignParams(file.domainCode, first.templateId, first.templateName, profile?.rowCount ?? 0, user);
+      return { data: { campaigns, derivedParams: derived } };
+    }
+    const { findCompatibleCampaigns, deriveCampaignParams } = await import('./campaign-resolver.service');
+    const campaigns = await findCompatibleCampaigns(this.prisma, user.tenantId, file.domainCode, templateId);
+    const profile = await (this.prisma as any).sourceProfile.findUnique({ where: { fileId: id } });
+    const derived = deriveCampaignParams(file.domainCode, templateId, accepted.templateName, profile?.rowCount ?? 0, user);
+    // Also return existing resolution if any
+    const resolution = await (this.prisma as any).campaignResolution.findUnique({ where: { fileId: id } });
+    return { data: { campaigns, derivedParams: derived, resolution } };
+  }
+
   // ── Helpers ──
 
   private async assertFileAccess(id: string, user: AuthenticatedUser) {
