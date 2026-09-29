@@ -63,7 +63,7 @@ export default function DivisionsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(200);
 
   // Debounce search
   const searchTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
