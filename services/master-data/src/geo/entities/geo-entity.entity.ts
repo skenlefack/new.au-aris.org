@@ -1,4 +1,4 @@
-export type GeoLevel = 'COUNTRY' | 'ADMIN1' | 'ADMIN2' | 'ADMIN3' | 'SPECIAL_ZONE';
+export type GeoLevel = 'COUNTRY' | 'ADMIN1' | 'ADMIN2' | 'ADMIN3' | 'ADMIN4' | 'ADMIN5' | 'SPECIAL_ZONE';
 
 export interface GeoEntityRecord {
   id: string;

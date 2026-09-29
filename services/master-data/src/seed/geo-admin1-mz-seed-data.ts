@@ -179,15 +179,7 @@ export const ADMIN1_MZ_SEEDS: GeoSeed[] = [
   { code: 'TN-81', name: 'Gabès', nameEn: 'Gabès', nameFr: 'Gabès', level: 'ADMIN1', parentCode: 'TN', countryCode: 'TN', centroidLat: 33.88, centroidLng: 10.10 },
   { code: 'TN-82', name: 'Médenine', nameEn: 'Médenine', nameFr: 'Médenine', level: 'ADMIN1', parentCode: 'TN', countryCode: 'TN', centroidLat: 33.35, centroidLng: 10.50 },
 
-  // ── Uganda (UG) — 8 key regions ──
-  { code: 'UG-C', name: 'Central Region', nameEn: 'Central Region', nameFr: 'Région centrale', level: 'ADMIN1', parentCode: 'UG', countryCode: 'UG', centroidLat: 0.56, centroidLng: 32.44 },
-  { code: 'UG-E', name: 'Eastern Region', nameEn: 'Eastern Region', nameFr: 'Région de l\'Est', level: 'ADMIN1', parentCode: 'UG', countryCode: 'UG', centroidLat: 1.58, centroidLng: 33.93 },
-  { code: 'UG-N', name: 'Northern Region', nameEn: 'Northern Region', nameFr: 'Région du Nord', level: 'ADMIN1', parentCode: 'UG', countryCode: 'UG', centroidLat: 3.14, centroidLng: 32.44 },
-  { code: 'UG-W', name: 'Western Region', nameEn: 'Western Region', nameFr: 'Région de l\'Ouest', level: 'ADMIN1', parentCode: 'UG', countryCode: 'UG', centroidLat: 0.46, centroidLng: 30.44 },
-  { code: 'UG-102', name: 'Kampala', nameEn: 'Kampala', nameFr: 'Kampala', level: 'ADMIN1', parentCode: 'UG', countryCode: 'UG', centroidLat: 0.35, centroidLng: 32.58 },
-  { code: 'UG-302', name: 'Gulu', nameEn: 'Gulu', nameFr: 'Gulu', level: 'ADMIN1', parentCode: 'UG', countryCode: 'UG', centroidLat: 2.77, centroidLng: 32.30 },
-  { code: 'UG-211', name: 'Jinja', nameEn: 'Jinja', nameFr: 'Jinja', level: 'ADMIN1', parentCode: 'UG', countryCode: 'UG', centroidLat: 0.44, centroidLng: 33.20 },
-  { code: 'UG-401', name: 'Fort Portal', nameEn: 'Fort Portal', nameFr: 'Fort Portal', level: 'ADMIN1', parentCode: 'UG', countryCode: 'UG', centroidLat: 0.66, centroidLng: 30.27 },
+  // ── Uganda (UG) — moved to geo-uganda-seed-data.ts (full hierarchy Admin1→Admin4) ──
 
   // ── Zambia (ZM) — 10 provinces ──
   { code: 'ZM-01', name: 'Central', nameEn: 'Central Province', nameFr: 'Province centrale', level: 'ADMIN1', parentCode: 'ZM', countryCode: 'ZM', centroidLat: -14.05, centroidLng: 28.73 },

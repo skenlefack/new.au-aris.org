@@ -12,6 +12,7 @@ import { IDENTIFIER_SEEDS } from './identifier-seed-data';
 import { INFRASTRUCTURE_SEEDS } from './infrastructure-seed-data';
 import { seedFisheryReferentials } from './fishery-referentials';
 import { GEO_ZONE_SEEDS } from './geo-zone-seed-data';
+import { UG_ADMIN1_SEEDS, UG_ADMIN2_SEEDS, UG_ADMIN3_SEEDS, UG_ADMIN4_SEEDS } from './geo-uganda-seed-data';
 
 const prisma = new PrismaClient();
 
@@ -22,6 +23,8 @@ async function seedGeoEntity(entity: {
   nameFr: string;
   namePt?: string;
   nameAr?: string;
+  nameEs?: string;
+  nameSw?: string;
   level: string;
   parentCode?: string;
   countryCode: string;
@@ -126,9 +129,31 @@ async function main(): Promise<void> {
   }
   console.log(`  ✓ ${LUSOPHONE_ADMIN2_SEEDS.length} Admin-2 (5 lusophone countries)`);
 
+  // Uganda — Full hierarchy (Regions → Districts → Counties → Sub-counties)
+  for (const admin1 of UG_ADMIN1_SEEDS) {
+    await seedGeoEntity(admin1, true);
+  }
+  console.log(`  ✓ ${UG_ADMIN1_SEEDS.length} Uganda Admin-1 (Regions)`);
+
+  for (const admin2 of UG_ADMIN2_SEEDS) {
+    await seedGeoEntity(admin2, true);
+  }
+  console.log(`  ✓ ${UG_ADMIN2_SEEDS.length} Uganda Admin-2 (Districts)`);
+
+  for (const admin3 of UG_ADMIN3_SEEDS) {
+    await seedGeoEntity(admin3, true);
+  }
+  console.log(`  ✓ ${UG_ADMIN3_SEEDS.length} Uganda Admin-3 (Counties)`);
+
+  for (const admin4 of UG_ADMIN4_SEEDS) {
+    await seedGeoEntity(admin4, true);
+  }
+  console.log(`  ✓ ${UG_ADMIN4_SEEDS.length} Uganda Admin-4 (Parishes)`);
+
   const totalGeo = REC_SEEDS.length + COUNTRY_SEEDS.length +
     ADMIN1_SEEDS.length + ADMIN1_EXTENDED_SEEDS.length + ADMIN1_MZ_SEEDS.length +
-    ADMIN2_SEEDS.length + LUSOPHONE_ADMIN1_SEEDS.length + LUSOPHONE_ADMIN2_SEEDS.length;
+    ADMIN2_SEEDS.length + LUSOPHONE_ADMIN1_SEEDS.length + LUSOPHONE_ADMIN2_SEEDS.length +
+    UG_ADMIN1_SEEDS.length + UG_ADMIN2_SEEDS.length + UG_ADMIN3_SEEDS.length + UG_ADMIN4_SEEDS.length;
   console.log(`  Total geo entities: ${totalGeo}`);
 
   // ── 2. Species ──

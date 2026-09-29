@@ -7,7 +7,9 @@ export interface GeoSeed {
   nameFr: string;
   namePt?: string;
   nameAr?: string;
-  level: 'COUNTRY' | 'ADMIN1' | 'ADMIN2' | 'REC_ZONE';
+  nameEs?: string;
+  nameSw?: string;
+  level: 'COUNTRY' | 'ADMIN1' | 'ADMIN2' | 'ADMIN3' | 'ADMIN4' | 'ADMIN5' | 'REC_ZONE';
   parentCode?: string;
   countryCode: string;
   centroidLat?: number;
