@@ -14,7 +14,7 @@ const prisma = new PrismaClient();
 
 // Deterministic UUIDs for seeding
 function sid(n: number): string {
-  return `00000000-0000-4000-a000-pm${String(n).padStart(10, '0')}`;
+  return `00000000-0000-4000-a000-b0${String(n).padStart(10, '0')}`;
 }
 
 const AU_TENANT_ID = '00000000-0000-4000-a000-000000000001'; // AU-IBAR continental
