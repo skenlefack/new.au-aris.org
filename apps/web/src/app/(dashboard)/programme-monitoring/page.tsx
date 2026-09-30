@@ -147,7 +147,10 @@ export default function ProgrammeMonitoringPage() {
             M&E, Activity Tracking, Budget Execution & Reporting
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 transition">
+        <button
+          onClick={() => router.push('/programme-monitoring/new')}
+          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 transition"
+        >
           <Plus className="h-4 w-4" />
           New Programme
         </button>
