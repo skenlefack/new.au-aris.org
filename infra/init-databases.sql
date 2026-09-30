@@ -33,6 +33,7 @@ CREATE SCHEMA IF NOT EXISTS interop_hub;
 CREATE SCHEMA IF NOT EXISTS interop_v2;
 CREATE SCHEMA IF NOT EXISTS offline;
 CREATE SCHEMA IF NOT EXISTS support;
+CREATE SCHEMA IF NOT EXISTS programme_monitoring;
 CREATE SCHEMA IF NOT EXISTS audit;
 
 -- Audit log table (shared across all services)

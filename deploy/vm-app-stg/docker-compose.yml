@@ -1109,6 +1109,30 @@ services:
       - "traefik.http.services.ingest.loadbalancer.server.port=3046"
 
   # ═══════════════════════════════════════════════════
+  #  PROGRAMME MONITORING — M&E, Activity Tracking, Budget Execution
+  # ═══════════════════════════════════════════════════
+  programme-monitoring:
+    container_name: aris-stg-programme-monitoring
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: programme-monitoring
+        SERVICE_PORT: "3050"
+    ports:
+      - "3050:3050"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3050"
+      KAFKA_CLIENT_ID: aris-stg-programme-monitoring-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.programme-monitoring.rule=PathPrefix(`/api/v1/programme-monitoring`)"
+      - "traefik.http.routers.programme-monitoring.entrypoints=websecure"
+      - "traefik.http.services.programme-monitoring.loadbalancer.server.port=3050"
+
+  # ═══════════════════════════════════════════════════
   #  UPTIME KUMA — Service Status Monitor
   # ═══════════════════════════════════════════════════
   uptime-kuma:

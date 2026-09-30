@@ -272,6 +272,7 @@ export const governanceClient   = buildServiceClient(API_BASE_URL);
 export const climateEnvClient   = buildServiceClient(API_BASE_URL);
 export const analyticsClient    = buildServiceClient(API_BASE_URL);
 export const knowledgeHubClient = buildServiceClient(API_BASE_URL);
+export const programmeMonitoringClient = buildServiceClient(API_BASE_URL);
 
 export const apiClient = {
   get: async <T>(

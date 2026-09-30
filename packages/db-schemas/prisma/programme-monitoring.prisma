@@ -1,0 +1,478 @@
+// ARIS 4.0 — Programme Monitoring schema
+// Service: programme-monitoring (port 3050)
+// Owner: CC-4
+// Independent module for M&E, activity tracking, budget execution, reporting cycles
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Programme — Top-level container (PPR Phase 2, LiDeSA, PFRS, etc.)
+// ══════════════════════════════════════════════════════════════════════════════
+
+model Programme {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  code                String   @db.VarChar(50) // PPR-P2, LIDESA, PFRS
+  name                Json     @db.JsonB       // {en, fr, pt, ar}
+  description         Json?    @db.JsonB
+  donorName           String?  @map("donor_name") @db.VarChar(200)
+  donorReference      String?  @map("donor_reference") @db.VarChar(100)
+  currency            String   @default("EUR") @db.VarChar(10)
+  totalBudget         Decimal  @default(0) @map("total_budget") @db.Decimal(18, 2)
+  startDate           DateTime @map("start_date") @db.Date
+  endDate             DateTime @map("end_date") @db.Date
+  status              String   @default("DESIGN") @db.VarChar(20) // DESIGN | ACTIVE | SUSPENDED | CLOSED
+  logframeType        String   @default("LOGFRAME") @map("logframe_type") @db.VarChar(30) // LOGFRAME | RESULTS_FRAMEWORK | THEORY_OF_CHANGE
+  reportingFrequency  String   @default("MONTHLY") @map("reporting_frequency") @db.VarChar(20) // WEEKLY | BIWEEKLY | MONTHLY | QUARTERLY
+  level               String   @default("CONTINENTAL") @db.VarChar(20) // CONTINENTAL | REGIONAL | NATIONAL
+  geoScope            String[] @map("geo_scope") @db.Uuid // Tenant IDs of covered countries/RECs
+  dataClassification  String   @default("PARTNER") @map("data_classification") @db.VarChar(20)
+  createdBy           String   @map("created_by") @db.Uuid
+  updatedBy           String   @map("updated_by") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  components     ProgrammeComponent[]
+  reportingCycles ReportingCycle[]
+  risks          ProgrammeRisk[]
+  teamMembers    ProgrammeTeam[]
+  snapshots      ProgrammeSnapshot[]
+
+  @@unique([code, tenantId], map: "uq_programme_code_tenant")
+  @@index([tenantId])
+  @@index([status])
+  @@map("programmes")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Programme Component (Outcome level)
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ProgrammeComponent {
+  id            String   @id @default(uuid()) @db.Uuid
+  programmeId   String   @map("programme_id") @db.Uuid
+  code          String   @db.VarChar(20) // "1", "2", "3"
+  name          Json     @db.JsonB
+  description   Json?    @db.JsonB
+  sortOrder     Int      @default(0) @map("sort_order")
+  color         String?  @db.VarChar(20) // UI color for dashboards
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  programme Programme          @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+  outputs   ProgrammeOutput[]
+
+  @@unique([programmeId, code], map: "uq_component_code")
+  @@index([programmeId])
+  @@map("programme_components")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Programme Output (under a component)
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ProgrammeOutput {
+  id            String   @id @default(uuid()) @db.Uuid
+  componentId   String   @map("component_id") @db.Uuid
+  code          String   @db.VarChar(20) // "1.1", "2.2", "3.1"
+  name          Json     @db.JsonB
+  description   Json?    @db.JsonB
+  approvedBudget Decimal @default(0) @map("approved_budget") @db.Decimal(18, 2)
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  component  ProgrammeComponent @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  activities Activity[]
+  indicators OutputIndicator[]
+
+  @@unique([componentId, code], map: "uq_output_code")
+  @@index([componentId])
+  @@map("programme_outputs")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Activity — Core tracking unit, assigned to a responsible person
+// ══════════════════════════════════════════════════════════════════════════════
+
+model Activity {
+  id                  String    @id @default(uuid()) @db.Uuid
+  outputId            String    @map("output_id") @db.Uuid
+  code                String    @db.VarChar(30) // "ACT-3.1.1"
+  name                Json      @db.JsonB
+  description         Json?     @db.JsonB
+  responsibleUserId   String?   @map("responsible_user_id") @db.Uuid
+  responsibleUnit     String?   @map("responsible_unit") @db.VarChar(100) // "PAPS", "AU-PANVAC", "IGAD"
+  responsibleLevel    String    @default("CONTINENTAL") @map("responsible_level") @db.VarChar(20)
+  geoEntityId         String?   @map("geo_entity_id") @db.Uuid // Country/REC if region-specific
+  plannedStartDate    DateTime  @map("planned_start_date") @db.Date
+  plannedEndDate      DateTime  @map("planned_end_date") @db.Date
+  actualStartDate     DateTime? @map("actual_start_date") @db.Date
+  actualEndDate       DateTime? @map("actual_end_date") @db.Date
+  status              String    @default("NOT_STARTED") @db.VarChar(20) // NOT_STARTED | PLANNED | IN_PROGRESS | COMPLETED | DELAYED | CANCELLED | ON_HOLD
+  priorityLevel       String    @default("MEDIUM") @map("priority_level") @db.VarChar(10) // CRITICAL | HIGH | MEDIUM | LOW
+  completionPercent   Int       @default(0) @map("completion_percent")
+  weightInOutput      Decimal?  @map("weight_in_output") @db.Decimal(5, 2) // For weighted average calculation
+  procurementRequired Boolean   @default(false) @map("procurement_required")
+  procurementStatus   String?   @map("procurement_status") @db.VarChar(30) // NONE | TOR_DRAFTED | PUBLISHED | EVALUATED | CONTRACTED
+  delayReason         String?   @map("delay_reason") @db.Text
+  ragStatus           String    @default("GREY") @map("rag_status") @db.VarChar(10) // GREEN | AMBER | RED | GREY (auto-calculated)
+  createdBy           String    @map("created_by") @db.Uuid
+  updatedBy           String    @map("updated_by") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  output        ProgrammeOutput     @relation(fields: [outputId], references: [id], onDelete: Cascade)
+  subActivities SubActivity[]
+  budgetLines   ActivityBudget[]
+  milestones    ActivityMilestone[]
+  evidence      ActivityEvidence[]
+  reportItems   ActivityReportItem[]
+
+  @@index([outputId])
+  @@index([status])
+  @@index([responsibleUserId])
+  @@index([geoEntityId])
+  @@index([ragStatus])
+  @@map("activities")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Sub-Activity — Breakdown of an activity
+// ══════════════════════════════════════════════════════════════════════════════
+
+model SubActivity {
+  id                String    @id @default(uuid()) @db.Uuid
+  activityId        String    @map("activity_id") @db.Uuid
+  code              String    @db.VarChar(30) // "SA-3.1.1.a"
+  name              Json      @db.JsonB
+  description       Json?     @db.JsonB
+  responsibleUserId String?   @map("responsible_user_id") @db.Uuid
+  plannedStartDate  DateTime  @map("planned_start_date") @db.Date
+  plannedEndDate    DateTime  @map("planned_end_date") @db.Date
+  actualStartDate   DateTime? @map("actual_start_date") @db.Date
+  actualEndDate     DateTime? @map("actual_end_date") @db.Date
+  status            String    @default("NOT_STARTED") @db.VarChar(20)
+  completionPercent Int       @default(0) @map("completion_percent")
+  createdBy         String    @map("created_by") @db.Uuid
+  updatedBy         String    @map("updated_by") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId])
+  @@index([status])
+  @@map("sub_activities")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Activity Budget — Multi-source budget lines
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ActivityBudget {
+  id              String   @id @default(uuid()) @db.Uuid
+  activityId      String   @map("activity_id") @db.Uuid
+  budgetLineCode  String   @map("budget_line_code") @db.VarChar(30)
+  description     String   @db.VarChar(500)
+  fundingSource   String   @map("funding_source") @db.VarChar(100) // "EU-PPR2", "AU-CORE", "COUNTRY"
+  approvedAmount  Decimal  @default(0) @map("approved_amount") @db.Decimal(18, 2)
+  committedAmount Decimal  @default(0) @map("committed_amount") @db.Decimal(18, 2)
+  disbursedAmount Decimal  @default(0) @map("disbursed_amount") @db.Decimal(18, 2)
+  executedAmount  Decimal  @default(0) @map("executed_amount") @db.Decimal(18, 2)
+  currency        String   @default("EUR") @db.VarChar(10)
+  period          String   @db.VarChar(20) // "2026-Q3", "2026-08"
+  createdBy       String   @map("created_by") @db.Uuid
+  updatedBy       String   @map("updated_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId])
+  @@index([period])
+  @@index([fundingSource])
+  @@map("activity_budgets")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Activity Milestone — Key deliverables / checkpoints
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ActivityMilestone {
+  id           String    @id @default(uuid()) @db.Uuid
+  activityId   String    @map("activity_id") @db.Uuid
+  name         Json      @db.JsonB
+  dueDate      DateTime  @map("due_date") @db.Date
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz
+  status       String    @default("PENDING") @db.VarChar(20) // PENDING | COMPLETED | OVERDUE | CANCELLED
+  deliverable  String?   @db.Text // Description of expected deliverable
+  evidenceUrl  String?   @map("evidence_url") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("activity_milestones")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Activity Evidence — Proof of work / justifications
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ActivityEvidence {
+  id          String   @id @default(uuid()) @db.Uuid
+  activityId  String   @map("activity_id") @db.Uuid
+  fileName    String   @map("file_name") @db.VarChar(255)
+  fileUrl     String   @map("file_url") @db.Text // MinIO/Drive URL
+  fileType    String   @map("file_type") @db.VarChar(50) // pdf, xlsx, jpg, docx
+  fileSize    Int?     @map("file_size") // bytes
+  description String?  @db.VarChar(500)
+  uploadedBy  String   @map("uploaded_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId])
+  @@map("activity_evidence")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Output Indicator — M&E indicators with disaggregation
+// ══════════════════════════════════════════════════════════════════════════════
+
+model OutputIndicator {
+  id               String   @id @default(uuid()) @db.Uuid
+  outputId         String   @map("output_id") @db.Uuid
+  code             String   @db.VarChar(30) // "IND-3.1.1"
+  name             Json     @db.JsonB
+  unit             String   @db.VarChar(50) // "countries", "labs", "%", "EUR", "persons"
+  direction        String   @default("INCREASE") @db.VarChar(10) // INCREASE | DECREASE | MAINTAIN
+  baselineValue    Decimal? @map("baseline_value") @db.Decimal(18, 2)
+  baselineDate     DateTime? @map("baseline_date") @db.Date
+  targetValue      Decimal  @map("target_value") @db.Decimal(18, 2)
+  dataSource       String?  @map("data_source") @db.VarChar(200) // "ARIS animal-health", "Manual", "WAHIS"
+  collectionMethod String?  @map("collection_method") @db.VarChar(20) // AUTOMATIC | MANUAL | SURVEY
+  disaggregationBy String[] @map("disaggregation_by") // ["region", "gender", "country"]
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  output ProgrammeOutput   @relation(fields: [outputId], references: [id], onDelete: Cascade)
+  values PmIndicatorValue[]
+
+  @@unique([outputId, code], map: "uq_indicator_code")
+  @@index([outputId])
+  @@map("output_indicators")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Indicator Value — Actual measurement per period
+// ══════════════════════════════════════════════════════════════════════════════
+
+model PmIndicatorValue {
+  id              String    @id @default(uuid()) @db.Uuid
+  indicatorId     String    @map("indicator_id") @db.Uuid
+  period          String    @db.VarChar(20) // "2026-Q3", "2026-08-W4"
+  actualValue     Decimal   @map("actual_value") @db.Decimal(18, 2)
+  verifiedValue   Decimal?  @map("verified_value") @db.Decimal(18, 2)
+  status          String    @default("DRAFT") @db.VarChar(20) // DRAFT | SUBMITTED | VALIDATED | REJECTED
+  evidenceUrl     String?   @map("evidence_url") @db.Text
+  reportedBy      String    @map("reported_by") @db.Uuid
+  validatedBy     String?   @map("validated_by") @db.Uuid
+  disaggregation  Json?     @db.JsonB // {"IGAD": 5, "ECOWAS": 8, "SADC": 3}
+  comment         String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  indicator OutputIndicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+
+  @@unique([indicatorId, period], map: "uq_indicator_value_period")
+  @@index([indicatorId])
+  @@index([status])
+  @@map("indicator_values")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Reporting Cycle — The weekly/monthly reporting mechanism
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ReportingCycle {
+  id              String    @id @default(uuid()) @db.Uuid
+  programmeId     String    @map("programme_id") @db.Uuid
+  cycleType       String    @map("cycle_type") @db.VarChar(20) // WEEKLY | MONTHLY | QUARTERLY | ANNUAL
+  periodLabel     String    @map("period_label") @db.VarChar(50) // "2026-W40", "2026-10", "2026-Q4"
+  periodStart     DateTime  @map("period_start") @db.Date
+  periodEnd       DateTime  @map("period_end") @db.Date
+  deadline        DateTime  @db.Timestamptz // Friday 17:00 for weekly
+  status          String    @default("OPEN") @db.VarChar(20) // OPEN | SUBMITTED | VALIDATED | PUBLISHED
+  consolidatedBy  String?   @map("consolidated_by") @db.Uuid
+  consolidatedAt  DateTime? @map("consolidated_at") @db.Timestamptz
+  narrative       String?   @db.Text // Overall narrative from consolidator
+  createdBy       String    @map("created_by") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  programme Programme          @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+  reports   ActivityReport[]
+
+  @@unique([programmeId, periodLabel], map: "uq_cycle_period")
+  @@index([programmeId])
+  @@index([status])
+  @@map("reporting_cycles")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Activity Report — Submitted by each responsible per cycle
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ActivityReport {
+  id           String    @id @default(uuid()) @db.Uuid
+  cycleId      String    @map("cycle_id") @db.Uuid
+  reportedBy   String    @map("reported_by") @db.Uuid
+  status       String    @default("DRAFT") @db.VarChar(20) // DRAFT | SUBMITTED | VALIDATED | REJECTED
+  overallNote  String?   @map("overall_note") @db.Text
+  submittedAt  DateTime? @map("submitted_at") @db.Timestamptz
+  validatedBy  String?   @map("validated_by") @db.Uuid
+  validatedAt  DateTime? @map("validated_at") @db.Timestamptz
+  validationComment String? @map("validation_comment") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  cycle ReportingCycle       @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  items ActivityReportItem[]
+
+  @@unique([cycleId, reportedBy], map: "uq_report_cycle_reporter")
+  @@index([cycleId])
+  @@index([reportedBy])
+  @@index([status])
+  @@map("activity_reports")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Activity Report Item — One line per activity in a report
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ActivityReportItem {
+  id                    String   @id @default(uuid()) @db.Uuid
+  reportId              String   @map("report_id") @db.Uuid
+  activityId            String   @map("activity_id") @db.Uuid
+  previousStatus        String   @map("previous_status") @db.VarChar(20)
+  currentStatus         String   @map("current_status") @db.VarChar(20)
+  completionPercent     Int      @map("completion_percent")
+  expenditureThisPeriod Decimal? @map("expenditure_this_period") @db.Decimal(18, 2)
+  narrative             String?  @db.Text
+  blockers              String?  @db.Text
+  supportNeeded         String?  @map("support_needed") @db.Text
+  attachments           String[] // MinIO URLs
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  report   ActivityReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  activity Activity       @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@unique([reportId, activityId], map: "uq_report_item_activity")
+  @@index([reportId])
+  @@index([activityId])
+  @@map("activity_report_items")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Programme Risk — ISO 31000 risk register
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ProgrammeRisk {
+  id             String    @id @default(uuid()) @db.Uuid
+  programmeId    String    @map("programme_id") @db.Uuid
+  code           String    @db.VarChar(20) // "RISK-001"
+  description    Json      @db.JsonB
+  category       String    @db.VarChar(20) // FINANCIAL | TECHNICAL | OPERATIONAL | POLITICAL | SECURITY
+  likelihood     String    @db.VarChar(10) // LOW | MEDIUM | HIGH | VERY_HIGH
+  impact         String    @db.VarChar(10) // LOW | MEDIUM | HIGH | CRITICAL
+  riskScore      Int       @map("risk_score") // Auto: likelihood × impact (1-16)
+  mitigation     Json?     @db.JsonB
+  ownerUserId    String?   @map("owner_user_id") @db.Uuid
+  status         String    @default("OPEN") @db.VarChar(20) // OPEN | MITIGATED | MATERIALIZED | CLOSED
+  lastReviewDate DateTime? @map("last_review_date") @db.Date
+  createdBy      String    @map("created_by") @db.Uuid
+  updatedBy      String    @map("updated_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  programme Programme @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+
+  @@index([programmeId])
+  @@index([status])
+  @@index([riskScore])
+  @@map("programme_risks")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Programme Team — Members assigned to a programme
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ProgrammeTeam {
+  id            String   @id @default(uuid()) @db.Uuid
+  programmeId   String   @map("programme_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  role          String   @db.VarChar(30) // PROGRAMME_DIRECTOR | PROGRAMME_COORDINATOR | REGIONAL_COORDINATOR | ACTIVITY_OWNER | M_AND_E_OFFICER | FINANCE_OFFICER | VIEWER
+  geoEntityId   String?  @map("geo_entity_id") @db.Uuid // For regional coordinators
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  programme Programme @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+
+  @@unique([programmeId, userId], map: "uq_team_member")
+  @@index([programmeId])
+  @@index([userId])
+  @@map("programme_team")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Programme Snapshot — Weekly automated state capture
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ProgrammeSnapshot {
+  id              String   @id @default(uuid()) @db.Uuid
+  programmeId     String   @map("programme_id") @db.Uuid
+  snapshotDate    DateTime @map("snapshot_date") @db.Date
+  totalActivities Int      @map("total_activities")
+  notStarted      Int      @map("not_started")
+  inProgress      Int      @map("in_progress")
+  completed       Int
+  delayed         Int
+  onHold          Int      @map("on_hold")
+  cancelled       Int
+  avgCompletion   Decimal  @map("avg_completion") @db.Decimal(5, 2)
+  totalApproved   Decimal  @map("total_approved") @db.Decimal(18, 2)
+  totalExecuted   Decimal  @map("total_executed") @db.Decimal(18, 2)
+  executionRate   Decimal  @map("execution_rate") @db.Decimal(5, 2) // %
+  greenCount      Int      @map("green_count")
+  amberCount      Int      @map("amber_count")
+  redCount        Int      @map("red_count")
+  greyCount       Int      @map("grey_count")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  programme Programme @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+
+  @@unique([programmeId, snapshotDate], map: "uq_snapshot_date")
+  @@index([programmeId])
+  @@index([snapshotDate])
+  @@map("programme_snapshots")
+  @@schema("programme_monitoring")
+}

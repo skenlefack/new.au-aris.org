@@ -44,6 +44,7 @@ import {
   LifeBuoy,
   Presentation,
   FileUp,
+  Briefcase,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -110,6 +111,7 @@ const STATIC_GROUPS: NavGroup[] = [
       { tKey: 'historicalData', href: '/historical', icon: HardDrive, matchPrefix: '/historical' },
       { tKey: 'reports', href: '/reports', icon: FileBarChart, matchPrefix: '/reports' },
       { tKey: 'slideshows', href: '/slideshows', icon: Presentation, matchPrefix: '/slideshows' },
+      { tKey: 'programmeMonitoring', href: '/programme-monitoring', icon: Briefcase, matchPrefix: '/programme-monitoring' },
     ],
   },
   {
@@ -226,17 +228,17 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   DATA_STEWARD: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing', '/support',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing', '/programme-monitoring', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   NATIONAL_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/analytics', '/historical', '/reports', '/reports/flash-console', '/quality', '/workflow',
-    '/master-data', '/settings', '/data-sharing', '/support',
+    '/master-data', '/settings', '/data-sharing', '/programme-monitoring', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   REC_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/workflow', '/master-data', '/quality',
-    '/interop', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/support',
+    '/interop', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/programme-monitoring', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   CONTINENTAL_ADMIN: new Set(), // full access handled below
