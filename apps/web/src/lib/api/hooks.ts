@@ -729,11 +729,15 @@ export function useWorkflowDashboard() {
 }
 
 /**
- * Lightweight hook for sidebar badge — returns composite count
- * (pending + returned + rejected) from workflow dashboard.
+ * Lightweight hook for sidebar badge — returns count of items the current
+ * user actually needs to act on (submissions awaiting their validation).
+ * Filters by agent=user.id so the badge matches what the page displays.
  * Re-fetches every 2 minutes so validators see updated counts without page reload.
  */
 export function useWorkflowPendingCount() {
+  const user = useAuthStore((s) => s.user);
+  const userId = user?.id;
+
   const wfFallback: { data: WorkflowDashboardMetrics } = {
     data: {
       pendingByLevel: {}, totalPending: 0, totalInReview: 0, totalApproved: 0,
@@ -751,35 +755,44 @@ export function useWorkflowPendingCount() {
     refetchInterval: 120_000,
   });
 
-  // Also fetch submission counts for SUBMITTED + RETURNED + REJECTED
+  // Count submissions visible to THIS user (agent filter matches the list page)
   const subCountFallback = { data: [], meta: { total: 0, page: 1, limit: 1 } };
   const submittedQuery = useQuery({
-    queryKey: ['workflow', 'badge', 'submitted'],
+    queryKey: ['workflow', 'badge', 'submitted', userId],
     queryFn: withFallback(
-      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', { status: 'SUBMITTED', limit: '1' }),
+      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', {
+        status: 'SUBMITTED', agent: userId ?? '', limit: '1',
+      }),
       subCountFallback,
     ),
     placeholderData: subCountFallback,
+    enabled: !!userId,
     staleTime: 120_000,
     refetchInterval: 120_000,
   });
   const returnedQuery = useQuery({
-    queryKey: ['workflow', 'badge', 'returned'],
+    queryKey: ['workflow', 'badge', 'returned', userId],
     queryFn: withFallback(
-      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', { status: 'RETURNED', limit: '1' }),
+      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', {
+        status: 'RETURNED', agent: userId ?? '', limit: '1',
+      }),
       subCountFallback,
     ),
     placeholderData: subCountFallback,
+    enabled: !!userId,
     staleTime: 120_000,
     refetchInterval: 120_000,
   });
   const rejectedQuery = useQuery({
-    queryKey: ['workflow', 'badge', 'rejected'],
+    queryKey: ['workflow', 'badge', 'rejected', userId],
     queryFn: withFallback(
-      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', { status: 'REJECTED', limit: '1' }),
+      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', {
+        status: 'REJECTED', agent: userId ?? '', limit: '1',
+      }),
       subCountFallback,
     ),
     placeholderData: subCountFallback,
+    enabled: !!userId,
     staleTime: 120_000,
     refetchInterval: 120_000,
   });

@@ -487,7 +487,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
           </button>
           <button onClick={() => setActiveTab('actions')}
             className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'actions' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
-            <CheckCircle className="inline h-4 w-4 mr-1.5" />Actions
+            <CheckCircle className="inline h-4 w-4 mr-1.5" />{t('actions')}
           </button>
           <button onClick={() => setActiveTab('timeline')}
             className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'timeline' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
@@ -626,11 +626,11 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
               {/* Comment section */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  <MessageSquare className="inline h-4 w-4 mr-1.5" />Comments
+                  <MessageSquare className="inline h-4 w-4 mr-1.5" />{t('commentLabel')}
                 </h3>
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700">
                   <div className="p-4 text-center text-sm text-gray-400">
-                    No comments yet. Use the action buttons above to validate or return with a comment.
+                    {t('noCommentsYet')}
                   </div>
                 </div>
               </div>
@@ -640,8 +640,8 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
             <div className="px-6 py-4 space-y-4">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Clock className="h-4 w-4 text-gray-400" />
-                Suivi de validation
-                {timeline.length > 0 && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-400">{timeline.length} actions</span>}
+                {t('validationTracking')}
+                {timeline.length > 0 && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-400">{timeline.length}</span>}
               </h3>
 
               {timeline.length > 0 ? (
@@ -653,16 +653,16 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                     {timeline.map((entry: any, idx: number) => {
                       const action = entry.action || entry.status || 'unknown';
                       const actionConfig: Record<string, { icon: React.ReactNode; color: string; bg: string; label: string }> = {
-                        submitted: { icon: <Send className="h-3.5 w-3.5" />, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30', label: 'Soumission' },
-                        validated: { icon: <CheckCircle className="h-3.5 w-3.5" />, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', label: 'Validation' },
-                        approved: { icon: <CheckCircle className="h-3.5 w-3.5" />, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', label: 'Approbation' },
-                        rejected: { icon: <XCircle className="h-3.5 w-3.5" />, color: 'text-red-600', bg: 'bg-red-100 dark:bg-red-900/30', label: 'Rejet' },
-                        returned: { icon: <RotateCcw className="h-3.5 w-3.5" />, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-900/30', label: 'Retour pour correction' },
-                        escalated: { icon: <AlertTriangle className="h-3.5 w-3.5" />, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/30', label: 'Escalade' },
-                        auto_transmitted: { icon: <ArrowRight className="h-3.5 w-3.5" />, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30', label: 'Transmission auto' },
-                        auto_validated: { icon: <CheckCircle className="h-3.5 w-3.5" />, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', label: 'Validation auto' },
-                        reassigned: { icon: <Users className="h-3.5 w-3.5" />, color: 'text-indigo-600', bg: 'bg-indigo-100 dark:bg-indigo-900/30', label: 'Reassignation' },
-                        commented: { icon: <MessageSquare className="h-3.5 w-3.5" />, color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-800', label: 'Commentaire' },
+                        submitted: { icon: <Send className="h-3.5 w-3.5" />, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30', label: t('actionSubmitted') },
+                        validated: { icon: <CheckCircle className="h-3.5 w-3.5" />, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', label: t('actionValidated') },
+                        approved: { icon: <CheckCircle className="h-3.5 w-3.5" />, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', label: t('approved') },
+                        rejected: { icon: <XCircle className="h-3.5 w-3.5" />, color: 'text-red-600', bg: 'bg-red-100 dark:bg-red-900/30', label: t('actionRejected') },
+                        returned: { icon: <RotateCcw className="h-3.5 w-3.5" />, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-900/30', label: t('actionReturned') },
+                        escalated: { icon: <AlertTriangle className="h-3.5 w-3.5" />, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/30', label: t('actionEscalated') },
+                        auto_transmitted: { icon: <ArrowRight className="h-3.5 w-3.5" />, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30', label: t('actionAutoTransmitted') },
+                        auto_validated: { icon: <CheckCircle className="h-3.5 w-3.5" />, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', label: t('actionAutoValidated') },
+                        reassigned: { icon: <Users className="h-3.5 w-3.5" />, color: 'text-indigo-600', bg: 'bg-indigo-100 dark:bg-indigo-900/30', label: t('actionReassigned') },
+                        commented: { icon: <MessageSquare className="h-3.5 w-3.5" />, color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-800', label: t('actionComment') },
                       };
                       const cfg = actionConfig[action.toLowerCase()] || { icon: <Clock className="h-3.5 w-3.5" />, color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-800', label: action };
                       const performer = entry.performedByName || entry.performed_by_name || (entry.performedBy || entry.performed_by || '').slice(0, 8);
@@ -724,10 +724,10 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                 <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 py-10 text-center">
                   <Clock className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
                   <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {instanceId ? 'Aucune action enregistree pour le moment' : "Le pipeline de validation n'a pas encore ete demarre"}
+                    {instanceId ? t('noTimelineYet') : t('noWorkflowYet')}
                   </p>
                   <p className="mt-1 text-xs text-gray-400">
-                    {instanceId ? 'Les validations, rejets et retours apparaitront ici' : "Utilisez le bouton Start Pipeline dans l'onglet Actions"}
+                    {instanceId ? t('noTimelineYetDesc') : t('noWorkflowYetDesc')}
                   </p>
                 </div>
               )}
@@ -782,6 +782,7 @@ export default function WorkflowPage() {
   const [pageSize, setPageSize] = useState(20);
   const [levelFilter, setLevelFilter] = useState<string | undefined>(undefined);
   const [dataFilter, setDataFilter] = useState<'all' | 'mine' | 'toReview'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [viewingSub, setViewingSub] = useState<SubmissionRecord | null>(null);
   const [viewingWf, setViewingWf] = useState<WorkflowItem | null>(null);
   const [actionDialog, setActionDialog] = useState<{ id: string; action: 'approve' | 'reject' | 'return' } | null>(null);
@@ -843,22 +844,37 @@ export default function WorkflowPage() {
     }));
   }, [filteredSubmissions, user]);
 
-  const displayTotal = hasWorkflowData ? wfTotal : subTotal;
+  // Search filter (client-side, on campaign name and submitter)
+  const searchedSubmissions = useMemo(() => {
+    if (!searchQuery.trim()) return enrichedSubmissions;
+    const q = searchQuery.toLowerCase();
+    return enrichedSubmissions.filter((s) => {
+      const cn2 = localizeName((s as any).campaignName).toLowerCase();
+      const submitter = ((s as any).submittedByName || '').toLowerCase();
+      const domain = ((s as any).domain || '').toLowerCase();
+      return cn2.includes(q) || submitter.includes(q) || domain.includes(q) || s.id.toLowerCase().includes(q);
+    });
+  }, [enrichedSubmissions, searchQuery]);
+
+  const displayTotal = hasWorkflowData ? wfTotal : (searchQuery ? searchedSubmissions.length : subTotal);
   const totalPages = Math.ceil(displayTotal / pageSize);
 
   const isActionPending = workflowAction.isPending || startValidation.isPending || updateStatus.isPending;
 
-  // Tab counts from separate lightweight queries (limit=1, just need meta.total)
+  // Tab counts — filtered by agent (current user) so counts match what the user actually sees
   type CountResponse = { data: unknown[]; meta: { total: number; page: number; limit: number } };
   const countFallback: CountResponse = { data: [], meta: { total: 0, page: 1, limit: 1 } };
   const countOpts = (status: string) => ({
-    queryKey: ['workflow', 'count', status],
+    queryKey: ['workflow', 'count', status, user?.id],
     queryFn: async () => {
       try {
-        return await collecteClient.get<CountResponse>('/collecte/submissions', { status, limit: '1' });
+        return await collecteClient.get<CountResponse>('/collecte/submissions', {
+          status, agent: user?.id ?? '', limit: '1',
+        });
       } catch { return countFallback; }
     },
     placeholderData: countFallback,
+    enabled: !!user?.id,
     staleTime: 60_000,
   });
   const { data: countSubmitted } = useQuery(countOpts('SUBMITTED'));
@@ -1040,21 +1056,39 @@ export default function WorkflowPage() {
         </div>
       )}
 
+      {/* ── Search ── */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+          placeholder={t('searchPlaceholder')}
+          className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       {/* ── Table ── */}
       {isLoading ? <TableSkeleton rows={5} cols={6} />
         : isError ? <QueryError message="Failed to load data" onRetry={() => refetch()} />
-        : (hasWorkflowData ? filteredWfItems : enrichedSubmissions).length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-16 dark:border-gray-700 dark:bg-gray-900">
-            <Inbox className="h-12 w-12 text-gray-300 dark:text-gray-600" />
-            <h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-white">{t('noItems')}</h3>
-            <p className="mt-1 text-sm text-gray-500">{levelFilter ? t('adjustFilters') : t('noItemsHint')}</p>
-          </div>
+        : (hasWorkflowData ? filteredWfItems : searchedSubmissions).length === 0 ? (
+          <EmptyState
+            activeTab={activeTab}
+            hasFilter={!!levelFilter || !!searchQuery}
+            dataFilter={dataFilter}
+            t={t}
+          />
         ) : hasWorkflowData ? (
           <WorkflowTable items={filteredWfItems} total={displayTotal} page={page} totalPages={totalPages} pageSize={pageSize} setPage={setPage} onPageSizeChange={handlePageSizeChange}
             onView={setViewingWf} onAction={(id, action) => setActionDialog({ id, action })} t={t}
             selectedIds={selectedIds} setSelectedIds={setSelectedIds} activeTab={activeTab} />
         ) : (
-          <SubmissionsTable items={enrichedSubmissions} total={displayTotal} page={page} totalPages={totalPages} pageSize={pageSize} setPage={setPage} onPageSizeChange={handlePageSizeChange}
+          <SubmissionsTable items={searchedSubmissions} total={displayTotal} page={page} totalPages={totalPages} pageSize={pageSize} setPage={setPage} onPageSizeChange={handlePageSizeChange}
             onView={setViewingSub} t={t}
             selectedIds={selectedIds} setSelectedIds={setSelectedIds} />
         )}
@@ -1135,6 +1169,48 @@ export default function WorkflowPage() {
 }
 
 /* ── Components ───────────────────────────────────────────────────────────── */
+
+function EmptyState({ activeTab, hasFilter, dataFilter, t }: {
+  activeTab: TabKey; hasFilter: boolean; dataFilter: string; t: (key: string) => string;
+}) {
+  const config: Record<TabKey, { icon: React.ReactNode; color: string; title: string; desc: string }> = {
+    toValidate: {
+      icon: <Inbox className="h-12 w-12" />,
+      color: 'text-amber-300 dark:text-amber-600',
+      title: hasFilter ? t('noMatchingItems') : (dataFilter === 'toReview' ? t('noPendingToReview') : t('noPendingTasks')),
+      desc: hasFilter ? t('adjustFilters') : (dataFilter === 'toReview' ? t('noPendingToReviewDesc') : t('noPendingTasksDesc')),
+    },
+    rejected: {
+      icon: <XCircle className="h-12 w-12" />,
+      color: 'text-red-200 dark:text-red-800',
+      title: t('noRejectedItems'),
+      desc: t('noRejectedItemsDesc'),
+    },
+    returned: {
+      icon: <RotateCcw className="h-12 w-12" />,
+      color: 'text-orange-200 dark:text-orange-800',
+      title: t('noReturnedItems'),
+      desc: t('noReturnedItemsDesc'),
+    },
+    validated: {
+      icon: <CheckCircle className="h-12 w-12" />,
+      color: 'text-green-200 dark:text-green-800',
+      title: t('noValidatedItems'),
+      desc: t('noValidatedItemsDesc'),
+    },
+  };
+  const c = config[activeTab];
+  return (
+    <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-white py-16 dark:border-gray-700 dark:bg-gray-900">
+      <div className={c.color}>{c.icon}</div>
+      <h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-white">{c.title}</h3>
+      <p className="mt-1 max-w-sm text-center text-sm text-gray-500 dark:text-gray-400">{c.desc}</p>
+      {hasFilter && (
+        <p className="mt-3 text-xs text-gray-400">{t('tryRemovingFilters')}</p>
+      )}
+    </div>
+  );
+}
 
 function KpiCard({ icon, bg, label, value }: { icon: React.ReactNode; bg: string; label: string; value: number | string }) {
   return (
