@@ -523,8 +523,8 @@ export default function NewProgrammePage() {
                   {/* Component body */}
                   {!comp.collapsed && (
                     <div className="p-5 space-y-5">
-                      {/* Component fields */}
-                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+                      {/* Code on its own row */}
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <Field label="Code" required error={errors[`comp_${ci}_code`]}>
                           <input
                             value={comp.code}
@@ -533,18 +533,19 @@ export default function NewProgrammePage() {
                             className={`${inputClass(errors[`comp_${ci}_code`])} font-mono`}
                           />
                         </Field>
-                        <div className="lg:col-span-3">
-                          <MultilingualInput
-                            label="Component Name"
-                            value={comp.name}
-                            onChange={(v) => updateComponent(ci, { name: v })}
-                            required
-                            placeholder="Governance & Coordination"
-                            error={errors[`comp_${ci}_name`]}
-                          />
-                        </div>
                       </div>
 
+                      {/* Name on its own full-width row */}
+                      <MultilingualInput
+                        label="Component Name"
+                        value={comp.name}
+                        onChange={(v) => updateComponent(ci, { name: v })}
+                        required
+                        placeholder="Governance & Coordination"
+                        error={errors[`comp_${ci}_name`]}
+                      />
+
+                      {/* Description on its own full-width row */}
                       <MultilingualTextarea
                         label="Component Description"
                         value={comp.description}
@@ -576,52 +577,55 @@ export default function NewProgrammePage() {
                           <div className="space-y-4">
                             {comp.outputs.map((out, oi) => (
                               <div key={oi} className="rounded-lg border bg-gray-50/50 p-4 dark:bg-gray-800/30 dark:border-gray-700">
-                                <div className="flex items-start gap-3">
-                                  <span className="mt-1 flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold text-white" style={{ backgroundColor: comp.color }}>
-                                    {out.code || `${comp.code}.${oi + 1}`}
+                                {/* Output header: badge + code + budget + delete */}
+                                <div className="flex items-center gap-3 mb-4">
+                                  <span className="flex h-6 w-6 items-center justify-center rounded text-[10px] font-bold text-white shrink-0" style={{ backgroundColor: comp.color }}>
+                                    {oi + 1}
                                   </span>
-                                  <div className="flex-1 space-y-3">
-                                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
-                                      <Field label="Code" required error={errors[`out_${ci}_${oi}_code`]}>
-                                        <input
-                                          value={out.code}
-                                          onChange={(e) => updateOutput(ci, oi, { code: e.target.value })}
-                                          placeholder={`${comp.code}.${oi + 1}`}
-                                          className={`${inputClass(errors[`out_${ci}_${oi}_code`])} font-mono`}
-                                        />
-                                      </Field>
-                                      <div className="lg:col-span-3">
-                                        <MultilingualInput
-                                          label="Output Name"
-                                          value={out.name}
-                                          onChange={(v) => updateOutput(ci, oi, { name: v })}
-                                          required
-                                          placeholder="Surveillance & data"
-                                          error={errors[`out_${ci}_${oi}_name`]}
-                                        />
-                                      </div>
-                                      <Field label={`Budget (${currency})`}>
-                                        <input
-                                          type="number"
-                                          value={out.approvedBudget || ''}
-                                          onChange={(e) => updateOutput(ci, oi, { approvedBudget: Number(e.target.value) })}
-                                          placeholder="0"
-                                          min={0}
-                                          className={`${inputClass()} text-right tabular-nums`}
-                                        />
-                                      </Field>
-                                    </div>
-                                    <MultilingualTextarea
-                                      label="Output Description"
-                                      value={out.description}
-                                      onChange={(v) => updateOutput(ci, oi, { description: v })}
-                                      rows={2}
-                                      placeholder="Expected deliverables and outcomes..."
-                                    />
+                                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 flex-1">
+                                    <Field label="Code" required error={errors[`out_${ci}_${oi}_code`]}>
+                                      <input
+                                        value={out.code}
+                                        onChange={(e) => updateOutput(ci, oi, { code: e.target.value })}
+                                        placeholder={`${comp.code}.${oi + 1}`}
+                                        className={`${inputClass(errors[`out_${ci}_${oi}_code`])} font-mono`}
+                                      />
+                                    </Field>
+                                    <Field label={`Budget (${currency})`}>
+                                      <input
+                                        type="number"
+                                        value={out.approvedBudget || ''}
+                                        onChange={(e) => updateOutput(ci, oi, { approvedBudget: Number(e.target.value) })}
+                                        placeholder="0"
+                                        min={0}
+                                        className={`${inputClass()} text-right tabular-nums`}
+                                      />
+                                    </Field>
                                   </div>
-                                  <button onClick={() => removeOutput(ci, oi)} className="mt-1 p-1 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                                  <button onClick={() => removeOutput(ci, oi)} className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition shrink-0">
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </button>
+                                </div>
+
+                                {/* Output Name — full width on its own row */}
+                                <div className="space-y-4">
+                                  <MultilingualInput
+                                    label="Output Name"
+                                    value={out.name}
+                                    onChange={(v) => updateOutput(ci, oi, { name: v })}
+                                    required
+                                    placeholder="Surveillance & data"
+                                    error={errors[`out_${ci}_${oi}_name`]}
+                                  />
+
+                                  {/* Output Description — full width on its own row */}
+                                  <MultilingualTextarea
+                                    label="Output Description"
+                                    value={out.description}
+                                    onChange={(v) => updateOutput(ci, oi, { description: v })}
+                                    rows={2}
+                                    placeholder="Expected deliverables and outcomes..."
+                                  />
                                 </div>
                               </div>
                             ))}
