@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, LayoutDashboard, Activity, DollarSign,
-  Target, FileText, AlertTriangle, Users, BarChart3,
+  Target, FileText, AlertTriangle, Users, BarChart3, Pencil,
 } from 'lucide-react';
 import { useProgrammeDashboard, useActivities, useRisks, useTeam } from '@/lib/api/programme-monitoring-hooks';
 import { useLocaleStore } from '@/lib/stores/locale-store';
@@ -32,6 +32,7 @@ function localName(name: Record<string, string> | string | undefined, locale: st
 
 export default function ProgrammeDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const locale = useLocaleStore((s) => s.locale);
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
@@ -56,21 +57,44 @@ export default function ProgrammeDetailPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/programme-monitoring"
-          className="rounded-lg border p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            {programmeName}
-          </h1>
-          {dashboard?.programme?.code && (
-            <p className="text-sm text-gray-500">{dashboard.programme.code}</p>
-          )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/programme-monitoring"
+            className="rounded-lg border p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              {programmeName}
+            </h1>
+            {dashboard?.programme?.code && (
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                  {dashboard.programme.code}
+                </span>
+                {dashboard.programme.status && (
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                    dashboard.programme.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30' :
+                    dashboard.programme.status === 'DESIGN' ? 'bg-slate-100 text-slate-600' :
+                    dashboard.programme.status === 'SUSPENDED' ? 'bg-amber-50 text-amber-700' :
+                    'bg-red-50 text-red-600'
+                  }`}>
+                    {dashboard.programme.status}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+        <button
+          onClick={() => router.push(`/programme-monitoring/${id}/edit`)}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+        >
+          <Pencil className="h-4 w-4" />
+          Edit Programme
+        </button>
       </div>
 
       {/* Tabs */}
