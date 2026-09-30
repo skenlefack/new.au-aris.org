@@ -322,10 +322,14 @@ function ProgrammeCard({ prog, locale, onClick }: { prog: any; locale: string; o
           {localName(prog.name, locale)}
         </h3>
 
-        {prog.donorName && (
+        {((prog as any).donors?.length > 0 || prog.donorName) && (
           <div className="mt-1.5 flex items-center gap-1.5">
-            <Building2 className="h-3 w-3 text-gray-400" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">{prog.donorName}</span>
+            <Building2 className="h-3 w-3 text-gray-400 shrink-0" />
+            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {(prog as any).donors?.length > 0
+                ? (prog as any).donors.map((d: any) => d.donorName).join(', ')
+                : prog.donorName}
+            </span>
           </div>
         )}
 
@@ -459,7 +463,11 @@ function ProgrammeListView({ programmes, locale, onSelect }: { programmes: any[]
 
                 {/* Donor */}
                 <td className="px-4 py-3.5 hidden md:table-cell">
-                  <span className="text-xs text-gray-500">{prog.donorName || '-'}</span>
+                  <span className="text-xs text-gray-500">
+                    {(prog as any).donors?.length > 0
+                      ? (prog as any).donors.map((d: any) => d.donorName).join(', ')
+                      : prog.donorName || '-'}
+                  </span>
                 </td>
 
                 {/* Budget */}

@@ -34,12 +34,20 @@ const LevelEnum = Type.Union([
   Type.Literal('NATIONAL'),
 ]);
 
+const DonorInput = Type.Object({
+  donorName: Type.String({ minLength: 1, maxLength: 200 }),
+  donorReference: Type.Optional(Type.String({ maxLength: 100 })),
+  amount: Type.Optional(Type.Number({ minimum: 0 })),
+  currency: Type.Optional(Type.String({ maxLength: 10 })),
+});
+
 export const CreateProgrammeSchema = Type.Object({
   code: Type.String({ minLength: 1, maxLength: 50 }),
   name: MultilingualName,
   description: Type.Optional(MultilingualName),
-  donorName: Type.Optional(Type.String({ maxLength: 200 })),
-  donorReference: Type.Optional(Type.String({ maxLength: 100 })),
+  donorName: Type.Optional(Type.String({ maxLength: 200 })),       // legacy single donor
+  donorReference: Type.Optional(Type.String({ maxLength: 100 })),  // legacy single donor
+  donors: Type.Optional(Type.Array(DonorInput)),                   // multi-donor
   currency: Type.Optional(Type.String({ maxLength: 10 })),
   totalBudget: Type.Number({ minimum: 0 }),
   startDate: Type.String({ format: 'date' }),
@@ -71,6 +79,7 @@ export const UpdateProgrammeSchema = Type.Object({
   description: Type.Optional(MultilingualName),
   donorName: Type.Optional(Type.String({ maxLength: 200 })),
   donorReference: Type.Optional(Type.String({ maxLength: 100 })),
+  donors: Type.Optional(Type.Array(DonorInput)),
   currency: Type.Optional(Type.String({ maxLength: 10 })),
   totalBudget: Type.Optional(Type.Number({ minimum: 0 })),
   startDate: Type.Optional(Type.String({ format: 'date' })),

@@ -32,6 +32,13 @@ interface OutputInput {
   approvedBudget: number;
 }
 
+interface DonorInput {
+  donorName: string;
+  donorReference: string;
+  amount: string;
+  currency: string;
+}
+
 const COMPONENT_COLORS = ['#2563eb', '#0891b2', '#16a34a', '#d97706', '#9333ea', '#dc2626', '#0d9488', '#6366f1'];
 const CURRENCIES = ['EUR', 'USD', 'XOF', 'XAF', 'KES', 'ZAR', 'GBP', 'CHF'];
 const EMPTY_ML: MultilingualValue = { en: '', fr: '', pt: '', ar: '', es: '', sw: '' };
@@ -46,8 +53,7 @@ export default function NewProgrammePage() {
   const [code, setCode] = useState('');
   const [name, setName] = useState<MultilingualValue>({ ...EMPTY_ML });
   const [description, setDescription] = useState<MultilingualValue>({ ...EMPTY_ML });
-  const [donorName, setDonorName] = useState('');
-  const [donorReference, setDonorReference] = useState('');
+  const [donors, setDonors] = useState<DonorInput[]>([]);
   const [currency, setCurrency] = useState('EUR');
   const [totalBudget, setTotalBudget] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -109,8 +115,18 @@ export default function NewProgrammePage() {
 
     const desc = cleanMl(description);
     if (desc) body.description = desc;
-    if (donorName.trim()) body.donorName = donorName.trim();
-    if (donorReference.trim()) body.donorReference = donorReference.trim();
+
+    // Multi-donor support
+    if (donors.length > 0) {
+      body.donors = donors
+        .filter((d) => d.donorName.trim())
+        .map((d) => ({
+          donorName: d.donorName.trim(),
+          donorReference: d.donorReference.trim() || undefined,
+          amount: Number(d.amount) || 0,
+          currency: d.currency || currency,
+        }));
+    }
 
     if (components.length > 0) {
       body.components = components.map((comp) => ({
@@ -317,13 +333,100 @@ export default function NewProgrammePage() {
             </Field>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <Field label="Donor Name">
-              <input value={donorName} onChange={(e) => setDonorName(e.target.value)} placeholder="European Union" className={inputClass()} />
-            </Field>
-            <Field label="Donor Reference / Contract No.">
-              <input value={donorReference} onChange={(e) => setDonorReference(e.target.value)} placeholder="FED/2024/PPR-P2" className={inputClass()} />
-            </Field>
+          {/* ── Donors (multi) ── */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Donors / Funding Sources</label>
+              <button
+                type="button"
+                onClick={() => setDonors([...donors, { donorName: '', donorReference: '', amount: '', currency }])}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Donor
+              </button>
+            </div>
+            {donors.length === 0 ? (
+              <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 py-8 text-center">
+                <p className="text-sm text-gray-400">No donors added yet</p>
+                <button
+                  type="button"
+                  onClick={() => setDonors([{ donorName: '', donorReference: '', amount: '', currency }])}
+                  className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+                >
+                  <Plus className="inline h-4 w-4 mr-1" />Add first donor
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {donors.map((donor, idx) => (
+                  <div key={idx} className="relative rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-gray-800/30">
+                    <button
+                      type="button"
+                      onClick={() => setDonors(donors.filter((_, i) => i !== idx))}
+                      className="absolute right-3 top-3 rounded-full p-1 text-gray-400 hover:bg-red-100 hover:text-red-600 transition"
+                      title="Remove donor"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 pr-8">
+                      <Field label="Donor Name" required>
+                        <input
+                          value={donor.donorName}
+                          onChange={(e) => {
+                            const next = [...donors];
+                            next[idx] = { ...next[idx], donorName: e.target.value };
+                            setDonors(next);
+                          }}
+                          placeholder="e.g. European Union"
+                          className={inputClass()}
+                        />
+                      </Field>
+                      <Field label="Reference / Contract No.">
+                        <input
+                          value={donor.donorReference}
+                          onChange={(e) => {
+                            const next = [...donors];
+                            next[idx] = { ...next[idx], donorReference: e.target.value };
+                            setDonors(next);
+                          }}
+                          placeholder="e.g. FED/2024/PPR-P2"
+                          className={inputClass()}
+                        />
+                      </Field>
+                      <Field label="Amount">
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={donor.amount}
+                            onChange={(e) => {
+                              const next = [...donors];
+                              next[idx] = { ...next[idx], amount: e.target.value };
+                              setDonors(next);
+                            }}
+                            placeholder="0.00"
+                            className={`${inputClass()} pr-16`}
+                          />
+                          <select
+                            value={donor.currency}
+                            onChange={(e) => {
+                              const next = [...donors];
+                              next[idx] = { ...next[idx], currency: e.target.value };
+                              setDonors(next);
+                            }}
+                            className="absolute right-1 top-1 bottom-1 rounded-md border-0 bg-gray-100 px-2 text-xs font-medium dark:bg-gray-700 dark:text-white"
+                          >
+                            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                      </Field>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </FormSection>
 

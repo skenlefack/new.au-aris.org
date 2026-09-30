@@ -35,11 +35,34 @@ model Programme {
   risks          ProgrammeRisk[]
   teamMembers    ProgrammeTeam[]
   snapshots      ProgrammeSnapshot[]
+  donors         ProgrammeDonor[]
 
   @@unique([code, tenantId], map: "uq_programme_code_tenant")
   @@index([tenantId])
   @@index([status])
   @@map("programmes")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Programme Donor — Multiple funding sources per programme
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ProgrammeDonor {
+  id              String   @id @default(uuid()) @db.Uuid
+  programmeId     String   @map("programme_id") @db.Uuid
+  donorName       String   @map("donor_name") @db.VarChar(200)
+  donorReference  String?  @map("donor_reference") @db.VarChar(100) // Contract No.
+  amount          Decimal  @default(0) @db.Decimal(18, 2)
+  currency        String   @default("EUR") @db.VarChar(10)
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  programme Programme @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+
+  @@index([programmeId])
+  @@map("programme_donors")
   @@schema("programme_monitoring")
 }
 

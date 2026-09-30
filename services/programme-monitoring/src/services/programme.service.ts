@@ -58,6 +58,35 @@ export class ProgrammeService {
       },
     });
 
+    // Create donors if provided
+    if (dto.donors?.length) {
+      for (let i = 0; i < dto.donors.length; i++) {
+        const d = dto.donors[i];
+        await (this.prisma as any).programmeDonor.create({
+          data: {
+            programmeId: programme.id,
+            donorName: d.donorName,
+            donorReference: d.donorReference ?? null,
+            amount: d.amount ?? 0,
+            currency: d.currency ?? dto.currency ?? 'EUR',
+            sortOrder: i,
+          },
+        });
+      }
+    } else if (dto.donorName) {
+      // Legacy single-donor: migrate to donors table
+      await (this.prisma as any).programmeDonor.create({
+        data: {
+          programmeId: programme.id,
+          donorName: dto.donorName,
+          donorReference: dto.donorReference ?? null,
+          amount: dto.totalBudget ?? 0,
+          currency: dto.currency ?? 'EUR',
+          sortOrder: 0,
+        },
+      });
+    }
+
     // Create nested components → outputs if provided
     if (dto.components?.length) {
       for (let ci = 0; ci < dto.components.length; ci++) {
@@ -130,6 +159,7 @@ export class ProgrammeService {
               outputs: { orderBy: { sortOrder: 'asc' } },
             },
           },
+          donors: { orderBy: { sortOrder: 'asc' } },
           _count: { select: { risks: true, teamMembers: true, reportingCycles: true } },
         },
       }),
@@ -155,6 +185,7 @@ export class ProgrammeService {
             },
           },
         },
+        donors: { orderBy: { sortOrder: 'asc' } },
         risks: { orderBy: { riskScore: 'desc' } },
         teamMembers: true,
         _count: { select: { reportingCycles: true, snapshots: true } },
@@ -200,6 +231,28 @@ export class ProgrammeService {
       where: { id },
       data: updateData,
     });
+
+    // Replace donors if provided
+    if (dto.donors !== undefined) {
+      // Delete existing donors
+      await (this.prisma as any).programmeDonor.deleteMany({ where: { programmeId: id } });
+      // Insert new ones
+      if (dto.donors?.length) {
+        for (let i = 0; i < dto.donors.length; i++) {
+          const d = dto.donors[i];
+          await (this.prisma as any).programmeDonor.create({
+            data: {
+              programmeId: id,
+              donorName: d.donorName,
+              donorReference: d.donorReference ?? null,
+              amount: d.amount ?? 0,
+              currency: d.currency ?? updated.currency ?? 'EUR',
+              sortOrder: i,
+            },
+          });
+        }
+      }
+    }
 
     this.audit.log('Programme', id, 'UPDATE', user, updated.dataClassification as any, {
       previousVersion: existing as unknown as object,
