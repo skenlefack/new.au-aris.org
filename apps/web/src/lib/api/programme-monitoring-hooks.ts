@@ -180,6 +180,44 @@ export function useSubmitReport() {
   });
 }
 
+// ── Activities mutations ──
+
+export function useCreateActivity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: any) => programmeMonitoringClient.post<any>(`${BASE}/activities`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pm-activities'] });
+      qc.invalidateQueries({ queryKey: ['programme-dashboard'] });
+    },
+  });
+}
+
+export function useDeleteActivity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => programmeMonitoringClient.delete<any>(`${BASE}/activities/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pm-activities'] });
+      qc.invalidateQueries({ queryKey: ['programme-dashboard'] });
+    },
+  });
+}
+
+// ── Budgets mutations ──
+
+export function useCreateBudget() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: any) => programmeMonitoringClient.post<any>(`${BASE}/budgets`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pm-budgets'] });
+      qc.invalidateQueries({ queryKey: ['budget-summary'] });
+      qc.invalidateQueries({ queryKey: ['programme-dashboard'] });
+    },
+  });
+}
+
 // ── Indicators ──
 
 export function useIndicators(params?: Record<string, string>) {
@@ -187,6 +225,30 @@ export function useIndicators(params?: Record<string, string>) {
     queryKey: ['pm-indicators', params],
     queryFn: () => programmeMonitoringClient.get<any>(`${BASE}/indicators`, params),
     staleTime: 60_000,
+  });
+}
+
+export function useCreateIndicator() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: any) => programmeMonitoringClient.post<any>(`${BASE}/indicators`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-indicators'] }),
+  });
+}
+
+export function useUpdateIndicator() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: any) => programmeMonitoringClient.patch<any>(`${BASE}/indicators/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-indicators'] }),
+  });
+}
+
+export function useAddIndicatorValue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ indicatorId, ...body }: any) => programmeMonitoringClient.post<any>(`${BASE}/indicators/${indicatorId}/values`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-indicators'] }),
   });
 }
 
@@ -201,6 +263,22 @@ export function useRisks(programmeId: string | undefined) {
   });
 }
 
+export function useCreateRisk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ programmeId, ...body }: any) => programmeMonitoringClient.post<any>(`${BASE}/programmes/${programmeId}/risks`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-risks'] }),
+  });
+}
+
+export function useUpdateRisk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: any) => programmeMonitoringClient.patch<any>(`${BASE}/risks/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-risks'] }),
+  });
+}
+
 // ── Team ──
 
 export function useTeam(programmeId: string | undefined) {
@@ -209,5 +287,43 @@ export function useTeam(programmeId: string | undefined) {
     queryFn: () => programmeMonitoringClient.get<any>(`${BASE}/programmes/${programmeId}/team`),
     enabled: !!programmeId,
     staleTime: 60_000,
+  });
+}
+
+export function useAddTeamMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ programmeId, ...body }: any) => programmeMonitoringClient.post<any>(`${BASE}/programmes/${programmeId}/team`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-team'] }),
+  });
+}
+
+export function useRemoveTeamMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ programmeId, userId }: { programmeId: string; userId: string }) =>
+      programmeMonitoringClient.delete<any>(`${BASE}/programmes/${programmeId}/team/${userId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-team'] }),
+  });
+}
+
+// ── Reporting mutations ──
+
+export function useValidateReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: any) => programmeMonitoringClient.post<any>(`${BASE}/reports/${id}/validate`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reporting-cycles'] });
+      qc.invalidateQueries({ queryKey: ['reporting-cycle'] });
+    },
+  });
+}
+
+export function useUpdateCycle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: any) => programmeMonitoringClient.patch<any>(`${BASE}/cycles/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['reporting-cycles'] }),
   });
 }
