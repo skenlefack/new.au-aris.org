@@ -360,6 +360,7 @@ export class SubmissionService {
       domain?: string;
       status?: string;
       agent?: string;
+      scope?: string;
     },
   ): Promise<PaginatedResponse<SubmissionEntity>> {
     const page = query.page ?? DEFAULT_PAGE;
@@ -885,7 +886,7 @@ export class SubmissionService {
 
   private async buildFilter(
     user: AuthenticatedUser,
-    query: { campaignId?: string; domain?: string; status?: string; agent?: string },
+    query: { campaignId?: string; domain?: string; status?: string; agent?: string; scope?: string },
   ): Promise<Record<string, unknown>> {
     const where: Record<string, unknown> = {};
 
@@ -915,9 +916,11 @@ export class SubmissionService {
     }
     if (query.status) where['status'] = query.status;
 
-    // When agent is specified, show: own submissions + submissions from users who assigned this agent as validator
+    // When agent is specified, filter by user visibility:
+    //   scope=toReview → only submissions from users assigned to this agent for validation
+    //   scope=mine     → only the agent's own submissions
+    //   scope=all (default) → both own + assigned users' submissions
     if (query.agent) {
-      // Find users who have this agent as their validator
       let assignedUserIds: string[] = [];
       try {
         const chains = await (this.prisma as any).collecteValidationChain.findMany({
@@ -929,8 +932,23 @@ export class SubmissionService {
         // Table may not exist — fall back to own submissions only
       }
 
-      const submitterIds = [query.agent, ...assignedUserIds];
-      where['submittedBy'] = { in: submitterIds };
+      const scope = query.scope || 'all';
+      if (scope === 'toReview') {
+        // Only submissions from assigned users (exclude own)
+        if (assignedUserIds.length > 0) {
+          where['submittedBy'] = { in: assignedUserIds };
+        } else {
+          // No one assigned → empty result
+          where['id'] = '__NO_MATCH__';
+        }
+      } else if (scope === 'mine') {
+        // Only own submissions
+        where['submittedBy'] = query.agent;
+      } else {
+        // all: own + assigned
+        const submitterIds = [query.agent, ...assignedUserIds];
+        where['submittedBy'] = { in: submitterIds };
+      }
     }
 
     // Access-level filtering: exclude submissions from hidden campaigns

@@ -653,6 +653,7 @@ export function useWorkflowItems(params?: {
   status?: string;
   domain?: string;
   agent?: string;
+  scope?: 'all' | 'toReview' | 'mine';
 }) {
   const searchParams: Record<string, string> = {};
   if (params?.page) searchParams.page = String(params.page);
@@ -677,6 +678,7 @@ export function useWorkflowItems(params?: {
   if (params?.limit) subParams.limit = String(params.limit);
   if (params?.status) subParams.status = params.status;
   if (params?.agent) subParams.agent = params.agent;
+  if (params?.scope) subParams.scope = params.scope;
   const subFallback: PaginatedResponse<SubmissionRecord> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   const submissionQuery = useQuery({
     queryKey: ['workflow', 'submissions', params],
@@ -755,39 +757,13 @@ export function useWorkflowPendingCount() {
     refetchInterval: 120_000,
   });
 
-  // Count submissions visible to THIS user (agent filter matches the list page)
+  // Badge: count only submissions FROM OTHERS awaiting this user's validation
   const subCountFallback = { data: [], meta: { total: 0, page: 1, limit: 1 } };
-  const submittedQuery = useQuery({
-    queryKey: ['workflow', 'badge', 'submitted', userId],
+  const toReviewQuery = useQuery({
+    queryKey: ['workflow', 'badge', 'toReview', userId],
     queryFn: withFallback(
       () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', {
-        status: 'SUBMITTED', agent: userId ?? '', limit: '1',
-      }),
-      subCountFallback,
-    ),
-    placeholderData: subCountFallback,
-    enabled: !!userId,
-    staleTime: 120_000,
-    refetchInterval: 120_000,
-  });
-  const returnedQuery = useQuery({
-    queryKey: ['workflow', 'badge', 'returned', userId],
-    queryFn: withFallback(
-      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', {
-        status: 'RETURNED', agent: userId ?? '', limit: '1',
-      }),
-      subCountFallback,
-    ),
-    placeholderData: subCountFallback,
-    enabled: !!userId,
-    staleTime: 120_000,
-    refetchInterval: 120_000,
-  });
-  const rejectedQuery = useQuery({
-    queryKey: ['workflow', 'badge', 'rejected', userId],
-    queryFn: withFallback(
-      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', {
-        status: 'REJECTED', agent: userId ?? '', limit: '1',
+        status: 'SUBMITTED', agent: userId ?? '', scope: 'toReview', limit: '1',
       }),
       subCountFallback,
     ),
@@ -797,10 +773,7 @@ export function useWorkflowPendingCount() {
     refetchInterval: 120_000,
   });
 
-  const submittedCount = submittedQuery.data?.meta?.total ?? 0;
-  const returnedCount = returnedQuery.data?.meta?.total ?? 0;
-  const rejectedCount = rejectedQuery.data?.meta?.total ?? 0;
-  const badgeTotal = submittedCount + returnedCount + rejectedCount;
+  const badgeTotal = toReviewQuery.data?.meta?.total ?? 0;
 
   return { ...query, badgeTotal };
 }

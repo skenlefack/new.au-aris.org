@@ -26,6 +26,11 @@ export const ListSubmissionsQuerySchema = Type.Object({
   domain: Type.Optional(Type.String({ maxLength: 50 })),
   status: Type.Optional(Type.String()),
   agent: Type.Optional(Type.String({ format: 'uuid' })),
+  scope: Type.Optional(Type.Union([
+    Type.Literal('all'),
+    Type.Literal('toReview'),
+    Type.Literal('mine'),
+  ])),
 });
 export type ListSubmissionsQuery = Static<typeof ListSubmissionsQuerySchema>;
 

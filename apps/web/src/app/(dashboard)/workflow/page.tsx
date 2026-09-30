@@ -803,10 +803,11 @@ export default function WorkflowPage() {
   };
   const primaryStatus = TAB_PRIMARY_STATUS[activeTab];
 
-  // Always filter by current user: show own submissions + submissions assigned to user for validation
+  // Filter by current user + scope (server-side via scope parameter)
   const agentFilter = user?.id;
+  const scopeFilter = dataFilter === 'mine' ? 'mine' as const : dataFilter === 'toReview' ? 'toReview' as const : 'all' as const;
   const { submissionData, workflowData, hasWorkflowData, isLoading, isError, refetch } =
-    useWorkflowItems({ page, limit: pageSize, status: primaryStatus, level: levelFilter, agent: agentFilter });
+    useWorkflowItems({ page, limit: pageSize, status: primaryStatus, level: levelFilter, agent: agentFilter, scope: scopeFilter });
   const { data: dashboardRes } = useWorkflowDashboard();
   const dashboard = dashboardRes?.data;
   const workflowAction = useWorkflowAction();
@@ -819,18 +820,13 @@ export default function WorkflowPage() {
   const { data: chainsRes } = useValidationChainsByUser(user?.id);
   const hasValidationChain = (chainsRes?.data ?? []).length > 0;
 
-  // Filter submissions/workflow items by tab statuses (client-side for multi-status tabs)
+  // Submissions come pre-filtered from server (scope=all|toReview|mine)
   const allSubmissions = submissionData?.data ?? [];
   const subTotal = submissionData?.meta?.total ?? 0;
   const wfItems = workflowData?.data ?? [];
   const wfTotal = workflowData?.meta?.total ?? 0;
 
-  // Filter by data ownership: mine (submitted by me) vs toReview (assigned to me for validation)
-  const filteredSubmissions = dataFilter === 'mine'
-    ? allSubmissions.filter((s) => s.submittedBy === user?.id)
-    : dataFilter === 'toReview'
-    ? allSubmissions.filter((s) => s.submittedBy !== user?.id)
-    : allSubmissions;
+  const filteredSubmissions = allSubmissions;
   const filteredWfItems = wfItems.length > 0
     ? wfItems.filter((w) => tabStatuses.includes(w.status))
     : wfItems;
