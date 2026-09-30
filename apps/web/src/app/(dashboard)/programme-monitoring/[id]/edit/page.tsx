@@ -12,15 +12,35 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 
+// ── Types ──
+
 interface MultilingualValue { [key: string]: string }
 
+interface ComponentInput {
+  id?: string;
+  code: string;
+  name: MultilingualValue;
+  description: MultilingualValue;
+  color: string;
+  outputs: OutputInput[];
+  collapsed: boolean;
+}
+
+interface OutputInput {
+  id?: string;
+  code: string;
+  name: MultilingualValue;
+  description: MultilingualValue;
+  approvedBudget: number;
+}
+
+const COMPONENT_COLORS = ['#2563eb', '#0891b2', '#16a34a', '#d97706', '#9333ea', '#dc2626', '#0d9488', '#6366f1'];
 const CURRENCIES = ['EUR', 'USD', 'XOF', 'XAF', 'KES', 'ZAR', 'GBP', 'CHF'];
 const EMPTY_ML: MultilingualValue = { en: '', fr: '', pt: '', ar: '', es: '', sw: '' };
 
 function toDateStr(d: any): string {
   if (!d) return '';
-  const date = new Date(d);
-  return date.toISOString().split('T')[0];
+  return new Date(d).toISOString().split('T')[0];
 }
 
 function toMl(v: any): MultilingualValue {
@@ -37,7 +57,7 @@ export default function EditProgrammePage() {
   const { data: progRes, isLoading } = useProgramme(id);
   const updateMutation = useUpdateProgramme();
 
-  // Form state
+  // ── Form state ──
   const [code, setCode] = useState('');
   const [name, setName] = useState<MultilingualValue>({ ...EMPTY_ML });
   const [description, setDescription] = useState<MultilingualValue>({ ...EMPTY_ML });
@@ -51,10 +71,11 @@ export default function EditProgrammePage() {
   const [level, setLevel] = useState('CONTINENTAL');
   const [logframeType, setLogframeType] = useState('LOGFRAME');
   const [reportingFrequency, setReportingFrequency] = useState('MONTHLY');
+  const [components, setComponents] = useState<ComponentInput[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
 
-  // Populate form from fetched data
+  // ── Populate form from API data ──
   useEffect(() => {
     const prog = progRes?.data;
     if (prog && !initialized) {
@@ -71,10 +92,31 @@ export default function EditProgrammePage() {
       setLevel(prog.level || 'CONTINENTAL');
       setLogframeType(prog.logframeType || 'LOGFRAME');
       setReportingFrequency(prog.reportingFrequency || 'MONTHLY');
+
+      // Load existing components + outputs
+      if (prog.components?.length) {
+        setComponents(prog.components.map((comp: any, ci: number) => ({
+          id: comp.id,
+          code: comp.code || `${ci + 1}`,
+          name: toMl(comp.name),
+          description: toMl(comp.description),
+          color: comp.color || COMPONENT_COLORS[ci % COMPONENT_COLORS.length],
+          collapsed: false,
+          outputs: (comp.outputs ?? []).map((out: any) => ({
+            id: out.id,
+            code: out.code || '',
+            name: toMl(out.name),
+            description: toMl(out.description),
+            approvedBudget: Number(out.approvedBudget) || 0,
+          })),
+        })));
+      }
+
       setInitialized(true);
     }
   }, [progRes, initialized]);
 
+  // ── Validation ──
   function validate(): boolean {
     const e: Record<string, string> = {};
     if (!code.trim()) e.code = 'Programme code is required';
@@ -83,10 +125,21 @@ export default function EditProgrammePage() {
     if (!endDate) e.endDate = 'End date is required';
     if (startDate && endDate && new Date(startDate) >= new Date(endDate)) e.endDate = 'End date must be after start date';
     if (!totalBudget || Number(totalBudget) < 0) e.totalBudget = 'Valid budget is required';
+
+    components.forEach((comp, ci) => {
+      if (!comp.code.trim()) e[`comp_${ci}_code`] = 'Required';
+      if (!comp.name.en?.trim()) e[`comp_${ci}_name`] = 'Required';
+      comp.outputs.forEach((out, oi) => {
+        if (!out.code.trim()) e[`out_${ci}_${oi}_code`] = 'Required';
+        if (!out.name.en?.trim()) e[`out_${ci}_${oi}_name`] = 'Required';
+      });
+    });
+
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
+  // ── Submit ──
   async function handleSubmit() {
     if (!validate()) return;
 
@@ -125,13 +178,66 @@ export default function EditProgrammePage() {
     }
   }
 
+  // ── Component helpers ──
+  function addComponent() {
+    const idx = components.length;
+    setComponents([...components, {
+      code: `${idx + 1}`,
+      name: { ...EMPTY_ML },
+      description: { ...EMPTY_ML },
+      color: COMPONENT_COLORS[idx % COMPONENT_COLORS.length],
+      outputs: [],
+      collapsed: false,
+    }]);
+  }
+
+  function updateComponent(index: number, updates: Partial<ComponentInput>) {
+    const updated = [...components];
+    updated[index] = { ...updated[index], ...updates };
+    setComponents(updated);
+  }
+
+  function removeComponent(index: number) {
+    setComponents(components.filter((_, i) => i !== index));
+  }
+
+  function addOutput(compIndex: number) {
+    const updated = [...components];
+    const comp = updated[compIndex];
+    const outIdx = comp.outputs.length;
+    comp.outputs.push({
+      code: `${comp.code}.${outIdx + 1}`,
+      name: { ...EMPTY_ML },
+      description: { ...EMPTY_ML },
+      approvedBudget: 0,
+    });
+    setComponents(updated);
+  }
+
+  function updateOutput(compIndex: number, outIndex: number, updates: Partial<OutputInput>) {
+    const updated = [...components];
+    updated[compIndex].outputs[outIndex] = { ...updated[compIndex].outputs[outIndex], ...updates };
+    setComponents(updated);
+  }
+
+  function removeOutput(compIndex: number, outIndex: number) {
+    const updated = [...components];
+    updated[compIndex].outputs = updated[compIndex].outputs.filter((_, i) => i !== outIndex);
+    setComponents(updated);
+  }
+
+  const totalOutputBudget = components.reduce(
+    (s, c) => s + c.outputs.reduce((so, o) => so + (o.approvedBudget || 0), 0), 0
+  );
+
+  // ── Loading skeleton ──
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse max-w-4xl">
-        <div className="h-12 w-64 rounded-lg bg-gray-200 dark:bg-gray-800" />
-        {[1, 2, 3].map((i) => (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-14 rounded-lg bg-gray-200 dark:bg-gray-800" />
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="rounded-xl border bg-white dark:bg-gray-900 dark:border-gray-800 p-6 space-y-4">
-            <div className="h-5 w-40 rounded bg-gray-200 dark:bg-gray-700" />
+            <div className="h-5 w-48 rounded bg-gray-200 dark:bg-gray-700" />
             <div className="h-10 w-full rounded bg-gray-100 dark:bg-gray-800" />
             <div className="h-10 w-full rounded bg-gray-100 dark:bg-gray-800" />
           </div>
@@ -144,9 +250,9 @@ export default function EditProgrammePage() {
 
   return (
     <div className="animate-in fade-in duration-200">
-      {/* Sticky header */}
+      {/* ── Sticky header ── */}
       <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-6 border-b bg-white/95 backdrop-blur px-6 py-4 dark:bg-gray-950/95 dark:border-gray-800">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
+        <div className="flex items-center justify-between max-w-6xl mx-auto">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push(`/programme-monitoring/${id}`)}
@@ -187,9 +293,10 @@ export default function EditProgrammePage() {
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Section 1: General */}
-        <FormSection title="General Information" number={1}>
+      <div className="max-w-6xl mx-auto space-y-8">
+
+        {/* ═══ Section 1: General Information ═══ */}
+        <FormSection title="General Information" description="Core programme identification and naming" number={1}>
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             <Field label="Programme Code" required error={errors.code}>
               <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="PPR-P2" className={inputClass(errors.code)} />
@@ -214,8 +321,8 @@ export default function EditProgrammePage() {
           <MultilingualTextarea label="Description" value={description} onChange={setDescription} rows={3} placeholder="Programme description..." />
         </FormSection>
 
-        {/* Section 2: Funding */}
-        <FormSection title="Funding & Period" number={2}>
+        {/* ═══ Section 2: Funding & Period ═══ */}
+        <FormSection title="Funding & Period" description="Budget allocation, donor information and timeline" number={2}>
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             <Field label="Total Budget" required error={errors.totalBudget}>
               <div className="relative">
@@ -242,19 +349,19 @@ export default function EditProgrammePage() {
           </div>
         </FormSection>
 
-        {/* Section 3: Configuration */}
-        <FormSection title="Configuration" number={3}>
+        {/* ═══ Section 3: Configuration ═══ */}
+        <FormSection title="Configuration" description="Framework type, reporting frequency and scope" number={3}>
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <Field label="Logframe Type">
               <select value={logframeType} onChange={(e) => setLogframeType(e.target.value)} className={inputClass()}>
-                <option value="LOGFRAME">Logical Framework</option>
+                <option value="LOGFRAME">Logical Framework (Logframe)</option>
                 <option value="RESULTS_FRAMEWORK">Results Framework</option>
                 <option value="THEORY_OF_CHANGE">Theory of Change</option>
               </select>
             </Field>
             <Field label="Reporting Frequency">
               <select value={reportingFrequency} onChange={(e) => setReportingFrequency(e.target.value)} className={inputClass()}>
-                <option value="WEEKLY">Weekly</option>
+                <option value="WEEKLY">Weekly (every Friday)</option>
                 <option value="BIWEEKLY">Bi-weekly</option>
                 <option value="MONTHLY">Monthly</option>
                 <option value="QUARTERLY">Quarterly</option>
@@ -263,7 +370,140 @@ export default function EditProgrammePage() {
           </div>
         </FormSection>
 
-        {/* Bottom actions */}
+        {/* ═══ Section 4: Logical Framework ═══ */}
+        <FormSection
+          title="Logical Framework"
+          description="Define components (outcomes) and their outputs. Activities can be added after saving."
+          number={4}
+          action={
+            <button
+              onClick={addComponent}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Component
+            </button>
+          }
+        >
+          {components.length === 0 ? (
+            <div className="rounded-xl border-2 border-dashed py-12 text-center dark:border-gray-700">
+              <Briefcase className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">No components defined yet</p>
+              <p className="text-xs text-gray-400 mt-1">Structure your programme into outcomes and outputs</p>
+              <button onClick={addComponent} className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                <Plus className="h-4 w-4" /> Add first component
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {components.map((comp, ci) => (
+                <div key={ci} className="rounded-xl border overflow-hidden dark:border-gray-700">
+                  {/* Component header bar */}
+                  <div
+                    className="flex items-center gap-3 px-5 py-3.5 bg-gray-50 dark:bg-gray-800/50"
+                    style={{ borderLeft: `4px solid ${comp.color}` }}
+                  >
+                    <button onClick={() => updateComponent(ci, { collapsed: !comp.collapsed })} className="text-gray-400 hover:text-gray-600 transition">
+                      {comp.collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: comp.color }}>
+                      {comp.code || ci + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {comp.name.en || comp.name[locale] || `Component ${ci + 1}`}
+                      </span>
+                      <span className="ml-2 text-xs text-gray-400">
+                        {comp.outputs.length} output{comp.outputs.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <input type="color" value={comp.color} onChange={(e) => updateComponent(ci, { color: e.target.value })} className="h-7 w-7 rounded cursor-pointer border-0 bg-transparent" />
+                    <button onClick={() => removeComponent(ci)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Component body */}
+                  {!comp.collapsed && (
+                    <div className="p-5 space-y-5">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <Field label="Code" required error={errors[`comp_${ci}_code`]}>
+                          <input value={comp.code} onChange={(e) => updateComponent(ci, { code: e.target.value })} placeholder="1" className={`${inputClass(errors[`comp_${ci}_code`])} font-mono`} />
+                        </Field>
+                      </div>
+                      <MultilingualInput label="Component Name" value={comp.name} onChange={(v) => updateComponent(ci, { name: v })} required placeholder="Governance & Coordination" error={errors[`comp_${ci}_name`]} />
+                      <MultilingualTextarea label="Component Description" value={comp.description} onChange={(v) => updateComponent(ci, { description: v })} rows={2} placeholder="Describe this component's objectives..." />
+
+                      {/* Outputs */}
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Outputs</h4>
+                          <button onClick={() => addOutput(ci)} className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+                            <Plus className="h-3 w-3" /> Add Output
+                          </button>
+                        </div>
+
+                        {comp.outputs.length === 0 ? (
+                          <div className="rounded-lg border border-dashed py-6 text-center dark:border-gray-700">
+                            <p className="text-xs text-gray-400">No outputs yet</p>
+                            <button onClick={() => addOutput(ci)} className="mt-2 text-xs font-medium text-emerald-600 hover:text-emerald-700">+ Add first output</button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {comp.outputs.map((out, oi) => (
+                              <div key={oi} className="rounded-lg border bg-gray-50/50 p-4 dark:bg-gray-800/30 dark:border-gray-700">
+                                {/* Output header */}
+                                <div className="flex items-center gap-3 mb-4">
+                                  <span className="flex h-6 w-6 items-center justify-center rounded text-[10px] font-bold text-white shrink-0" style={{ backgroundColor: comp.color }}>
+                                    {oi + 1}
+                                  </span>
+                                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 flex-1">
+                                    <Field label="Code" required error={errors[`out_${ci}_${oi}_code`]}>
+                                      <input value={out.code} onChange={(e) => updateOutput(ci, oi, { code: e.target.value })} placeholder={`${comp.code}.${oi + 1}`} className={`${inputClass(errors[`out_${ci}_${oi}_code`])} font-mono`} />
+                                    </Field>
+                                    <Field label={`Budget (${currency})`}>
+                                      <input type="number" value={out.approvedBudget || ''} onChange={(e) => updateOutput(ci, oi, { approvedBudget: Number(e.target.value) })} placeholder="0" min={0} className={`${inputClass()} text-right tabular-nums`} />
+                                    </Field>
+                                  </div>
+                                  <button onClick={() => removeOutput(ci, oi)} className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition shrink-0">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                                <div className="space-y-4">
+                                  <MultilingualInput label="Output Name" value={out.name} onChange={(v) => updateOutput(ci, oi, { name: v })} required placeholder="Surveillance & data" error={errors[`out_${ci}_${oi}_name`]} />
+                                  <MultilingualTextarea label="Output Description" value={out.description} onChange={(v) => updateOutput(ci, oi, { description: v })} rows={2} placeholder="Expected deliverables and outcomes..." />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Budget allocation summary */}
+              {totalOutputBudget > 0 && (
+                <div className="flex items-center justify-between rounded-xl border bg-gray-50 px-5 py-3 dark:bg-gray-800/50 dark:border-gray-700">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Total output budgets allocated</span>
+                  <div className="text-right">
+                    <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
+                      {totalOutputBudget.toLocaleString()} {currency}
+                    </span>
+                    {totalBudget && Number(totalBudget) > 0 && (
+                      <span className={`ml-3 text-sm font-medium ${totalOutputBudget > Number(totalBudget) ? 'text-red-500' : 'text-emerald-600'}`}>
+                        ({Math.round((totalOutputBudget / Number(totalBudget)) * 100)}% of total budget)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </FormSection>
+
+        {/* ── Bottom Actions ── */}
         <div className="flex items-center justify-between border-t pt-8 pb-4 dark:border-gray-800">
           <button onClick={() => router.push(`/programme-monitoring/${id}`)} className="rounded-lg border px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800">
             Cancel
@@ -278,12 +518,24 @@ export default function EditProgrammePage() {
   );
 }
 
-function FormSection({ title, number, children }: { title: string; number?: number; children: React.ReactNode }) {
+// ══════════════════════════════════════════════════════════════════════════════
+// Reusable form components
+// ══════════════════════════════════════════════════════════════════════════════
+
+function FormSection({ title, description, number, action, children }: {
+  title: string; description?: string; number?: number; action?: React.ReactNode; children: React.ReactNode;
+}) {
   return (
     <div className="rounded-xl border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-800">
-      <div className="flex items-center gap-3 border-b px-6 py-4 dark:border-gray-800">
-        {number && <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">{number}</span>}
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h2>
+      <div className="flex items-start justify-between border-b px-6 py-4 dark:border-gray-800">
+        <div className="flex items-center gap-3">
+          {number && <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">{number}</span>}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h2>
+            {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+          </div>
+        </div>
+        {action}
       </div>
       <div className="space-y-5 p-6">{children}</div>
     </div>
