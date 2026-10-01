@@ -401,8 +401,8 @@ export default function CampaignSubmissionsTab({ campaignId }: CampaignSubmissio
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                        {(sub.submittedBy ?? sub.userId ?? '--').slice(0, 8)}
+                      <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                        {sub.submittedByName || (sub.submittedBy ?? sub.userId ?? '--').slice(0, 8)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
