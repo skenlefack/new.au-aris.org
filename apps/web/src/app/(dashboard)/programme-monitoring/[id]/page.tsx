@@ -25,6 +25,8 @@ import { useSearchUsers } from '@/lib/api/dashboard-share-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { ExecutionDashboard } from '@/components/programme-monitoring/ExecutionDashboard';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
+import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 
 type Tab = 'dashboard' | 'activities' | 'budget' | 'indicators' | 'reporting' | 'risks' | 'team';
 
@@ -1078,12 +1080,21 @@ function UnitsSubTab({ programmeId }: { programmeId: string }) {
   const createMut = useCreateUnit();
   const deleteMut = useDeleteUnit();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ code: '', nameEn: '', nameFr: '', descEn: '' });
+  const EMPTY_ML = { en: '', fr: '', pt: '', ar: '', es: '', sw: '' };
+  const [formCode, setFormCode] = useState('');
+  const [formName, setFormName] = useState<Record<string, string>>({ ...EMPTY_ML });
+  const [formDesc, setFormDesc] = useState<Record<string, string>>({ ...EMPTY_ML });
+
+  const cleanMl = (v: Record<string, string>) => {
+    const r: any = {};
+    for (const [k, val] of Object.entries(v)) { if (val?.trim()) r[k] = val.trim(); }
+    return Object.keys(r).length > 0 ? r : undefined;
+  };
 
   async function handleCreate() {
-    await createMut.mutateAsync({ programmeId, code: form.code, name: { en: form.nameEn, fr: form.nameFr || undefined }, description: form.descEn ? { en: form.descEn } : undefined });
+    await createMut.mutateAsync({ programmeId, code: formCode, name: cleanMl(formName), description: cleanMl(formDesc) });
     setShowForm(false);
-    setForm({ code: '', nameEn: '', nameFr: '', descEn: '' });
+    setFormCode(''); setFormName({ ...EMPTY_ML }); setFormDesc({ ...EMPTY_ML });
   }
 
   if (isLoading) return <div className="h-48 rounded-xl bg-gray-200 animate-pulse dark:bg-gray-800" />;
@@ -1099,13 +1110,13 @@ function UnitsSubTab({ programmeId }: { programmeId: string }) {
       </div>
 
       {showForm && (
-        <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">Code *</label><input value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} placeholder="PAPS" className={`${iCls()} font-mono`} /></div>
-            <div className="sm:col-span-2"><label className="block text-xs font-medium text-gray-600 mb-1">Name (EN) *</label><input value={form.nameEn} onChange={e => setForm({...form, nameEn: e.target.value})} placeholder="Pan-African Programme for Animal Health" className={iCls()} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">Name (FR)</label><input value={form.nameFr} onChange={e => setForm({...form, nameFr: e.target.value})} placeholder="Programme Panafricain..." className={iCls()} /></div>
+        <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-4">
+          <div className="w-48">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Code *</label>
+            <input value={formCode} onChange={e => setFormCode(e.target.value.toUpperCase())} placeholder="PAPS" className={`${iCls()} font-mono`} />
           </div>
-          <div><label className="block text-xs font-medium text-gray-600 mb-1">Description</label><input value={form.descEn} onChange={e => setForm({...form, descEn: e.target.value})} placeholder="Unit description" className={iCls()} /></div>
+          <MultilingualInput label="Unit Name" value={formName} onChange={setFormName} required placeholder="Pan-African Programme for Animal Health" />
+          <MultilingualTextarea label="Description" value={formDesc} onChange={setFormDesc} rows={2} placeholder="Unit description and mandate..." />
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowForm(false)} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
             <button onClick={handleCreate} disabled={createMut.isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">{createMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Create</button>
@@ -1143,14 +1154,25 @@ function RolesSubTab({ programmeId }: { programmeId: string }) {
   const createMut = useCreateRoleDef();
   const deleteMut = useDeleteRoleDef();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ code: '', nameEn: '', nameFr: '', color: '#2563eb', permissions: [] as string[] });
+  const EMPTY_ML = { en: '', fr: '', pt: '', ar: '', es: '', sw: '' };
+  const [formCode, setFormCode] = useState('');
+  const [formName, setFormName] = useState<Record<string, string>>({ ...EMPTY_ML });
+  const [formDesc, setFormDesc] = useState<Record<string, string>>({ ...EMPTY_ML });
+  const [formColor, setFormColor] = useState('#2563eb');
+  const [formPermissions, setFormPermissions] = useState<string[]>([]);
 
   const ALL_PERMISSIONS = ['view', 'edit', 'report', 'validate', 'admin'];
 
+  const cleanMl = (v: Record<string, string>) => {
+    const r: any = {};
+    for (const [k, val] of Object.entries(v)) { if (val?.trim()) r[k] = val.trim(); }
+    return Object.keys(r).length > 0 ? r : undefined;
+  };
+
   async function handleCreate() {
-    await createMut.mutateAsync({ programmeId, code: form.code, name: { en: form.nameEn, fr: form.nameFr || undefined }, color: form.color, permissions: form.permissions });
+    await createMut.mutateAsync({ programmeId, code: formCode, name: cleanMl(formName), description: cleanMl(formDesc), color: formColor, permissions: formPermissions });
     setShowForm(false);
-    setForm({ code: '', nameEn: '', nameFr: '', color: '#2563eb', permissions: [] });
+    setFormCode(''); setFormName({ ...EMPTY_ML }); setFormDesc({ ...EMPTY_ML }); setFormColor('#2563eb'); setFormPermissions([]);
   }
 
   if (isLoading) return <div className="h-48 rounded-xl bg-gray-200 animate-pulse dark:bg-gray-800" />;
@@ -1166,19 +1188,19 @@ function RolesSubTab({ programmeId }: { programmeId: string }) {
       </div>
 
       {showForm && (
-        <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">Code *</label><input value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} placeholder="COORD" className={`${iCls()} font-mono`} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">Name (EN) *</label><input value={form.nameEn} onChange={e => setForm({...form, nameEn: e.target.value})} placeholder="Regional Coordinator" className={iCls()} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">Name (FR)</label><input value={form.nameFr} onChange={e => setForm({...form, nameFr: e.target.value})} placeholder="Coordinateur Regional" className={iCls()} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">Color</label><input type="color" value={form.color} onChange={e => setForm({...form, color: e.target.value})} className="h-9 w-full rounded-lg border cursor-pointer dark:border-gray-700" /></div>
+        <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Code *</label><input value={formCode} onChange={e => setFormCode(e.target.value.toUpperCase())} placeholder="COORD" className={`${iCls()} font-mono`} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Color</label><input type="color" value={formColor} onChange={e => setFormColor(e.target.value)} className="h-9 w-full rounded-lg border cursor-pointer dark:border-gray-700" /></div>
           </div>
+          <MultilingualInput label="Role Name" value={formName} onChange={setFormName} required placeholder="Regional Coordinator" />
+          <MultilingualTextarea label="Role Description" value={formDesc} onChange={setFormDesc} rows={2} placeholder="Responsibilities and scope of this role..." />
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-2">Permissions</label>
             <div className="flex flex-wrap gap-2">
               {ALL_PERMISSIONS.map((perm) => (
                 <label key={perm} className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
-                  <input type="checkbox" checked={form.permissions.includes(perm)} onChange={e => setForm({...form, permissions: e.target.checked ? [...form.permissions, perm] : form.permissions.filter(p => p !== perm)})} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <input type="checkbox" checked={formPermissions.includes(perm)} onChange={e => setFormPermissions(e.target.checked ? [...formPermissions, perm] : formPermissions.filter(p => p !== perm))} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                   <span className="text-xs font-medium capitalize">{perm}</span>
                 </label>
               ))}
