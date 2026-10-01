@@ -8,6 +8,7 @@ import {
   Target, FileText, AlertTriangle, Users, Pencil, Plus,
   CheckCircle2, Clock, Pause, Ban, Loader2, Trash2,
   Calendar, ChevronDown, ChevronRight, Save, X, Search,
+  Building2, Shield,
 } from 'lucide-react';
 import {
   useProgrammeDashboard, useProgramme,
@@ -16,7 +17,9 @@ import {
   useIndicators, useCreateIndicator, useAddIndicatorValue,
   useReportingCycles, useCreateCycle, useSubmitReport, useUpdateCycle,
   useRisks, useCreateRisk, useUpdateRisk,
-  useTeam, useAddTeamMember, useRemoveTeamMember,
+  useTeam, useAddTeamMember, useRemoveTeamMember, useUpdateTeamMember,
+  useUnits, useCreateUnit, useDeleteUnit,
+  useRoleDefs, useCreateRoleDef, useDeleteRoleDef,
 } from '@/lib/api/programme-monitoring-hooks';
 import { useSearchUsers } from '@/lib/api/dashboard-share-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -32,7 +35,7 @@ const TABS: Array<{ key: Tab; label: string; icon: React.ReactNode }> = [
   { key: 'indicators', label: 'Indicators', icon: <Target className="h-4 w-4" /> },
   { key: 'reporting', label: 'Reporting', icon: <FileText className="h-4 w-4" /> },
   { key: 'risks', label: 'Risks', icon: <AlertTriangle className="h-4 w-4" /> },
-  { key: 'team', label: 'Team', icon: <Users className="h-4 w-4" /> },
+  { key: 'team', label: 'Organisation & Team', icon: <Users className="h-4 w-4" /> },
 ];
 
 function ln(name: any, locale: string): string {
@@ -834,19 +837,51 @@ function RisksTab({ programmeId, locale }: { programmeId: string; locale: string
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  TEAM TAB — User search selector + role + activity assignment
+//  ORGANISATION & TEAM TAB — Units, Roles, Members
 // ══════════════════════════════════════════════════════════════════════════════
 
 function TeamTab({ programmeId }: { programmeId: string }) {
+  const [subTab, setSubTab] = useState<'members' | 'units' | 'roles'>('members');
+
+  return (
+    <div className="space-y-4">
+      {/* Sub-tabs */}
+      <div className="flex gap-1 border-b dark:border-gray-800 pb-px">
+        {([
+          { key: 'members' as const, label: 'Team Members', icon: <Users className="h-3.5 w-3.5" /> },
+          { key: 'units' as const, label: 'Units', icon: <Building2 className="h-3.5 w-3.5" /> },
+          { key: 'roles' as const, label: 'Roles', icon: <Shield className="h-3.5 w-3.5" /> },
+        ]).map((t) => (
+          <button key={t.key} onClick={() => setSubTab(t.key)} className={`flex items-center gap-1.5 rounded-t-lg px-3 py-2 text-xs font-medium transition ${subTab === t.key ? 'border-b-2 border-emerald-600 text-emerald-700 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+            {t.icon}{t.label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === 'members' && <MembersSubTab programmeId={programmeId} />}
+      {subTab === 'units' && <UnitsSubTab programmeId={programmeId} />}
+      {subTab === 'roles' && <RolesSubTab programmeId={programmeId} />}
+    </div>
+  );
+}
+
+// ── Members Sub-Tab ──
+
+function MembersSubTab({ programmeId }: { programmeId: string }) {
   const { data: res, isLoading } = useTeam(programmeId);
   const team = res?.data ?? [];
   const { data: activitiesRes } = useActivities({ programmeId });
   const allActivities = activitiesRes?.data ?? [];
+  const { data: unitsRes } = useUnits(programmeId);
+  const units = unitsRes?.data ?? [];
+  const { data: roleDefsRes } = useRoleDefs(programmeId);
+  const roleDefs = roleDefsRes?.data ?? [];
   const addMut = useAddTeamMember();
   const removeMut = useRemoveTeamMember();
+  const updateMemberMut = useUpdateTeamMember();
   const updateActivityMut = useUpdateActivity();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ userId: '', role: 'ACTIVITY_OWNER', activityIds: [] as string[] });
+  const [form, setForm] = useState({ userId: '', role: 'ACTIVITY_OWNER', unitId: '', roleDefId: '', activityIds: [] as string[] });
   const [assigningMember, setAssigningMember] = useState<string | null>(null);
   const [assignActivityIds, setAssignActivityIds] = useState<string[]>([]);
 
@@ -868,13 +903,12 @@ function TeamTab({ programmeId }: { programmeId: string }) {
 
   async function handleAdd() {
     if (!form.userId) return;
-    await addMut.mutateAsync({ programmeId, userId: form.userId, role: form.role });
-    // Assign selected activities to this user
+    await addMut.mutateAsync({ programmeId, userId: form.userId, role: form.role, unitId: form.unitId || undefined, roleDefId: form.roleDefId || undefined });
     for (const actId of form.activityIds) {
       await updateActivityMut.mutateAsync({ id: actId, responsibleUserId: form.userId });
     }
     setShowForm(false);
-    setForm({ userId: '', role: 'ACTIVITY_OWNER', activityIds: [] });
+    setForm({ userId: '', role: 'ACTIVITY_OWNER', unitId: '', roleDefId: '', activityIds: [] });
   }
 
   async function handleAssignActivities(userId: string) {
@@ -885,9 +919,8 @@ function TeamTab({ programmeId }: { programmeId: string }) {
     setAssignActivityIds([]);
   }
 
-  // Count activities assigned to each user
-  function getAssignedCount(userId: string): number {
-    return allActivities.filter((a: any) => a.responsibleUserId === userId).length;
+  async function handleUpdateMember(userId: string, field: string, value: string) {
+    await updateMemberMut.mutateAsync({ programmeId, userId, [field]: value || null });
   }
 
   if (isLoading) return <div className="h-48 rounded-xl bg-gray-200 animate-pulse dark:bg-gray-800" />;
@@ -899,143 +932,288 @@ function TeamTab({ programmeId }: { programmeId: string }) {
         <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition"><Plus className="h-3.5 w-3.5" /> Add Member</button>
       </div>
 
-      {/* Add member form with user search */}
       {showForm && (
         <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-4">
           <h4 className="text-sm font-semibold">Add Team Member</h4>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">User *</label>
-              <UserSearchSelect
-                value={form.userId}
-                onChange={(userId) => setForm({...form, userId})}
-                placeholder="Search by name or email..."
-              />
+              <UserSearchSelect value={form.userId} onChange={(userId) => setForm({...form, userId})} placeholder="Search by name or email..." />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">System Role *</label>
               <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className={iCls()}>
                 {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Unit</label>
+              <select value={form.unitId} onChange={e => setForm({...form, unitId: e.target.value})} className={iCls()}>
+                <option value="">— No unit —</option>
+                {units.map((u: any) => <option key={u.id} value={u.id}>{u.code} — {ln(u.name, 'en')}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Programme Role</label>
+              <select value={form.roleDefId} onChange={e => setForm({...form, roleDefId: e.target.value})} className={iCls()}>
+                <option value="">— No role —</option>
+                {roleDefs.map((r: any) => <option key={r.id} value={r.id}>{ln(r.name, 'en')}</option>)}
+              </select>
+            </div>
           </div>
 
-          {/* Activity assignment */}
           {form.userId && allActivities.length > 0 && (
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-2">Assign Activities (optional)</label>
               <div className="max-h-40 overflow-y-auto rounded-lg border p-2 space-y-1 dark:border-gray-700">
                 {allActivities.map((act: any) => (
                   <label key={act.id} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.activityIds.includes(act.id)}
-                      onChange={e => {
-                        const ids = e.target.checked ? [...form.activityIds, act.id] : form.activityIds.filter(id => id !== act.id);
-                        setForm({...form, activityIds: ids});
-                      }}
-                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    />
+                    <input type="checkbox" checked={form.activityIds.includes(act.id)} onChange={e => { const ids = e.target.checked ? [...form.activityIds, act.id] : form.activityIds.filter((i: string) => i !== act.id); setForm({...form, activityIds: ids}); }} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                     <span className="text-xs font-mono text-gray-400">{act.code}</span>
                     <span className="text-xs">{ln(act.name, 'en')}</span>
                   </label>
                 ))}
               </div>
-              {form.activityIds.length > 0 && <p className="text-[11px] text-emerald-600 mt-1">{form.activityIds.length} activities selected</p>}
             </div>
           )}
 
           <div className="flex justify-end gap-2">
-            <button onClick={() => { setShowForm(false); setForm({ userId: '', role: 'ACTIVITY_OWNER', activityIds: [] }); }} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
+            <button onClick={() => setShowForm(false)} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
             <button onClick={handleAdd} disabled={addMut.isPending || !form.userId} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">{addMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Add Member</button>
           </div>
         </div>
       )}
 
-      {/* Team list */}
       {team.length === 0 ? (
-        <div className="rounded-xl border-2 border-dashed py-12 text-center dark:border-gray-700"><Users className="h-10 w-10 text-gray-300 mx-auto mb-3" /><p className="text-sm text-gray-500">No team members yet</p><p className="text-xs text-gray-400 mt-1">Add members and assign them activities</p></div>
+        <div className="rounded-xl border-2 border-dashed py-12 text-center dark:border-gray-700"><Users className="h-10 w-10 text-gray-300 mx-auto mb-3" /><p className="text-sm text-gray-500">No team members yet</p></div>
       ) : (
-        <div className="space-y-3">
-          {team.map((m: any) => {
-            const assignedCount = getAssignedCount(m.userId);
-            const assignedActivities = allActivities.filter((a: any) => a.responsibleUserId === m.userId);
-            const isAssigning = assigningMember === m.userId;
+        <div className="rounded-xl border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-800 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+              <th className="px-3 py-2.5 text-left text-xs text-gray-500">Member</th>
+              <th className="px-3 py-2.5 text-left text-xs text-gray-500">System Role</th>
+              <th className="px-3 py-2.5 text-left text-xs text-gray-500">Unit</th>
+              <th className="px-3 py-2.5 text-left text-xs text-gray-500">Programme Role</th>
+              <th className="px-3 py-2.5 text-center text-xs text-gray-500">Activities</th>
+              <th className="px-3 py-2.5 w-20" />
+            </tr></thead>
+            <tbody className="divide-y dark:divide-gray-800">
+              {team.map((m: any) => {
+                const assignedActivities = allActivities.filter((a: any) => a.responsibleUserId === m.userId);
+                const memberUnit = units.find((u: any) => u.id === m.unitId);
+                const memberRoleDef = roleDefs.find((r: any) => r.id === m.roleDefId);
+                const isAssigning = assigningMember === m.userId;
 
-            return (
-              <div key={m.id} className="rounded-xl border bg-white dark:bg-gray-900 dark:border-gray-800 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-sm font-bold dark:bg-emerald-900/40 dark:text-emerald-400">
-                      {(m.userId || '??').slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{m.userId}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${ROLE_COLORS[m.role] || ROLE_COLORS.VIEWER}`}>{ROLES[m.role] || m.role}</span>
-                        <span className="text-[10px] text-gray-400">{assignedCount} activit{assignedCount !== 1 ? 'ies' : 'y'}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => { setAssigningMember(isAssigning ? null : m.userId); setAssignActivityIds(assignedActivities.map((a: any) => a.id)); }} className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${isAssigning ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400'}`}>
-                      <Activity className="h-3 w-3 inline mr-1" />Assign Activities
-                    </button>
-                    <button onClick={() => removeMut.mutateAsync({ programmeId, userId: m.userId })} className="rounded p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition dark:hover:bg-red-900/20">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                return (
+                  <React.Fragment key={m.id}>
+                    <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xs font-bold dark:bg-emerald-900/40 dark:text-emerald-400 shrink-0">
+                            {(m.userId || '??').slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-sm font-medium truncate max-w-[180px]">{m.userId}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <select value={m.role} onChange={e => handleUpdateMember(m.userId, 'role', e.target.value)} className="rounded border-0 bg-transparent text-xs font-medium text-gray-600 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 px-1 py-0.5">
+                          {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <select value={m.unitId || ''} onChange={e => handleUpdateMember(m.userId, 'unitId', e.target.value)} className="rounded border-0 bg-transparent text-xs text-gray-600 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 px-1 py-0.5">
+                          <option value="">—</option>
+                          {units.map((u: any) => <option key={u.id} value={u.id}>{u.code}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <select value={m.roleDefId || ''} onChange={e => handleUpdateMember(m.userId, 'roleDefId', e.target.value)} className="rounded border-0 bg-transparent text-xs text-gray-600 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 px-1 py-0.5">
+                          <option value="">—</option>
+                          {roleDefs.map((r: any) => <option key={r.id} value={r.id}>{ln(r.name, 'en')}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <button onClick={() => { setAssigningMember(isAssigning ? null : m.userId); setAssignActivityIds(assignedActivities.map((a: any) => a.id)); }} className={`rounded px-2 py-0.5 text-xs font-medium transition ${isAssigning ? 'bg-emerald-100 text-emerald-700' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+                          {assignedActivities.length} act.
+                        </button>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <button onClick={() => removeMut.mutateAsync({ programmeId, userId: m.userId })} className="rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </td>
+                    </tr>
+                    {isAssigning && (
+                      <tr><td colSpan={6} className="bg-gray-50/50 px-4 py-3 dark:bg-gray-800/30">
+                        <p className="text-xs font-medium text-gray-600 mb-2">Assign activities:</p>
+                        <div className="max-h-40 overflow-y-auto rounded-lg border bg-white p-2 space-y-1 dark:bg-gray-900 dark:border-gray-700">
+                          {allActivities.map((act: any) => (
+                            <label key={act.id} className="flex items-center gap-2 rounded px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
+                              <input type="checkbox" checked={assignActivityIds.includes(act.id)} onChange={e => setAssignActivityIds(e.target.checked ? [...assignActivityIds, act.id] : assignActivityIds.filter(i => i !== act.id))} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                              <span className="text-xs font-mono text-gray-400">{act.code}</span>
+                              <span className="text-xs flex-1">{ln(act.name, 'en')}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <div className="flex justify-end gap-2 mt-2">
+                          <button onClick={() => setAssigningMember(null)} className="rounded border px-2 py-1 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
+                          <button onClick={() => handleAssignActivities(m.userId)} className="rounded bg-emerald-600 px-3 py-1 text-xs text-white hover:bg-emerald-700">Save ({assignActivityIds.length})</button>
+                        </div>
+                      </td></tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Units Sub-Tab ──
+
+function UnitsSubTab({ programmeId }: { programmeId: string }) {
+  const { data: res, isLoading } = useUnits(programmeId);
+  const units = res?.data ?? [];
+  const createMut = useCreateUnit();
+  const deleteMut = useDeleteUnit();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ code: '', nameEn: '', nameFr: '', descEn: '' });
+
+  async function handleCreate() {
+    await createMut.mutateAsync({ programmeId, code: form.code, name: { en: form.nameEn, fr: form.nameFr || undefined }, description: form.descEn ? { en: form.descEn } : undefined });
+    setShowForm(false);
+    setForm({ code: '', nameEn: '', nameFr: '', descEn: '' });
+  }
+
+  if (isLoading) return <div className="h-48 rounded-xl bg-gray-200 animate-pulse dark:bg-gray-800" />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Programme Units ({units.length})</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Organisational units within this programme (PAPS, AU-PANVAC, IT, etc.)</p>
+        </div>
+        <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition"><Plus className="h-3.5 w-3.5" /> Add Unit</button>
+      </div>
+
+      {showForm && (
+        <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Code *</label><input value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} placeholder="PAPS" className={`${iCls()} font-mono`} /></div>
+            <div className="sm:col-span-2"><label className="block text-xs font-medium text-gray-600 mb-1">Name (EN) *</label><input value={form.nameEn} onChange={e => setForm({...form, nameEn: e.target.value})} placeholder="Pan-African Programme for Animal Health" className={iCls()} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Name (FR)</label><input value={form.nameFr} onChange={e => setForm({...form, nameFr: e.target.value})} placeholder="Programme Panafricain..." className={iCls()} /></div>
+          </div>
+          <div><label className="block text-xs font-medium text-gray-600 mb-1">Description</label><input value={form.descEn} onChange={e => setForm({...form, descEn: e.target.value})} placeholder="Unit description" className={iCls()} /></div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowForm(false)} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
+            <button onClick={handleCreate} disabled={createMut.isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">{createMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Create</button>
+          </div>
+        </div>
+      )}
+
+      {units.length === 0 ? (
+        <div className="rounded-xl border-2 border-dashed py-12 text-center dark:border-gray-700"><Building2 className="h-10 w-10 text-gray-300 mx-auto mb-3" /><p className="text-sm text-gray-500">No units defined yet</p><p className="text-xs text-gray-400 mt-1">Create units to organise team members</p></div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {units.map((u: any) => (
+            <div key={u.id} className="rounded-xl border bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">{u.code}</span>
+                  <span className="text-sm font-medium">{ln(u.name, 'en')}</span>
                 </div>
-
-                {/* Assigned activities list + assignment panel */}
-                {isAssigning && (
-                  <div className="border-t bg-gray-50/50 p-4 dark:bg-gray-800/30 dark:border-gray-700">
-                    <p className="text-xs font-medium text-gray-600 mb-2">Select activities to assign to this member:</p>
-                    <div className="max-h-48 overflow-y-auto rounded-lg border bg-white p-2 space-y-1 dark:bg-gray-900 dark:border-gray-700">
-                      {allActivities.map((act: any) => (
-                        <label key={act.id} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={assignActivityIds.includes(act.id)}
-                            onChange={e => {
-                              const ids = e.target.checked ? [...assignActivityIds, act.id] : assignActivityIds.filter(id => id !== act.id);
-                              setAssignActivityIds(ids);
-                            }}
-                            className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                          />
-                          <span className="text-xs font-mono text-gray-400">{act.code}</span>
-                          <span className="text-xs flex-1">{ln(act.name, 'en')}</span>
-                          {act.responsibleUserId && act.responsibleUserId !== m.userId && (
-                            <span className="text-[10px] text-amber-500">assigned to other</span>
-                          )}
-                        </label>
-                      ))}
-                    </div>
-                    <div className="flex justify-end gap-2 mt-3">
-                      <button onClick={() => setAssigningMember(null)} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
-                      <button onClick={() => handleAssignActivities(m.userId)} disabled={updateActivityMut.isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">
-                        {updateActivityMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                        Save Assignments ({assignActivityIds.length})
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Show assigned activities when not in edit mode */}
-                {!isAssigning && assignedActivities.length > 0 && (
-                  <div className="border-t px-4 py-2 dark:border-gray-700">
-                    <div className="flex flex-wrap gap-1.5">
-                      {assignedActivities.map((act: any) => (
-                        <span key={act.id} className="rounded bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                          {act.code}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <button onClick={() => deleteMut.mutateAsync(u.id)} className="rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
-            );
-          })}
+              {u.description && <p className="text-xs text-gray-500 mt-1.5">{ln(u.description, 'en')}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Roles Sub-Tab ──
+
+function RolesSubTab({ programmeId }: { programmeId: string }) {
+  const { data: res, isLoading } = useRoleDefs(programmeId);
+  const roleDefs = res?.data ?? [];
+  const createMut = useCreateRoleDef();
+  const deleteMut = useDeleteRoleDef();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ code: '', nameEn: '', nameFr: '', color: '#2563eb', permissions: [] as string[] });
+
+  const ALL_PERMISSIONS = ['view', 'edit', 'report', 'validate', 'admin'];
+
+  async function handleCreate() {
+    await createMut.mutateAsync({ programmeId, code: form.code, name: { en: form.nameEn, fr: form.nameFr || undefined }, color: form.color, permissions: form.permissions });
+    setShowForm(false);
+    setForm({ code: '', nameEn: '', nameFr: '', color: '#2563eb', permissions: [] });
+  }
+
+  if (isLoading) return <div className="h-48 rounded-xl bg-gray-200 animate-pulse dark:bg-gray-800" />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Programme Roles ({roleDefs.length})</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Custom roles specific to this programme with associated permissions</p>
+        </div>
+        <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition"><Plus className="h-3.5 w-3.5" /> Add Role</button>
+      </div>
+
+      {showForm && (
+        <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Code *</label><input value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} placeholder="COORD" className={`${iCls()} font-mono`} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Name (EN) *</label><input value={form.nameEn} onChange={e => setForm({...form, nameEn: e.target.value})} placeholder="Regional Coordinator" className={iCls()} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Name (FR)</label><input value={form.nameFr} onChange={e => setForm({...form, nameFr: e.target.value})} placeholder="Coordinateur Regional" className={iCls()} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Color</label><input type="color" value={form.color} onChange={e => setForm({...form, color: e.target.value})} className="h-9 w-full rounded-lg border cursor-pointer dark:border-gray-700" /></div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-2">Permissions</label>
+            <div className="flex flex-wrap gap-2">
+              {ALL_PERMISSIONS.map((perm) => (
+                <label key={perm} className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+                  <input type="checkbox" checked={form.permissions.includes(perm)} onChange={e => setForm({...form, permissions: e.target.checked ? [...form.permissions, perm] : form.permissions.filter(p => p !== perm)})} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-xs font-medium capitalize">{perm}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowForm(false)} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
+            <button onClick={handleCreate} disabled={createMut.isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">{createMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Create</button>
+          </div>
+        </div>
+      )}
+
+      {roleDefs.length === 0 ? (
+        <div className="rounded-xl border-2 border-dashed py-12 text-center dark:border-gray-700"><Shield className="h-10 w-10 text-gray-300 mx-auto mb-3" /><p className="text-sm text-gray-500">No custom roles defined yet</p><p className="text-xs text-gray-400 mt-1">Create roles to define responsibilities within the programme</p></div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {roleDefs.map((r: any) => (
+            <div key={r.id} className="rounded-xl border bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: r.color || '#6b7280' }} />
+                  <span className="text-xs font-mono text-gray-400">{r.code}</span>
+                  <span className="text-sm font-medium">{ln(r.name, 'en')}</span>
+                </div>
+                <button onClick={() => deleteMut.mutateAsync(r.id)} className="rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition"><Trash2 className="h-3.5 w-3.5" /></button>
+              </div>
+              {r.permissions?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {r.permissions.map((p: string) => (
+                    <span key={p} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 capitalize dark:bg-gray-800 dark:text-gray-400">{p}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

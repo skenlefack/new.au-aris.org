@@ -136,4 +136,102 @@ export class RiskService {
 
     return { data: { matrix, totalOpen: risks.length } };
   }
+
+  // ── Team member update ──
+
+  async updateTeamMember(programmeId: string, userId: string, dto: any, _user: any) {
+    const member = await (this.prisma as any).programmeTeam.findFirst({
+      where: { programmeId, userId },
+    });
+    if (!member) throw new HttpError(404, 'Team member not found');
+
+    const updateData: Record<string, unknown> = {};
+    if (dto.role !== undefined) updateData['role'] = dto.role;
+    if (dto.unitId !== undefined) updateData['unitId'] = dto.unitId;
+    if (dto.roleDefId !== undefined) updateData['roleDefId'] = dto.roleDefId;
+    if (dto.geoEntityId !== undefined) updateData['geoEntityId'] = dto.geoEntityId;
+
+    const updated = await (this.prisma as any).programmeTeam.update({
+      where: { id: member.id },
+      data: updateData,
+    });
+
+    return { data: updated };
+  }
+
+  // ── Programme Units ──
+
+  async createUnit(programmeId: string, dto: any) {
+    const unit = await (this.prisma as any).programmeUnit.create({
+      data: {
+        programmeId,
+        code: dto.code,
+        name: dto.name,
+        description: dto.description ?? null,
+        parentUnitId: dto.parentUnitId ?? null,
+        headUserId: dto.headUserId ?? null,
+        sortOrder: dto.sortOrder ?? 0,
+      },
+    });
+    return { data: unit };
+  }
+
+  async findUnits(programmeId: string) {
+    const data = await (this.prisma as any).programmeUnit.findMany({
+      where: { programmeId },
+      orderBy: { sortOrder: 'asc' },
+    });
+    return { data };
+  }
+
+  async updateUnit(id: string, dto: any) {
+    const existing = await (this.prisma as any).programmeUnit.findUnique({ where: { id } });
+    if (!existing) throw new HttpError(404, `Unit ${id} not found`);
+
+    const updateData: Record<string, unknown> = {};
+    if (dto.code !== undefined) updateData['code'] = dto.code;
+    if (dto.name !== undefined) updateData['name'] = dto.name;
+    if (dto.description !== undefined) updateData['description'] = dto.description;
+    if (dto.parentUnitId !== undefined) updateData['parentUnitId'] = dto.parentUnitId;
+    if (dto.headUserId !== undefined) updateData['headUserId'] = dto.headUserId;
+    if (dto.sortOrder !== undefined) updateData['sortOrder'] = dto.sortOrder;
+
+    const updated = await (this.prisma as any).programmeUnit.update({ where: { id }, data: updateData });
+    return { data: updated };
+  }
+
+  async deleteUnit(id: string) {
+    await (this.prisma as any).programmeUnit.delete({ where: { id } });
+    return { data: { deleted: true } };
+  }
+
+  // ── Programme Role Definitions ──
+
+  async createRoleDef(programmeId: string, dto: any) {
+    const roleDef = await (this.prisma as any).programmeRoleDef.create({
+      data: {
+        programmeId,
+        code: dto.code,
+        name: dto.name,
+        description: dto.description ?? null,
+        permissions: dto.permissions ?? [],
+        color: dto.color ?? null,
+        sortOrder: dto.sortOrder ?? 0,
+      },
+    });
+    return { data: roleDef };
+  }
+
+  async findRoleDefs(programmeId: string) {
+    const data = await (this.prisma as any).programmeRoleDef.findMany({
+      where: { programmeId },
+      orderBy: { sortOrder: 'asc' },
+    });
+    return { data };
+  }
+
+  async deleteRoleDef(id: string) {
+    await (this.prisma as any).programmeRoleDef.delete({ where: { id } });
+    return { data: { deleted: true } };
+  }
 }

@@ -87,6 +87,18 @@ export async function registerRiskTeamRoutes(app: FastifyInstance): Promise<void
     },
   );
 
+  app.patch(
+    '/api/v1/programme-monitoring/programmes/:programmeId/team/:userId',
+    {
+      preHandler: [...authAndTenant, rolesHook(...ADMIN_ROLES)],
+    },
+    async (request) => {
+      const { programmeId, userId } = request.params as { programmeId: string; userId: string };
+      const user = request.user as AuthenticatedUser;
+      return app.riskService.updateTeamMember(programmeId, userId, request.body, user);
+    },
+  );
+
   app.delete(
     '/api/v1/programme-monitoring/programmes/:programmeId/team/:userId',
     {
@@ -96,5 +108,55 @@ export async function registerRiskTeamRoutes(app: FastifyInstance): Promise<void
       const { programmeId, userId } = request.params as { programmeId: string; userId: string };
       return app.riskService.removeTeamMember(programmeId, userId);
     },
+  );
+
+  // ── Units ──
+
+  app.post<{ Params: UuidParamInput }>(
+    '/api/v1/programme-monitoring/programmes/:id/units',
+    { preHandler: [...authAndTenant, rolesHook(...ADMIN_ROLES)] },
+    async (request, reply) => {
+      return reply.code(201).send(await app.riskService.createUnit(request.params.id, request.body));
+    },
+  );
+
+  app.get<{ Params: UuidParamInput }>(
+    '/api/v1/programme-monitoring/programmes/:id/units',
+    { preHandler: authAndTenant },
+    async (request) => { return app.riskService.findUnits(request.params.id); },
+  );
+
+  app.patch<{ Params: UuidParamInput }>(
+    '/api/v1/programme-monitoring/units/:id',
+    { preHandler: [...authAndTenant, rolesHook(...ADMIN_ROLES)] },
+    async (request) => { return app.riskService.updateUnit(request.params.id, request.body); },
+  );
+
+  app.delete<{ Params: UuidParamInput }>(
+    '/api/v1/programme-monitoring/units/:id',
+    { schema: { params: UuidParamSchema }, preHandler: [...authAndTenant, rolesHook(...ADMIN_ROLES)] },
+    async (request) => { return app.riskService.deleteUnit(request.params.id); },
+  );
+
+  // ── Role Definitions ──
+
+  app.post<{ Params: UuidParamInput }>(
+    '/api/v1/programme-monitoring/programmes/:id/roles',
+    { preHandler: [...authAndTenant, rolesHook(...ADMIN_ROLES)] },
+    async (request, reply) => {
+      return reply.code(201).send(await app.riskService.createRoleDef(request.params.id, request.body));
+    },
+  );
+
+  app.get<{ Params: UuidParamInput }>(
+    '/api/v1/programme-monitoring/programmes/:id/roles',
+    { preHandler: authAndTenant },
+    async (request) => { return app.riskService.findRoleDefs(request.params.id); },
+  );
+
+  app.delete<{ Params: UuidParamInput }>(
+    '/api/v1/programme-monitoring/roles/:id',
+    { schema: { params: UuidParamSchema }, preHandler: [...authAndTenant, rolesHook(...ADMIN_ROLES)] },
+    async (request) => { return app.riskService.deleteRoleDef(request.params.id); },
   );
 }

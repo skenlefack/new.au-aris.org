@@ -34,6 +34,8 @@ model Programme {
   reportingCycles ReportingCycle[]
   risks          ProgrammeRisk[]
   teamMembers    ProgrammeTeam[]
+  units          ProgrammeUnit[]
+  roleDefs       ProgrammeRoleDef[]
   snapshots      ProgrammeSnapshot[]
   donors         ProgrammeDonor[]
 
@@ -445,15 +447,65 @@ model ProgrammeRisk {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Programme Team — Members assigned to a programme
+// Programme Unit — Organisational units within a programme (PAPS, AU-PANVAC, etc.)
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ProgrammeUnit {
+  id            String   @id @default(uuid()) @db.Uuid
+  programmeId   String   @map("programme_id") @db.Uuid
+  code          String   @db.VarChar(30) // "PAPS", "PANVAC", "IT"
+  name          Json     @db.JsonB
+  description   Json?    @db.JsonB
+  parentUnitId  String?  @map("parent_unit_id") @db.Uuid
+  headUserId    String?  @map("head_user_id") @db.Uuid
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  programme Programme @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+
+  @@unique([programmeId, code], map: "uq_programme_unit_code")
+  @@index([programmeId])
+  @@map("programme_units")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Programme Role — Custom roles within a programme
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ProgrammeRoleDef {
+  id            String   @id @default(uuid()) @db.Uuid
+  programmeId   String   @map("programme_id") @db.Uuid
+  code          String   @db.VarChar(30)
+  name          Json     @db.JsonB
+  description   Json?    @db.JsonB
+  permissions   String[] @default([]) // "view", "edit", "report", "validate", "admin"
+  color         String?  @db.VarChar(20)
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  programme Programme @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+
+  @@unique([programmeId, code], map: "uq_programme_role_code")
+  @@index([programmeId])
+  @@map("programme_role_defs")
+  @@schema("programme_monitoring")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Programme Team — Members assigned to a programme with unit + roles
 // ══════════════════════════════════════════════════════════════════════════════
 
 model ProgrammeTeam {
   id            String   @id @default(uuid()) @db.Uuid
   programmeId   String   @map("programme_id") @db.Uuid
   userId        String   @map("user_id") @db.Uuid
-  role          String   @db.VarChar(30) // PROGRAMME_DIRECTOR | PROGRAMME_COORDINATOR | REGIONAL_COORDINATOR | ACTIVITY_OWNER | M_AND_E_OFFICER | FINANCE_OFFICER | VIEWER
-  geoEntityId   String?  @map("geo_entity_id") @db.Uuid // For regional coordinators
+  role          String   @db.VarChar(30) // legacy role code
+  unitId        String?  @map("unit_id") @db.Uuid
+  roleDefId     String?  @map("role_def_id") @db.Uuid
+  geoEntityId   String?  @map("geo_entity_id") @db.Uuid
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -462,6 +514,7 @@ model ProgrammeTeam {
   @@unique([programmeId, userId], map: "uq_team_member")
   @@index([programmeId])
   @@index([userId])
+  @@index([unitId])
   @@map("programme_team")
   @@schema("programme_monitoring")
 }

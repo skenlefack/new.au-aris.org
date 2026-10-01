@@ -307,6 +307,80 @@ export function useRemoveTeamMember() {
   });
 }
 
+export function useUpdateTeamMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ programmeId, userId, ...body }: any) =>
+      programmeMonitoringClient.patch<any>(`${BASE}/programmes/${programmeId}/team/${userId}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-team'] }),
+  });
+}
+
+// ── Units ──
+
+export function useUnits(programmeId: string | undefined) {
+  return useQuery({
+    queryKey: ['pm-units', programmeId],
+    queryFn: () => programmeMonitoringClient.get<any>(`${BASE}/programmes/${programmeId}/units`),
+    enabled: !!programmeId,
+    staleTime: 60_000,
+  });
+}
+
+export function useCreateUnit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ programmeId, ...body }: any) =>
+      programmeMonitoringClient.post<any>(`${BASE}/programmes/${programmeId}/units`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-units'] }),
+  });
+}
+
+export function useUpdateUnit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: any) =>
+      programmeMonitoringClient.patch<any>(`${BASE}/units/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-units'] }),
+  });
+}
+
+export function useDeleteUnit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => programmeMonitoringClient.delete<any>(`${BASE}/units/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-units'] }),
+  });
+}
+
+// ── Role Definitions ──
+
+export function useRoleDefs(programmeId: string | undefined) {
+  return useQuery({
+    queryKey: ['pm-role-defs', programmeId],
+    queryFn: () => programmeMonitoringClient.get<any>(`${BASE}/programmes/${programmeId}/roles`),
+    enabled: !!programmeId,
+    staleTime: 60_000,
+  });
+}
+
+export function useCreateRoleDef() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ programmeId, ...body }: any) =>
+      programmeMonitoringClient.post<any>(`${BASE}/programmes/${programmeId}/roles`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-role-defs'] }),
+  });
+}
+
+export function useDeleteRoleDef() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => programmeMonitoringClient.delete<any>(`${BASE}/roles/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pm-role-defs'] }),
+  });
+}
+
 // ── Reporting mutations ──
 
 export function useValidateReport() {
