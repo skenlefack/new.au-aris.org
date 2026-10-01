@@ -542,6 +542,53 @@ function ReportingTab({ programmeId, locale }: { programmeId: string; locale: st
   const submitMut = useSubmitReport();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ cycleType: 'WEEKLY', periodLabel: '', periodStart: '', periodEnd: '', deadline: '' });
+
+  // Auto-generate period label, dates and deadline when type changes
+  function initCycleForm(cycleType: string) {
+    const now = new Date();
+    const year = now.getFullYear();
+    let periodLabel = '', periodStart = '', periodEnd = '', deadline = '';
+
+    if (cycleType === 'WEEKLY') {
+      // ISO week number
+      const jan1 = new Date(year, 0, 1);
+      const week = Math.ceil(((now.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7);
+      periodLabel = `${year}-W${String(week).padStart(2, '0')}`;
+      const dayOfWeek = now.getDay();
+      const monday = new Date(now); monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+      const friday = new Date(monday); friday.setDate(monday.getDate() + 4);
+      const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+      periodStart = monday.toISOString().split('T')[0];
+      periodEnd = sunday.toISOString().split('T')[0];
+      friday.setHours(17, 0, 0);
+      deadline = `${friday.toISOString().slice(0, 16)}`;
+    } else if (cycleType === 'MONTHLY') {
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      periodLabel = `${year}-${month}`;
+      periodStart = `${year}-${month}-01`;
+      const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+      periodEnd = `${year}-${month}-${lastDay}`;
+      const deadlineDate = new Date(year, now.getMonth() + 1, 5, 17, 0);
+      deadline = deadlineDate.toISOString().slice(0, 16);
+    } else if (cycleType === 'QUARTERLY') {
+      const quarter = Math.ceil((now.getMonth() + 1) / 3);
+      periodLabel = `${year}-Q${quarter}`;
+      const qStart = (quarter - 1) * 3;
+      periodStart = `${year}-${String(qStart + 1).padStart(2, '0')}-01`;
+      const qEndMonth = qStart + 3;
+      const lastDay = new Date(year, qEndMonth, 0).getDate();
+      periodEnd = `${year}-${String(qEndMonth).padStart(2, '0')}-${lastDay}`;
+      const deadlineDate = new Date(year, qEndMonth, 15, 17, 0);
+      deadline = deadlineDate.toISOString().slice(0, 16);
+    } else {
+      periodLabel = `${year}`;
+      periodStart = `${year}-01-01`;
+      periodEnd = `${year}-12-31`;
+      deadline = `${year + 1}-01-31T17:00`;
+    }
+
+    setForm({ cycleType, periodLabel, periodStart, periodEnd, deadline });
+  }
   const [reportingCycleId, setReportingCycleId] = useState<string | null>(null);
   const [reportItems, setReportItems] = useState<Record<string, { currentStatus: string; completionPercent: number; narrative: string; blockers: string }>>({});
 
@@ -586,13 +633,13 @@ function ReportingTab({ programmeId, locale }: { programmeId: string; locale: st
           <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Reporting Cycles ({cycles.length})</h3>
           {myActivities.length > 0 && <p className="text-xs text-gray-400 mt-0.5">You have {myActivities.length} assigned activities to report on</p>}
         </div>
-        <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition"><Plus className="h-3.5 w-3.5" /> Open Cycle</button>
+        <button onClick={() => { initCycleForm('WEEKLY'); setShowForm(true); }} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition"><Plus className="h-3.5 w-3.5" /> Open Cycle</button>
       </div>
 
       {showForm && (
         <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">Type</label><select value={form.cycleType} onChange={e => setForm({...form, cycleType: e.target.value})} className={iCls()}><option value="WEEKLY">Weekly</option><option value="MONTHLY">Monthly</option><option value="QUARTERLY">Quarterly</option><option value="ANNUAL">Annual</option></select></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Type</label><select value={form.cycleType} onChange={e => initCycleForm(e.target.value)} className={iCls()}><option value="WEEKLY">Weekly</option><option value="MONTHLY">Monthly</option><option value="QUARTERLY">Quarterly</option><option value="ANNUAL">Annual</option></select></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">Label *</label><input value={form.periodLabel} onChange={e => setForm({...form, periodLabel: e.target.value})} placeholder="2026-W40" className={iCls()} /></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">Start</label><input type="date" value={form.periodStart} onChange={e => setForm({...form, periodStart: e.target.value})} className={iCls()} /></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">End</label><input type="date" value={form.periodEnd} onChange={e => setForm({...form, periodEnd: e.target.value})} className={iCls()} /></div>
