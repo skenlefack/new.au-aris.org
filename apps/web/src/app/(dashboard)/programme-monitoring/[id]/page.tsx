@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, LayoutDashboard, Activity, DollarSign,
   Target, FileText, AlertTriangle, Users, Pencil, Plus,
   CheckCircle2, Clock, Pause, Ban, Loader2, Trash2,
-  Calendar, ChevronDown, ChevronRight, Save, X,
+  Calendar, ChevronDown, ChevronRight, Save, X, Search,
 } from 'lucide-react';
 import {
   useProgrammeDashboard, useProgramme,
@@ -18,6 +18,8 @@ import {
   useRisks, useCreateRisk, useUpdateRisk,
   useTeam, useAddTeamMember, useRemoveTeamMember,
 } from '@/lib/api/programme-monitoring-hooks';
+import { useSearchUsers } from '@/lib/api/dashboard-share-hooks';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { ExecutionDashboard } from '@/components/programme-monitoring/ExecutionDashboard';
 
@@ -527,30 +529,63 @@ function IndicatorsTab({ programmeId, programme, locale }: { programmeId: string
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  REPORTING TAB
+//  REPORTING TAB — User sees their assigned activities + submits reports
 // ══════════════════════════════════════════════════════════════════════════════
 
 function ReportingTab({ programmeId, locale }: { programmeId: string; locale: string }) {
-  const { data: res, isLoading } = useReportingCycles(programmeId);
-  const cycles = res?.data ?? [];
+  const currentUser = useAuthStore((s) => s.user);
+  const { data: cyclesRes, isLoading: cyclesLoading } = useReportingCycles(programmeId);
+  const cycles = cyclesRes?.data ?? [];
+  const { data: activitiesRes } = useActivities({ programmeId });
+  const allActivities = activitiesRes?.data ?? [];
   const createMut = useCreateCycle();
+  const submitMut = useSubmitReport();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ cycleType: 'WEEKLY', periodLabel: '', periodStart: '', periodEnd: '', deadline: '' });
+  const [reportingCycleId, setReportingCycleId] = useState<string | null>(null);
+  const [reportItems, setReportItems] = useState<Record<string, { currentStatus: string; completionPercent: number; narrative: string; blockers: string }>>({});
 
-  async function handleCreate() {
+  // My assigned activities (where responsibleUserId matches current user)
+  const myActivities = allActivities.filter((a: any) => a.responsibleUserId === currentUser?.id);
+  const activitiesToReport = myActivities.length > 0 ? myActivities : allActivities;
+
+  async function handleCreateCycle() {
     await createMut.mutateAsync({ programmeId, ...form });
     setShowForm(false);
     setForm({ cycleType: 'WEEKLY', periodLabel: '', periodStart: '', periodEnd: '', deadline: '' });
   }
 
-  if (isLoading) return <div className="h-48 rounded-xl bg-gray-200 animate-pulse dark:bg-gray-800" />;
+  function startReporting(cycleId: string) {
+    setReportingCycleId(cycleId);
+    const items: typeof reportItems = {};
+    for (const act of activitiesToReport) {
+      items[act.id] = { currentStatus: act.status, completionPercent: act.completionPercent, narrative: '', blockers: '' };
+    }
+    setReportItems(items);
+  }
+
+  async function handleSubmitReport() {
+    if (!reportingCycleId) return;
+    const items = Object.entries(reportItems).map(([activityId, data]) => ({
+      activityId,
+      previousStatus: allActivities.find((a: any) => a.id === activityId)?.status || 'NOT_STARTED',
+      ...data,
+    }));
+    await submitMut.mutateAsync({ cycleId: reportingCycleId, items, overallNote: '' });
+    setReportingCycleId(null);
+  }
 
   const STATUS_BADGE: Record<string, string> = { OPEN: 'bg-blue-50 text-blue-700', SUBMITTED: 'bg-amber-50 text-amber-700', VALIDATED: 'bg-emerald-50 text-emerald-700', PUBLISHED: 'bg-purple-50 text-purple-700' };
+
+  if (cyclesLoading) return <div className="h-48 rounded-xl bg-gray-200 animate-pulse dark:bg-gray-800" />;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Reporting Cycles ({cycles.length})</h3>
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Reporting Cycles ({cycles.length})</h3>
+          {myActivities.length > 0 && <p className="text-xs text-gray-400 mt-0.5">You have {myActivities.length} assigned activities to report on</p>}
+        </div>
         <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition"><Plus className="h-3.5 w-3.5" /> Open Cycle</button>
       </div>
 
@@ -565,11 +600,67 @@ function ReportingTab({ programmeId, locale }: { programmeId: string; locale: st
           </div>
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowForm(false)} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
-            <button onClick={handleCreate} disabled={createMut.isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">{createMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Create</button>
+            <button onClick={handleCreateCycle} disabled={createMut.isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">{createMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Create</button>
           </div>
         </div>
       )}
 
+      {/* Reporting form for a specific cycle */}
+      {reportingCycleId && (
+        <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/30 p-5 dark:bg-emerald-900/10 dark:border-emerald-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Submit Activity Report</h4>
+            <button onClick={() => setReportingCycleId(null)} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+          </div>
+          <p className="text-xs text-gray-500">Update status and completion for each activity, add narrative and blockers.</p>
+
+          <div className="space-y-3">
+            {activitiesToReport.map((act: any) => {
+              const item = reportItems[act.id];
+              if (!item) return null;
+              return (
+                <div key={act.id} className="rounded-lg border bg-white p-4 dark:bg-gray-900 dark:border-gray-700 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-gray-400">{act.code}</span>
+                    <span className="text-sm font-medium">{ln(act.name, locale)}</span>
+                    <span className="text-[10px] text-gray-400">({act.responsibleUnit || 'unassigned'})</span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                    <div>
+                      <label className="block text-[11px] text-gray-500 mb-1">Status</label>
+                      <select value={item.currentStatus} onChange={e => setReportItems({...reportItems, [act.id]: {...item, currentStatus: e.target.value}})} className={iCls()}>
+                        {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-gray-500 mb-1">Completion %</label>
+                      <input type="number" min={0} max={100} value={item.completionPercent} onChange={e => setReportItems({...reportItems, [act.id]: {...item, completionPercent: Number(e.target.value)}})} className={iCls()} />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-gray-500 mb-1">Progress narrative</label>
+                      <input value={item.narrative} onChange={e => setReportItems({...reportItems, [act.id]: {...item, narrative: e.target.value}})} placeholder="What was done..." className={iCls()} />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-gray-500 mb-1">Blockers / support needed</label>
+                      <input value={item.blockers} onChange={e => setReportItems({...reportItems, [act.id]: {...item, blockers: e.target.value}})} placeholder="Any obstacles..." className={iCls()} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => setReportingCycleId(null)} className="rounded-lg border px-4 py-2 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
+            <button onClick={handleSubmitReport} disabled={submitMut.isPending} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+              {submitMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Submit Report
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Cycles list */}
       {cycles.length === 0 ? (
         <div className="rounded-xl border-2 border-dashed py-12 text-center dark:border-gray-700">
           <FileText className="h-10 w-10 text-gray-300 mx-auto mb-3" />
@@ -579,16 +670,25 @@ function ReportingTab({ programmeId, locale }: { programmeId: string; locale: st
       ) : (
         <div className="space-y-3">
           {cycles.map((c: any) => (
-            <div key={c.id} className="rounded-xl border bg-white p-4 dark:bg-gray-900 dark:border-gray-800 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold">{c.periodLabel}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_BADGE[c.status] || 'bg-gray-100 text-gray-600'}`}>{c.status}</span>
-                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">{c.cycleType}</span>
+            <div key={c.id} className="rounded-xl border bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold">{c.periodLabel}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_BADGE[c.status] || 'bg-gray-100 text-gray-600'}`}>{c.status}</span>
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">{c.cycleType}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{new Date(c.periodStart).toLocaleDateString()} — {new Date(c.periodEnd).toLocaleDateString()} | Deadline: {new Date(c.deadline).toLocaleString()}</p>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{new Date(c.periodStart).toLocaleDateString()} — {new Date(c.periodEnd).toLocaleDateString()} | Deadline: {new Date(c.deadline).toLocaleString()}</p>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400">{c._count?.reports ?? 0} report(s)</span>
+                  {c.status === 'OPEN' && !reportingCycleId && (
+                    <button onClick={() => startReporting(c.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400">
+                      <FileText className="h-3 w-3" /> Report
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="text-xs text-gray-400">{c._count?.reports ?? 0} report(s)</div>
             </div>
           ))}
         </div>
@@ -598,7 +698,7 @@ function ReportingTab({ programmeId, locale }: { programmeId: string; locale: st
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  RISKS TAB
+//  RISKS TAB — with owner user selector
 // ══════════════════════════════════════════════════════════════════════════════
 
 function RisksTab({ programmeId, locale }: { programmeId: string; locale: string }) {
@@ -607,12 +707,16 @@ function RisksTab({ programmeId, locale }: { programmeId: string; locale: string
   const createMut = useCreateRisk();
   const updateMut = useUpdateRisk();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ code: '', descEn: '', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'MEDIUM' });
+  const [form, setForm] = useState({ code: '', descEn: '', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'MEDIUM', ownerUserId: '' });
+  const [ownerSearch, setOwnerSearch] = useState('');
+  const { data: ownerResults } = useSearchUsers(ownerSearch);
+  const ownerUsers = ownerResults?.data ?? [];
 
   async function handleCreate() {
-    await createMut.mutateAsync({ programmeId, code: form.code, description: { en: form.descEn }, category: form.category, likelihood: form.likelihood, impact: form.impact });
+    await createMut.mutateAsync({ programmeId, code: form.code, description: { en: form.descEn }, category: form.category, likelihood: form.likelihood, impact: form.impact, ownerUserId: form.ownerUserId || undefined });
     setShowForm(false);
-    setForm({ code: '', descEn: '', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'MEDIUM' });
+    setForm({ code: '', descEn: '', category: 'OPERATIONAL', likelihood: 'MEDIUM', impact: 'MEDIUM', ownerUserId: '' });
+    setOwnerSearch('');
   }
 
   if (isLoading) return <div className="h-48 rounded-xl bg-gray-200 animate-pulse dark:bg-gray-800" />;
@@ -626,13 +730,23 @@ function RisksTab({ programmeId, locale }: { programmeId: string; locale: string
 
       {showForm && (
         <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div><label className="block text-xs font-medium text-gray-600 mb-1">Code *</label><input value={form.code} onChange={e => setForm({...form, code: e.target.value})} placeholder="RISK-001" className={iCls()} /></div>
             <div className="sm:col-span-2"><label className="block text-xs font-medium text-gray-600 mb-1">Description *</label><input value={form.descEn} onChange={e => setForm({...form, descEn: e.target.value})} placeholder="Risk description" className={iCls()} /></div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Category</label><select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className={iCls()}><option value="FINANCIAL">Financial</option><option value="TECHNICAL">Technical</option><option value="OPERATIONAL">Operational</option><option value="POLITICAL">Political</option><option value="SECURITY">Security</option></select></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">Likelihood</label><select value={form.likelihood} onChange={e => setForm({...form, likelihood: e.target.value})} className={iCls()}><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="VERY_HIGH">Very High</option></select></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">Impact</label><select value={form.impact} onChange={e => setForm({...form, impact: e.target.value})} className={iCls()}><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option></select></div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Owner</label>
+              <UserSearchSelect
+                value={form.ownerUserId}
+                onChange={(userId) => setForm({...form, ownerUserId: userId})}
+                placeholder="Search owner..."
+              />
+            </div>
           </div>
-          <div><label className="block text-xs font-medium text-gray-600 mb-1">Category</label><select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className={`${iCls()} w-48`}><option value="FINANCIAL">Financial</option><option value="TECHNICAL">Technical</option><option value="OPERATIONAL">Operational</option><option value="POLITICAL">Political</option><option value="SECURITY">Security</option></select></div>
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowForm(false)} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
             <button onClick={handleCreate} disabled={createMut.isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">{createMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Create</button>
@@ -645,7 +759,7 @@ function RisksTab({ programmeId, locale }: { programmeId: string; locale: string
       ) : (
         <div className="rounded-xl border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-800 overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700"><th className="px-3 py-2 text-center text-xs text-gray-500 w-14">Score</th><th className="px-3 py-2 text-left text-xs text-gray-500">Code</th><th className="px-3 py-2 text-left text-xs text-gray-500">Description</th><th className="px-3 py-2 text-center text-xs text-gray-500">Category</th><th className="px-3 py-2 text-center text-xs text-gray-500">L x I</th><th className="px-3 py-2 text-center text-xs text-gray-500">Status</th><th className="px-3 py-2 w-16" /></tr></thead>
+            <thead><tr className="border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700"><th className="px-3 py-2 text-center text-xs text-gray-500 w-14">Score</th><th className="px-3 py-2 text-left text-xs text-gray-500">Code</th><th className="px-3 py-2 text-left text-xs text-gray-500">Description</th><th className="px-3 py-2 text-center text-xs text-gray-500">Category</th><th className="px-3 py-2 text-center text-xs text-gray-500">L x I</th><th className="px-3 py-2 text-center text-xs text-gray-500">Status</th><th className="px-3 py-2 w-20" /></tr></thead>
             <tbody className="divide-y dark:divide-gray-800">
               {risks.map((r: any) => {
                 const scoreColor = r.riskScore >= 9 ? 'text-red-700 bg-red-50' : r.riskScore >= 4 ? 'text-amber-700 bg-amber-50' : 'text-emerald-700 bg-emerald-50';
@@ -673,16 +787,21 @@ function RisksTab({ programmeId, locale }: { programmeId: string; locale: string
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  TEAM TAB
+//  TEAM TAB — User search selector + role + activity assignment
 // ══════════════════════════════════════════════════════════════════════════════
 
 function TeamTab({ programmeId }: { programmeId: string }) {
   const { data: res, isLoading } = useTeam(programmeId);
   const team = res?.data ?? [];
+  const { data: activitiesRes } = useActivities({ programmeId });
+  const allActivities = activitiesRes?.data ?? [];
   const addMut = useAddTeamMember();
   const removeMut = useRemoveTeamMember();
+  const updateActivityMut = useUpdateActivity();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ userId: '', role: 'ACTIVITY_OWNER' });
+  const [form, setForm] = useState({ userId: '', role: 'ACTIVITY_OWNER', activityIds: [] as string[] });
+  const [assigningMember, setAssigningMember] = useState<string | null>(null);
+  const [assignActivityIds, setAssignActivityIds] = useState<string[]>([]);
 
   const ROLES: Record<string, string> = {
     PROGRAMME_DIRECTOR: 'Programme Director', PROGRAMME_COORDINATOR: 'Programme Coordinator',
@@ -690,10 +809,38 @@ function TeamTab({ programmeId }: { programmeId: string }) {
     M_AND_E_OFFICER: 'M&E Officer', FINANCE_OFFICER: 'Finance Officer', VIEWER: 'Viewer',
   };
 
+  const ROLE_COLORS: Record<string, string> = {
+    PROGRAMME_DIRECTOR: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    PROGRAMME_COORDINATOR: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    REGIONAL_COORDINATOR: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
+    ACTIVITY_OWNER: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    M_AND_E_OFFICER: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    FINANCE_OFFICER: 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+    VIEWER: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  };
+
   async function handleAdd() {
+    if (!form.userId) return;
     await addMut.mutateAsync({ programmeId, userId: form.userId, role: form.role });
+    // Assign selected activities to this user
+    for (const actId of form.activityIds) {
+      await updateActivityMut.mutateAsync({ id: actId, responsibleUserId: form.userId });
+    }
     setShowForm(false);
-    setForm({ userId: '', role: 'ACTIVITY_OWNER' });
+    setForm({ userId: '', role: 'ACTIVITY_OWNER', activityIds: [] });
+  }
+
+  async function handleAssignActivities(userId: string) {
+    for (const actId of assignActivityIds) {
+      await updateActivityMut.mutateAsync({ id: actId, responsibleUserId: userId });
+    }
+    setAssigningMember(null);
+    setAssignActivityIds([]);
+  }
+
+  // Count activities assigned to each user
+  function getAssignedCount(userId: string): number {
+    return allActivities.filter((a: any) => a.responsibleUserId === userId).length;
   }
 
   if (isLoading) return <div className="h-48 rounded-xl bg-gray-200 animate-pulse dark:bg-gray-800" />;
@@ -705,39 +852,209 @@ function TeamTab({ programmeId }: { programmeId: string }) {
         <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition"><Plus className="h-3.5 w-3.5" /> Add Member</button>
       </div>
 
+      {/* Add member form with user search */}
       {showForm && (
-        <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">User ID *</label><input value={form.userId} onChange={e => setForm({...form, userId: e.target.value})} placeholder="User UUID" className={iCls()} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">Role *</label><select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className={iCls()}>{Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+        <div className="rounded-xl border bg-white p-5 dark:bg-gray-900 dark:border-gray-800 space-y-4">
+          <h4 className="text-sm font-semibold">Add Team Member</h4>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">User *</label>
+              <UserSearchSelect
+                value={form.userId}
+                onChange={(userId) => setForm({...form, userId})}
+                placeholder="Search by name or email..."
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
+              <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className={iCls()}>
+                {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
           </div>
+
+          {/* Activity assignment */}
+          {form.userId && allActivities.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-2">Assign Activities (optional)</label>
+              <div className="max-h-40 overflow-y-auto rounded-lg border p-2 space-y-1 dark:border-gray-700">
+                {allActivities.map((act: any) => (
+                  <label key={act.id} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.activityIds.includes(act.id)}
+                      onChange={e => {
+                        const ids = e.target.checked ? [...form.activityIds, act.id] : form.activityIds.filter(id => id !== act.id);
+                        setForm({...form, activityIds: ids});
+                      }}
+                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="text-xs font-mono text-gray-400">{act.code}</span>
+                    <span className="text-xs">{ln(act.name, 'en')}</span>
+                  </label>
+                ))}
+              </div>
+              {form.activityIds.length > 0 && <p className="text-[11px] text-emerald-600 mt-1">{form.activityIds.length} activities selected</p>}
+            </div>
+          )}
+
           <div className="flex justify-end gap-2">
-            <button onClick={() => setShowForm(false)} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
-            <button onClick={handleAdd} disabled={addMut.isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">{addMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Add</button>
+            <button onClick={() => { setShowForm(false); setForm({ userId: '', role: 'ACTIVITY_OWNER', activityIds: [] }); }} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
+            <button onClick={handleAdd} disabled={addMut.isPending || !form.userId} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">{addMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Add Member</button>
           </div>
         </div>
       )}
 
+      {/* Team list */}
       {team.length === 0 ? (
-        <div className="rounded-xl border-2 border-dashed py-12 text-center dark:border-gray-700"><Users className="h-10 w-10 text-gray-300 mx-auto mb-3" /><p className="text-sm text-gray-500">No team members yet</p></div>
+        <div className="rounded-xl border-2 border-dashed py-12 text-center dark:border-gray-700"><Users className="h-10 w-10 text-gray-300 mx-auto mb-3" /><p className="text-sm text-gray-500">No team members yet</p><p className="text-xs text-gray-400 mt-1">Add members and assign them activities</p></div>
       ) : (
-        <div className="rounded-xl border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-800 divide-y dark:divide-gray-800">
-          {team.map((m: any) => (
-            <div key={m.id} className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xs font-bold dark:bg-emerald-900/40 dark:text-emerald-400">
-                  {(m.userId || '??').slice(0, 2).toUpperCase()}
+        <div className="space-y-3">
+          {team.map((m: any) => {
+            const assignedCount = getAssignedCount(m.userId);
+            const assignedActivities = allActivities.filter((a: any) => a.responsibleUserId === m.userId);
+            const isAssigning = assigningMember === m.userId;
+
+            return (
+              <div key={m.id} className="rounded-xl border bg-white dark:bg-gray-900 dark:border-gray-800 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-sm font-bold dark:bg-emerald-900/40 dark:text-emerald-400">
+                      {(m.userId || '??').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{m.userId}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${ROLE_COLORS[m.role] || ROLE_COLORS.VIEWER}`}>{ROLES[m.role] || m.role}</span>
+                        <span className="text-[10px] text-gray-400">{assignedCount} activit{assignedCount !== 1 ? 'ies' : 'y'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => { setAssigningMember(isAssigning ? null : m.userId); setAssignActivityIds(assignedActivities.map((a: any) => a.id)); }} className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${isAssigning ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400'}`}>
+                      <Activity className="h-3 w-3 inline mr-1" />Assign Activities
+                    </button>
+                    <button onClick={() => removeMut.mutateAsync({ programmeId, userId: m.userId })} className="rounded p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition dark:hover:bg-red-900/20">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{m.userId}</p>
-                  <p className="text-xs text-gray-500">{ROLES[m.role] || m.role}</p>
-                </div>
+
+                {/* Assigned activities list + assignment panel */}
+                {isAssigning && (
+                  <div className="border-t bg-gray-50/50 p-4 dark:bg-gray-800/30 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-600 mb-2">Select activities to assign to this member:</p>
+                    <div className="max-h-48 overflow-y-auto rounded-lg border bg-white p-2 space-y-1 dark:bg-gray-900 dark:border-gray-700">
+                      {allActivities.map((act: any) => (
+                        <label key={act.id} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={assignActivityIds.includes(act.id)}
+                            onChange={e => {
+                              const ids = e.target.checked ? [...assignActivityIds, act.id] : assignActivityIds.filter(id => id !== act.id);
+                              setAssignActivityIds(ids);
+                            }}
+                            className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <span className="text-xs font-mono text-gray-400">{act.code}</span>
+                          <span className="text-xs flex-1">{ln(act.name, 'en')}</span>
+                          {act.responsibleUserId && act.responsibleUserId !== m.userId && (
+                            <span className="text-[10px] text-amber-500">assigned to other</span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex justify-end gap-2 mt-3">
+                      <button onClick={() => setAssigningMember(null)} className="rounded-lg border px-3 py-1.5 text-xs text-gray-600 dark:border-gray-700">Cancel</button>
+                      <button onClick={() => handleAssignActivities(m.userId)} disabled={updateActivityMut.isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white disabled:opacity-50">
+                        {updateActivityMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                        Save Assignments ({assignActivityIds.length})
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show assigned activities when not in edit mode */}
+                {!isAssigning && assignedActivities.length > 0 && (
+                  <div className="border-t px-4 py-2 dark:border-gray-700">
+                    <div className="flex flex-wrap gap-1.5">
+                      {assignedActivities.map((act: any) => (
+                        <span key={act.id} className="rounded bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                          {act.code}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <button onClick={() => removeMut.mutateAsync({ programmeId, userId: m.userId })} className="rounded p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition dark:hover:bg-red-900/20">
-                <Trash2 className="h-4 w-4" />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  USER SEARCH SELECT — Reusable dropdown with search
+// ══════════════════════════════════════════════════════════════════════════════
+
+function UserSearchSelect({ value, onChange, placeholder }: { value: string; onChange: (userId: string) => void; placeholder?: string }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [selectedLabel, setSelectedLabel] = useState('');
+  const { data: results } = useSearchUsers(query);
+  const users = results?.data ?? [];
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+        <input
+          value={open ? query : selectedLabel || query}
+          onChange={e => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder || 'Search user...'}
+          className={`${iCls()} pl-9`}
+        />
+      </div>
+
+      {open && query.length >= 2 && (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border bg-white shadow-lg max-h-48 overflow-y-auto dark:bg-gray-900 dark:border-gray-700">
+          {users.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-gray-400">No users found</div>
+          ) : (
+            users.map((u: any) => (
+              <button
+                key={u.id}
+                onClick={() => {
+                  onChange(u.id);
+                  setSelectedLabel(`${u.firstName} ${u.lastName} (${u.email})`);
+                  setQuery('');
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/20 flex items-center gap-2 ${value === u.id ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}
+              >
+                <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600 dark:bg-gray-700 dark:text-gray-300 shrink-0">
+                  {(u.firstName?.[0] || '?')}{(u.lastName?.[0] || '')}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{u.firstName} {u.lastName}</p>
+                  <p className="text-[11px] text-gray-400 truncate">{u.email} — {u.role}</p>
+                </div>
               </button>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
     </div>
