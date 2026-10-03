@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -41,7 +41,125 @@ import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useSubmissionRealtime } from '@/lib/realtime/use-workflow-realtime';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import { COUNTRIES } from '@/data/countries-config';
+import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
 import type { FormSchema } from '@/components/form-builder/utils/form-schema';
+
+/* ── Reference Data Maps ───────────────────────────────────────────────── */
+
+const COUNTRY_MAP: Record<string, string> = {};
+for (const [code, c] of Object.entries(COUNTRIES)) {
+  COUNTRY_MAP[code.toUpperCase()] = c.name;
+  COUNTRY_MAP[code.toLowerCase()] = c.name;
+}
+
+const GADM_MAP: Record<string, string> = {};
+for (const [, countryData] of Object.entries(ADMIN_DIVISIONS)) {
+  for (const a1 of countryData.admin1 || []) GADM_MAP[a1.gid] = a1.name;
+  for (const a2 of countryData.admin2 || []) GADM_MAP[a2.gid] = a2.name;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function fetchRefData(type: string, locale = 'en'): Promise<Record<string, string>> {
+  const token = useAuthStore.getState().accessToken || '';
+  try {
+    const res = await fetch(`/api/v1/master-data/ref/${type}/for-select?limit=10000`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return {};
+    const json = await res.json();
+    const map: Record<string, string> = {};
+    for (const item of json?.data || []) {
+      if (!item.id) continue;
+      const name = item.name;
+      let label = item.label || '';
+      if (!label && name) {
+        if (typeof name === 'string') label = name;
+        else if (typeof name === 'object') label = name[locale] || name.en || name.fr || name.pt || Object.values(name).find((v: any) => v) || '';
+      }
+      if (!label) label = item.code || '';
+      if (label) {
+        map[item.id] = label;
+        if (item.code) map[item.code] = label;
+      }
+    }
+    return map;
+  } catch { return {}; }
+}
+
+async function fetchGeoEntities(locale = 'en'): Promise<Record<string, string>> {
+  const token = useAuthStore.getState().accessToken || '';
+  try {
+    const res = await fetch('/api/v1/master-data/ref/geo-entities/for-select?limit=10000', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return {};
+    const json = await res.json();
+    const map: Record<string, string> = {};
+    for (const item of json?.data || []) {
+      if (!item.id) continue;
+      const name = item.name;
+      const label = name ? (name[locale] || name.en || name.fr || '') : '';
+      if (label) {
+        map[item.id] = label;
+        if (item.code) map[item.code] = label;
+      }
+    }
+    return map;
+  } catch { return {}; }
+}
+
+/** Hook to fetch all reference data maps for resolving UUIDs/codes */
+function useRefDataMaps(schema: FormSchema | undefined) {
+  const [refMap, setRefMap] = useState<Record<string, string>>({});
+  const [geoMap, setGeoMap] = useState<Record<string, string>>({});
+  const fetchedRef = useRef(false);
+  const { locale } = useLocaleStore();
+
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    // Collect master-data types from schema
+    const mdTypes = new Set<string>();
+    if (schema?.sections) {
+      for (const sec of schema.sections) {
+        for (const f of sec.fields) {
+          const props = (f as any).properties || {};
+          const mdType = props.masterDataType || props.referenceType;
+          if (mdType) mdTypes.add(mdType);
+        }
+      }
+    }
+    // Always fetch common reference types
+    for (const t of [
+      'diseases', 'species', 'outbreak-statuses', 'diagnosis-bases',
+      'source-of-infections', 'control-measures', 'animal-sexes',
+      'epidemiological-unit-types', 'vaccine-types', 'breeds',
+      'age-groups', 'production-systems', 'sample-types', 'test-types',
+      'labs', 'gear-types', 'commodities', 'species-groups',
+      'clinical-signs', 'body-parts', 'causal-agent-types',
+      'notification-reasons', 'transport-modes', 'animal-husbandries',
+      'genetic-diversities', 'countries',
+    ]) mdTypes.add(t);
+
+    Promise.all([
+      ...[...mdTypes].map((type) => fetchRefData(type, locale)),
+      fetchGeoEntities(locale),
+    ]).then((maps) => {
+      const geoResult = maps.pop() as Record<string, string>;
+      setGeoMap(geoResult);
+      const merged: Record<string, string> = {};
+      for (const m of maps) Object.assign(merged, m as Record<string, string>);
+      setRefMap(merged);
+    });
+  }, [schema, locale]);
+
+  return { refMap, geoMap };
+}
 
 /* ── Constants ──────────────────────────────────────────────────────────── */
 
@@ -127,12 +245,47 @@ function StatusBadge({ status }: { status: string }) {
 
 /* ── Smart Field Renderer ────────────────────────────────────────────────── */
 
-function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
+/** Resolve an admin-location level value to a display name */
+function resolveAdminValue(val: string | undefined, level: number, geoMap: Record<string, string>): string {
+  if (!val) return '';
+  if (val.startsWith('__new:')) return val.slice(6);
+  if (level === 0) return COUNTRY_MAP[val] || COUNTRY_MAP[val.toUpperCase()] || val;
+  return GADM_MAP[val] || geoMap[val] || val;
+}
+
+/** Resolve a UUID or code to a display name via refMap */
+function resolveRef(val: string, refMap: Record<string, string>): string {
+  return refMap[val] || val;
+}
+
+interface FieldValueProps {
+  value: unknown;
+  depth?: number;
+  refMap?: Record<string, string>;
+  geoMap?: Record<string, string>;
+  fieldSchema?: any;
+}
+
+function FieldValue({ value, depth = 0, refMap = {}, geoMap = {}, fieldSchema }: FieldValueProps) {
   if (value == null || value === '' || value === '[]' || value === '{}' || value === 'null') {
     return <span className="text-gray-300 italic text-xs dark:text-gray-600">N/A</span>;
   }
 
+  // UUID → resolve to readable name
   if (isUuid(value)) {
+    const resolved = refMap[value as string];
+    if (resolved) {
+      return <span className="text-sm text-gray-900 dark:text-white">{resolved}</span>;
+    }
+    // Select option resolution
+    const opts = fieldSchema?.properties?.options;
+    if (opts) {
+      const opt = opts.find((o: any) => o.value === value);
+      if (opt) {
+        const label = opt.label?.en || opt.label?.fr || opt.label || opt.value;
+        return <span className="text-sm text-gray-900 dark:text-white">{label}</span>;
+      }
+    }
     return (
       <span className="inline-flex items-center rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-mono text-violet-600 dark:bg-violet-900/20 dark:text-violet-400">
         {(value as string).slice(0, 8)}
@@ -152,7 +305,23 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
     return <span className="font-semibold text-gray-900 dark:text-white tabular-nums">{value.toLocaleString()}</span>;
   }
 
-  if (typeof value === 'string') return <span className="text-sm text-gray-900 dark:text-white">{value}</span>;
+  // String — resolve select options or codes via refMap
+  if (typeof value === 'string') {
+    // Check select options
+    const opts = fieldSchema?.properties?.options;
+    if (opts) {
+      const opt = opts.find((o: any) => o.value === value);
+      if (opt) {
+        const label = opt.label?.en || opt.label?.fr || opt.label || opt.value;
+        return <span className="text-sm text-gray-900 dark:text-white">{label}</span>;
+      }
+    }
+    // Check refMap for master-data codes
+    if (refMap[value]) {
+      return <span className="text-sm text-gray-900 dark:text-white">{refMap[value]}</span>;
+    }
+    return <span className="text-sm text-gray-900 dark:text-white">{value}</span>;
+  }
 
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="text-gray-300 italic text-xs dark:text-gray-600">Empty</span>;
@@ -161,7 +330,7 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
         <div className="flex flex-wrap gap-1">
           {value.map((v, i) => (
             <span key={i} className="rounded-md bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-700">
-              <FieldValue value={v} depth={depth + 1} />
+              <FieldValue value={v} depth={depth + 1} refMap={refMap} geoMap={geoMap} />
             </span>
           ))}
         </div>
@@ -175,7 +344,7 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
               {Object.entries(item as Record<string, unknown>).filter(([, v]) => v != null && v !== '').map(([k, v]) => (
                 <div key={k} className="flex items-start gap-2">
                   <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap min-w-[70px]">{fieldLabel(k)}</span>
-                  <span className="text-xs"><FieldValue value={v} depth={depth + 1} /></span>
+                  <span className="text-xs"><FieldValue value={v} depth={depth + 1} refMap={refMap} geoMap={geoMap} /></span>
                 </div>
               ))}
             </div>
@@ -197,15 +366,18 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
       );
     }
     if ('level_0' in obj) {
+      const levels = Object.entries(obj)
+        .filter(([, v]) => v != null && v !== '')
+        .sort(([a], [b]) => a.localeCompare(b));
+      const parts = levels.map(([k, v]) => {
+        const levelNum = parseInt(k.replace('level_', ''), 10);
+        return resolveAdminValue(String(v), isNaN(levelNum) ? 1 : levelNum, geoMap);
+      }).filter(Boolean);
       return (
-        <div className="flex flex-wrap gap-1">
-          {Object.entries(obj).filter(([, v]) => v != null && v !== '').sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => (
-            <span key={k} className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs dark:bg-blue-900/20">
-              <span className="text-blue-400 mr-1 font-medium">{k.replace('level_', 'L')}</span>
-              <span className="text-blue-700 dark:text-blue-300">{isUuid(v) ? (v as string).slice(0, 6) + '..' : String(v)}</span>
-            </span>
-          ))}
-        </div>
+        <span className="inline-flex items-center gap-1.5 text-sm">
+          <MapPin className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+          <span className="text-gray-900 dark:text-white">{parts.join(' / ') || '--'}</span>
+        </span>
       );
     }
     if ('en' in obj || 'fr' in obj) return <span className="text-sm text-gray-900 dark:text-white">{localizeName(obj)}</span>;
@@ -216,7 +388,7 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
         {entries.map(([k, v]) => (
           <div key={k} className="flex items-start gap-2 py-0.5">
             <span className="text-[10px] font-medium text-gray-400 uppercase min-w-[60px]">{fieldLabel(k)}</span>
-            <span className="text-xs"><FieldValue value={v} depth={depth + 1} /></span>
+            <span className="text-xs"><FieldValue value={v} depth={depth + 1} refMap={refMap} geoMap={geoMap} /></span>
           </div>
         ))}
       </div>
@@ -258,7 +430,7 @@ function CollapsibleSection({ title, icon, defaultOpen = true, count, children }
 
 /* ── Schema-Aware Form Data View ─────────────────────────────────────────── */
 
-function SchemaFormDataView({ schema, data }: { schema: FormSchema; data: Record<string, unknown> }) {
+function SchemaFormDataView({ schema, data, refMap, geoMap }: { schema: FormSchema; data: Record<string, unknown>; refMap: Record<string, string>; geoMap: Record<string, string> }) {
   const sections = schema?.sections ?? [];
   // Build a set of known field codes
   const knownCodes = new Set<string>();
@@ -292,7 +464,7 @@ function SchemaFormDataView({ schema, data }: { schema: FormSchema; data: Record
                   {field.required && <span className="text-red-400 ml-0.5">*</span>}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <FieldValue value={data[field.code]} />
+                  <FieldValue value={data[field.code]} refMap={refMap} geoMap={geoMap} fieldSchema={field} />
                 </div>
               </div>
             ))}
@@ -310,7 +482,7 @@ function SchemaFormDataView({ schema, data }: { schema: FormSchema; data: Record
           {unmatchedEntries.map(([key, val]) => (
             <div key={key} className="flex items-start gap-3 px-4 py-2.5 even:bg-gray-50/50 dark:even:bg-gray-800/20">
               <span className="min-w-[160px] shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 pt-0.5">{fieldLabel(key)}</span>
-              <div className="flex-1 min-w-0"><FieldValue value={val} /></div>
+              <div className="flex-1 min-w-0"><FieldValue value={val} refMap={refMap} geoMap={geoMap} /></div>
             </div>
           ))}
         </CollapsibleSection>
@@ -320,7 +492,7 @@ function SchemaFormDataView({ schema, data }: { schema: FormSchema; data: Record
 }
 
 /** Fallback view when schema is not available — groups fields heuristically */
-function RawFormDataView({ data }: { data: Record<string, unknown> }) {
+function RawFormDataView({ data, refMap, geoMap }: { data: Record<string, unknown>; refMap: Record<string, string>; geoMap: Record<string, string> }) {
   const dateF: [string, unknown][] = [];
   const locF: [string, unknown][] = [];
   const refF: [string, unknown][] = [];
@@ -357,7 +529,7 @@ function RawFormDataView({ data }: { data: Record<string, unknown> }) {
           {sec.fields.map(([key, val]) => (
             <div key={key} className="flex items-start gap-3 px-4 py-2.5 even:bg-gray-50/50 dark:even:bg-gray-800/20">
               <span className="min-w-[140px] shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 pt-0.5">{fieldLabel(key)}</span>
-              <div className="flex-1 min-w-0"><FieldValue value={val} /></div>
+              <div className="flex-1 min-w-0"><FieldValue value={val} refMap={refMap} geoMap={geoMap} /></div>
             </div>
           ))}
         </CollapsibleSection>
@@ -411,6 +583,9 @@ export default function SubmissionReviewPage() {
   const { data: templateRes } = useFormBuilderTemplate(templateId);
   const template = templateRes?.data;
   const schema = template?.schema as FormSchema | undefined;
+
+  // Fetch reference data for resolving UUIDs/codes to readable names
+  const { refMap, geoMap } = useRefDataMaps(schema);
 
   // Fetch workflow instance for this submission (filter by entityId)
   const { data: wfRes } = useWorkflowInstances({ page: 1, limit: 1, entityId: id });
@@ -522,9 +697,9 @@ export default function SubmissionReviewPage() {
             </h2>
 
             {schema ? (
-              <SchemaFormDataView schema={schema} data={formData} />
+              <SchemaFormDataView schema={schema} data={formData} refMap={refMap} geoMap={geoMap} />
             ) : (
-              <RawFormDataView data={formData} />
+              <RawFormDataView data={formData} refMap={refMap} geoMap={geoMap} />
             )}
           </div>
         </div>
