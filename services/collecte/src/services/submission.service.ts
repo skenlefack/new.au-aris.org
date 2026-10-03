@@ -449,7 +449,29 @@ export class SubmissionService {
       throw new HttpError(404, `Submission ${id} not found`);
     }
 
-    return { data: submission as unknown as SubmissionEntity };
+    // Enrich with submittedByName and campaignName
+    let submittedByName: string | null = null;
+    let campaignName: unknown = null;
+    try {
+      if (submission.submittedBy) {
+        const users: any[] = await (this.prisma as any).$queryRawUnsafe(
+          `SELECT first_name || ' ' || last_name AS display_name FROM public.users WHERE id = $1::uuid`,
+          submission.submittedBy,
+        );
+        if (users[0]) submittedByName = users[0].display_name;
+      }
+    } catch { /* cross-schema query may fail */ }
+    try {
+      if (submission.campaignId) {
+        const campaign = await (this.prisma as any).collectionCampaign.findUnique({
+          where: { id: submission.campaignId },
+          select: { name: true },
+        });
+        if (campaign) campaignName = campaign.name;
+      }
+    } catch { /* table may not exist */ }
+
+    return { data: { ...submission, submittedByName, campaignName } as unknown as SubmissionEntity };
   }
 
   /**
