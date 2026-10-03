@@ -266,25 +266,45 @@ interface FieldValueProps {
   fieldSchema?: any;
 }
 
+/** Resolve a string value using select options from a field schema */
+function resolveSelectOption(val: string, opts: any[] | undefined): string | null {
+  if (!opts || !Array.isArray(opts)) return null;
+  const opt = opts.find((o: any) => o.value === val);
+  if (!opt) return null;
+  return opt.label?.en || opt.label?.fr || opt.label?.pt || opt.label?.ar || (typeof opt.label === 'string' ? opt.label : null) || opt.value;
+}
+
+/** Get the sub-field schema for a repeater's child field by code */
+function getRepeaterSubField(fieldSchema: any, code: string): any | undefined {
+  const subFields = fieldSchema?.properties?.fields;
+  if (!subFields || !Array.isArray(subFields)) return undefined;
+  return subFields.find((f: any) => f.code === code);
+}
+
+/** Resolve any string value: tries select options, refMap, COUNTRY_MAP, then falls back to humanizing the raw value */
+function resolveStringValue(val: string, refMap: Record<string, string>, opts?: any[]): string {
+  // Select options
+  const optLabel = resolveSelectOption(val, opts);
+  if (optLabel) return optLabel;
+  // RefMap (master-data)
+  if (refMap[val]) return refMap[val];
+  // Country codes
+  if (val.length === 2 && COUNTRY_MAP[val.toUpperCase()]) return COUNTRY_MAP[val.toUpperCase()];
+  return val;
+}
+
 function FieldValue({ value, depth = 0, refMap = {}, geoMap = {}, fieldSchema }: FieldValueProps) {
   if (value == null || value === '' || value === '[]' || value === '{}' || value === 'null') {
     return <span className="text-gray-300 italic text-xs dark:text-gray-600">N/A</span>;
   }
 
+  const opts = fieldSchema?.properties?.options as any[] | undefined;
+
   // UUID → resolve to readable name
   if (isUuid(value)) {
-    const resolved = refMap[value as string];
+    const resolved = refMap[value as string] || resolveSelectOption(value as string, opts);
     if (resolved) {
       return <span className="text-sm text-gray-900 dark:text-white">{resolved}</span>;
-    }
-    // Select option resolution
-    const opts = fieldSchema?.properties?.options;
-    if (opts) {
-      const opt = opts.find((o: any) => o.value === value);
-      if (opt) {
-        const label = opt.label?.en || opt.label?.fr || opt.label || opt.value;
-        return <span className="text-sm text-gray-900 dark:text-white">{label}</span>;
-      }
     }
     return (
       <span className="inline-flex items-center rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-mono text-violet-600 dark:bg-violet-900/20 dark:text-violet-400">
@@ -305,48 +325,43 @@ function FieldValue({ value, depth = 0, refMap = {}, geoMap = {}, fieldSchema }:
     return <span className="font-semibold text-gray-900 dark:text-white tabular-nums">{value.toLocaleString()}</span>;
   }
 
-  // String — resolve select options or codes via refMap
+  // String — resolve select options, codes, country codes via refMap
   if (typeof value === 'string') {
-    // Check select options
-    const opts = fieldSchema?.properties?.options;
-    if (opts) {
-      const opt = opts.find((o: any) => o.value === value);
-      if (opt) {
-        const label = opt.label?.en || opt.label?.fr || opt.label || opt.value;
-        return <span className="text-sm text-gray-900 dark:text-white">{label}</span>;
-      }
-    }
-    // Check refMap for master-data codes
-    if (refMap[value]) {
-      return <span className="text-sm text-gray-900 dark:text-white">{refMap[value]}</span>;
-    }
-    return <span className="text-sm text-gray-900 dark:text-white">{value}</span>;
+    const resolved = resolveStringValue(value, refMap, opts);
+    return <span className="text-sm text-gray-900 dark:text-white">{resolved}</span>;
   }
 
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="text-gray-300 italic text-xs dark:text-gray-600">Empty</span>;
+    // Array of primitives (multi-select values, tags)
     if (value.every((v) => typeof v !== 'object' || v === null)) {
       return (
         <div className="flex flex-wrap gap-1">
           {value.map((v, i) => (
             <span key={i} className="rounded-md bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-700">
-              <FieldValue value={v} depth={depth + 1} refMap={refMap} geoMap={geoMap} />
+              <FieldValue value={v} depth={depth + 1} refMap={refMap} geoMap={geoMap} fieldSchema={fieldSchema} />
             </span>
           ))}
         </div>
       );
     }
+    // Array of objects (repeater rows)
     return (
       <div className="space-y-2 w-full">
         {value.map((item, i) => (
           <div key={i} className="rounded-lg border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-800/50">
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-              {Object.entries(item as Record<string, unknown>).filter(([, v]) => v != null && v !== '').map(([k, v]) => (
-                <div key={k} className="flex items-start gap-2">
-                  <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap min-w-[70px]">{fieldLabel(k)}</span>
-                  <span className="text-xs"><FieldValue value={v} depth={depth + 1} refMap={refMap} geoMap={geoMap} /></span>
-                </div>
-              ))}
+              {Object.entries(item as Record<string, unknown>).filter(([, v]) => v != null && v !== '').map(([k, v]) => {
+                const subField = getRepeaterSubField(fieldSchema, k);
+                return (
+                  <div key={k} className="flex items-start gap-2">
+                    <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap min-w-[70px]">
+                      {subField ? (localizeName(subField.label) || fieldLabel(k)) : fieldLabel(k)}
+                    </span>
+                    <span className="text-xs"><FieldValue value={v} depth={depth + 1} refMap={refMap} geoMap={geoMap} fieldSchema={subField} /></span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
