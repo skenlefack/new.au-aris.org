@@ -112,18 +112,52 @@ async function fetchGeoEntities(locale = 'en'): Promise<Record<string, string>> 
   } catch { return {}; }
 }
 
+/** Fetch a single geo-entity by UUID and return id→name */
+async function fetchGeoEntityById(id: string, locale = 'en'): Promise<{ id: string; name: string } | null> {
+  const token = useAuthStore.getState().accessToken || '';
+  try {
+    const res = await fetch(`/api/v1/master-data/geo/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const entity = json?.data;
+    if (!entity) return null;
+    const name = entity.name;
+    const label = name ? (name[locale] || name.en || name.fr || name.pt || '') : '';
+    return label ? { id: entity.id, name: label } : null;
+  } catch { return null; }
+}
+
+/** Extract all UUIDs from admin-location fields in form data */
+function extractAdminLocationUuids(data: Record<string, unknown>): string[] {
+  const uuids: string[] = [];
+  for (const val of Object.values(data)) {
+    if (val && typeof val === 'object' && !Array.isArray(val) && 'level_0' in (val as Record<string, unknown>)) {
+      const loc = val as Record<string, string>;
+      for (const [key, v] of Object.entries(loc)) {
+        if (key.startsWith('level_') && key !== 'level_0' && typeof v === 'string' && UUID_RE.test(v)) {
+          uuids.push(v);
+        }
+      }
+    }
+  }
+  return uuids;
+}
+
 /** Hook to fetch all reference data maps for resolving UUIDs/codes */
-function useRefDataMaps(schema: FormSchema | undefined) {
+function useRefDataMaps(schema: FormSchema | undefined, formData: Record<string, unknown>) {
   const [refMap, setRefMap] = useState<Record<string, string>>({});
   const [geoMap, setGeoMap] = useState<Record<string, string>>({});
   const fetchedRef = useRef(false);
+  const fetchedGeoIds = useRef(false);
   const { locale } = useLocaleStore();
 
+  // Fetch master-data reference types
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
 
-    // Collect master-data types from schema
     const mdTypes = new Set<string>();
     if (schema?.sections) {
       for (const sec of schema.sections) {
@@ -134,7 +168,6 @@ function useRefDataMaps(schema: FormSchema | undefined) {
         }
       }
     }
-    // Always fetch common reference types
     for (const t of [
       'diseases', 'species', 'outbreak-statuses', 'diagnosis-bases',
       'source-of-infections', 'control-measures', 'animal-sexes',
@@ -146,17 +179,30 @@ function useRefDataMaps(schema: FormSchema | undefined) {
       'genetic-diversities', 'countries',
     ]) mdTypes.add(t);
 
-    Promise.all([
-      ...[...mdTypes].map((type) => fetchRefData(type, locale)),
-      fetchGeoEntities(locale),
-    ]).then((maps) => {
-      const geoResult = maps.pop() as Record<string, string>;
-      setGeoMap(geoResult);
+    Promise.all(
+      [...mdTypes].map((type) => fetchRefData(type, locale)),
+    ).then((maps) => {
       const merged: Record<string, string> = {};
-      for (const m of maps) Object.assign(merged, m as Record<string, string>);
+      for (const m of maps) Object.assign(merged, m);
       setRefMap(merged);
     });
   }, [schema, locale]);
+
+  // Fetch individual geo-entity UUIDs from admin-location fields
+  useEffect(() => {
+    if (fetchedGeoIds.current || !formData || Object.keys(formData).length === 0) return;
+    const uuids = extractAdminLocationUuids(formData);
+    if (uuids.length === 0) return;
+    fetchedGeoIds.current = true;
+
+    Promise.all(uuids.map((id) => fetchGeoEntityById(id, locale))).then((results) => {
+      const map: Record<string, string> = {};
+      for (const r of results) {
+        if (r) map[r.id] = r.name;
+      }
+      setGeoMap((prev) => ({ ...prev, ...map }));
+    });
+  }, [formData, locale]);
 
   return { refMap, geoMap };
 }
@@ -600,7 +646,8 @@ export default function SubmissionReviewPage() {
   const schema = template?.schema as FormSchema | undefined;
 
   // Fetch reference data for resolving UUIDs/codes to readable names
-  const { refMap, geoMap } = useRefDataMaps(schema);
+  const formData = submission?.data ?? {};
+  const { refMap, geoMap } = useRefDataMaps(schema, formData);
 
   // Fetch workflow instance for this submission (filter by entityId)
   const { data: wfRes } = useWorkflowInstances({ page: 1, limit: 1, entityId: id });
@@ -637,7 +684,6 @@ export default function SubmissionReviewPage() {
     );
   }
 
-  const formData = submission.data ?? {};
   const isSubmitted = submission.status === 'submitted';
   const currentLevel = workflowInstance?.currentLevel as WorkflowLevel | undefined;
   const transitions = (workflowInstance?.transitions ?? []) as WorkflowTransition[];
