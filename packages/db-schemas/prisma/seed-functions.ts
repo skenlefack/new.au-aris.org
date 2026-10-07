@@ -49,7 +49,11 @@ const FN = {
   PROG_COORD: '20000000-0000-4000-a000-000000000006',
   ME_SPEC: '20000000-0000-4000-a000-000000000007',
   COMM_OFF: '20000000-0000-4000-a000-000000000008',
+  CONTINENTAL_EXECUTIVE: '20000000-0000-4000-a000-000000000009',
 } as const;
+
+// Role ID for DECISION_MAKER (from seed-roles.ts)
+const ROLE_ID_DECISION_MAKER = '20000000-0000-4000-a000-000000000023';
 
 interface FunctionTemplate {
   code: string;
@@ -89,6 +93,9 @@ const CONTINENTAL_FUNCTIONS: (FunctionTemplate & { id: string })[] = [
   { id: FN.COMM_OFF, code: 'COMM_OFF', level: 'continental', category: 'admin', sortOrder: 8,
     name: { en: 'Communication Officer', fr: 'Chargé de Communication', pt: 'Oficial de Comunicação', ar: 'مسؤول الاتصالات' },
     description: { en: 'Handles communications and outreach', fr: 'Gère la communication et la sensibilisation', pt: 'Gere comunicação e divulgação', ar: 'يدير الاتصالات والتواصل' } },
+  { id: FN.CONTINENTAL_EXECUTIVE, code: 'CONTINENTAL_EXECUTIVE', level: 'continental', category: 'management', sortOrder: 9,
+    name: { en: 'Continental Executive', fr: 'Direction continentale', pt: 'Direção Continental', ar: 'الإدارة القارية' },
+    description: { en: 'Executive leadership — consultation of validated data, dashboards and slideshows', fr: 'Direction — consultation des données validées, tableaux de bord et diaporamas', pt: 'Direção — consulta de dados validados, painéis e apresentações', ar: 'القيادة التنفيذية — الاطلاع على البيانات المصادق عليها ولوحات المعلومات والعروض التقديمية' } },
 ];
 
 // ── Regional function templates (created for each REC) ──
@@ -191,6 +198,16 @@ async function main(): Promise<void> {
     await upsertFunction(TENANT_IDS.AU_IBAR, fn, fn.id);
   }
   console.log(`  ${CONTINENTAL_FUNCTIONS.length} continental functions seeded (AU-IBAR)`);
+
+  // ── 1b. Link CONTINENTAL_EXECUTIVE → DECISION_MAKER role ──
+  await (prisma as any).functionRole.upsert({
+    where: {
+      functionId_roleId: { functionId: FN.CONTINENTAL_EXECUTIVE, roleId: ROLE_ID_DECISION_MAKER },
+    },
+    update: {},
+    create: { functionId: FN.CONTINENTAL_EXECUTIVE, roleId: ROLE_ID_DECISION_MAKER },
+  });
+  console.log('  ✓ CONTINENTAL_EXECUTIVE → DECISION_MAKER function-role link created');
 
   // ── 2. Regional functions → one copy per REC ──
   const recs = await (prisma as any).tenant.findMany({

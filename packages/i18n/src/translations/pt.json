@@ -891,7 +891,8 @@
       "DATA_STEWARD": "Gestor de Dados",
       "WAHIS_FOCAL_POINT": "Ponto Focal WAHIS",
       "ANALYST": "Analista",
-      "FIELD_AGENT": "Agente de Campo"
+      "FIELD_AGENT": "Agente de Campo",
+      "DECISION_MAKER": "Decisor"
     },
     "TenantLevel": {
       "CONTINENTAL": "Continental (UA-BIRA)",

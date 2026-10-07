@@ -822,6 +822,9 @@
     "roleDataStewardRegional": "Regional Data Steward",
     "roleDataStewardContinental": "Continental Data Steward",
     "roleDataVisualizer": "Data Visualizer",
+    "roleDecisionMaker": "Decision Maker",
+    "rolePaidAdmin": "PAID Administrator",
+    "decisionMaker": "Decision Maker",
     "markAllRead": "Mark all read",
     "noNotifications": "No notifications",
     "markAsRead": "Mark as read"

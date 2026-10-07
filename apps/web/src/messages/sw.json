@@ -792,6 +792,9 @@
     "roleDataStewardRegional": "Msimamizi wa Data wa Kikanda",
     "roleDataStewardContinental": "Msimamizi wa Data wa Bara",
     "roleDataVisualizer": "Mtazamaji wa Data",
+    "roleDecisionMaker": "Mfanya Maamuzi",
+    "rolePaidAdmin": "Msimamizi wa PAID",
+    "decisionMaker": "Mfanya Maamuzi",
     "markAllRead": "Weka zote kama zilizosomwa",
     "noNotifications": "Hakuna arifa",
     "markAsRead": "Weka kama iliyosomwa"

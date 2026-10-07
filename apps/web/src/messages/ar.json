@@ -792,6 +792,9 @@
     "roleDataStewardRegional": "مسؤول البيانات الإقليمي",
     "roleDataStewardContinental": "مسؤول البيانات القاري",
     "roleDataVisualizer": "مصور البيانات",
+    "roleDecisionMaker": "صانع القرار",
+    "rolePaidAdmin": "مسؤول PAID",
+    "decisionMaker": "صانع القرار",
     "markAllRead": "تحديد الكل كمقروء",
     "noNotifications": "لا توجد إشعارات",
     "markAsRead": "تحديد كمقروء"

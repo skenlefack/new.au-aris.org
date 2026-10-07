@@ -891,7 +891,8 @@
       "DATA_STEWARD": "Data Steward",
       "WAHIS_FOCAL_POINT": "WAHIS Focal Point",
       "ANALYST": "Analyst",
-      "FIELD_AGENT": "Field Agent"
+      "FIELD_AGENT": "Field Agent",
+      "DECISION_MAKER": "Mfanya Maamuzi"
     },
     "TenantLevel": {
       "CONTINENTAL": "Continental (AU-IBAR)",

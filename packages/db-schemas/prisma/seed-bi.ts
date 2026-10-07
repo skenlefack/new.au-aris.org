@@ -109,6 +109,7 @@ async function seedBiTools() {
     'DATA_STEWARD',
     'ANALYST',
     'WAHIS_FOCAL_POINT',
+    'DECISION_MAKER',
   ];
 
   const SENSITIVE_TABLES = ['User', 'Session', 'RefreshToken'];
@@ -121,6 +122,7 @@ async function seedBiTools() {
     for (const role of ROLES) {
       const isAdmin = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN'].includes(role);
       const isManager = ['REC_ADMIN', 'NATIONAL_ADMIN'].includes(role);
+      const isDecisionMaker = role === 'DECISION_MAKER';
 
       const rule = {
         biToolConfigId: toolId,
@@ -132,7 +134,7 @@ async function seedBiTools() {
         allowedTables: ['*'],
         excludedTables:
           role === 'SUPER_ADMIN' ? SENSITIVE_TABLES : AUDIT_TABLES,
-        canCreateDashboard: isAdmin || isManager,
+        canCreateDashboard: isAdmin || isManager || isDecisionMaker,
         canExportData: role !== 'WAHIS_FOCAL_POINT',
         canUseSqlLab:
           role === 'SUPER_ADMIN' ||

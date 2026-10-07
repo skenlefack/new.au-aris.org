@@ -893,7 +893,8 @@
       "DATA_STEWARD": "Gestionnaire de données",
       "WAHIS_FOCAL_POINT": "Point focal WAHIS",
       "ANALYST": "Analyste",
-      "FIELD_AGENT": "Agent de terrain"
+      "FIELD_AGENT": "Agent de terrain",
+      "DECISION_MAKER": "Décideur"
     },
     "TenantLevel": {
       "CONTINENTAL": "Continental (UA-BIRA)",

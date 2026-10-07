@@ -792,6 +792,9 @@
     "roleDataStewardRegional": "Gestor de Dados Regional",
     "roleDataStewardContinental": "Gestor de Dados Continental",
     "roleDataVisualizer": "Visualizador de Dados",
+    "roleDecisionMaker": "Decisor",
+    "rolePaidAdmin": "Administrador PAID",
+    "decisionMaker": "Decisor",
     "markAllRead": "Marcar tudo como lido",
     "noNotifications": "Sem notificações",
     "markAsRead": "Marcar como lido"

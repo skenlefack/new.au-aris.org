@@ -34,6 +34,7 @@ const ROLE_IDS = {
   NATIONAL_LABORATORY:         '20000000-0000-4000-a000-000000000020',
   REGIONAL_LABORATORY:         '20000000-0000-4000-a000-000000000021',
   CONTINENTAL_LABORATORY:      '20000000-0000-4000-a000-000000000022',
+  DECISION_MAKER:              '20000000-0000-4000-a000-000000000023',
 } as const;
 
 // ── System Roles Definition ────────────────────────────────────────────────
@@ -252,6 +253,28 @@ const SYSTEM_ROLES: RoleSeed[] = [
     color: '#9333ea',
     icon: 'BookOpenCheck',
     sortOrder: 9,
+  },
+  {
+    id: ROLE_IDS.DECISION_MAKER,
+    code: 'DECISION_MAKER',
+    name: {
+      en: 'Decision Maker',
+      fr: 'Décideur',
+      pt: 'Decisor',
+      es: 'Decisor',
+      ar: 'صانع القرار',
+    },
+    description: {
+      en: 'Consultation of validated data, dashboard and slideshow creation and sharing, without access to settings or data collection',
+      fr: 'Consultation des données validées, création et partage de tableaux de bord et de diaporamas, sans accès au paramétrage ni à la collecte',
+      pt: 'Consulta de dados validados, criação e partilha de painéis e apresentações, sem acesso a configurações ou recolha de dados',
+      es: 'Consulta de datos validados, creación y uso compartido de paneles y presentaciones, sin acceso a configuración ni recolección de datos',
+      ar: 'الاطلاع على البيانات المصادق عليها، إنشاء ومشاركة لوحات المعلومات والعروض التقديمية، دون الوصول إلى الإعدادات أو جمع البيانات',
+    },
+    level: 'continental',
+    color: '#0891b2',
+    icon: 'Crown',
+    sortOrder: 10,
   },
 
   // ── Additional roles (scope-specific, assignable via UserRoleAssignment) ──
@@ -802,6 +825,21 @@ const KNOWLEDGE_MANAGER_PERMS = [
   'settings:audit:view',
 ];
 
+// DECISION_MAKER: read-only on validated domain data, dashboards, slideshows,
+// analytics, historical data, reports, BI tools. No collecte, workflow,
+// settings (except profile), interop, quality, or master-data write access.
+const DECISION_MAKER_PERMS = [
+  'dashboard:home:view',
+  // Domain data: view only (validated data — enforcement at service layer)
+  ...allPermsForModules(DOMAIN_MODULES).filter(p => p.endsWith(':view')),
+  // Analytics, Historical, Reports: full read + export
+  ...allPermsForModules(['analytics', 'historical', 'reports']),
+  // BI tools: view only (no configure)
+  'bi-tools:superset:view', 'bi-tools:metabase:view', 'bi-tools:grafana:view',
+  // Profile only
+  'settings:profile:view', 'settings:profile:edit',
+];
+
 // ── Additional role permission sets ──────────────────────────────────────
 // Scoped variants of DATA_STEWARD / FIELD_AGENT / ANALYST. They inherit the
 // base permissions and differ only in the geographic scope enforced at
@@ -891,6 +929,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
   NATIONAL_LABORATORY: NATIONAL_LABORATORY_PERMS,
   REGIONAL_LABORATORY: REGIONAL_LABORATORY_PERMS,
   CONTINENTAL_LABORATORY: CONTINENTAL_LABORATORY_PERMS,
+  DECISION_MAKER: DECISION_MAKER_PERMS,
 };
 
 // ── Function Category → Role Mapping ───────────────────────────────────────

@@ -30,6 +30,7 @@ const CLASSIFICATION_ACCESS: Record<DataClassification, UserRole[]> = {
     UserRole.WAHIS_FOCAL_POINT,
     UserRole.ANALYST,
     UserRole.FIELD_AGENT,
+    UserRole.DECISION_MAKER,
   ],
   [DataClassification.PARTNER]: [
     UserRole.SUPER_ADMIN,
@@ -39,6 +40,7 @@ const CLASSIFICATION_ACCESS: Record<DataClassification, UserRole[]> = {
     UserRole.DATA_STEWARD,
     UserRole.WAHIS_FOCAL_POINT,
     UserRole.ANALYST,
+    UserRole.DECISION_MAKER,
   ],
   [DataClassification.RESTRICTED]: [
     UserRole.SUPER_ADMIN,

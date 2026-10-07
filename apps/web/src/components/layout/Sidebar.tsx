@@ -262,6 +262,11 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
     '/support',
   ]),
+  DECISION_MAKER: new Set([
+    '/home', '/my-dashboards', '/analytics', '/historical', '/reports', '/slideshows',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/support',
+  ]),
 };
 
 /** Roles that have access to ALL business domains */
@@ -269,6 +274,7 @@ const ALL_DOMAIN_ROLES: Set<UserRole> = new Set([
   'ANALYST', 'WAHIS_FOCAL_POINT', 'DATA_STEWARD',
   'NATIONAL_ADMIN', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN',
   'NATIONAL_LABORATORY', 'REGIONAL_LABORATORY', 'CONTINENTAL_LABORATORY',
+  'DECISION_MAKER',
 ] as UserRole[]);
 
 /** FIELD_AGENT can see domain routes — access controlled by domain assignment, not hardcoded list */

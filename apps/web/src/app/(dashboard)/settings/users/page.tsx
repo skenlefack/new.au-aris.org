@@ -83,7 +83,8 @@ const ROLE_PRIORITY: Record<string, number> = {
   DATA_STEWARD: 5,
   WAHIS_FOCAL_POINT: 6,
   ANALYST: 7,
-  FIELD_AGENT: 8,
+  DECISION_MAKER: 8,
+  FIELD_AGENT: 9,
 };
 
 const ITEMS_PER_PAGE = 20;

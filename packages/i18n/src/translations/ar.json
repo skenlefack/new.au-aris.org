@@ -891,7 +891,8 @@
       "DATA_STEWARD": "مسؤول البيانات",
       "WAHIS_FOCAL_POINT": "نقطة الاتصال الوطنية WAHIS",
       "ANALYST": "محلل",
-      "FIELD_AGENT": "وكيل ميداني"
+      "FIELD_AGENT": "وكيل ميداني",
+      "DECISION_MAKER": "صانع القرار"
     },
     "TenantLevel": {
       "CONTINENTAL": "قاري (الاتحاد الأفريقي-IBAR)",

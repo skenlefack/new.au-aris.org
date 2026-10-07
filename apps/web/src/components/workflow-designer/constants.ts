@@ -18,7 +18,7 @@ export const ROLES = [
   'SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN',
   'DATA_STEWARD', 'WAHIS_FOCAL_POINT', 'ANALYST', 'FIELD_AGENT',
   'KNOWLEDGE_MANAGER', 'NATIONAL_LABORATORY', 'REGIONAL_LABORATORY',
-  'CONTINENTAL_LABORATORY', 'PAID_ADMIN',
+  'CONTINENTAL_LABORATORY', 'PAID_ADMIN', 'DECISION_MAKER',
 ];
 
 export const ROLE_I18N_KEYS: Record<string, string> = {
@@ -35,6 +35,7 @@ export const ROLE_I18N_KEYS: Record<string, string> = {
   REGIONAL_LABORATORY: 'regionalLab',
   CONTINENTAL_LABORATORY: 'continentalLab',
   PAID_ADMIN: 'paidAdmin',
+  DECISION_MAKER: 'decisionMaker',
 };
 
 export const LEVEL_CONFIG: Record<string, { i18nKey: string; color: string; bg: string; border: string; darkBg: string }> = {

@@ -182,6 +182,7 @@ enum UserRole {
   WAHIS_FOCAL_POINT = 'WAHIS_FOCAL_POINT', // Authorized WOAH reporters
   ANALYST = 'ANALYST',                    // Read-only analysts
   FIELD_AGENT = 'FIELD_AGENT',           // Mobile data collectors
+  DECISION_MAKER = 'DECISION_MAKER',     // Executives: validated data, dashboards, slideshows (no settings/collecte)
 }
 ```
 

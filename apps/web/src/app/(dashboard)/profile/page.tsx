@@ -59,6 +59,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
   REGIONAL_LABORATORY: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
   CONTINENTAL_LABORATORY: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   PAID_ADMIN: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+  DECISION_MAKER: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
 };
 
 const ROLE_TRANSLATION_KEYS: Record<UserRole, string> = {
@@ -75,6 +76,7 @@ const ROLE_TRANSLATION_KEYS: Record<UserRole, string> = {
   REGIONAL_LABORATORY: 'roleRegionalLaboratory',
   CONTINENTAL_LABORATORY: 'roleContinentalLaboratory',
   PAID_ADMIN: 'rolePaidAdmin',
+  DECISION_MAKER: 'roleDecisionMaker',
 };
 
 /* ------------------------------------------------------------------ */
