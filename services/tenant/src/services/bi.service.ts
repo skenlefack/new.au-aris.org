@@ -481,20 +481,23 @@ export class BiService {
     canUseSqlLab: boolean;
     dataFilters?: Record<string, unknown>;
   }) {
-    const result = await this.prisma.$queryRawUnsafe<any[]>(`
-      INSERT INTO governance.bi_data_access_rules
-        (id, bi_tool_config_id, role_level, allowed_schemas, allowed_tables,
-         excluded_tables, data_filters, can_create_dashboard, can_export_data, can_use_sql_lab)
-      VALUES (gen_random_uuid(), $1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb, $7, $8, $9)
-      ON CONFLICT (bi_tool_config_id, role_level, entity_type, entity_id) DO UPDATE SET
-        allowed_schemas = EXCLUDED.allowed_schemas,
-        allowed_tables = EXCLUDED.allowed_tables,
-        excluded_tables = EXCLUDED.excluded_tables,
-        data_filters = EXCLUDED.data_filters,
-        can_create_dashboard = EXCLUDED.can_create_dashboard,
-        can_export_data = EXCLUDED.can_export_data,
-        can_use_sql_lab = EXCLUDED.can_use_sql_lab,
+    // Use UPDATE-then-INSERT because the unique constraint includes nullable
+    // columns (entity_type, entity_id) and NULL ≠ NULL in SQL, so ON CONFLICT
+    // never matches rows where those columns are NULL.
+    const updated = await this.prisma.$queryRawUnsafe<any[]>(`
+      UPDATE governance.bi_data_access_rules SET
+        allowed_schemas = $3::jsonb,
+        allowed_tables = $4::jsonb,
+        excluded_tables = $5::jsonb,
+        data_filters = $6::jsonb,
+        can_create_dashboard = $7,
+        can_export_data = $8,
+        can_use_sql_lab = $9,
         updated_at = now()
+      WHERE bi_tool_config_id = $1::uuid
+        AND role_level = $2
+        AND entity_type IS NULL
+        AND entity_id IS NULL
       RETURNING id
     `,
       data.biToolConfigId,
@@ -507,7 +510,31 @@ export class BiService {
       data.canExportData,
       data.canUseSqlLab,
     );
-    return { data: result[0] };
+
+    if (updated.length > 0) {
+      return { data: updated[0] };
+    }
+
+    const inserted = await this.prisma.$queryRawUnsafe<any[]>(`
+      INSERT INTO governance.bi_data_access_rules
+        (id, bi_tool_config_id, role_level, allowed_schemas, allowed_tables,
+         excluded_tables, data_filters, can_create_dashboard, can_export_data,
+         can_use_sql_lab, is_active, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1::uuid, $2, $3::jsonb, $4::jsonb, $5::jsonb,
+              $6::jsonb, $7, $8, $9, true, now(), now())
+      RETURNING id
+    `,
+      data.biToolConfigId,
+      data.roleLevel,
+      JSON.stringify(data.allowedSchemas),
+      JSON.stringify(data.allowedTables),
+      JSON.stringify(data.excludedTables),
+      data.dataFilters ? JSON.stringify(data.dataFilters) : null,
+      data.canCreateDashboard,
+      data.canExportData,
+      data.canUseSqlLab,
+    );
+    return { data: inserted[0] };
   }
 
   async deleteAccessRule(id: string) {

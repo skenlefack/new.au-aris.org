@@ -141,19 +141,22 @@ async function seedBiTools() {
           (role === 'CONTINENTAL_ADMIN' && toolId === BI_TOOL_IDS.SUPERSET),
       };
 
-      // Use raw SQL for upsert since compound unique is complex
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO governance.bi_data_access_rules
-          (id, bi_tool_config_id, role_level, allowed_schemas, allowed_tables, excluded_tables, can_create_dashboard, can_export_data, can_use_sql_lab)
-         VALUES (gen_random_uuid(), $1::uuid, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6, $7, $8)
-         ON CONFLICT (bi_tool_config_id, role_level, entity_type, entity_id) DO UPDATE SET
-           allowed_schemas = EXCLUDED.allowed_schemas,
-           allowed_tables = EXCLUDED.allowed_tables,
-           excluded_tables = EXCLUDED.excluded_tables,
-           can_create_dashboard = EXCLUDED.can_create_dashboard,
-           can_export_data = EXCLUDED.can_export_data,
-           can_use_sql_lab = EXCLUDED.can_use_sql_lab,
-           updated_at = now()`,
+      // Upsert: try UPDATE first, then INSERT if not found.
+      // Cannot use ON CONFLICT because the unique index includes nullable columns
+      // (entity_type, entity_id) and NULL ≠ NULL in SQL standard.
+      const updated = await prisma.$executeRawUnsafe(
+        `UPDATE governance.bi_data_access_rules SET
+           allowed_schemas = $3::jsonb,
+           allowed_tables = $4::jsonb,
+           excluded_tables = $5::jsonb,
+           can_create_dashboard = $6,
+           can_export_data = $7,
+           can_use_sql_lab = $8,
+           updated_at = now()
+         WHERE bi_tool_config_id = $1::uuid
+           AND role_level = $2
+           AND entity_type IS NULL
+           AND entity_id IS NULL`,
         rule.biToolConfigId,
         rule.roleLevel,
         JSON.stringify(rule.allowedSchemas),
@@ -163,6 +166,21 @@ async function seedBiTools() {
         rule.canExportData,
         rule.canUseSqlLab,
       );
+      if (updated === 0) {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO governance.bi_data_access_rules
+            (id, bi_tool_config_id, role_level, allowed_schemas, allowed_tables, excluded_tables, can_create_dashboard, can_export_data, can_use_sql_lab, is_active, created_at, updated_at)
+           VALUES (gen_random_uuid(), $1::uuid, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6, $7, $8, true, now(), now())`,
+          rule.biToolConfigId,
+          rule.roleLevel,
+          JSON.stringify(rule.allowedSchemas),
+          JSON.stringify(rule.allowedTables),
+          JSON.stringify(rule.excludedTables),
+          rule.canCreateDashboard,
+          rule.canExportData,
+          rule.canUseSqlLab,
+        );
+      }
       ruleCount++;
     }
   }
@@ -412,8 +430,8 @@ async function seedBiTools() {
   for (const d of dashboards) {
     await prisma.$executeRawUnsafe(
       `INSERT INTO governance.bi_dashboards
-        (id, bi_tool_config_id, external_id, name, description, category, embed_url, scope, sort_order, is_featured)
-       VALUES (gen_random_uuid(), $1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9)
+        (id, bi_tool_config_id, external_id, name, description, category, embed_url, scope, sort_order, is_featured, created_at, updated_at)
+       VALUES (gen_random_uuid(), $1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9, now(), now())
        ON CONFLICT (bi_tool_config_id, external_id) DO UPDATE SET
          name = EXCLUDED.name,
          description = EXCLUDED.description,
