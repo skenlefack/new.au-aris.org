@@ -1,11 +1,40 @@
 'use client';
 
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from '@/lib/i18n/translations';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 export function Footer() {
   const t = useTranslations('landing');
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [pwaInstalled, setPwaInstalled] = useState(false);
+
+  useEffect(() => {
+    // Check if already installed (standalone mode)
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
+      setPwaInstalled(true);
+    }
+    const handlePrompt = (e: Event) => { e.preventDefault(); setDeferredPrompt(e as BeforeInstallPromptEvent); };
+    const handleInstalled = () => setPwaInstalled(true);
+    window.addEventListener('beforeinstallprompt', handlePrompt);
+    window.addEventListener('appinstalled', handleInstalled);
+    return () => { window.removeEventListener('beforeinstallprompt', handlePrompt); window.removeEventListener('appinstalled', handleInstalled); };
+  }, []);
+
+  const handleInstallPwa = useCallback(async () => {
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setPwaInstalled(true);
+      setDeferredPrompt(null);
+    }
+  }, [deferredPrompt]);
   return (
     <footer className="relative overflow-hidden border-t-4 border-[#006B3F]" style={{ background: 'linear-gradient(135deg, #D4A843, #C49B38, #E8C875, #D4A843)' }}>
       {/* SVG decorative circles & arcs */}
@@ -122,6 +151,29 @@ export function Footer() {
                   <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
                 </svg>
               </a>
+
+              {/* PWA Install link */}
+              {!pwaInstalled && (
+                <button
+                  onClick={handleInstallPwa}
+                  className="mt-2 flex items-center gap-1.5 text-xs text-[#5C3A00]/70 transition-colors hover:text-[#3E2100]"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                    <path fillRule="evenodd" d="M4.25 2A2.25 2.25 0 0 0 2 4.25v11.5A2.25 2.25 0 0 0 4.25 18h11.5A2.25 2.25 0 0 0 18 15.75V4.25A2.25 2.25 0 0 0 15.75 2H4.25Zm4.03 6.28a.75.75 0 0 0-1.06-1.06L4.97 9.47a.75.75 0 0 0 0 1.06l2.25 2.25a.75.75 0 0 0 1.06-1.06L6.56 10l1.72-1.72Zm4.5-1.06a.75.75 0 1 0-1.06 1.06L13.44 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06l2.25-2.25a.75.75 0 0 0 0-1.06l-2.25-2.25Z" clipRule="evenodd" />
+                  </svg>
+                  {deferredPrompt
+                    ? (t('installPwa') || 'Install ARIS Web App (PWA)')
+                    : (t('installPwaManual') || 'Install as Web App — use browser menu')}
+                </button>
+              )}
+              {pwaInstalled && (
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-700/70">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
+                  </svg>
+                  {t('pwaInstalled') || 'Web App installed'}
+                </p>
+              )}
             </div>
           </div>
         </div>
