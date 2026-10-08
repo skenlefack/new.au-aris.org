@@ -10,6 +10,7 @@ import { useDomainStore } from '@/lib/stores/domain-store';
 import { usePermissionStore } from '@/lib/stores/permission-store';
 import { useTenantStore } from '@/lib/stores/tenant-store';
 import { useUnreadNotifications } from '@/lib/api/hooks';
+import { SyncStatusIndicator } from '@/components/offline/SyncStatusIndicator';
 import {
   Bell,
   LogOut,
@@ -457,6 +458,7 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
         </div>
 
         <AiHealthIndicator />
+        <SyncStatusIndicator />
         <LanguageSwitcher />
         <ThemeToggle />
         <ConnectionIndicator />

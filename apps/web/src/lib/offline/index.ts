@@ -24,3 +24,16 @@ export { cacheDashboardData, getCachedDashboardData, dashboardCacheKey, clearDas
 export { withOfflineCache, withRefDataCache, withDashboardCache } from './query-offline';
 
 export { runOfflinePrefetch, isPrefetching } from './offline-prefetcher';
+
+export {
+  createOfflineSubmission, updateOfflineSubmission, deleteOfflineSubmission,
+  markSubmissionPending, markSubmissionSynced, markSubmissionFailed,
+  getOfflineSubmissions, getSubmissionsByCampaign, getSubmissionsByStatus,
+  getPendingSubmissions, getOfflineSubmission, countSubmissionsByStatus,
+} from './submission-store';
+
+export {
+  enqueueSync, getSyncQueueStatus, getSyncQueue, removeSyncItem,
+  retrySyncItem, discardSyncItem, processQueue, isSyncing,
+  type SyncResult,
+} from './sync-queue';

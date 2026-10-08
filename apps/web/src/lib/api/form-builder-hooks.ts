@@ -2,6 +2,8 @@
 
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from './client';
+import { createOfflineSubmission, markSubmissionPending } from '@/lib/offline/submission-store';
+import { enqueueSync } from '@/lib/offline/sync-queue';
 
 // Form-builder service: proxied via Next.js rewrites in dev (no CORS).
 // In production: Traefik routes /api/v1/form-builder/* to the form-builder service.
@@ -320,21 +322,83 @@ export function useMultiTemplateSubmissions(
   });
 }
 
-// ---- Create submission ----
+// ---- Create submission (online + offline support) ----
 export function useCreateSubmission() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ templateId, ...body }: {
+    mutationFn: async ({ templateId, ...body }: {
       templateId: string;
       data: Record<string, unknown>;
       status?: 'DRAFT' | 'SUBMITTED';
       geoLocation?: Record<string, unknown>;
       campaignId?: string;
       extensionId?: string;
-    }) => fb.post<ApiResponse<FormSubmissionListItem>>(
-      `/templates/${templateId}/submissions`,
-      body,
-    ),
+    }) => {
+      // If online, submit normally
+      if (typeof navigator === 'undefined' || navigator.onLine) {
+        try {
+          return await fb.post<ApiResponse<FormSubmissionListItem>>(
+            `/templates/${templateId}/submissions`,
+            body,
+          );
+        } catch (err) {
+          // If network error (not server error), fall through to offline save
+          if (err instanceof TypeError && err.message === 'Failed to fetch') {
+            // Fall through to offline handling below
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      // Offline (or network error): save to IndexedDB
+      const tenantId = (() => {
+        try {
+          const raw = localStorage.getItem('aris-tenant');
+          return raw ? JSON.parse(raw)?.state?.selectedTenantId ?? '' : '';
+        } catch { return ''; }
+      })();
+
+      const geo = body.geoLocation as Record<string, number> | undefined;
+      const sub = await createOfflineSubmission({
+        tenantId,
+        campaignId: body.campaignId ?? '',
+        templateId,
+        data: body.data,
+        domain: '',
+        gpsLat: geo?.latitude,
+        gpsLng: geo?.longitude,
+        gpsAccuracy: geo?.accuracy,
+      });
+
+      // Mark as pending sync and enqueue
+      await markSubmissionPending(sub.id);
+      await enqueueSync({
+        type: 'CREATE_SUBMISSION',
+        endpoint: `/api/v1/form-builder/templates/${templateId}/submissions`,
+        method: 'POST',
+        payload: { ...body, submissionId: sub.id },
+        tenantId,
+        userId: (() => {
+          try {
+            const raw = localStorage.getItem('aris-auth');
+            return raw ? JSON.parse(raw)?.state?.user?.id ?? '' : '';
+          } catch { return ''; }
+        })(),
+      });
+
+      // Return a synthetic response so the UI doesn't break
+      return {
+        data: {
+          id: sub.id,
+          templateId,
+          status: 'PENDING_SYNC',
+          data: body.data,
+          createdAt: new Date().toISOString(),
+          _offline: true,
+        },
+      } as ApiResponse<FormSubmissionListItem>;
+    },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['form-builder', 'submissions', vars.templateId] });
     },
