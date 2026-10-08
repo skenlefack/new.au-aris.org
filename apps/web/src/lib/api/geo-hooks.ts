@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './client';
 import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
 import { ApiClientError } from './client';
+import { cacheGeoEntities as cacheGeoToIDB, getCachedGeoEntities } from '@/lib/offline/ref-data-cache';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -198,14 +199,35 @@ export function useGeoEntities(params?: {
           searchParams,
         );
       } catch {
-        // API failed — will use GADM fallback below
+        // API failed — try IndexedDB cache before GADM fallback
+        if (params?.countryCode) {
+          try {
+            const cached = await getCachedGeoEntities(params.countryCode, params?.level as any);
+            if (cached.length > 0) {
+              return { data: cached as unknown as GeoEntity[], meta: { total: cached.length, page: 1, limit: cached.length } };
+            }
+          } catch { /* continue to GADM fallback */ }
+        }
       }
       // Use API data if non-empty
-      if (apiResult?.data && apiResult.data.length > 0) return apiResult;
+      if (apiResult?.data && apiResult.data.length > 0) {
+        // Cache to IndexedDB in background
+        if (params?.countryCode && apiResult.data.length > 0) {
+          cacheGeoToIDB(params.countryCode, apiResult.data.map((e) => ({
+            id: e.id, code: e.code, name: e.name,
+            level: (e.level as any) || 'ADMIN1',
+            countryCode: params.countryCode!,
+            parentId: (e as any).parentId || null,
+            latitude: (e as any).latitude, longitude: (e as any).longitude,
+          }))).catch(() => {});
+        }
+        return apiResult;
+      }
       // Otherwise use GADM pre-registered data
       return buildFallbackGeoEntities(params);
     },
     staleTime: 5 * 60_000,
+    networkMode: 'offlineFirst',
   });
 }
 

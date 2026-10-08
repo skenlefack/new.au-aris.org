@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from './client';
+import { withRefDataCache } from '@/lib/offline/query-offline';
 
 const MASTER_DATA_API = process.env['NEXT_PUBLIC_MASTER_DATA_API_URL'] ?? '';
 
@@ -65,6 +66,14 @@ async function mdPatch<T = any>(path: string, body: unknown): Promise<T> {
     method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(body),
   });
   return handleRes<T>(res);
+}
+
+function getTenantId(): string {
+  try {
+    const raw = localStorage.getItem('aris-tenant');
+    if (raw) return JSON.parse(raw)?.state?.selectedTenantId ?? '';
+  } catch { /* ignore */ }
+  return '';
 }
 
 async function mdDelete<T = any>(path: string): Promise<T> {
@@ -290,12 +299,19 @@ export function useRefDataForSelect(
     });
   }
 
+  const tenantId = typeof window !== 'undefined' ? getTenantId() : '';
+
   return useQuery({
     queryKey: ['ref-data', type, 'for-select', parentFilter],
-    queryFn: () => mdGet<{ data: SelectOption[] }>(`/api/v1/master-data/ref/${type}/for-select`, queryParams),
+    queryFn: withRefDataCache(
+      type,
+      tenantId,
+      () => mdGet<{ data: SelectOption[] }>(`/api/v1/master-data/ref/${type}/for-select`, queryParams),
+    ),
     staleTime: 5 * 60 * 1000,
     enabled,
     retry: 1,
+    networkMode: 'offlineFirst',
   });
 }
 

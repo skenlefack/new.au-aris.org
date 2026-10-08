@@ -5,6 +5,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { analyticsClient } from './client';
+import { withDashboardCache } from '@/lib/offline/query-offline';
 
 // ─── Widget type mapping (backend ↔ frontend) ──────────────────────────────
 // Backend (Prisma/DB) uses LINE_CHART, BAR_CHART etc.
@@ -434,31 +435,48 @@ export function useDashboard(id: string) {
   });
 }
 
+function _getTenantId(): string {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('aris-tenant') : null;
+    if (raw) return JSON.parse(raw)?.state?.selectedTenantId ?? '';
+  } catch { /* ignore */ }
+  return '';
+}
+
 export function useDashboardRender(
   id: string,
   filters?: Record<string, unknown>,
   options?: { refetchInterval?: number },
 ) {
+  const tenantId = typeof window !== 'undefined' ? _getTenantId() : '';
+  const endpoint = `/analytics/dashboards/${id}/render`;
+  const filterParams: Record<string, string> = {};
+  if (filters) {
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') filterParams[k] = String(v);
+    });
+  }
+
   return useQuery<{ data: DashboardRenderData }>({
     queryKey: [...KEYS.render(id), filters],
-    queryFn: async () => {
-      const qp: Record<string, string> = {};
-      if (filters) {
-        Object.entries(filters).forEach(([k, v]) => {
-          if (v !== undefined && v !== null && v !== '') qp[k] = String(v);
-        });
-      }
-      const res = await analyticsClient.get<{ data: DashboardRenderData }>(
-        `/analytics/dashboards/${id}/render`,
-        Object.keys(qp).length > 0 ? qp : undefined,
-      );
-      return mapDashboardWidgets(res);
-    },
+    queryFn: withDashboardCache(
+      endpoint,
+      tenantId,
+      async () => {
+        const res = await analyticsClient.get<{ data: DashboardRenderData }>(
+          endpoint,
+          Object.keys(filterParams).length > 0 ? filterParams : undefined,
+        );
+        return mapDashboardWidgets(res);
+      },
+      filterParams,
+    ),
     enabled: !!id,
     staleTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: options?.refetchInterval
       ? options.refetchInterval * 1000
       : undefined,
+    networkMode: 'offlineFirst',
   });
 }
 

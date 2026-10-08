@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
 import { BrowserCompatCheck } from '@/components/offline/BrowserCompatCheck';
+import { StorageQuotaWarning } from '@/components/offline/StorageQuotaWarning';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { KeyboardShortcutsHelp } from '@/components/ui/KeyboardShortcutsHelp';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
@@ -133,6 +134,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               {children}
               <InstallPrompt />
               <BrowserCompatCheck />
+              <StorageQuotaWarning />
               <CommandPalette />
               <KeyboardShortcutsHelp />
             </KeyboardShortcutsProvider>

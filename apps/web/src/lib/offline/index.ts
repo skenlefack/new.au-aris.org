@@ -11,3 +11,16 @@ export {
   getStorageQuota, isQuotaWarning, requestPersistentStorage, formatBytes,
   type StorageQuota,
 } from './quota-manager';
+
+export {
+  cacheRefData, getCachedRefData, isRefDataFresh,
+  cacheGeoEntities, getCachedGeoEntities, getCachedGeoChildren, isGeoFresh,
+  cacheFormTemplates, getCachedFormTemplates, getCachedFormTemplate, isTemplatesFresh,
+  cacheCampaigns, getCachedCampaigns,
+} from './ref-data-cache';
+
+export { cacheDashboardData, getCachedDashboardData, dashboardCacheKey, clearDashboardCache } from './dashboard-cache';
+
+export { withOfflineCache, withRefDataCache, withDashboardCache } from './query-offline';
+
+export { runOfflinePrefetch, isPrefetching } from './offline-prefetcher';
