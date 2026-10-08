@@ -11,6 +11,8 @@ import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
 import { BrowserCompatCheck } from '@/components/offline/BrowserCompatCheck';
 import { StorageQuotaWarning } from '@/components/offline/StorageQuotaWarning';
+import { SyncConflictDialog } from '@/components/offline/SyncConflictDialog';
+import { SwUpdateBanner } from '@/components/offline/SwUpdateBanner';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { KeyboardShortcutsHelp } from '@/components/ui/KeyboardShortcutsHelp';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
@@ -135,6 +137,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <InstallPrompt />
               <BrowserCompatCheck />
               <StorageQuotaWarning />
+              <SyncConflictDialog />
+              <SwUpdateBanner />
               <CommandPalette />
               <KeyboardShortcutsHelp />
             </KeyboardShortcutsProvider>

@@ -70,13 +70,21 @@ export const useAuthStore = create<AuthState>()(
             ? { user: { ...state.user, mustChangePassword: false } }
             : state,
         ),
-      logout: () =>
+      logout: () => {
+        // Clean up offline data for the user's tenant
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser?.tenantId) {
+          import('@/lib/offline/db').then(({ clearTenantData }) => {
+            clearTenantData(currentUser.tenantId).catch(() => {});
+          }).catch(() => {});
+        }
         set({
           user: null,
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
-        }),
+        });
+      },
     }),
     {
       name: 'aris-auth',
