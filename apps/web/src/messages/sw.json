@@ -1486,6 +1486,7 @@
     "failedToLoadData": "Imeshindwa kupakia data",
     "youAreOffline": "Kwa sasa uko nje ya mtandao",
     "backOnline": "Umerudi mtandaoni",
+    "offlineReadOnly": "Data iliyohifadhiwa inapatikana kwa kusoma tu",
     "noResults": "Hakuna matokeo yaliyopatikana.",
     "searchPagesActions": "Tafuta kurasa na vitendo...",
     "navigate": "Elekeza",

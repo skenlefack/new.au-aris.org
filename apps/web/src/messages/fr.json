@@ -1579,6 +1579,7 @@
     "failedToLoadData": "Échec du chargement des données",
     "youAreOffline": "Vous êtes actuellement hors ligne",
     "backOnline": "De retour en ligne",
+    "offlineReadOnly": "Données en cache disponibles en lecture seule",
     "noResults": "Aucun résultat trouvé.",
     "searchPagesActions": "Rechercher des pages et actions...",
     "navigate": "Naviguer",

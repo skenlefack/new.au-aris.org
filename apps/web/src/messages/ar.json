@@ -1486,6 +1486,7 @@
     "failedToLoadData": "فشل تحميل البيانات",
     "youAreOffline": "أنت غير متصل حاليًا",
     "backOnline": "عدت إلى الاتصال",
+    "offlineReadOnly": "البيانات المخزنة مؤقتاً متاحة في وضع القراءة فقط",
     "noResults": "لم يتم العثور على نتائج.",
     "searchPagesActions": "البحث في الصفحات والإجراءات...",
     "navigate": "تنقل",

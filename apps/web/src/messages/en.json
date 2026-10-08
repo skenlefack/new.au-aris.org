@@ -1579,6 +1579,7 @@
     "failedToLoadData": "Failed to load data",
     "youAreOffline": "You are currently offline",
     "backOnline": "Back online",
+    "offlineReadOnly": "Cached data available in read-only mode",
     "noResults": "No results found.",
     "searchPagesActions": "Search pages and actions...",
     "navigate": "Navigate",

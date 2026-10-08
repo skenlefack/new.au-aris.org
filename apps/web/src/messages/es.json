@@ -1486,6 +1486,7 @@
     "failedToLoadData": "Error al cargar datos",
     "youAreOffline": "Actualmente está sin conexión",
     "backOnline": "De vuelta en línea",
+    "offlineReadOnly": "Datos en caché disponibles en modo solo lectura",
     "noResults": "No se encontraron resultados.",
     "searchPagesActions": "Buscar páginas y acciones...",
     "navigate": "Navegar",

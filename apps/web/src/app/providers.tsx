@@ -7,8 +7,9 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
-import { NetworkBanner } from '@/components/ui/NetworkBanner';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
+import { OfflineIndicator } from '@/components/offline/OfflineIndicator';
+import { BrowserCompatCheck } from '@/components/offline/BrowserCompatCheck';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { KeyboardShortcutsHelp } from '@/components/ui/KeyboardShortcutsHelp';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
@@ -128,9 +129,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <HydrationBoundary>
           <DirectionProvider>
             <KeyboardShortcutsProvider>
-              <NetworkBanner />
+              <OfflineIndicator />
               {children}
               <InstallPrompt />
+              <BrowserCompatCheck />
               <CommandPalette />
               <KeyboardShortcutsHelp />
             </KeyboardShortcutsProvider>

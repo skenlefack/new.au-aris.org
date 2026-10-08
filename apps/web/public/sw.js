@@ -1,17 +1,33 @@
-const CACHE_NAME = 'aris-v4';
-// Don't precache HTML pages — they change on every deploy and ISR revalidation.
-// Only static assets (images, fonts, styles) are cached via the fetch handler below.
-const PRECACHE_URLS = [];
+/**
+ * ARIS 4.0 — Service Worker (Workbox-based)
+ *
+ * Caching strategies:
+ *   - Cache-first:  static assets (images, fonts, CSS, JS chunks)
+ *   - Stale-while-revalidate:  reference/master data API, dashboard data
+ *   - Network-first:  HTML navigation (offline fallback)
+ *   - Network-only:  mutations (POST/PUT/PATCH/DELETE) — handled by sync queue
+ *
+ * The SW never intercepts mutations — those are managed by the in-app
+ * SyncQueue (IndexedDB) which replays them when connectivity returns.
+ */
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting()),
-  );
-});
+/* global importScripts, workbox */
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.3.0/workbox-sw.js');
 
+// ── Workbox config ──
+workbox.setConfig({ debug: false });
+
+const { routing, strategies, cacheableResponse, expiration, precaching } = workbox;
+
+// ── Version — bump on breaking changes to force cache clear ──
+const SW_VERSION = 'aris-sw-v2';
+
+// ── Precache: offline fallback page ──
+precaching.precacheAndRoute([
+  { url: '/offline', revision: SW_VERSION },
+]);
+
+// ── Skip waiting + claim ──
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
@@ -20,84 +36,153 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
-        ),
-      )
-      .then(() => self.clients.claim()),
+    // Clean old caches from the previous hand-written SW
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((k) => k === 'aris-v4') // old cache name
+          .map((k) => caches.delete(k)),
+      ),
+    ).then(() => self.clients.claim()),
   );
 });
 
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
+// ═══════════════════════════════════════════════════════════════════
+//  ROUTING RULES
+// ═══════════════════════════════════════════════════════════════════
 
-  // Only handle GET — POST/PUT/PATCH/DELETE pass through untouched
-  if (req.method !== 'GET') return;
+// ── 1. Static assets: Cache-first (images, fonts) ──
+routing.registerRoute(
+  ({ request }) =>
+    request.destination === 'image' ||
+    request.destination === 'font',
+  new strategies.CacheFirst({
+    cacheName: 'aris-static-v1',
+    plugins: [
+      new cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
+      new expiration.ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 30 * 24 * 3600 }),
+    ],
+  }),
+);
 
-  // Same-origin only — never intercept BI subdomains or external resources
-  if (!req.url.startsWith(self.location.origin)) return;
+// ── 2. Next.js static chunks: Cache-first ──
+routing.registerRoute(
+  ({ url }) => url.pathname.startsWith('/_next/static/'),
+  new strategies.CacheFirst({
+    cacheName: 'aris-chunks-v1',
+    plugins: [
+      new cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
+      new expiration.ExpirationPlugin({ maxEntries: 500, maxAgeSeconds: 30 * 24 * 3600 }),
+    ],
+  }),
+);
 
-  // Never intercept API calls — let the browser deliver real Response objects
-  // and real errors to the app's fetch logic
-  if (req.url.includes('/api/')) return;
+// ── 3. CSS stylesheets: Cache-first ──
+routing.registerRoute(
+  ({ request }) => request.destination === 'style',
+  new strategies.CacheFirst({
+    cacheName: 'aris-styles-v1',
+    plugins: [
+      new cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
+      new expiration.ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 30 * 24 * 3600 }),
+    ],
+  }),
+);
 
-  // Never intercept the manifest, the SW itself, or Next.js internals
-  if (
-    req.url.includes('/manifest.webmanifest') ||
-    req.url.includes('/manifest.json') ||
-    req.url.includes('/sw.js') ||
-    req.url.includes('/_next/data/') ||
-    req.url.includes('/_next/static/chunks/')
-  ) {
-    return;
-  }
+// ── 4. Reference data API: Stale-while-revalidate ──
+// Covers: /api/v1/master-data/*, /api/v1/public/settings/*
+routing.registerRoute(
+  ({ url }) =>
+    url.pathname.startsWith('/api/v1/master-data/') ||
+    url.pathname.startsWith('/api/v1/public/settings/'),
+  new strategies.StaleWhileRevalidate({
+    cacheName: 'aris-refdata-v1',
+    plugins: [
+      new cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
+      new expiration.ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 24 * 3600 }),
+    ],
+  }),
+);
 
-  // Cache-first for static media assets (images, fonts, stylesheets)
-  if (
-    req.destination === 'image' ||
-    req.destination === 'font' ||
-    req.destination === 'style'
-  ) {
-    event.respondWith(
-      caches.match(req).then((cached) => {
-        if (cached) return cached;
-        return fetch(req)
-          .then((response) => {
-            if (response && response.ok) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
-            }
-            return response;
-          })
-          .catch(() => new Response('', { status: 504, statusText: 'Gateway Timeout' }));
-      }),
+// ── 5. Form templates: Network-first + cache ──
+routing.registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/v1/form-builder/'),
+  new strategies.NetworkFirst({
+    cacheName: 'aris-templates-v1',
+    networkTimeoutSeconds: 8,
+    plugins: [
+      new cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
+      new expiration.ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 6 * 3600 }),
+    ],
+  }),
+);
+
+// ── 6. Analytics/Dashboard API: Stale-while-revalidate ──
+routing.registerRoute(
+  ({ url }) =>
+    url.pathname.startsWith('/api/v1/analytics/') ||
+    url.pathname.startsWith('/api/v1/bi/'),
+  new strategies.StaleWhileRevalidate({
+    cacheName: 'aris-dashboard-v1',
+    plugins: [
+      new cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
+      new expiration.ExpirationPlugin({ maxEntries: 30, maxAgeSeconds: 5 * 60 }),
+    ],
+  }),
+);
+
+// ── 7. Collecte GET requests: Network-first ──
+routing.registerRoute(
+  ({ url, request }) =>
+    request.method === 'GET' &&
+    (url.pathname.startsWith('/api/v1/collecte/') ||
+     url.pathname.startsWith('/api/v1/workflow/')),
+  new strategies.NetworkFirst({
+    cacheName: 'aris-collecte-v1',
+    networkTimeoutSeconds: 8,
+    plugins: [
+      new cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
+      new expiration.ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 3600 }),
+    ],
+  }),
+);
+
+// ── 8. Other API GET requests: Network-only (pass through) ──
+// Mutations (POST/PUT/PATCH/DELETE) are never intercepted.
+routing.registerRoute(
+  ({ url, request }) =>
+    request.method === 'GET' && url.pathname.startsWith('/api/'),
+  new strategies.NetworkOnly(),
+);
+
+// ── 9. HTML navigation: Network-first with offline fallback ──
+routing.registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  new strategies.NetworkFirst({
+    cacheName: 'aris-pages-v1',
+    networkTimeoutSeconds: 5,
+    plugins: [
+      new cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
+      new expiration.ExpirationPlugin({ maxEntries: 50 }),
+    ],
+  }),
+);
+
+// ── 10. Offline fallback for navigation ──
+routing.setCatchHandler(async ({ event }) => {
+  if (event.request.mode === 'navigate') {
+    return caches.match('/offline') || new Response(
+      '<html><body><h1>ARIS — Offline</h1><p>No cached version available.</p></body></html>',
+      { status: 503, headers: { 'Content-Type': 'text/html' } },
     );
-    return;
   }
-
-  // Network-first for HTML navigation only — always return a Response
-  if (req.mode === 'navigate' || req.destination === 'document') {
-    event.respondWith(
-      fetch(req).catch(() =>
-        caches.match(req).then(
-          (cached) =>
-            cached ||
-            caches.match('/').then(
-              (root) =>
-                root ||
-                new Response('<h1>Offline</h1>', {
-                  status: 503,
-                  headers: { 'Content-Type': 'text/html' },
-                }),
-            ),
-        ),
-      ),
-    );
-    return;
-  }
-
-  // Everything else: do NOT intercept — let the browser handle it natively
+  return Response.error();
 });
+
+// ── Never intercept these ──
+routing.registerRoute(
+  ({ url }) =>
+    url.pathname === '/sw.js' ||
+    url.pathname.includes('/manifest'),
+  new strategies.NetworkOnly(),
+);
