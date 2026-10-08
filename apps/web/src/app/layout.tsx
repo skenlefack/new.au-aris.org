@@ -12,25 +12,30 @@ const inter = localFont({
   weight: '100 900',
 });
 
+const isStaging = (process.env.NEXT_PUBLIC_API_URL ?? '').includes('test.');
+const iconSuffix = isStaging ? '-stg' : '';
+
 export const metadata: Metadata = {
-  title: 'ARIS — Animal Resources Information System',
+  title: isStaging
+    ? 'ARIS [STG] — Animal Resources Information System'
+    : 'ARIS — Animal Resources Information System',
   description:
     'AU-IBAR Continental Digital Infrastructure for Animal Resources across 55 Member States',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'ARIS',
+    title: isStaging ? 'ARIS STG' : 'ARIS',
   },
   other: {
     'mobile-web-app-capable': 'yes',
   },
   icons: {
     icon: [
-      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: `/icons/favicon-32${iconSuffix}.png`, sizes: '32x32', type: 'image/png' },
+      { url: `/icons/icon-192${iconSuffix}.png`, sizes: '192x192', type: 'image/png' },
     ],
-    apple: '/icons/apple-touch-icon.png',
+    apple: `/icons/apple-touch-icon${iconSuffix}.png`,
   },
 };
 

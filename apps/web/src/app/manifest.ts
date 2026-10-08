@@ -3,6 +3,8 @@ import type { MetadataRoute } from 'next';
 const isStaging = (process.env.NEXT_PUBLIC_API_URL ?? '').includes('test.');
 
 export default function manifest(): MetadataRoute.Manifest {
+  const iconSuffix = isStaging ? '-stg' : '';
+
   return {
     name: isStaging
       ? 'ARIS 4.0 [STAGING] — Animal Resources Information System'
@@ -20,25 +22,25 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: 'any',
     icons: [
       {
-        src: '/icons/icon-192.png',
+        src: `/icons/icon-192${iconSuffix}.png`,
         sizes: '192x192',
         type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/icons/icon-512.png',
+        src: `/icons/icon-512${iconSuffix}.png`,
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/icons/icon-192.png',
+        src: `/icons/icon-192${iconSuffix}.png`,
         sizes: '192x192',
         type: 'image/png',
         purpose: 'maskable',
       },
       {
-        src: '/icons/icon-512.png',
+        src: `/icons/icon-512${iconSuffix}.png`,
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',
