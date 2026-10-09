@@ -10,6 +10,111 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+function PwaInstallLink({
+  deferredPrompt,
+  onInstall,
+  t,
+}: {
+  deferredPrompt: BeforeInstallPromptEvent | null;
+  onInstall: () => void;
+  t: (key: string) => string;
+}) {
+  const [showGuide, setShowGuide] = useState(false);
+
+  // Detect browser for instructions
+  const getBrowserGuide = () => {
+    if (typeof navigator === 'undefined') return null;
+    const ua = navigator.userAgent;
+    if (ua.includes('Chrome') || ua.includes('Chromium') || ua.includes('Edg')) {
+      return {
+        name: 'Chrome / Edge',
+        steps: [
+          t('pwaStepChrome1') || 'Click the install icon in the address bar (or the ⋮ menu)',
+          t('pwaStepChrome2') || 'Select "Install ARIS" or "Install app"',
+          t('pwaStepChrome3') || 'Click "Install" in the confirmation dialog',
+        ],
+      };
+    }
+    if (ua.includes('Firefox')) {
+      return {
+        name: 'Firefox',
+        steps: [
+          t('pwaStepFirefox1') || 'Firefox does not support PWA installation natively',
+          t('pwaStepFirefox2') || 'Use Chrome, Edge or Safari for the best experience',
+        ],
+      };
+    }
+    if (ua.includes('Safari') && !ua.includes('Chrome')) {
+      return {
+        name: 'Safari',
+        steps: [
+          t('pwaStepSafari1') || 'Tap the Share button (square with arrow)',
+          t('pwaStepSafari2') || 'Scroll down and tap "Add to Home Screen"',
+          t('pwaStepSafari3') || 'Tap "Add" to confirm',
+        ],
+      };
+    }
+    return null;
+  };
+
+  // If the install prompt is available, show a direct install button
+  if (deferredPrompt) {
+    return (
+      <button
+        onClick={onInstall}
+        className="mt-2 flex items-center gap-1.5 text-xs text-[#5C3A00]/70 transition-colors hover:text-[#3E2100] underline decoration-dotted underline-offset-2"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+          <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" />
+          <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
+        </svg>
+        {t('installPwa') || 'Install ARIS Web App (PWA)'}
+      </button>
+    );
+  }
+
+  // Otherwise, show instructions guide
+  const guide = getBrowserGuide();
+
+  return (
+    <div className="mt-2 relative">
+      <button
+        onClick={() => setShowGuide(!showGuide)}
+        className="flex items-center gap-1.5 text-xs text-[#5C3A00]/70 transition-colors hover:text-[#3E2100] underline decoration-dotted underline-offset-2"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+          <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" />
+          <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
+        </svg>
+        {t('installPwaManual') || 'Install as Web App'}
+      </button>
+
+      {showGuide && guide && (
+        <div className="absolute bottom-full left-0 mb-2 w-64 rounded-lg border border-[#3E2100]/20 bg-white p-3 shadow-xl z-50">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-800">{guide.name}</span>
+            <button onClick={() => setShowGuide(false)} className="text-gray-400 hover:text-gray-600">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+              </svg>
+            </button>
+          </div>
+          <ol className="space-y-1.5">
+            {guide.steps.map((step, i) => (
+              <li key={i} className="flex gap-2 text-[11px] text-gray-600">
+                <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#006B3F] text-[9px] font-bold text-white">
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Footer() {
   const t = useTranslations('landing');
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -154,17 +259,11 @@ export function Footer() {
 
               {/* PWA Install link */}
               {!pwaInstalled && (
-                <button
-                  onClick={handleInstallPwa}
-                  className="mt-2 flex items-center gap-1.5 text-xs text-[#5C3A00]/70 transition-colors hover:text-[#3E2100]"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                    <path fillRule="evenodd" d="M4.25 2A2.25 2.25 0 0 0 2 4.25v11.5A2.25 2.25 0 0 0 4.25 18h11.5A2.25 2.25 0 0 0 18 15.75V4.25A2.25 2.25 0 0 0 15.75 2H4.25Zm4.03 6.28a.75.75 0 0 0-1.06-1.06L4.97 9.47a.75.75 0 0 0 0 1.06l2.25 2.25a.75.75 0 0 0 1.06-1.06L6.56 10l1.72-1.72Zm4.5-1.06a.75.75 0 1 0-1.06 1.06L13.44 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06l2.25-2.25a.75.75 0 0 0 0-1.06l-2.25-2.25Z" clipRule="evenodd" />
-                  </svg>
-                  {deferredPrompt
-                    ? (t('installPwa') || 'Install ARIS Web App (PWA)')
-                    : (t('installPwaManual') || 'Install as Web App — use browser menu')}
-                </button>
+                <PwaInstallLink
+                  deferredPrompt={deferredPrompt}
+                  onInstall={handleInstallPwa}
+                  t={t}
+                />
               )}
               {pwaInstalled && (
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-700/70">
