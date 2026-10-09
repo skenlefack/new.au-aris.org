@@ -47,7 +47,17 @@ self.addEventListener('activate', (event) => {
           )
           .map((k) => caches.delete(k)),
       ),
-    ).then(() => self.clients.claim()),
+    )
+    // Pre-cache critical pages so they're available offline immediately
+    .then(() => caches.open(PAGES_CACHE))
+    .then((cache) =>
+      Promise.allSettled([
+        cache.add('/home'),
+        cache.add('/offline'),
+        cache.add('/'),
+      ]),
+    )
+    .then(() => self.clients.claim()),
   );
 });
 
@@ -116,9 +126,13 @@ if (typeof workbox !== 'undefined') {
   // ── 5. Offline fallback for navigation ──
   routing.setCatchHandler(async ({ event }) => {
     if (event.request.mode === 'navigate') {
+      // 1. Try exact cached match for the requested page
       const cached = await caches.match(event.request);
       if (cached) return cached;
-      // Try the offline page
+      // 2. Serve the app shell (/home) — Next.js client-side routing handles the rest
+      const appShell = await caches.match('/home');
+      if (appShell) return appShell;
+      // 3. Try the offline page
       const offlinePage = await caches.match('/offline');
       if (offlinePage) return offlinePage;
       // Last resort
