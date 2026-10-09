@@ -13,6 +13,7 @@ import { BrowserCompatCheck } from '@/components/offline/BrowserCompatCheck';
 import { StorageQuotaWarning } from '@/components/offline/StorageQuotaWarning';
 import { SyncConflictDialog } from '@/components/offline/SyncConflictDialog';
 import { SwUpdateBanner } from '@/components/offline/SwUpdateBanner';
+import { SyncProgressWidget } from '@/components/offline/SyncProgressWidget';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { KeyboardShortcutsHelp } from '@/components/ui/KeyboardShortcutsHelp';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
@@ -150,6 +151,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <StorageQuotaWarning />
               <SyncConflictDialog />
               <SwUpdateBanner />
+              <SyncProgressWidget />
               <CommandPalette />
               <KeyboardShortcutsHelp />
             </KeyboardShortcutsProvider>

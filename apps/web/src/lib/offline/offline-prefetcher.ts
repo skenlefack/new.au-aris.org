@@ -210,10 +210,38 @@ async function prefetchDashboards(ctx: PrefetchContext): Promise<void> {
 
 let prefetchInProgress = false;
 
+/* ── Progress tracking ── */
+
+export interface PrefetchProgress {
+  /** Total number of prefetch tasks */
+  total: number;
+  /** Number of completed tasks (success or fail) */
+  completed: number;
+  /** Name of the task currently running */
+  currentTask: string;
+  /** Whether the entire prefetch is done */
+  done: boolean;
+}
+
+type ProgressListener = (progress: PrefetchProgress) => void;
+const listeners = new Set<ProgressListener>();
+
+export function onPrefetchProgress(listener: ProgressListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function emitProgress(progress: PrefetchProgress) {
+  for (const fn of listeners) {
+    try { fn(progress); } catch { /* ignore */ }
+  }
+}
+
 /**
  * Run the full offline prefetch pipeline.
  * Call this after successful login when online.
  * All operations are fire-and-forget — won't block the UI.
+ * Emits progress events via onPrefetchProgress().
  */
 export async function runOfflinePrefetch(ctx: PrefetchContext): Promise<void> {
   if (prefetchInProgress) return;
@@ -221,22 +249,40 @@ export async function runOfflinePrefetch(ctx: PrefetchContext): Promise<void> {
 
   prefetchInProgress = true;
 
+  const tasks = [
+    { name: 'Reference data', fn: () => prefetchRefData(ctx) },
+    { name: 'Geo entities', fn: () => prefetchGeo(ctx) },
+    { name: 'Form templates', fn: () => prefetchTemplates(ctx) },
+    { name: 'Campaigns', fn: () => prefetchCampaigns(ctx) },
+    { name: 'Dashboards', fn: () => prefetchDashboards(ctx) },
+  ];
+
+  const total = tasks.length;
+  let completed = 0;
+
+  emitProgress({ total, completed: 0, currentTask: 'Starting...', done: false });
+
   try {
     // Request persistent storage (prevents browser from evicting our data)
     await requestPersistentStorage();
 
-    // Run prefetch operations in parallel
-    await Promise.allSettled([
-      prefetchRefData(ctx),
-      prefetchGeo(ctx),
-      prefetchTemplates(ctx),
-      prefetchCampaigns(ctx),
-      prefetchDashboards(ctx),
-    ]);
+    // Run prefetch tasks sequentially so we can track progress per task
+    for (const task of tasks) {
+      emitProgress({ total, completed, currentTask: task.name, done: false });
+      try {
+        await task.fn();
+      } catch {
+        // Individual task failure is non-blocking
+      }
+      completed++;
+      emitProgress({ total, completed, currentTask: task.name, done: false });
+    }
 
+    emitProgress({ total, completed, currentTask: '', done: true });
     console.log('[ARIS Offline] Prefetch complete');
   } catch (err) {
     console.warn('[ARIS Offline] Prefetch error:', err);
+    emitProgress({ total, completed, currentTask: 'Error', done: true });
   } finally {
     prefetchInProgress = false;
   }
