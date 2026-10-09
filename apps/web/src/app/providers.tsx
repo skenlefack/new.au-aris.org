@@ -118,8 +118,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
         defaultOptions: {
           queries: {
             staleTime: 60 * 1000,
-            retry: 1,
+            retry: (failureCount, error) => {
+              // Don't retry when offline — use cached data
+              if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+              // Don't retry network errors more than once
+              if (error instanceof TypeError && error.message === 'Failed to fetch') return failureCount < 1;
+              return failureCount < 1;
+            },
             refetchOnWindowFocus: false,
+            // Keep cached data visible when refetch fails (offline)
+            networkMode: 'offlineFirst',
+          },
+          mutations: {
+            networkMode: 'offlineFirst',
           },
         },
         mutationCache: buildMutationCache(),
