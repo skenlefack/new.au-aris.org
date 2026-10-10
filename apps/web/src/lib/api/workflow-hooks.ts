@@ -1,6 +1,8 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { withOfflineCache } from '@/lib/offline/query-offline';
+import { cacheCampaigns, getCachedCampaigns } from '@/lib/offline/ref-data-cache';
 
 const API_BASE = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? '/api/v1';
 const COLLECTE_BASE = process.env['NEXT_PUBLIC_COLLECTE_URL'] ?? '';
@@ -18,6 +20,10 @@ function getHeaders(): Record<string, string> {
     }
   } catch { /* ignore */ }
   return headers;
+}
+
+function _getTenantId(): string {
+  try { const r = localStorage.getItem('aris-auth'); return r ? JSON.parse(r)?.state?.user?.tenantId ?? '' : ''; } catch { return ''; }
 }
 
 async function wfFetch<T>(path: string, opts?: RequestInit): Promise<T> {
@@ -428,24 +434,55 @@ export function useWorkflowTimeline(id: string | undefined) {
 // ═══════════════════════════════════════════════════════
 
 export function useCollectionCampaigns(query?: { page?: number; limit?: number; status?: string; domain?: string }) {
+  const tenantId = typeof window !== 'undefined' ? _getTenantId() : '';
   return useQuery({
     queryKey: ['collection-campaigns', query],
-    queryFn: () => {
-      const params = new URLSearchParams();
-      if (query?.page) params.set('page', String(query.page));
-      if (query?.limit) params.set('limit', String(query.limit));
-      if (query?.status) params.set('status', query.status);
-      if (query?.domain) params.set('domain', query.domain);
-      return wfFetch<any>(`/api/v1/workflow/campaigns?${params}`);
-    },
+    queryFn: withOfflineCache(
+      () => {
+        const params = new URLSearchParams();
+        if (query?.page) params.set('page', String(query.page));
+        if (query?.limit) params.set('limit', String(query.limit));
+        if (query?.status) params.set('status', query.status);
+        if (query?.domain) params.set('domain', query.domain);
+        return wfFetch<any>(`/api/v1/workflow/campaigns?${params}`);
+      },
+      async (data: any) => {
+        const items = data?.data ?? [];
+        if (Array.isArray(items) && items.length > 0) {
+          await cacheCampaigns(tenantId, items.map((c: any) => ({
+            id: c.id, tenantId,
+            name: typeof c.name === 'object' ? c.name : { en: c.name || '' },
+            domain: c.domain || '', status: c.status || '',
+            templateId: c.templateId || c.baseFormTemplateId || '',
+            startDate: c.startDate || '', endDate: c.endDate || '',
+          })));
+        }
+      },
+      async () => {
+        const cached = await getCachedCampaigns(tenantId);
+        if (cached.length === 0) return null;
+        return { data: cached, meta: { total: cached.length, page: 1, limit: 100 } };
+      },
+    ),
+    networkMode: 'offlineFirst',
   });
 }
 
 export function useCollectionCampaign(id: string | undefined) {
+  const tenantId = typeof window !== 'undefined' ? _getTenantId() : '';
   return useQuery({
     queryKey: ['collection-campaign', id],
-    queryFn: () => wfFetch<any>(`/api/v1/workflow/campaigns/${id}`),
+    queryFn: withOfflineCache(
+      () => wfFetch<any>(`/api/v1/workflow/campaigns/${id}`),
+      async () => { /* single campaign cached via list fetch */ },
+      async () => {
+        const all = await getCachedCampaigns(tenantId);
+        const found = all.find((c) => c.id === id);
+        return found ? { data: found } : null;
+      },
+    ),
     enabled: !!id,
+    networkMode: 'offlineFirst',
   });
 }
 

@@ -4,6 +4,8 @@ import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/rea
 import { ApiClientError } from './client';
 import { createOfflineSubmission, markSubmissionPending } from '@/lib/offline/submission-store';
 import { enqueueSync } from '@/lib/offline/sync-queue';
+import { withOfflineCache } from '@/lib/offline/query-offline';
+import { cacheFormTemplates, getCachedFormTemplates, getCachedFormTemplate } from '@/lib/offline/ref-data-cache';
 
 // Form-builder service: proxied via Next.js rewrites in dev (no CORS).
 // In production: Traefik routes /api/v1/form-builder/* to the form-builder service.
@@ -11,6 +13,10 @@ const FB_API_BASE =
   process.env.NEXT_PUBLIC_FORM_BUILDER_URL ?? '/api/v1/form-builder';
 
 // ── lightweight fetch helper for form-builder service ──
+function _fbTenantId(): string {
+  try { const r = localStorage.getItem('aris-tenant'); return r ? JSON.parse(r)?.state?.selectedTenantId ?? '' : ''; } catch { return ''; }
+}
+
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (typeof window === 'undefined') return headers;
@@ -97,7 +103,7 @@ interface ApiResponse<T> {
 // TEMPLATES
 // ════════════════════════════════════════════════════════════════
 
-// ---- List templates ----
+// ---- List templates (with offline cache) ----
 export function useFormBuilderTemplates(params?: {
   page?: number;
   limit?: number;
@@ -114,10 +120,37 @@ export function useFormBuilderTemplates(params?: {
   if (params?.formType) queryParams.formType = params.formType;
   if (params?.status) queryParams.status = params.status;
 
+  const tenantId = typeof window !== 'undefined' ? _fbTenantId() : '';
+
   return useQuery({
     queryKey: ['form-builder', 'templates', params],
-    queryFn: () => fb.get<PaginatedResponse<FormTemplateListItem>>('/templates', queryParams),
+    queryFn: withOfflineCache(
+      () => fb.get<PaginatedResponse<FormTemplateListItem>>('/templates', queryParams),
+      async (data: PaginatedResponse<FormTemplateListItem>) => {
+        const items = data?.data ?? [];
+        if (items.length > 0 && tenantId) {
+          await cacheFormTemplates(tenantId, items.map((t) => ({
+            id: t.id, tenantId,
+            name: typeof t.name === 'string' ? t.name : (t.name as any)?.en ?? '',
+            nameI18n: typeof t.name === 'object' ? t.name as Record<string, string> : { en: String(t.name ?? '') },
+            domain: (t as any).domain ?? '',
+            formType: (t as any).formType ?? 'CAMPAIGN',
+            schema: (t as any).schema ?? {},
+            uiSchema: (t as any).uiSchema,
+            version: (t as any).version ?? 1,
+            status: (t as any).status ?? 'PUBLISHED',
+          })));
+        }
+      },
+      async () => {
+        if (!tenantId) return null;
+        const cached = await getCachedFormTemplates(tenantId, params?.domain);
+        if (cached.length === 0) return null;
+        return { data: cached as any, meta: { total: cached.length, page: 1, limit: 100 } };
+      },
+    ),
     staleTime: 30_000,
+    networkMode: 'offlineFirst',
     placeholderData: {
       data: [],
       meta: { total: 0, page: 1, limit: 20 },
@@ -125,13 +158,22 @@ export function useFormBuilderTemplates(params?: {
   });
 }
 
-// ---- Get single template ----
+// ---- Get single template (with offline cache) ----
 export function useFormBuilderTemplate(id: string | undefined) {
   return useQuery({
     queryKey: ['form-builder', 'template', id],
-    queryFn: () => fb.get<ApiResponse<FormTemplateListItem>>(`/templates/${id}`),
+    queryFn: withOfflineCache(
+      () => fb.get<ApiResponse<FormTemplateListItem>>(`/templates/${id}`),
+      async () => { /* cached via list fetch */ },
+      async () => {
+        if (!id) return null;
+        const cached = await getCachedFormTemplate(id);
+        return cached ? { data: cached as any } : null;
+      },
+    ),
     enabled: !!id,
     staleTime: 10_000,
+    networkMode: 'offlineFirst',
   });
 }
 

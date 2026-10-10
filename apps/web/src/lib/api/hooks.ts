@@ -1016,8 +1016,45 @@ export function useDeleteCampaign() {
 export function useSubmitCampaignForm() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { campaignId: string; data: Record<string, unknown> }) =>
-      collecteClient.post<{ data: unknown }>('/collecte/submissions', body),
+    mutationFn: async (body: { campaignId: string; templateId?: string; data: Record<string, unknown> }) => {
+      // If online, submit normally
+      if (typeof navigator === 'undefined' || navigator.onLine) {
+        try {
+          return await collecteClient.post<{ data: unknown }>('/collecte/submissions', body);
+        } catch (err) {
+          if (err instanceof TypeError && err.message === 'Failed to fetch') {
+            // Fall through to offline handling
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      // Offline: save to IndexedDB + sync queue
+      const { createOfflineSubmission, markSubmissionPending } = await import('@/lib/offline/submission-store');
+      const { enqueueSync } = await import('@/lib/offline/sync-queue');
+
+      const tenantId = (() => {
+        try { const r = localStorage.getItem('aris-tenant'); return r ? JSON.parse(r)?.state?.selectedTenantId ?? '' : ''; } catch { return ''; }
+      })();
+      const userId = (() => {
+        try { const r = localStorage.getItem('aris-auth'); return r ? JSON.parse(r)?.state?.user?.id ?? '' : ''; } catch { return ''; }
+      })();
+
+      const sub = await createOfflineSubmission({
+        tenantId, campaignId: body.campaignId, templateId: body.templateId ?? '',
+        data: body.data, domain: '',
+      });
+      await markSubmissionPending(sub.id);
+      await enqueueSync({
+        type: 'CREATE_SUBMISSION',
+        endpoint: '/api/v1/collecte/submissions',
+        method: 'POST', payload: { ...body, submissionId: sub.id },
+        tenantId, userId,
+      });
+
+      return { data: { id: sub.id, status: 'PENDING_SYNC', _offline: true } };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collecte'] });
     },
