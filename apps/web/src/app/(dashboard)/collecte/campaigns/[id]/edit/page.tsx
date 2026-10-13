@@ -14,11 +14,15 @@ import {
   Building2,
   Eye,
   Shield,
+  KeyRound,
 } from 'lucide-react';
 import {
   useCollectionCampaign,
   useUpdateCollectionCampaign,
+  useCampaignScopes,
+  useSetCampaignScopes,
 } from '@/lib/api/workflow-hooks';
+import { useAccessLevels } from '@/lib/api/settings-hooks';
 import {
   useFormBuilderTemplates,
   type FormTemplateListItem,
@@ -73,7 +77,11 @@ export default function EditCampaignPage() {
 
   const { data: campaignRes, isLoading: campaignLoading } = useCollectionCampaign(campaignId);
   const updateCampaign = useUpdateCollectionCampaign();
+  const { data: allLevelsData } = useAccessLevels();
+  const { data: existingScopesData } = useCampaignScopes(campaignId);
+  const setCampaignScopesMut = useSetCampaignScopes();
   const allDomains = useDomainStore((s) => s.allDomains);
+  const locale = typeof window !== 'undefined' ? (localStorage.getItem('aris-locale') ?? 'en') : 'en';
 
   const domainOptions = useMemo(() => {
     if (allDomains.length > 0) {
@@ -104,6 +112,7 @@ export default function EditCampaignPage() {
   const [sendReminders, setSendReminders] = useState(false);
   const [reminderDays, setReminderDays] = useState('3');
   const [visibilityScope, setVisibilityScope] = useState<'continental' | 'rec' | 'country'>('continental');
+  const [campaignScopes, setCampaignScopes] = useState<Record<string, string[]>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -171,9 +180,15 @@ export default function EditCampaignPage() {
       // Restore visibility scope
       if (campaign.scope) setVisibilityScope(campaign.scope as any);
 
+      // Restore access level scopes
+      const scopesData = (existingScopesData as any)?.data?.scopes;
+      if (scopesData && typeof scopesData === 'object') {
+        setCampaignScopes(scopesData);
+      }
+
       setInitialized(true);
     }
-  }, [campaign, initialized, templatesData]);
+  }, [campaign, initialized, templatesData, existingScopesData]);
 
   const FORM_TO_STORE: Record<string, string> = {
     animal_health: 'animal-health', livestock: 'livestock-prod', fisheries: 'fisheries',
@@ -270,6 +285,15 @@ export default function EditCampaignPage() {
 
     try {
       await updateCampaign.mutateAsync(payload);
+
+      // Save access level scopes
+      const scopeEntries = Object.entries(campaignScopes)
+        .filter(([, codes]) => codes.length > 0)
+        .map(([nodeCode, levelCodes]) => ({ nodeCode, levelCodes }));
+      try {
+        await setCampaignScopesMut.mutateAsync({ campaignId, scopes: scopeEntries });
+      } catch { /* best-effort — campaign saved even if scopes fail */ }
+
       router.push('/collecte');
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : String(err));
@@ -462,6 +486,67 @@ export default function EditCampaignPage() {
               />
             </div>
           )}
+
+          {/* Access Levels per domain */}
+          {selectedDomains.length > 0 && (() => {
+            const allLevels: Array<{ nodeCode: string; code: string; labels: Record<string, string>; isActive: boolean }> = (allLevelsData as any)?.data ?? [];
+            const levelsByDomain: Record<string, Array<{ code: string; label: string }>> = {};
+            for (const dc of selectedDomains) {
+              const storeDc = dc.includes('_') ? dc.replace(/_/g, '-') : dc;
+              const nodeLevels = allLevels.filter((l) => l.nodeCode === storeDc && l.isActive);
+              if (nodeLevels.length > 0) {
+                levelsByDomain[storeDc] = nodeLevels.map((l) => ({ code: l.code, label: l.labels[locale] ?? l.labels['en'] ?? l.code }));
+              }
+            }
+            if (Object.keys(levelsByDomain).length === 0) return null;
+            return (
+              <div className="space-y-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-amber-500" />
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {t('accessLevels') || 'Access Levels'}
+                  </h3>
+                  <span className="text-xs text-gray-400">({t('optionalField') || 'optional'})</span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('accessLevelsDesc') || 'Restrict this campaign to specific access levels. Leave empty to make it open to everyone with access to the domain.'}
+                </p>
+                {Object.entries(levelsByDomain).map(([nodeCode, levels]) => {
+                  const selected = campaignScopes[nodeCode] ?? [];
+                  return (
+                    <div key={nodeCode} className="space-y-1.5">
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{nodeCode}</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {levels.map((lvl) => {
+                          const checked = selected.includes(lvl.code);
+                          return (
+                            <button
+                              key={lvl.code}
+                              type="button"
+                              onClick={() => {
+                                setCampaignScopes((prev) => {
+                                  const cur = prev[nodeCode] ?? [];
+                                  const next = checked ? cur.filter((c) => c !== lvl.code) : [...cur, lvl.code];
+                                  return { ...prev, [nodeCode]: next };
+                                });
+                              }}
+                              className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-all ${
+                                checked
+                                  ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300'
+                                  : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400'
+                              }`}
+                            >
+                              {lvl.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {/* ROW 3 — Form Templates */}
