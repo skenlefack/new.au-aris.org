@@ -77,6 +77,30 @@ class ValidationRepository @Inject constructor(
         return validationApi.bulkAction(ids, action, comment)
     }
 
+    /**
+     * Bulk update submission statuses via collecte service.
+     * Calls PATCH /collecte/submissions/:id/status for each ID.
+     */
+    suspend fun bulkSubmissionAction(ids: List<String>, action: String, reason: String? = null): BulkActionResponse {
+        val statusMap = mapOf("APPROVE" to "VALIDATED", "REJECT" to "REJECTED", "RETURN" to "RETURNED")
+        val targetStatus = statusMap[action.uppercase()] ?: "VALIDATED"
+        return validationApi.bulkUpdateSubmissionStatus(ids, targetStatus, reason)
+    }
+
+    /** Get submissions from collecte service (for validation page). */
+    suspend fun getSubmissions(
+        page: Int = 1,
+        limit: Int = 20,
+        status: String? = null,
+    ): Result<ValidationListResult> {
+        return try {
+            val response = validationApi.getSubmissions(page, limit, status)
+            Result.success(ValidationListResult(items = response.data, meta = response.meta))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     /** Get workflow dashboard metrics. */
     suspend fun getDashboardMetrics(): WorkflowDashboardDto? {
         return validationApi.getDashboardMetrics()

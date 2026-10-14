@@ -22,8 +22,12 @@ enum class ValidationTab(val statuses: List<String>) {
     VALIDATED(listOf("VALIDATED", "APPROVED")),
 }
 
+/** Data source for displayed items — workflow instances or collecte submissions. */
+enum class ValidationDataSource { WORKFLOW, SUBMISSIONS }
+
 data class ValidationUiState(
     val items: List<ValidationItemDto> = emptyList(),
+    val dataSource: ValidationDataSource = ValidationDataSource.SUBMISSIONS,
     val isLoading: Boolean = false,
     val isError: Boolean = false,
     val errorMessage: String? = null,
@@ -99,7 +103,17 @@ class ValidationListViewModel @Inject constructor(
         val state = _uiState.value
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, isError = false, selectedIds = emptySet()) }
-            val result = repository.getValidations(
+
+            // Map tab to submission status for collecte endpoint
+            val submissionStatus = when (state.activeTab) {
+                ValidationTab.TO_VALIDATE -> "SUBMITTED"
+                ValidationTab.REJECTED -> "REJECTED"
+                ValidationTab.RETURNED -> "RETURNED"
+                ValidationTab.VALIDATED -> "VALIDATED"
+            }
+
+            // Try workflow instances first (like web: hasWorkflowData pattern)
+            val wfResult = repository.getValidations(
                 page = state.page,
                 limit = PAGE_SIZE,
                 level = state.levelFilter,
@@ -107,24 +121,52 @@ class ValidationListViewModel @Inject constructor(
                 entityType = null,
                 campaignId = null,
             )
-            result.fold(
-                onSuccess = { data ->
-                    val total = data.meta?.total ?: data.items.size
-                    _uiState.update {
-                        it.copy(
-                            items = data.items,
-                            isLoading = false,
-                            total = total,
-                            totalPages = maxOf(1, (total + PAGE_SIZE - 1) / PAGE_SIZE),
-                        )
-                    }
-                },
-                onFailure = { e ->
-                    _uiState.update {
-                        it.copy(isLoading = false, isError = true, errorMessage = e.message)
-                    }
-                },
-            )
+            val wfTotal = wfResult.getOrNull()?.meta?.total ?: 0
+
+            if (wfTotal > 0) {
+                // Use workflow instances
+                wfResult.fold(
+                    onSuccess = { data ->
+                        val total = data.meta?.total ?: data.items.size
+                        _uiState.update {
+                            it.copy(
+                                items = data.items,
+                                dataSource = ValidationDataSource.WORKFLOW,
+                                isLoading = false,
+                                total = total,
+                                totalPages = maxOf(1, (total + PAGE_SIZE - 1) / PAGE_SIZE),
+                            )
+                        }
+                    },
+                    onFailure = { e ->
+                        _uiState.update { it.copy(isLoading = false, isError = true, errorMessage = e.message) }
+                    },
+                )
+            } else {
+                // Fall back to collecte submissions (same as web)
+                val subResult = repository.getSubmissions(
+                    page = state.page,
+                    limit = PAGE_SIZE,
+                    status = submissionStatus,
+                )
+                subResult.fold(
+                    onSuccess = { data ->
+                        val total = data.meta?.total ?: data.items.size
+                        _uiState.update {
+                            it.copy(
+                                items = data.items,
+                                dataSource = ValidationDataSource.SUBMISSIONS,
+                                isLoading = false,
+                                total = total,
+                                totalPages = maxOf(1, (total + PAGE_SIZE - 1) / PAGE_SIZE),
+                            )
+                        }
+                    },
+                    onFailure = { e ->
+                        _uiState.update { it.copy(isLoading = false, isError = true, errorMessage = e.message) }
+                    },
+                )
+            }
         }
     }
 
@@ -178,16 +220,33 @@ class ValidationListViewModel @Inject constructor(
     }
 
     fun bulkAction(action: String, comment: String? = null) {
-        val ids = _uiState.value.selectedIds.toList()
+        val state = _uiState.value
+        val ids = state.selectedIds.toList()
         if (ids.isEmpty()) return
         viewModelScope.launch {
             _uiState.update { it.copy(isBulkActioning = true) }
-            val result = repository.bulkAction(ids, action.uppercase(), comment)
-            val msg = if (result != null) {
-                "${result.succeeded.size} OK, ${result.failed.size} failed"
+
+            val msg: String = if (state.dataSource == ValidationDataSource.SUBMISSIONS) {
+                // Submissions: call PATCH /collecte/submissions/:id/status for each
+                val reason = if (action.uppercase() == "REJECT") comment ?: "Bulk rejected"
+                    else if (action.uppercase() == "RETURN") comment ?: "Returned for correction"
+                    else null
+                val result = repository.bulkSubmissionAction(ids, action, reason)
+                if (result.failed.isEmpty()) {
+                    "${result.succeeded.size} OK"
+                } else {
+                    "${result.succeeded.size} OK, ${result.failed.size} failed"
+                }
             } else {
-                "Bulk action failed"
+                // Workflow instances: use the bulk-action endpoint
+                val result = repository.bulkAction(ids, action.uppercase(), comment)
+                if (result != null) {
+                    "${result.succeeded.size} OK, ${result.failed.size} failed"
+                } else {
+                    "Bulk action failed"
+                }
             }
+
             _uiState.update {
                 it.copy(isBulkActioning = false, selectedIds = emptySet(), bulkResultMessage = msg)
             }

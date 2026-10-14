@@ -12,6 +12,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 import org.auibar.aris.mobile.data.remote.dto.BulkActionBody
+import org.auibar.aris.mobile.data.remote.dto.BulkActionFailure
 import org.auibar.aris.mobile.data.remote.dto.BulkActionResponse
 import org.auibar.aris.mobile.data.remote.dto.SafeApiResponse
 import org.auibar.aris.mobile.data.remote.dto.WorkflowCommentBody
@@ -63,6 +64,29 @@ data class ValidationMeta(
 @Serializable
 data class ValidationListResponse(
     val data: List<ValidationItemDto> = emptyList(),
+    val meta: ValidationMeta? = null,
+)
+
+/** Raw submission item from /collecte/submissions (different shape from workflow instances). */
+@Serializable
+data class SubmissionApiItem(
+    val id: String,
+    val tenantId: String? = null,
+    val campaignId: String? = null,
+    val status: String = "SUBMITTED",
+    val submittedBy: String? = null,
+    val submittedByName: String? = null,
+    val submittedAt: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+    val domain: String? = null,
+    @kotlinx.serialization.SerialName("campaignName")
+    val campaignDomain: String? = null,
+)
+
+@Serializable
+data class SubmissionListApiResponse(
+    val data: List<SubmissionApiItem>? = null,
     val meta: ValidationMeta? = null,
 )
 
@@ -180,6 +204,71 @@ class ValidationApi @Inject constructor(
             Log.w(TAG, "bulk-action failed: ${e.message}")
             null
         }
+    }
+
+    /**
+     * List submissions from collecte service (same source as web validation page).
+     * GET /api/v1/collecte/submissions?status=...&page=...&limit=...
+     * Maps submission fields → ValidationItemDto for unified display.
+     */
+    suspend fun getSubmissions(
+        page: Int = 1,
+        limit: Int = 20,
+        status: String? = null,
+    ): ValidationListResponse {
+        return try {
+            val response = client.get("/api/v1/collecte/submissions") {
+                parameter("page", page)
+                parameter("limit", limit)
+                status?.let { parameter("status", it) }
+            }
+            if (response.status.value !in 200..299) {
+                Log.w(TAG, "getSubmissions → HTTP ${response.status.value}")
+                return ValidationListResponse()
+            }
+            val body: SubmissionListApiResponse = response.body()
+            // Map to unified ValidationItemDto
+            val mapped = (body.data ?: emptyList()).map { s ->
+                ValidationItemDto(
+                    id = s.id,
+                    entityType = "Submission",
+                    entityId = s.id,
+                    tenantId = s.tenantId ?: "",
+                    domain = s.domain ?: s.campaignDomain ?: "",
+                    currentLevel = "NATIONAL_TECHNICAL",
+                    status = s.status,
+                    createdBy = s.submittedBy ?: "",
+                    createdAt = s.submittedAt ?: s.createdAt ?: "",
+                    updatedAt = s.updatedAt ?: "",
+                )
+            }
+            ValidationListResponse(
+                data = mapped,
+                meta = body.meta,
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "getSubmissions failed: ${e.message}")
+            ValidationListResponse()
+        }
+    }
+
+    /**
+     * Bulk update submission statuses via collecte service.
+     * Calls PATCH /api/v1/collecte/submissions/:id/status for each ID.
+     * Returns counts of succeeded/failed.
+     */
+    suspend fun bulkUpdateSubmissionStatus(
+        ids: List<String>,
+        status: String,
+        reason: String? = null,
+    ): BulkActionResponse {
+        val succeeded = mutableListOf<String>()
+        val failed = mutableListOf<BulkActionFailure>()
+        for (id in ids) {
+            val ok = updateSubmissionStatus(id, status, reason)
+            if (ok) succeeded.add(id) else failed.add(BulkActionFailure(id = id, error = "Failed"))
+        }
+        return BulkActionResponse(succeeded = succeeded, failed = failed)
     }
 
     /** Get workflow dashboard metrics. */
