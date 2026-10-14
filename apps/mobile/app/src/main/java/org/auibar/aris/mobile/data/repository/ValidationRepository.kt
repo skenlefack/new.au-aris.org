@@ -4,6 +4,7 @@ import org.auibar.aris.mobile.data.remote.api.ValidationApi
 import org.auibar.aris.mobile.data.remote.api.ValidationItemDto
 import org.auibar.aris.mobile.data.remote.api.ValidationMeta
 import org.auibar.aris.mobile.data.remote.dto.BulkActionResponse
+import org.auibar.aris.mobile.data.remote.dto.PotentialValidatorDto
 import org.auibar.aris.mobile.data.remote.dto.WorkflowDashboardDto
 import javax.inject.Inject
 
@@ -79,5 +80,15 @@ class ValidationRepository @Inject constructor(
     /** Get workflow dashboard metrics. */
     suspend fun getDashboardMetrics(): WorkflowDashboardDto? {
         return validationApi.getDashboardMetrics()
+    }
+
+    /** Get potential validators for the current user. */
+    suspend fun getPotentialValidators(): List<PotentialValidatorDto> {
+        return validationApi.getPotentialValidators()
+    }
+
+    /** Create a validation chain entry for the current user -> validator. */
+    suspend fun createValidationChain(validatorId: String): Boolean {
+        return validationApi.createValidationChain(validatorId)
     }
 }

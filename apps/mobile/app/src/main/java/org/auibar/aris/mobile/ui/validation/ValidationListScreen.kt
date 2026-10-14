@@ -76,6 +76,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.remote.api.ValidationItemDto
+import org.auibar.aris.mobile.data.remote.dto.PotentialValidatorDto
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.foundation.BorderStroke
 
 /* ── Color constants matching web ──────────────────────────────── */
 
@@ -124,6 +127,173 @@ private fun entityBadgeColors(type: String): Pair<Color, Color> = when (type) {
     "lab_result" -> Color(0xFFE8EAF6) to Color(0xFF283593)
     "census" -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
     else -> Color(0xFFF5F5F5) to Color(0xFF616161)
+}
+
+/* ── Validator Chooser Dialog ─────────────────────────────────── */
+
+@Composable
+private fun ValidatorChooserDialog(
+    validators: List<PotentialValidatorDto>,
+    isLoading: Boolean,
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    isSubmitting: Boolean,
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filtered = if (searchQuery.isBlank()) validators
+    else validators.filter {
+        it.displayName.contains(searchQuery, true) ||
+            it.email.contains(searchQuery, true) ||
+            it.role.contains(searchQuery, true)
+    }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = stringResource(R.string.validation_choose_validator),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.validation_choose_validator_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text(stringResource(R.string.validation_search_placeholder)) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(12.dp))
+
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    }
+                } else if (filtered.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                        Text(stringResource(R.string.validation_no_validators), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.height(280.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        items(filtered, key = { it.id }) { v ->
+                            val isSelected = v.id == selectedId
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelect(v.id) },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                ),
+                                border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    // Avatar
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primaryContainer),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = v.displayName.firstOrNull()?.uppercase() ?: "?",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(v.displayName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(v.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        if (!v.tenantName.isNullOrEmpty()) {
+                                            Text(v.tenantName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                                        }
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        if (v.isConfigured) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(GreenLight)
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                                            ) {
+                                                Text(stringResource(R.string.validation_configured), style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = GreenDark, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                        Spacer(Modifier.height(4.dp))
+                                        val roleBg = when {
+                                            v.tenantLevel == "CONTINENTAL" -> Color(0xFFF3E5F5) to PurpleColor
+                                            v.tenantLevel == "REC" -> Color(0xFFFFF3E0) to OrangeColor
+                                            else -> BlueLight to BlueDark
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(roleBg.first)
+                                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                                        ) {
+                                            Text(
+                                                text = v.role.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() },
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                                color = roleBg.second,
+                                                fontWeight = FontWeight.Medium,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = onConfirm,
+                        enabled = selectedId != null && !isSubmitting,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    ) {
+                        if (isSubmitting) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                        } else {
+                            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.validation_send))
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /* ── Main Screen ──────────────────────────────────────────────── */
@@ -421,6 +591,7 @@ fun ValidationListScreen(
                     onConfirm = { viewModel.performAction() },
                     onCancel = { viewModel.cancelConfirming() },
                     onCommentChange = { viewModel.setActionComment(item.id, it) },
+                    onSubmitForValidation = { viewModel.showValidatorChooser(item.id) },
                 )
             }
 
@@ -489,6 +660,19 @@ fun ValidationListScreen(
                     }
                 }
             }
+        }
+
+        // ── Validator Chooser Dialog ──
+        if (state.showValidatorChooser) {
+            ValidatorChooserDialog(
+                validators = state.potentialValidators,
+                isLoading = state.isLoadingValidators,
+                selectedId = state.selectedValidatorId,
+                onSelect = viewModel::selectValidator,
+                onConfirm = viewModel::confirmSubmitForValidation,
+                onDismiss = viewModel::hideValidatorChooser,
+                isSubmitting = state.isPerformingAction,
+            )
         }
 
         SnackbarHost(
@@ -602,6 +786,7 @@ private fun ValidationItemCard(
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
     onCommentChange: (String) -> Unit,
+    onSubmitForValidation: () -> Unit,
 ) {
     val (statusBg, statusFg) = statusColors(item.status)
     val level = LEVEL_STYLES[item.currentLevel] ?: LEVEL_STYLES["NATIONAL_TECHNICAL"]!!
@@ -826,6 +1011,14 @@ private fun ValidationItemCard(
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(stringResource(R.string.validation_return), style = MaterialTheme.typography.labelMedium)
+                        }
+                        TextButton(
+                            onClick = onSubmitForValidation,
+                            colors = ButtonDefaults.textButtonColors(contentColor = PurpleColor),
+                        ) {
+                            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(stringResource(R.string.validation_submit_for_validation), style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }

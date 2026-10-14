@@ -654,6 +654,14 @@
     <string name="validation_bulk_reject">Bulk Reject</string>
     <string name="validation_bulk_return">Bulk Return</string>
     <string name="validation_selected_count">%1$d selected</string>
+    <string name="validation_submit_for_validation">Submit for Validation</string>
+    <string name="validation_choose_validator">Choose Validator</string>
+    <string name="validation_choose_validator_desc">Select a validator to review this data</string>
+    <string name="validation_configured">Configured</string>
+    <string name="validation_no_validators">No validators found</string>
+    <string name="validation_send">Send for Validation</string>
+    <string name="validation_bulk_success">%1$d items validated successfully</string>
+    <string name="validation_bulk_partial">%1$d succeeded, %2$d failed</string>
     <string name="validation_overdue">Overdue</string>
     <string name="validation_hours_left">%1$dh left</string>
 

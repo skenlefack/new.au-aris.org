@@ -15,6 +15,7 @@ import org.auibar.aris.mobile.data.remote.dto.BulkActionBody
 import org.auibar.aris.mobile.data.remote.dto.BulkActionResponse
 import org.auibar.aris.mobile.data.remote.dto.SafeApiResponse
 import org.auibar.aris.mobile.data.remote.dto.WorkflowCommentBody
+import org.auibar.aris.mobile.data.remote.dto.PotentialValidatorDto
 import org.auibar.aris.mobile.data.remote.dto.WorkflowDashboardDto
 import javax.inject.Inject
 
@@ -167,7 +168,7 @@ class ValidationApi @Inject constructor(
         return try {
             val response = client.post("/api/v1/workflow/instances/bulk-action") {
                 contentType(ContentType.Application.Json)
-                setBody(BulkActionBody(ids = ids, action = action, comment = comment))
+                setBody(BulkActionBody(ids = ids, action = action.uppercase(), comment = comment))
             }
             if (response.status.value !in 200..299) {
                 Log.w(TAG, "bulk-action -> HTTP ${response.status.value}")
@@ -191,6 +192,40 @@ class ValidationApi @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "dashboard metrics failed: ${e.message}")
             null
+        }
+    }
+
+    /** Fetch potential validators for the current user. */
+    suspend fun getPotentialValidators(): List<PotentialValidatorDto> {
+        return try {
+            val response = client.get("/api/v1/workflow/potential-validators")
+            if (response.status.value !in 200..299) {
+                Log.w(TAG, "getPotentialValidators -> HTTP ${response.status.value}")
+                return emptyList()
+            }
+            val body: SafeApiResponse<List<PotentialValidatorDto>> = response.body()
+            body.data ?: emptyList()
+        } catch (e: Exception) {
+            Log.w(TAG, "getPotentialValidators failed: ${e.message}")
+            emptyList()
+        }
+    }
+
+    /** Create a validation chain to designate a validator. */
+    suspend fun createValidationChain(validatorId: String): Boolean {
+        return try {
+            val response = client.post("/api/v1/workflow/validation-chains") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf(
+                    "validatorId" to validatorId,
+                    "levelType" to "national",
+                    "priority" to 1,
+                ))
+            }
+            response.status.value in 200..299
+        } catch (e: Exception) {
+            Log.w(TAG, "createValidationChain failed: ${e.message}")
+            false
         }
     }
 }

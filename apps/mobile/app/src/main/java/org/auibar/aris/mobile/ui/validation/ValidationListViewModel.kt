@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.remote.api.ValidationItemDto
+import org.auibar.aris.mobile.data.remote.dto.PotentialValidatorDto
 import org.auibar.aris.mobile.data.remote.dto.WorkflowDashboardDto
 import org.auibar.aris.mobile.data.repository.ValidationRepository
 import javax.inject.Inject
@@ -46,6 +47,12 @@ data class ValidationUiState(
     val confirmingAction: ConfirmingAction? = null,
     val actionComments: Map<String, String> = emptyMap(),
     val isPerformingAction: Boolean = false,
+    // Validator chooser
+    val showValidatorChooser: Boolean = false,
+    val validatorChooserItemId: String? = null,
+    val potentialValidators: List<PotentialValidatorDto> = emptyList(),
+    val isLoadingValidators: Boolean = false,
+    val selectedValidatorId: String? = null,
 )
 
 data class ConfirmingAction(
@@ -175,7 +182,7 @@ class ValidationListViewModel @Inject constructor(
         if (ids.isEmpty()) return
         viewModelScope.launch {
             _uiState.update { it.copy(isBulkActioning = true) }
-            val result = repository.bulkAction(ids, action, comment)
+            val result = repository.bulkAction(ids, action.uppercase(), comment)
             val msg = if (result != null) {
                 "${result.succeeded.size} OK, ${result.failed.size} failed"
             } else {
@@ -205,6 +212,40 @@ class ValidationListViewModel @Inject constructor(
 
     fun setActionComment(id: String, comment: String) {
         _uiState.update { it.copy(actionComments = it.actionComments + (id to comment)) }
+    }
+
+    fun showValidatorChooser(itemId: String) {
+        _uiState.update { it.copy(showValidatorChooser = true, validatorChooserItemId = itemId, isLoadingValidators = true, selectedValidatorId = null) }
+        viewModelScope.launch {
+            val validators = repository.getPotentialValidators()
+            _uiState.update { it.copy(potentialValidators = validators, isLoadingValidators = false) }
+        }
+    }
+
+    fun hideValidatorChooser() {
+        _uiState.update { it.copy(showValidatorChooser = false, validatorChooserItemId = null, potentialValidators = emptyList(), selectedValidatorId = null) }
+    }
+
+    fun selectValidator(validatorId: String) {
+        _uiState.update { it.copy(selectedValidatorId = validatorId) }
+    }
+
+    fun confirmSubmitForValidation() {
+        val state = _uiState.value
+        val itemId = state.validatorChooserItemId ?: return
+        val validatorId = state.selectedValidatorId ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isPerformingAction = true) }
+            // Create validation chain on-the-fly, then approve
+            val chainCreated = repository.createValidationChain(validatorId)
+            if (chainCreated) {
+                repository.approve(itemId, "Submitted for validation to selected validator")
+            }
+            _uiState.update { it.copy(isPerformingAction = false, showValidatorChooser = false, validatorChooserItemId = null, selectedValidatorId = null) }
+            loadDashboard()
+            loadValidations()
+        }
     }
 
     fun performAction() {

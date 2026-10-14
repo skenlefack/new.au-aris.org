@@ -26,6 +26,17 @@ data class BulkActionFailure(
 )
 
 @Serializable
+data class PotentialValidatorDto(
+    val id: String,
+    val displayName: String = "",
+    val email: String = "",
+    val role: String = "",
+    val tenantLevel: String? = null,
+    val tenantName: String? = null,
+    val isConfigured: Boolean = false,
+)
+
+@Serializable
 data class ConflictResolutionBody(
     val resolution: String, // KEEP_SERVER, KEEP_CLIENT, MERGE
     val mergedData: JsonObject? = null,
