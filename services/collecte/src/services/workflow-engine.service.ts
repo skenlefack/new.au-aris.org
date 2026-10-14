@@ -1235,6 +1235,7 @@ export class CollectionCampaignService {
         include: {
           formTemplate: { select: { id: true, name: true, domain: true } },
           assignments: { include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } } },
+          targets: true,
         },
       }),
       (this.prisma as any).collectionCampaign.count({ where }),
@@ -1324,6 +1325,7 @@ export class CollectionCampaignService {
       where: { id },
       include: {
         formTemplate: true,
+        targets: true,
         assignments: {
           include: { user: { select: { id: true, email: true, firstName: true, lastName: true, role: true } } },
           orderBy: { assignedAt: 'desc' },
@@ -1420,9 +1422,9 @@ export class CollectionCampaignService {
 
     const data: Record<string, unknown> = {};
     for (const key of [
-      'name', 'description', 'targetCountries', 'targetRecIds', 'targetAdminAreas',
+      'name', 'description', 'domain', 'targetCountries', 'targetRecIds', 'targetAdminAreas',
       'excludedCountries', 'excludedRecIds', 'targetGeoZoneIds',
-      'targetSubmissions', 'targetPerAgent', 'frequency', 'sendReminders', 'reminderDaysBefore', 'metadata', 'formTemplateIds',
+      'targetSubmissions', 'targetPerAgent', 'frequency', 'scope', 'sendReminders', 'reminderDaysBefore', 'metadata', 'formTemplateIds',
       'formTemplateId', 'isPermanent', 'autoActivate', 'autoClose',
     ]) {
       if (dto[key] !== undefined) data[key] = dto[key];
@@ -1431,11 +1433,44 @@ export class CollectionCampaignService {
     if (dto.startDate !== undefined) data['startDate'] = dto.startDate ? new Date(dto.startDate as string) : null;
     if (dto.endDate !== undefined) data['endDate'] = dto.endDate ? new Date(dto.endDate as string) : null;
 
+    // Handle targets (domain/sub-domain) — atomic replace
+    const targets = dto.targets as Array<{ domainCode: string; subDomainCode?: string | null; isPrimary?: boolean }> | undefined;
+    if (targets && targets.length > 0) {
+      // Update the legacy domain field from the primary target
+      const primary = targets.find((t) => t.isPrimary) ?? targets[0];
+      data['domain'] = primary.domainCode;
+    }
+
     const campaign = await (this.prisma as any).collectionCampaign.update({
       where: { id },
       data,
-      include: { formTemplate: true, assignments: true },
+      include: { formTemplate: true, assignments: true, targets: true },
     });
+
+    // Replace CampaignTarget records if targets provided
+    if (targets && targets.length > 0) {
+      await (this.prisma as any).$transaction([
+        (this.prisma as any).campaignTarget.deleteMany({ where: { campaignId: id } }),
+        ...targets.map((t, idx) =>
+          (this.prisma as any).campaignTarget.create({
+            data: {
+              campaignId: id,
+              domainCode: t.domainCode,
+              subDomainCode: t.subDomainCode ?? null,
+              isPrimary: targets.length === 1 ? true : (t.isPrimary ?? (idx === 0)),
+            },
+          }),
+        ),
+      ]);
+
+      // Re-fetch targets after replacement
+      campaign.targets = await (this.prisma as any).campaignTarget.findMany({
+        where: { campaignId: id },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      console.log(`[CollectionCampaignService] Campaign ${id}: replaced ${targets.length} domain target(s)`);
+    }
 
     return { data: campaign };
   }

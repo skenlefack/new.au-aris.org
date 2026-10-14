@@ -236,9 +236,16 @@ export const CreateCollectionCampaignSchema = Type.Object({
 });
 export type CreateCollectionCampaignBody = Static<typeof CreateCollectionCampaignSchema>;
 
+const CampaignTargetInputSchema = Type.Object({
+  domainCode: Type.String({ minLength: 2, maxLength: 50 }),
+  subDomainCode: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+  isPrimary: Type.Optional(Type.Boolean()),
+});
+
 export const UpdateCollectionCampaignSchema = Type.Object({
   name: Type.Optional(I18nJson),
   description: Type.Optional(I18nJson),
+  domain: Type.Optional(Type.String({ minLength: 2, maxLength: 50 })),
   isPermanent: Type.Optional(Type.Boolean()),
   startDate: Type.Optional(Type.Union([Type.String({ format: 'date' }), Type.Null()])),
   endDate: Type.Optional(Type.Union([Type.String({ format: 'date' }), Type.Null()])),
@@ -253,11 +260,13 @@ export const UpdateCollectionCampaignSchema = Type.Object({
   targetSubmissions: Type.Optional(Type.Integer({ minimum: 1 })),
   targetPerAgent: Type.Optional(Type.Integer({ minimum: 1 })),
   frequency: Type.Optional(Type.String()),
+  scope: Type.Optional(Type.String()),
   formTemplateId: Type.Optional(Type.String({ format: 'uuid' })),
   formTemplateIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
   sendReminders: Type.Optional(Type.Boolean()),
   reminderDaysBefore: Type.Optional(Type.Integer({ minimum: 1 })),
   metadata: Type.Optional(Type.Any()),
+  targets: Type.Optional(Type.Array(CampaignTargetInputSchema, { minItems: 1 })),
 });
 export type UpdateCollectionCampaignBody = Static<typeof UpdateCollectionCampaignSchema>;
 
