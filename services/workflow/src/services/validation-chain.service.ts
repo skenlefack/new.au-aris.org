@@ -237,76 +237,126 @@ export class ValidationChainService {
   // ── Potential Validators ──
 
   /**
-   * Find potential validators for a user: same tenantId, higher-level roles.
-   * Used when no validation chain is configured for the submitter.
+   * Find potential validators for a user.
+   * Priority:
+   *  1. Configured validation chains (validator + backup) — always shown first
+   *  2. Fallback: users at higher roles in same tenant hierarchy
    */
   async findPotentialValidators(
     user: AuthenticatedUser,
   ): Promise<ApiResponse<Array<{ id: string; displayName: string; email: string; role: string }>>> {
-    // Role hierarchy: higher roles that can validate data from lower roles
-    const ROLE_HIERARCHY: Record<string, string[]> = {
-      FIELD_AGENT: ['DATA_STEWARD', 'NATIONAL_ADMIN', 'WAHIS_FOCAL_POINT', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
-      DATA_STEWARD: ['NATIONAL_ADMIN', 'WAHIS_FOCAL_POINT', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
-      WAHIS_FOCAL_POINT: ['NATIONAL_ADMIN', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
-      NATIONAL_ADMIN: ['REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
-      REC_ADMIN: ['CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
-      CONTINENTAL_ADMIN: ['SUPER_ADMIN'],
-      ANALYST: ['DATA_STEWARD', 'NATIONAL_ADMIN', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
-      SUPER_ADMIN: [],
-    };
-
-    const higherRoles = ROLE_HIERARCHY[user.role] ?? [];
-    if (higherRoles.length === 0) {
-      return { data: [] };
-    }
-
     try {
-      // For MEMBER_STATE users, also look in parent REC and continental tenants
-      // For REC users, also look in continental tenant
-      // Note: $queryRawUnsafe doesn't auto-convert JS arrays to PG arrays,
-      // so we build a PG array literal: '{val1,val2}'
-      const rolesLiteral = `{${higherRoles.join(',')}}`;
+      // ── Step 1: Check configured validation chains for this user ──
+      const chains = await (this.prisma as any).validationChain.findMany({
+        where: { user_id: user.userId },
+        orderBy: { priority: 'asc' },
+      });
 
-      const users: any[] = await (this.prisma as any).$queryRawUnsafe(
-        `SELECT u.id, u.first_name || ' ' || u.last_name AS display_name, u.email, u.role,
-                t.level AS tenant_level, t.name AS tenant_name
-         FROM public.users u
-         JOIN public.tenants t ON t.id = u.tenant_id
-         WHERE (
-           u.tenant_id = $1::uuid
-           OR t.parent_id = $1::uuid
-           OR t.id = (SELECT parent_id FROM public.tenants WHERE id = $1::uuid)
-           OR t.level = 'CONTINENTAL'
-         )
-           AND u.role::text = ANY($2::text[])
-           AND u.id != $3::uuid
-           AND u.is_active = true
-         ORDER BY
-           CASE t.level
-             WHEN 'MEMBER_STATE' THEN 1
-             WHEN 'REC' THEN 2
-             WHEN 'CONTINENTAL' THEN 3
-             ELSE 4
-           END,
-           u.role, u.first_name, u.last_name
-         LIMIT 50`,
-        user.tenantId,
-        rolesLiteral,
-        user.userId,
-      );
+      const chainValidatorIds = new Set<string>();
+      for (const chain of chains) {
+        chainValidatorIds.add(chain.validator_id);
+        if (chain.backup_validator_id) chainValidatorIds.add(chain.backup_validator_id);
+      }
 
-      return {
-        data: users.map((u: any) => ({
-          id: u.id,
-          displayName: u.display_name,
-          email: u.email,
-          role: u.role,
-          tenantLevel: u.tenant_level,
-          tenantName: u.tenant_name,
-        })),
+      const configuredValidators: any[] = [];
+      if (chainValidatorIds.size > 0) {
+        const chainUsers: any[] = await (this.prisma as any).$queryRawUnsafe(
+          `SELECT u.id, u.first_name || ' ' || u.last_name AS display_name, u.email, u.role,
+                  t.level AS tenant_level, t.name AS tenant_name
+           FROM public.users u
+           JOIN public.tenants t ON t.id = u.tenant_id
+           WHERE u.id = ANY($1::uuid[])
+             AND u.is_active = true
+           ORDER BY u.first_name, u.last_name`,
+          [...chainValidatorIds],
+        );
+        configuredValidators.push(...chainUsers);
+      }
+
+      // If we have configured validators, return them first + other potential validators
+      // If no chains configured, return generic higher-role users
+
+      // ── Step 2: Fallback — higher-role users in tenant hierarchy ──
+      const ROLE_HIERARCHY: Record<string, string[]> = {
+        FIELD_AGENT: ['DATA_STEWARD', 'NATIONAL_ADMIN', 'WAHIS_FOCAL_POINT', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+        DATA_STEWARD: ['NATIONAL_ADMIN', 'WAHIS_FOCAL_POINT', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+        WAHIS_FOCAL_POINT: ['NATIONAL_ADMIN', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+        NATIONAL_ADMIN: ['REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+        REC_ADMIN: ['CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+        CONTINENTAL_ADMIN: ['SUPER_ADMIN'],
+        ANALYST: ['DATA_STEWARD', 'NATIONAL_ADMIN', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+        SUPER_ADMIN: [],
       };
+
+      const higherRoles = ROLE_HIERARCHY[user.role] ?? [];
+      let fallbackUsers: any[] = [];
+
+      if (higherRoles.length > 0) {
+        const rolesLiteral = `{${higherRoles.join(',')}}`;
+        const excludeIds = [...chainValidatorIds, user.userId];
+
+        fallbackUsers = await (this.prisma as any).$queryRawUnsafe(
+          `SELECT u.id, u.first_name || ' ' || u.last_name AS display_name, u.email, u.role,
+                  t.level AS tenant_level, t.name AS tenant_name
+           FROM public.users u
+           JOIN public.tenants t ON t.id = u.tenant_id
+           WHERE (
+             u.tenant_id = $1::uuid
+             OR t.id = (SELECT parent_id FROM public.tenants WHERE id = $1::uuid)
+           )
+             AND u.role::text = ANY($2::text[])
+             AND u.id != ALL($3::uuid[])
+             AND u.is_active = true
+           ORDER BY
+             CASE t.level
+               WHEN 'MEMBER_STATE' THEN 1
+               WHEN 'REC' THEN 2
+               WHEN 'CONTINENTAL' THEN 3
+               ELSE 4
+             END,
+             u.role, u.first_name, u.last_name
+           LIMIT 30`,
+          user.tenantId,
+          rolesLiteral,
+          excludeIds,
+        );
+      }
+
+      // Merge: configured validators first, then fallback (deduplicated)
+      const seenIds = new Set<string>();
+      const result: any[] = [];
+
+      for (const u of configuredValidators) {
+        if (!seenIds.has(u.id)) {
+          seenIds.add(u.id);
+          result.push({
+            id: u.id,
+            displayName: u.display_name,
+            email: u.email,
+            role: u.role,
+            tenantLevel: u.tenant_level,
+            tenantName: u.tenant_name,
+            isConfigured: true,
+          });
+        }
+      }
+
+      for (const u of fallbackUsers) {
+        if (!seenIds.has(u.id)) {
+          seenIds.add(u.id);
+          result.push({
+            id: u.id,
+            displayName: u.display_name,
+            email: u.email,
+            role: u.role,
+            tenantLevel: u.tenant_level,
+            tenantName: u.tenant_name,
+          });
+        }
+      }
+
+      return { data: result };
     } catch (err) {
-      // Log the error for debugging instead of silently swallowing
       console.error('[ValidationChainService] findPotentialValidators error:', err);
       return { data: [] };
     }

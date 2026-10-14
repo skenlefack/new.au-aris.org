@@ -330,6 +330,11 @@ function ChooseValidatorDialog({ onClose, onSelect, t }: {
                     )}
                   </div>
                   <div className="shrink-0 flex flex-col items-end gap-1">
+                    {(v as any).isConfigured && (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        {t('configured') || 'Configured'}
+                      </span>
+                    )}
                     <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                       {ROLE_LABELS[v.role] ?? v.role}
                     </span>
@@ -926,18 +931,51 @@ export default function WorkflowPage() {
     );
   }
 
-  function handleBulk(action: 'APPROVE' | 'REJECT' | 'RETURN') {
+  async function handleBulk(action: 'APPROVE' | 'REJECT' | 'RETURN') {
     if (selectedIds.size === 0) return;
+
+    // When showing submissions (not workflow instances), use the collecte submission status endpoint
+    if (!hasWorkflowData) {
+      const statusMap: Record<string, string> = { APPROVE: 'VALIDATED', REJECT: 'REJECTED', RETURN: 'RETURNED' };
+      const targetStatus = statusMap[action] ?? 'VALIDATED';
+      let succeeded = 0;
+      let failedCount = 0;
+
+      for (const id of selectedIds) {
+        try {
+          await collecteClient.patch(`/collecte/submissions/${id}/status`, {
+            status: targetStatus,
+            reason: action === 'REJECT' ? 'Bulk rejected' : action === 'RETURN' ? 'Returned for correction' : undefined,
+          });
+          succeeded++;
+        } catch {
+          failedCount++;
+        }
+      }
+
+      if (failedCount > 0) {
+        setBulkToast({ message: t('bulkPartial', { succeeded: String(succeeded), failed: String(failedCount) }), type: 'error' });
+      } else {
+        setBulkToast({ message: t('bulkSuccess', { count: String(succeeded) }), type: 'success' });
+      }
+      setSelectedIds(new Set());
+      refetch();
+      setTimeout(() => setBulkToast(null), 4000);
+      return;
+    }
+
+    // Workflow instances — use the workflow bulk action endpoint
     bulkAction.mutate(
       { ids: Array.from(selectedIds), action },
       {
         onSuccess: (res: any) => {
-          const succeeded = res?.data?.succeeded ?? selectedIds.size;
-          const failed = res?.data?.failed ?? 0;
-          if (failed > 0) {
-            setBulkToast({ message: t('bulkPartial', { succeeded: String(succeeded), failed: String(failed) }), type: 'error' });
+          const data = res?.data ?? res;
+          const succeededCount = Array.isArray(data?.succeeded) ? data.succeeded.length : (data?.succeeded ?? 0);
+          const failedArr = Array.isArray(data?.failed) ? data.failed.length : (data?.failed ?? 0);
+          if (failedArr > 0) {
+            setBulkToast({ message: t('bulkPartial', { succeeded: String(succeededCount), failed: String(failedArr) }), type: 'error' });
           } else {
-            setBulkToast({ message: t('bulkSuccess', { count: String(succeeded) }), type: 'success' });
+            setBulkToast({ message: t('bulkSuccess', { count: String(succeededCount) }), type: 'success' });
           }
           setSelectedIds(new Set());
           setTimeout(() => setBulkToast(null), 4000);
