@@ -1,7 +1,9 @@
 package org.auibar.aris.mobile.data.repository
 
+import android.content.Context
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessaging
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -9,6 +11,7 @@ import org.auibar.aris.mobile.data.remote.api.AccountExpiredException
 import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.dto.AppDomainDto
 import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
+import org.auibar.aris.mobile.sync.MdmHeartbeatWorker
 import org.auibar.aris.mobile.ui.components.RoleConfig
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
@@ -24,6 +27,8 @@ class AuthRepository @Inject constructor(
     private val authApi: AuthApi,
     private val tokenManager: TokenManager,
     private val webSocketManager: WebSocketManager,
+    private val mdmRepository: MdmRepository,
+    @ApplicationContext private val context: Context,
 ) {
     val isLoggedIn: Boolean
         get() = tokenManager.isLoggedIn
@@ -38,6 +43,7 @@ class AuthRepository @Inject constructor(
             saveSession(loginData)
             fetchServerConfig()
             registerFcmToken()
+            enrollMdmDevice()
             LoginResult.Success
         } catch (e: AccountExpiredException) {
             LoginResult.AccountExpired(e.message ?: "Account expired")
@@ -53,6 +59,7 @@ class AuthRepository @Inject constructor(
             saveSession(loginData)
             fetchServerConfig()
             registerFcmToken()
+            enrollMdmDevice()
             LoginResult.Success
         } catch (e: AccountExpiredException) {
             LoginResult.AccountExpired(e.message ?: "Account expired")
@@ -115,7 +122,24 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    /** Enroll device with MDM backend and schedule heartbeat worker (best-effort). */
+    private suspend fun enrollMdmDevice() {
+        try {
+            val response = mdmRepository.enrollDevice()
+            if (response != null) {
+                MdmHeartbeatWorker.saveDeviceToken(context, response.deviceToken)
+                MdmHeartbeatWorker.enqueue(context)
+                Log.d("AuthRepository", "MDM enrolled: deviceId=${response.id}")
+            } else {
+                Log.w("AuthRepository", "MDM enrollment returned null — will retry on next login")
+            }
+        } catch (e: Exception) {
+            Log.w("AuthRepository", "MDM enrollment failed: ${e.message}")
+        }
+    }
+
     fun logout() {
+        MdmHeartbeatWorker.cancel(context)
         webSocketManager.disconnect()
         tokenManager.clear()
     }

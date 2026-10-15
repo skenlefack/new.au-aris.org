@@ -7,7 +7,7 @@ import {
   Layers, ClipboardList, Server, Briefcase, Users, GitPullRequestArrow,
   Link2, BarChart3, Building2, TrendingUp, Activity, Wand2, Monitor,
   Network, Sparkles, RefreshCw, Globe2, Radio, Wrench, KeyRound,
-  ChevronLeft, ArrowRight,
+  ChevronLeft, ArrowRight, Smartphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
@@ -89,6 +89,7 @@ export default function SettingsOverviewPage() {
         { href: '/settings/monitoring', label: 'Monitoring', desc: '22 microservices', icon: <Activity className="h-[18px] w-[18px]" />, iconColor: 'text-emerald-500 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-500/10', section: 'monitoring' },
         { href: '/settings/kafka-health', label: 'Kafka Health', desc: 'Consumer groups', icon: <Radio className="h-[18px] w-[18px]" />, iconColor: 'text-orange-500 dark:text-orange-400', iconBg: 'bg-orange-50 dark:bg-orange-500/10', section: 'kafka-health' },
         { href: '/settings/sync-monitoring', label: 'Sync Monitoring', desc: 'Mobile sync', icon: <RefreshCw className="h-[18px] w-[18px]" />, iconColor: 'text-cyan-500 dark:text-cyan-400', iconBg: 'bg-cyan-50 dark:bg-cyan-500/10', section: 'sync-monitoring' },
+        { href: '/settings/mdm', label: 'MDM', desc: 'Device management', icon: <Smartphone className="h-[18px] w-[18px]" />, iconColor: 'text-indigo-500 dark:text-indigo-400', iconBg: 'bg-indigo-50 dark:bg-indigo-500/10', section: 'mdm' },
         { href: '/settings/config', label: 'Configuration', desc: 'Flags & limits', icon: <Cog className="h-[18px] w-[18px]" />, iconColor: 'text-gray-500 dark:text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-500/10', section: 'config' },
         { href: '/settings/maintenance', label: 'Maintenance', desc: 'Maintenance mode', icon: <Wrench className="h-[18px] w-[18px]" />, iconColor: 'text-amber-500 dark:text-amber-400', iconBg: 'bg-amber-50 dark:bg-amber-500/10', section: 'maintenance' },
         { href: '/settings/system', label: t('systemInfo'), desc: 'Version & stack', icon: <Server className="h-[18px] w-[18px]" />, iconColor: 'text-slate-500 dark:text-slate-400', iconBg: 'bg-slate-50 dark:bg-slate-500/10', section: 'system' },
@@ -102,7 +103,7 @@ export default function SettingsOverviewPage() {
       items: g.items.filter((item) => {
         const superAdminOnly = [
           'monitoring', 'kafka-health',
-          'sync-monitoring', 'config', 'maintenance', 'system',
+          'sync-monitoring', 'mdm', 'config', 'maintenance', 'system',
         ];
         if (superAdminOnly.includes(item.section)) return isSuperAdmin;
         if (isSuperAdmin || isContinentalAdmin) return true;

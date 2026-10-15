@@ -6,6 +6,7 @@ import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import org.auibar.aris.mobile.sync.CacheRefreshWorker
 import org.auibar.aris.mobile.sync.CrashUploadWorker
+import org.auibar.aris.mobile.sync.MdmHeartbeatWorker
 import org.auibar.aris.mobile.sync.SyncWorker
 import org.auibar.aris.mobile.util.CrashLogger
 import javax.inject.Inject
@@ -27,5 +28,9 @@ class ArisApplication : Application(), Configuration.Provider {
         SyncWorker.enqueue(this)
         CacheRefreshWorker.enqueue(this)
         CrashUploadWorker.enqueue(this)
+        // Resume MDM heartbeat if device was previously enrolled
+        if (MdmHeartbeatWorker.getDeviceToken(this) != null) {
+            MdmHeartbeatWorker.enqueue(this)
+        }
     }
 }

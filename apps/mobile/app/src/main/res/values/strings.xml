@@ -796,4 +796,14 @@
     <string name="delete_photo_confirm">Remove this photo from the submission?</string>
     <string name="comment">Comment</string>
     <string name="currency_usd_prefix">USD </string>
+
+    <!-- MDM (Mobile Device Management) -->
+    <string name="mdm_update_available">Update Available</string>
+    <string name="mdm_update_required">Required Update</string>
+    <string name="mdm_update_message">A new version (%1$s) is available.</string>
+    <string name="mdm_update_required_message">A required update (%1$s) must be installed to continue.</string>
+    <string name="mdm_update_now">Update Now</string>
+    <string name="mdm_update_later">Later</string>
+    <string name="mdm_admin_message">Message from Admin</string>
+    <string name="mdm_wipe_warning">Your device data has been remotely cleared.</string>
 </resources>

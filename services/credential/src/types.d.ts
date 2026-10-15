@@ -11,6 +11,7 @@ import type { PermissionResolver } from './services/permission-resolver.js';
 import type { AuditService } from './services/audit.service.js';
 import type { SessionService } from './services/session.service.js';
 import type { AccountLockoutService } from './services/account-lockout.service.js';
+import type { MdmService } from './services/mdm.service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -25,6 +26,7 @@ declare module 'fastify' {
     auditService: AuditService;
     sessionService: SessionService;
     lockoutService: AccountLockoutService;
+    mdmService: MdmService;
     i18n: I18nService;
     authHookFn: ReturnType<typeof authHook>;
   }

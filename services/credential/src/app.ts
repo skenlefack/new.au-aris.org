@@ -26,6 +26,8 @@ import { registerI18nRoutes } from './routes/i18n.routes.js';
 import { registerAuditRoutes } from './routes/audit.routes.js';
 import { registerSessionRoutes } from './routes/session.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
+import { MdmService } from './services/mdm.service.js';
+import { registerMdmRoutes } from './routes/mdm.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -107,6 +109,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   const auditService = new AuditService(app.prisma);
   const geoService = new GeolocationService(app.redis);
   const sessionService = new SessionService(app.prisma, app.redis, geoService);
+  const mdmService = new MdmService(app.prisma);
 
   app.decorate('authService', authService);
   app.decorate('userService', userService);
@@ -117,6 +120,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('auditService', auditService);
   app.decorate('sessionService', sessionService);
   app.decorate('lockoutService', lockout);
+  app.decorate('mdmService', mdmService);
   app.decorate('i18n', i18n);
 
   // Routes
@@ -129,6 +133,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerI18nRoutes);
   await app.register(registerAuditRoutes);
   await app.register(registerSessionRoutes);
+  await app.register(registerMdmRoutes);
 
   // Expire stale sessions every 30 minutes
   const cleanupInterval = setInterval(() => { sessionService.expireStale().catch(() => {}); }, 30 * 60 * 1000);

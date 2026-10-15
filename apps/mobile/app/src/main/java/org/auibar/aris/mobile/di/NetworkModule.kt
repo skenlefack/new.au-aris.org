@@ -28,6 +28,7 @@ import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.api.DashboardMobileApi
 import org.auibar.aris.mobile.data.remote.api.FlashAlertApi
+import org.auibar.aris.mobile.data.remote.api.MdmApi
 import org.auibar.aris.mobile.data.remote.api.SubmissionApi
 import org.auibar.aris.mobile.data.remote.api.ValidationApi
 import org.auibar.aris.mobile.data.remote.api.IndicatorApi
@@ -219,6 +220,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideValidationApi(client: HttpClient): ValidationApi = ValidationApi(client)
+
+    @Provides
+    @Singleton
+    fun provideMdmApi(client: HttpClient): MdmApi = MdmApi(client)
 
     @Provides
     @Singleton
