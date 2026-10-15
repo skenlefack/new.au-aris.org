@@ -23,7 +23,10 @@ import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.api.KnowledgeApi
 import org.auibar.aris.mobile.data.remote.api.MessageApi
 import org.auibar.aris.mobile.data.remote.api.SyncApi
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import org.auibar.aris.mobile.data.repository.AuthRepository
+import org.auibar.aris.mobile.data.repository.MdmRepository
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.DashboardRepository
 import org.auibar.aris.mobile.data.repository.FormTemplateRepository
@@ -47,7 +50,9 @@ object AppModule {
         authApi: AuthApi,
         tokenManager: TokenManager,
         webSocketManager: WebSocketManager,
-    ): AuthRepository = AuthRepository(authApi, tokenManager, webSocketManager)
+        mdmRepository: MdmRepository,
+        @ApplicationContext context: Context,
+    ): AuthRepository = AuthRepository(authApi, tokenManager, webSocketManager, mdmRepository, context)
 
     @Provides
     @Singleton
