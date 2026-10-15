@@ -34,17 +34,11 @@
         </trust-anchors>
     </domain-config>
 
-    <!-- Production: pin Let's Encrypt certificates -->
+    <!-- Production: trust system CAs (no pinning — cert rotates with Let's Encrypt) -->
     <domain-config>
         <domain includeSubdomains="true">au-aris.org</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
-        <pin-set expiration="2027-01-01">
-            <!-- Primary: Let's Encrypt ISRG Root X1 -->
-            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
-            <!-- Backup: Let's Encrypt E5 -->
-            <pin digest="SHA-256">jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=</pin>
-        </pin-set>
     </domain-config>
 </network-security-config>

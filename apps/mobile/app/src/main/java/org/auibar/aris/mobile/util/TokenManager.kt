@@ -118,8 +118,8 @@ class TokenManager @Inject constructor(
 
     /** Server environment: PRODUCTION or STAGING */
     var serverEnvironment: String
-        get() = prefs.getString(KEY_SERVER_ENV, ServerEnvironment.STAGING.name)
-            ?: ServerEnvironment.STAGING.name
+        get() = prefs.getString(KEY_SERVER_ENV, ServerEnvironment.PRODUCTION.name)
+            ?: ServerEnvironment.PRODUCTION.name
         set(value) = prefs.edit().putString(KEY_SERVER_ENV, value).apply()
 
     val isLoggedIn: Boolean
@@ -156,14 +156,13 @@ class TokenManager @Inject constructor(
 
 enum class ServerEnvironment(val label: String, val baseUrl: String) {
     PRODUCTION("Production", org.auibar.aris.mobile.BuildConfig.API_BASE_URL_PROD),
-    PRODUCTION_OFFICE("Bureau (LAN)", org.auibar.aris.mobile.BuildConfig.API_BASE_URL_OFFICE),
-    STAGING("Staging (test)", org.auibar.aris.mobile.BuildConfig.API_BASE_URL_STG);
+    STAGING("Test", org.auibar.aris.mobile.BuildConfig.API_BASE_URL_STG);
 
     /** Whether this environment points to an internal IP (needs SSL hostname bypass) */
     val isInternalIp: Boolean get() = baseUrl.contains("10.202.101.")
 
     companion object {
         fun fromName(name: String): ServerEnvironment =
-            entries.find { it.name == name } ?: STAGING
+            entries.find { it.name == name } ?: PRODUCTION
     }
 }
