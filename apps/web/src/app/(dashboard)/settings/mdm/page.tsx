@@ -234,7 +234,9 @@ function DeviceDrawer({ deviceId, onClose }: { deviceId: string; onClose: () => 
                 ['Battery', d.batteryLevel != null ? `${d.batteryLevel}%${d.isCharging ? ' (charging)' : ''}` : '-'],
                 ['Network', d.networkType ?? '-'],
                 ['Enrolled', d.enrolledAt ? new Date(d.enrolledAt).toLocaleDateString() : '-'],
-                ['User', d.userEmail ?? '-'],
+                ['User', d.userName || d.userEmail || '-'],
+                ['Email', d.userEmail ?? '-'],
+                ['Role', d.userRole?.replace(/_/g, ' ') ?? '-'],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2">
                   <p className="text-[10px] text-gray-400">{label}</p>
@@ -419,7 +421,16 @@ function DevicesTab() {
                     </div>
                   </td>
                   {/* User */}
-                  <td className="px-2 py-2 text-gray-600 dark:text-gray-400 max-w-[130px] truncate">{d.userEmail ?? '-'}</td>
+                  <td className="px-2 py-2 max-w-[160px]">
+                    {d.userName ? (
+                      <div className="min-w-0">
+                        <p className="text-gray-700 dark:text-gray-300 font-medium truncate text-[11px]">{d.userName}</p>
+                        <p className="text-[10px] text-gray-400 truncate">{d.userEmail ?? ''}</p>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 truncate text-[11px]">{d.userEmail ?? '-'}</span>
+                    )}
+                  </td>
                   {/* Version */}
                   <td className="px-2 py-2 text-center">
                     <span className="inline-flex rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-[10px] font-mono text-gray-600 dark:text-gray-400">{d.appVersion ?? '-'}</span>

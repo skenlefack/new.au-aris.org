@@ -10,8 +10,10 @@ export interface MdmDevice {
   userId: string;
   userEmail?: string;
   userName?: string;
+  userRole?: string;
   deviceName: string;
   deviceModel?: string;
+  manufacturer?: string;
   osVersion?: string;
   appVersion?: string;
   appVersionCode?: number;
@@ -26,6 +28,7 @@ export interface MdmDevice {
   lastGpsLat?: number;
   lastGpsLng?: number;
   pendingSyncCount?: number;
+  pendingSyncItems?: number;
   enrolledAt?: string;
   status?: string;
   createdAt: string;

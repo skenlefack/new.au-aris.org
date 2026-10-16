@@ -200,7 +200,15 @@ export class MdmService {
       (this.prisma as any).mdmDevice.count({ where }),
     ]);
 
-    return { data, meta: { total, page, limit } };
+    // Flatten user info onto each device for frontend convenience
+    const enriched = data.map((d: any) => ({
+      ...d,
+      userEmail: d.user?.email ?? null,
+      userName: d.user ? `${d.user.firstName ?? ''} ${d.user.lastName ?? ''}`.trim() : null,
+      userRole: d.user?.role ?? null,
+    }));
+
+    return { data: enriched, meta: { total, page, limit } };
   }
 
   // ── Admin: get device detail ──
@@ -220,7 +228,14 @@ export class MdmService {
       },
     });
     if (!device) throw new HttpError(404, 'Device not found');
-    return { data: device };
+    return {
+      data: {
+        ...device,
+        userEmail: device.user?.email ?? null,
+        userName: device.user ? `${device.user.firstName ?? ''} ${device.user.lastName ?? ''}`.trim() : null,
+        userRole: device.user?.role ?? null,
+      },
+    };
   }
 
   // ── Admin: send command ──
