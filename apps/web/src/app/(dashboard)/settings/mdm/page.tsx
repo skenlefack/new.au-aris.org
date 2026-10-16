@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Smartphone, Battery, Wifi, Signal, HardDrive, RefreshCw, Send, Trash2,
   Power, Clock, Plus, Upload, Shield, ChevronDown, X, Package,
   AlertTriangle, Check, WifiOff, BatteryWarning, MonitorSmartphone,
+  CheckCircle2, Loader2, Timer, ArrowUpCircle, Gauge, Activity, XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
@@ -12,8 +13,9 @@ import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 import {
   useMdmDevices, useMdmDevice, useSendMdmCommand,
   useMdmReleases, useCreateMdmRelease, useUpdateMdmRelease, useDeleteMdmRelease,
-  type MdmDevice, type MdmRelease, type MdmCommand,
+  type MdmDevice, type MdmDeviceDetail, type MdmRelease, type MdmCommand,
 } from '@/lib/api/mdm-hooks';
+import { apiClient } from '@/lib/api/client';
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 
@@ -191,6 +193,583 @@ function CommandDropdown({ device, onCommand }: {
   );
 }
 
+/* ─── Sync / Update Helpers ──────────────────────────────────────────────── */
+
+function formatDuration(ms: number): string {
+  const secs = Math.floor(ms / 1000);
+  if (secs < 60) return `${secs}s`;
+  const mins = Math.floor(secs / 60);
+  const rem = secs % 60;
+  return `${mins}m ${rem.toString().padStart(2, '0')}s`;
+}
+
+interface DeviceSyncState {
+  status: 'sending' | 'syncing' | 'done' | 'failed' | 'timeout';
+  progress: number;
+  itemsSynced: number;
+  totalItems: number;
+  speed: number; // items/s
+  error?: string;
+}
+
+interface DeviceUpdateState {
+  status: 'sending' | 'delivered' | 'updating' | 'done' | 'failed' | 'timeout';
+  progress: number;
+  speed: number; // bytes/s estimate
+  error?: string;
+}
+
+/* ─── Sync Progress Modal ───────────────────────────────────────────────── */
+
+function SyncProgressModal({ deviceIds, devices, onClose }: {
+  deviceIds: string[];
+  devices: MdmDevice[];
+  onClose: () => void;
+}) {
+  const sendCommand = useSendMdmCommand();
+  const [states, setStates] = useState<Record<string, DeviceSyncState>>({});
+  const [elapsed, setElapsed] = useState(0);
+  const [phase, setPhase] = useState<'running' | 'done'>('running');
+  const startTimeRef = useRef(Date.now());
+  const prevPendingRef = useRef<Record<string, { count: number; time: number }>>({});
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Initialize and send commands
+  useEffect(() => {
+    const initial: Record<string, DeviceSyncState> = {};
+    for (const id of deviceIds) {
+      const dev = devices.find((d) => d.id === id);
+      const pending = dev?.pendingSyncItems ?? dev?.pendingSyncCount ?? 0;
+      initial[id] = { status: 'sending', progress: 0, itemsSynced: 0, totalItems: pending, speed: 0 };
+      prevPendingRef.current[id] = { count: pending, time: Date.now() };
+    }
+    setStates(initial);
+
+    // Send FORCE_SYNC to each device
+    const sendAll = async () => {
+      for (const id of deviceIds) {
+        try {
+          await sendCommand.mutateAsync({ deviceId: id, type: 'FORCE_SYNC' });
+          setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'syncing' } }));
+        } catch {
+          setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'failed', error: 'Command send failed' } }));
+        }
+      }
+    };
+    sendAll();
+
+    // Elapsed timer
+    timerRef.current = setInterval(() => {
+      setElapsed(Date.now() - startTimeRef.current);
+    }, 1000);
+
+    // Poll device details every 3s
+    intervalRef.current = setInterval(async () => {
+      const now = Date.now();
+      if (now - startTimeRef.current > 90_000) {
+        // Timeout
+        setStates((prev) => {
+          const next = { ...prev };
+          for (const id of deviceIds) {
+            if (next[id] && next[id].status !== 'done' && next[id].status !== 'failed') {
+              next[id] = { ...next[id], status: 'timeout' };
+            }
+          }
+          return next;
+        });
+        setPhase('done');
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        return;
+      }
+
+      for (const id of deviceIds) {
+        try {
+          const resp = await apiClient.get(`/credential/mdm/devices/${id}`) as { data: MdmDeviceDetail };
+          const detail = resp.data;
+          const currentPending = detail.pendingSyncItems ?? detail.pendingSyncCount ?? 0;
+          const prevEntry = prevPendingRef.current[id];
+
+          setStates((prev) => {
+            const s = prev[id];
+            if (!s || s.status === 'done' || s.status === 'failed' || s.status === 'timeout') return prev;
+
+            const totalItems = s.totalItems || prevEntry?.count || 1;
+            const synced = Math.max(0, totalItems - currentPending);
+            const progress = totalItems > 0 ? Math.min(100, Math.round((synced / totalItems) * 100)) : 0;
+
+            // Speed calculation
+            let speed = s.speed;
+            if (prevEntry && prevEntry.count > currentPending) {
+              const itemsDelta = prevEntry.count - currentPending;
+              const timeDelta = (now - prevEntry.time) / 1000;
+              if (timeDelta > 0) speed = Math.round(itemsDelta / timeDelta);
+            }
+
+            const isDone = currentPending === 0 && totalItems > 0;
+
+            return {
+              ...prev,
+              [id]: {
+                ...s,
+                status: isDone ? 'done' : 'syncing',
+                progress: isDone ? 100 : progress,
+                itemsSynced: synced,
+                speed,
+              },
+            };
+          });
+
+          prevPendingRef.current[id] = { count: currentPending, time: now };
+        } catch {
+          // Polling error — ignore, will retry
+        }
+      }
+
+      // Check if all done
+      setStates((prev) => {
+        const allFinished = deviceIds.every((id) => {
+          const s = prev[id];
+          return s && (s.status === 'done' || s.status === 'failed' || s.status === 'timeout');
+        });
+        if (allFinished) {
+          setPhase('done');
+          if (intervalRef.current) clearInterval(intervalRef.current);
+        }
+        return prev;
+      });
+    }, 3000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const deviceMap = useMemo(() => new Map(devices.map((d) => [d.id, d])), [devices]);
+  const succeeded = deviceIds.filter((id) => states[id]?.status === 'done').length;
+  const failed = deviceIds.filter((id) => states[id]?.status === 'failed' || states[id]?.status === 'timeout').length;
+  const totalItemsSynced = deviceIds.reduce((sum, id) => sum + (states[id]?.itemsSynced ?? 0), 0);
+  const avgSpeed = deviceIds.reduce((sum, id) => sum + (states[id]?.speed ?? 0), 0) / Math.max(1, deviceIds.length);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-500/10">
+              <RefreshCw className={cn('h-4 w-4 text-blue-600', phase === 'running' && 'animate-spin')} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Synchronization</h3>
+              <p className="text-[11px] text-gray-400">{deviceIds.length} device{deviceIds.length > 1 ? 's' : ''} — {formatDuration(elapsed)}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Device list */}
+        <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/50">
+          {deviceIds.map((id) => {
+            const dev = deviceMap.get(id);
+            const s = states[id];
+            if (!s) return null;
+            const statusIcon = s.status === 'done'
+              ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              : s.status === 'failed' || s.status === 'timeout'
+                ? <XCircle className="h-4 w-4 text-red-500" />
+                : <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+
+            return (
+              <div key={id} className="flex items-center gap-3 px-6 py-3">
+                {statusIcon}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
+                      {dev?.deviceName || 'Device'}
+                    </p>
+                    <span className="text-[10px] text-gray-400 shrink-0 ml-2">
+                      {s.itemsSynced}/{s.totalItems} items
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                      <div
+                        className={cn(
+                          'h-full rounded-full transition-all duration-500',
+                          s.status === 'done' ? 'bg-emerald-500' : s.status === 'failed' || s.status === 'timeout' ? 'bg-red-400' : 'bg-blue-500',
+                        )}
+                        style={{ width: `${s.progress}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono text-gray-500 w-8 text-right">{s.progress}%</span>
+                  </div>
+                  {s.speed > 0 && s.status === 'syncing' && (
+                    <p className="text-[10px] text-gray-400 mt-0.5">~{s.speed} items/s</p>
+                  )}
+                  {s.status === 'timeout' && (
+                    <p className="text-[10px] text-amber-500 mt-0.5">Timed out — device may still be syncing</p>
+                  )}
+                  {s.error && (
+                    <p className="text-[10px] text-red-500 mt-0.5">{s.error}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Report (when done) */}
+        {phase === 'done' && (
+          <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 px-6 py-4">
+            <div className="flex items-center gap-2 mb-3">
+              {failed === 0
+                ? <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                : <AlertTriangle className="h-5 w-5 text-amber-500" />}
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                {failed === 0 ? 'Synchronization Complete' : 'Synchronization Finished'}
+              </h4>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
+                <p className="text-[10px] text-gray-400">Devices</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">{succeeded}/{deviceIds.length} succeeded</p>
+              </div>
+              <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
+                <p className="text-[10px] text-gray-400">Items synced</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">{totalItemsSynced}</p>
+              </div>
+              <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
+                <p className="text-[10px] text-gray-400">Duration</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">{formatDuration(elapsed)}</p>
+              </div>
+              <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
+                <p className="text-[10px] text-gray-400">Avg speed</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">~{Math.round(avgSpeed)} items/s</p>
+              </div>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button onClick={onClose} className="px-4 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Update Progress Modal ─────────────────────────────────────────────── */
+
+function UpdateProgressModal({ deviceIds, devices, onClose }: {
+  deviceIds: string[];
+  devices: MdmDevice[];
+  onClose: () => void;
+}) {
+  const { data: releasesData } = useMdmReleases();
+  const releases = releasesData?.data ?? [];
+  const sendCommand = useSendMdmCommand();
+
+  const [step, setStep] = useState<'pick' | 'progress'>('pick');
+  const [selectedRelease, setSelectedRelease] = useState<MdmRelease | null>(null);
+  const [states, setStates] = useState<Record<string, DeviceUpdateState>>({});
+  const [elapsed, setElapsed] = useState(0);
+  const [phase, setPhase] = useState<'running' | 'done'>('running');
+  const startTimeRef = useRef(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const deviceMap = useMemo(() => new Map(devices.map((d) => [d.id, d])), [devices]);
+
+  const startUpdate = useCallback((release: MdmRelease) => {
+    setSelectedRelease(release);
+    setStep('progress');
+    startTimeRef.current = Date.now();
+
+    const initial: Record<string, DeviceUpdateState> = {};
+    for (const id of deviceIds) {
+      initial[id] = { status: 'sending', progress: 0, speed: 0 };
+    }
+    setStates(initial);
+
+    // Send FORCE_UPDATE to each device
+    const sendAll = async () => {
+      for (const id of deviceIds) {
+        try {
+          await sendCommand.mutateAsync({
+            deviceId: id,
+            type: 'FORCE_UPDATE',
+            payload: {
+              versionName: release.versionName,
+              versionCode: release.versionCode,
+              fileUrl: release.fileUrl ?? '',
+              fileSize: release.fileSize ?? 0,
+            },
+          });
+          setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'delivered' } }));
+        } catch {
+          setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'failed', error: 'Command send failed' } }));
+        }
+      }
+    };
+    sendAll();
+
+    // Elapsed timer
+    timerRef.current = setInterval(() => {
+      setElapsed(Date.now() - startTimeRef.current);
+    }, 1000);
+
+    // Poll every 5s
+    intervalRef.current = setInterval(async () => {
+      const now = Date.now();
+      if (now - startTimeRef.current > 180_000) {
+        setStates((prev) => {
+          const next = { ...prev };
+          for (const id of deviceIds) {
+            if (next[id] && next[id].status !== 'done' && next[id].status !== 'failed') {
+              next[id] = { ...next[id], status: 'timeout' };
+            }
+          }
+          return next;
+        });
+        setPhase('done');
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        return;
+      }
+
+      for (const id of deviceIds) {
+        try {
+          const resp = await apiClient.get(`/credential/mdm/devices/${id}`) as { data: MdmDeviceDetail };
+          const detail = resp.data;
+
+          setStates((prev) => {
+            const s = prev[id];
+            if (!s || s.status === 'done' || s.status === 'failed' || s.status === 'timeout') return prev;
+
+            // Check if the device has updated to the target version
+            const isUpdated = detail.appVersion === release.versionName ||
+              (detail.appVersionCode != null && detail.appVersionCode >= release.versionCode);
+
+            if (isUpdated) {
+              return { ...prev, [id]: { ...s, status: 'done', progress: 100 } };
+            }
+
+            // Estimate progress based on elapsed time (typical update takes ~60-120s)
+            const elapsedSecs = (now - startTimeRef.current) / 1000;
+            const estimatedProgress = Math.min(90, Math.round((elapsedSecs / 120) * 90));
+            const speed = release.fileSize ? Math.round(release.fileSize / Math.max(1, elapsedSecs)) : 0;
+
+            return {
+              ...prev,
+              [id]: {
+                ...s,
+                status: s.status === 'sending' ? s.status : 'updating',
+                progress: estimatedProgress,
+                speed,
+              },
+            };
+          });
+        } catch {
+          // Polling error — ignore
+        }
+      }
+
+      // Check if all done
+      setStates((prev) => {
+        const allFinished = deviceIds.every((id) => {
+          const s = prev[id];
+          return s && (s.status === 'done' || s.status === 'failed' || s.status === 'timeout');
+        });
+        if (allFinished) {
+          setPhase('done');
+          if (intervalRef.current) clearInterval(intervalRef.current);
+        }
+        return prev;
+      });
+    }, 5000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceIds]);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const succeeded = deviceIds.filter((id) => states[id]?.status === 'done').length;
+  const failed = deviceIds.filter((id) => states[id]?.status === 'failed' || states[id]?.status === 'timeout').length;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
+              <ArrowUpCircle className={cn('h-4 w-4 text-emerald-600', step === 'progress' && phase === 'running' && 'animate-pulse')} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Force Update</h3>
+              <p className="text-[11px] text-gray-400">
+                {step === 'pick'
+                  ? `Select a release for ${deviceIds.length} device${deviceIds.length > 1 ? 's' : ''}`
+                  : `${deviceIds.length} device${deviceIds.length > 1 ? 's' : ''} — ${formatDuration(elapsed)}`}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Step 1: Release Picker */}
+        {step === 'pick' && (
+          <div className="px-6 py-4 space-y-3 max-h-[400px] overflow-y-auto">
+            {releases.length === 0 ? (
+              <p className="text-xs text-gray-400 py-8 text-center">No releases available. Create one in the OTA Updates tab.</p>
+            ) : (
+              releases.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => startUpdate(r)}
+                  className={cn(
+                    'w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors hover:border-emerald-300 dark:hover:border-emerald-600',
+                    'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900/60',
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
+                      <Package className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{r.versionName}</p>
+                      <p className="text-[10px] text-gray-400">
+                        Code {r.versionCode} {r.fileSize ? `— ${formatBytes(r.fileSize / (1024 * 1024))}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {r.isRequired && (
+                      <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400">
+                        Required
+                      </span>
+                    )}
+                    <ArrowUpCircle className="h-4 w-4 text-gray-300 dark:text-gray-600" />
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Step 2: Progress */}
+        {step === 'progress' && (
+          <>
+            <div className="max-h-[320px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/50">
+              {deviceIds.map((id) => {
+                const dev = deviceMap.get(id);
+                const s = states[id];
+                if (!s) return null;
+                const statusIcon = s.status === 'done'
+                  ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  : s.status === 'failed' || s.status === 'timeout'
+                    ? <XCircle className="h-4 w-4 text-red-500" />
+                    : <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+
+                const statusLabel = s.status === 'sending' ? 'Sending command...'
+                  : s.status === 'delivered' ? 'Command delivered'
+                  : s.status === 'updating' ? 'Installing update...'
+                  : s.status === 'done' ? 'Updated'
+                  : s.status === 'timeout' ? 'Timed out'
+                  : 'Failed';
+
+                return (
+                  <div key={id} className="flex items-center gap-3 px-6 py-3">
+                    {statusIcon}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
+                          {dev?.deviceName || 'Device'}
+                        </p>
+                        <span className="text-[10px] text-gray-400 shrink-0 ml-2">
+                          {dev?.appVersion ?? '?'} → {selectedRelease?.versionName}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                          <div
+                            className={cn(
+                              'h-full rounded-full transition-all duration-500',
+                              s.status === 'done' ? 'bg-emerald-500' : s.status === 'failed' || s.status === 'timeout' ? 'bg-red-400' : 'bg-emerald-500',
+                            )}
+                            style={{ width: `${s.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-mono text-gray-500 w-8 text-right">{s.progress}%</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <p className="text-[10px] text-gray-400">{statusLabel}</p>
+                        {s.speed > 0 && s.status === 'updating' && (
+                          <p className="text-[10px] text-gray-400">~{formatBytes(s.speed / (1024 * 1024))}/s</p>
+                        )}
+                      </div>
+                      {s.error && <p className="text-[10px] text-red-500 mt-0.5">{s.error}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Report */}
+            {phase === 'done' && (
+              <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 px-6 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  {failed === 0
+                    ? <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                    : <AlertTriangle className="h-5 w-5 text-amber-500" />}
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {failed === 0 ? 'Update Complete' : 'Update Finished'}
+                  </h4>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
+                    <p className="text-[10px] text-gray-400">Devices</p>
+                    <p className="font-semibold text-gray-800 dark:text-gray-200">{succeeded}/{deviceIds.length} succeeded</p>
+                  </div>
+                  <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
+                    <p className="text-[10px] text-gray-400">Failed</p>
+                    <p className="font-semibold text-gray-800 dark:text-gray-200">{failed}</p>
+                  </div>
+                  <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
+                    <p className="text-[10px] text-gray-400">Duration</p>
+                    <p className="font-semibold text-gray-800 dark:text-gray-200">{formatDuration(elapsed)}</p>
+                  </div>
+                  <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
+                    <p className="text-[10px] text-gray-400">Version</p>
+                    <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRelease?.versionName}</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex justify-end">
+                  <button onClick={onClose} className="px-4 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Device Detail Drawer ───────────────────────────────────────────────── */
 
 function DeviceDrawer({ deviceId, onClose }: { deviceId: string; onClose: () => void }) {
@@ -308,6 +887,14 @@ function DevicesTab() {
   const [confirmCmd, setConfirmCmd] = useState<{ deviceId: string; type: string } | null>(null);
   const [messageCmd, setMessageCmd] = useState<string | null>(null);
 
+  // Multi-selection state
+  const [selectedDeviceIds, setSelectedDeviceIds] = useState<Set<string>>(new Set());
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  // For single-device modals triggered from command dropdown / action buttons
+  const [singleSyncDeviceId, setSingleSyncDeviceId] = useState<string | null>(null);
+  const [singleUpdateDeviceId, setSingleUpdateDeviceId] = useState<string | null>(null);
+
   const { data, isLoading } = useMdmDevices({ page, limit: 20, status: statusFilter || undefined, search: search || undefined });
   const sendCommand = useSendMdmCommand();
 
@@ -331,6 +918,28 @@ function DevicesTab() {
     return { total, online, offline, lowBattery };
   }, [devices, meta]);
 
+  // Toggle single device selection
+  const toggleDevice = useCallback((id: string) => {
+    setSelectedDeviceIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // Toggle all devices on current page
+  const toggleAll = useCallback(() => {
+    setSelectedDeviceIds((prev) => {
+      if (prev.size === devices.length && devices.every((d) => prev.has(d.id))) {
+        return new Set();
+      }
+      return new Set(devices.map((d) => d.id));
+    });
+  }, [devices]);
+
+  const allSelected = devices.length > 0 && devices.every((d) => selectedDeviceIds.has(d.id));
+
   const handleCommand = useCallback((deviceId: string, type: string) => {
     if (type === 'SEND_MESSAGE') {
       setMessageCmd(deviceId);
@@ -338,6 +947,14 @@ function DevicesTab() {
     }
     if (type === 'WIPE_DATA') {
       setConfirmCmd({ deviceId, type });
+      return;
+    }
+    if (type === 'FORCE_SYNC') {
+      setSingleSyncDeviceId(deviceId);
+      return;
+    }
+    if (type === 'FORCE_UPDATE') {
+      setSingleUpdateDeviceId(deviceId);
       return;
     }
     sendCommand.mutate({ deviceId, type });
@@ -377,6 +994,14 @@ function DevicesTab() {
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-gray-100 dark:border-gray-800 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+              <th className="w-8 px-2 py-2.5 text-center">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  className="rounded border-gray-300 dark:border-gray-600 h-3.5 w-3.5 cursor-pointer accent-blue-600"
+                />
+              </th>
               <th className="px-3 py-2.5 text-left">Device</th>
               <th className="px-2 py-2.5 text-left">User</th>
               <th className="px-2 py-2.5 text-center">Version</th>
@@ -389,10 +1014,10 @@ function DevicesTab() {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={8} className="py-12 text-center text-gray-400"><RefreshCw className="h-4 w-4 animate-spin inline mr-2" />Loading...</td></tr>
+              <tr><td colSpan={9} className="py-12 text-center text-gray-400"><RefreshCw className="h-4 w-4 animate-spin inline mr-2" />Loading...</td></tr>
             )}
             {!isLoading && devices.length === 0 && (
-              <tr><td colSpan={8} className="py-12 text-center text-gray-400">No devices enrolled yet.</td></tr>
+              <tr><td colSpan={9} className="py-12 text-center text-gray-400">No devices enrolled yet.</td></tr>
             )}
             {devices.map((d) => {
               const netIcon = d.networkType === 'wifi'
@@ -408,6 +1033,15 @@ function DevicesTab() {
                   onClick={() => setSelectedId(d.id)}
                   className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/60 dark:hover:bg-gray-800/40 cursor-pointer transition-colors"
                 >
+                  {/* Checkbox */}
+                  <td className="w-8 px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedDeviceIds.has(d.id)}
+                      onChange={() => toggleDevice(d.id)}
+                      className="rounded border-gray-300 dark:border-gray-600 h-3.5 w-3.5 cursor-pointer accent-blue-600"
+                    />
+                  </td>
                   {/* Device + Model */}
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
@@ -548,6 +1182,73 @@ function DevicesTab() {
         }}
         onCancel={() => setMessageCmd(null)}
       />
+
+      {/* Floating Bulk Action Bar */}
+      {selectedDeviceIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-5 py-3 shadow-2xl">
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+            {selectedDeviceIds.size} device{selectedDeviceIds.size > 1 ? 's' : ''} selected
+          </span>
+          <div className="h-4 w-px bg-gray-200 dark:bg-gray-700" />
+          <button
+            onClick={() => setShowSyncModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Sync All
+          </button>
+          <button
+            onClick={() => setShowUpdateModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+          >
+            <ArrowUpCircle className="h-3.5 w-3.5" />
+            Update All
+          </button>
+          <button
+            onClick={() => setSelectedDeviceIds(new Set())}
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"
+            title="Clear selection"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Bulk Sync Modal */}
+      {showSyncModal && (
+        <SyncProgressModal
+          deviceIds={Array.from(selectedDeviceIds)}
+          devices={devices}
+          onClose={() => { setShowSyncModal(false); setSelectedDeviceIds(new Set()); }}
+        />
+      )}
+
+      {/* Bulk Update Modal */}
+      {showUpdateModal && (
+        <UpdateProgressModal
+          deviceIds={Array.from(selectedDeviceIds)}
+          devices={devices}
+          onClose={() => { setShowUpdateModal(false); setSelectedDeviceIds(new Set()); }}
+        />
+      )}
+
+      {/* Single-device Sync Modal */}
+      {singleSyncDeviceId && (
+        <SyncProgressModal
+          deviceIds={[singleSyncDeviceId]}
+          devices={devices}
+          onClose={() => setSingleSyncDeviceId(null)}
+        />
+      )}
+
+      {/* Single-device Update Modal */}
+      {singleUpdateDeviceId && (
+        <UpdateProgressModal
+          deviceIds={[singleUpdateDeviceId]}
+          devices={devices}
+          onClose={() => setSingleUpdateDeviceId(null)}
+        />
+      )}
     </div>
   );
 }
