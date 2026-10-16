@@ -97,7 +97,8 @@ def deploy_env(env_name, app_host, db_host, deploy_dir, git_dir, db_user, db_pas
     if not skip_schema:
         step(f"[{env_name}] Phase 2 — Create interop schema on DB")
         db = connect(db_host)
-        create_sql = f"docker exec {pg_container} psql -U {db_user} -d {db_name} -c 'CREATE SCHEMA IF NOT EXISTS interop;'"
+        # Use double-quotes inside to avoid nested single-quote conflict with sudo bash -c wrapper
+        create_sql = f'docker exec {pg_container} psql -U {db_user} -d {db_name} -c "CREATE SCHEMA IF NOT EXISTS interop;"'
         run(db, create_sql, label="CREATE SCHEMA interop")
         db.close()
 
@@ -114,6 +115,8 @@ def deploy_env(env_name, app_host, db_host, deploy_dir, git_dir, db_user, db_pas
     run(app, prisma_cmd, timeout=120, label="prisma db push")
 
     step(f"[{env_name}] Phase 4 — Rebuild interop-hub service")
+    # Prune builder cache to avoid frozen-lockfile mismatch
+    run(app, "docker builder prune -f", timeout=60, label="docker builder prune")
     rebuild_cmd = f"cd {deploy_dir} && docker compose up -d --build --force-recreate --no-deps interop-hub"
     code, out, err = run(app, rebuild_cmd, timeout=600, label="docker compose up interop-hub")
     if out:
@@ -142,7 +145,7 @@ def deploy_env(env_name, app_host, db_host, deploy_dir, git_dir, db_user, db_pas
                 print(f"    {line}")
 
     step(f"[{env_name}] Phase 7 — Rebuild web (frontend)")
-    web_cmd = f"cd {deploy_dir} && docker compose up -d --build --force-recreate --no-deps web"
+    web_cmd = f"cd {deploy_dir} && docker compose up -d --build --no-deps web"
     run(app, web_cmd, timeout=600, label="docker compose up web")
 
     step(f"[{env_name}] Phase 8 — Health checks")
