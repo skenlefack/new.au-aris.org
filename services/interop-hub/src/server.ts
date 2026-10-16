@@ -13,15 +13,19 @@ if (envResult.error) {
 import { initTracing } from '@aris/observability/tracing';
 initTracing('interop-hub', '0.1.0');
 
-// Use Hub v3 if HUB_V3 is set, otherwise legacy app
-const useHubV3 = process.env['HUB_V3'] !== '0';
-const buildApp = useHubV3
-  ? (await import('./hub/app-hub.js')).buildHubApp
-  : (await import('./app.js')).buildApp;
-
 const SERVICE_NAME = 'interop-hub';
 
 async function main(): Promise<void> {
+  // Use Hub v3 if HUB_V3 is set, otherwise legacy app
+  const useHubV3 = process.env['HUB_V3'] !== '0';
+  let buildApp: () => Promise<any>;
+  if (useHubV3) {
+    const mod = await import('./hub/app-hub.js');
+    buildApp = mod.buildHubApp;
+  } else {
+    const mod = await import('./app.js');
+    buildApp = mod.buildApp;
+  }
   const app = await buildApp();
   const port = parseInt(process.env['INTEROP_HUB_PORT'] ?? '3032', 10);
 
