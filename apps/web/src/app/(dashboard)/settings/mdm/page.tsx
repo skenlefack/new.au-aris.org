@@ -375,23 +375,22 @@ function DevicesTab() {
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-gray-100 dark:border-gray-800 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-              <th className="px-4 py-2.5 text-left">Device</th>
-              <th className="px-3 py-2.5 text-left">User</th>
-              <th className="px-3 py-2.5 text-left">Version</th>
-              <th className="px-3 py-2.5 text-left">Battery</th>
-              <th className="px-3 py-2.5 text-left">Storage</th>
-              <th className="px-3 py-2.5 text-left">Network</th>
-              <th className="px-3 py-2.5 text-left">Heartbeat</th>
-              <th className="px-3 py-2.5 text-center">Sync</th>
-              <th className="px-3 py-2.5 text-right">Actions</th>
+              <th className="px-3 py-2.5 text-left">Device</th>
+              <th className="px-2 py-2.5 text-left">User</th>
+              <th className="px-2 py-2.5 text-center">Version</th>
+              <th className="px-2 py-2.5 text-center">Battery</th>
+              <th className="px-2 py-2.5 text-center">Network</th>
+              <th className="px-2 py-2.5 text-center">Heartbeat</th>
+              <th className="px-2 py-2.5 text-center">Sync</th>
+              <th className="px-2 py-2.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={9} className="py-12 text-center text-gray-400"><RefreshCw className="h-4 w-4 animate-spin inline mr-2" />Loading...</td></tr>
+              <tr><td colSpan={8} className="py-12 text-center text-gray-400"><RefreshCw className="h-4 w-4 animate-spin inline mr-2" />Loading...</td></tr>
             )}
             {!isLoading && devices.length === 0 && (
-              <tr><td colSpan={9} className="py-12 text-center text-gray-400">No devices enrolled yet.</td></tr>
+              <tr><td colSpan={8} className="py-12 text-center text-gray-400">No devices enrolled yet.</td></tr>
             )}
             {devices.map((d) => {
               const netIcon = d.networkType === 'wifi'
@@ -399,6 +398,7 @@ function DevicesTab() {
                 : d.networkType === 'mobile' || d.networkType === 'cellular'
                   ? <Signal className="h-3.5 w-3.5 text-green-500" />
                   : <WifiOff className="h-3.5 w-3.5 text-gray-400" />;
+              const hbColor = heartbeatColor(d.lastHeartbeatAt);
 
               return (
                 <tr
@@ -406,28 +406,41 @@ function DevicesTab() {
                   onClick={() => setSelectedId(d.id)}
                   className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/60 dark:hover:bg-gray-800/40 cursor-pointer transition-colors"
                 >
-                  <td className="px-4 py-2.5">
-                    <p className="font-medium text-gray-800 dark:text-gray-200">{d.deviceName || 'Unknown'}</p>
-                    <p className="text-[10px] text-gray-400">{d.deviceModel ?? ''}</p>
-                  </td>
-                  <td className="px-3 py-2.5 text-gray-600 dark:text-gray-400 max-w-[140px] truncate">{d.userEmail ?? '-'}</td>
-                  <td className="px-3 py-2.5 text-gray-600 dark:text-gray-400">{d.appVersion ?? '-'}</td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-14 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                        <div className={cn('h-full rounded-full', batteryColor(d.batteryLevel))} style={{ width: `${d.batteryLevel ?? 0}%` }} />
+                  {/* Device + Model */}
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-lg', hbColor === 'text-emerald-500' ? 'bg-emerald-50 dark:bg-emerald-500/10' : hbColor === 'text-amber-500' ? 'bg-amber-50 dark:bg-amber-500/10' : 'bg-gray-100 dark:bg-gray-800')}>
+                        <Smartphone className={cn('h-3.5 w-3.5', hbColor)} />
                       </div>
-                      <span className="text-gray-500">{d.batteryLevel != null ? `${d.batteryLevel}%` : '-'}</span>
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{d.deviceName || 'Unknown'}</p>
+                        <p className="text-[10px] text-gray-400 truncate">{d.manufacturer ? `${d.manufacturer} ` : ''}{d.deviceModel ?? ''}</p>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2.5 text-gray-500">
-                    {d.storageTotalMb ? `${formatBytes((d.storageTotalMb ?? 0) - (d.storageFreeMb ?? 0))} / ${formatBytes(d.storageTotalMb)}` : '-'}
+                  {/* User */}
+                  <td className="px-2 py-2 text-gray-600 dark:text-gray-400 max-w-[130px] truncate">{d.userEmail ?? '-'}</td>
+                  {/* Version */}
+                  <td className="px-2 py-2 text-center">
+                    <span className="inline-flex rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-[10px] font-mono text-gray-600 dark:text-gray-400">{d.appVersion ?? '-'}</span>
                   </td>
-                  <td className="px-3 py-2.5">{netIcon}</td>
-                  <td className={cn('px-3 py-2.5 font-medium', heartbeatColor(d.lastHeartbeatAt))}>
+                  {/* Battery */}
+                  <td className="px-2 py-2">
+                    <div className="flex items-center justify-center gap-1">
+                      <div className="w-10 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                        <div className={cn('h-full rounded-full', batteryColor(d.batteryLevel))} style={{ width: `${d.batteryLevel ?? 0}%` }} />
+                      </div>
+                      <span className="text-[10px] text-gray-500 w-7 text-right">{d.batteryLevel != null ? `${d.batteryLevel}%` : '-'}</span>
+                    </div>
+                  </td>
+                  {/* Network */}
+                  <td className="px-2 py-2 text-center">{netIcon}</td>
+                  {/* Heartbeat */}
+                  <td className={cn('px-2 py-2 text-center font-medium', hbColor)}>
                     {timeAgo(d.lastHeartbeatAt)}
                   </td>
-                  <td className="px-3 py-2.5 text-center">
+                  {/* Sync */}
+                  <td className="px-2 py-2 text-center">
                     {d.pendingSyncCount != null && d.pendingSyncCount > 0 ? (
                       <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/20 px-1.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                         {d.pendingSyncCount}
@@ -436,8 +449,45 @@ function DevicesTab() {
                       <Check className="h-3.5 w-3.5 text-emerald-500 mx-auto" />
                     )}
                   </td>
-                  <td className="px-3 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                    <CommandDropdown device={d} onCommand={(type) => handleCommand(d.id, type)} />
+                  {/* Actions — inline buttons */}
+                  <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-0.5">
+                      <button
+                        onClick={() => handleCommand(d.id, 'FORCE_SYNC')}
+                        title="Force Sync"
+                        className="p-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-500/10 text-blue-500"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleCommand(d.id, 'SEND_MESSAGE')}
+                        title="Send Message"
+                        className="p-1 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-indigo-500"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleCommand(d.id, 'FORCE_LOGOUT')}
+                        title="Force Logout"
+                        className="p-1 rounded-md hover:bg-amber-50 dark:hover:bg-amber-500/10 text-amber-500"
+                      >
+                        <Power className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleCommand(d.id, 'FORCE_UPDATE')}
+                        title="Force Update"
+                        className="p-1 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-emerald-500"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleCommand(d.id, 'WIPE_DATA')}
+                        title="Wipe Data"
+                        className="p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 text-red-500"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
