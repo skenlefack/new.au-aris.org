@@ -1779,15 +1779,27 @@ importers:
       '@aris/kafka-client':
         specifier: workspace:*
         version: link:../../packages/kafka-client
+      '@aris/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@aris/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
       '@fastify/cors':
         specifier: ^10.0.0
         version: 10.1.0
+      '@fastify/multipart':
+        specifier: ^9.0.0
+        version: 9.4.0
       '@prisma/client':
         specifier: ^6.2.0
         version: 6.2.0(prisma@6.2.0)
+      ajv:
+        specifier: ^8.17.0
+        version: 8.18.0
+      ajv-formats:
+        specifier: ^3.0.0
+        version: 3.0.1(ajv@8.18.0)
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
@@ -1803,6 +1815,12 @@ importers:
       ioredis:
         specifier: ^5.4.0
         version: 5.9.3
+      jsonata:
+        specifier: ^2.0.0
+        version: 2.1.0
+      jsonwebtoken:
+        specifier: ^9.0.0
+        version: 9.0.3
       minio:
         specifier: ^8.0.0
         version: 8.0.6
