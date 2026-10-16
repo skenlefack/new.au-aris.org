@@ -204,7 +204,7 @@ function formatDuration(ms: number): string {
 }
 
 interface DeviceSyncState {
-  status: 'sending' | 'syncing' | 'done' | 'failed' | 'timeout';
+  status: 'sending' | 'command_sent' | 'waiting' | 'delivered' | 'syncing' | 'synced' | 'confirmed' | 'failed' | 'timeout';
   progress: number;
   itemsSynced: number;
   totalItems: number;
@@ -213,7 +213,7 @@ interface DeviceSyncState {
 }
 
 interface DeviceUpdateState {
-  status: 'sending' | 'delivered' | 'updating' | 'done' | 'failed' | 'timeout';
+  status: 'sending' | 'command_sent' | 'waiting' | 'downloading' | 'installing' | 'updated' | 'confirmed' | 'failed' | 'timeout';
   progress: number;
   speed: number; // bytes/s estimate
   error?: string;
@@ -229,11 +229,17 @@ function SyncProgressModal({ deviceIds, devices, onClose }: {
   const sendCommand = useSendMdmCommand();
   const [states, setStates] = useState<Record<string, DeviceSyncState>>({});
   const [elapsed, setElapsed] = useState(0);
-  const [phase, setPhase] = useState<'running' | 'done'>('running');
+  const [phase, setPhase] = useState<'sending' | 'polling' | 'confirming' | 'done'>('sending');
   const startTimeRef = useRef(Date.now());
   const prevPendingRef = useRef<Record<string, { count: number; time: number }>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+
+  const stopTimers = useCallback(() => {
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }, []);
 
   // Initialize and send commands
   useEffect(() => {
@@ -246,40 +252,39 @@ function SyncProgressModal({ deviceIds, devices, onClose }: {
     }
     setStates(initial);
 
-    // Send FORCE_SYNC to each device
+    // Send FORCE_SYNC to each device sequentially
     const sendAll = async () => {
       for (const id of deviceIds) {
         try {
           await sendCommand.mutateAsync({ deviceId: id, type: 'FORCE_SYNC' });
-          setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'syncing' } }));
+          setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'command_sent' } }));
         } catch {
           setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'failed', error: 'Command send failed' } }));
         }
       }
+      setPhase('polling');
     };
     sendAll();
 
     // Elapsed timer
-    timerRef.current = setInterval(() => {
-      setElapsed(Date.now() - startTimeRef.current);
-    }, 1000);
+    timerRef.current = setInterval(() => setElapsed(Date.now() - startTimeRef.current), 1000);
 
-    // Poll device details every 3s
+    // Poll device details every 5s (realistic interval)
     intervalRef.current = setInterval(async () => {
       const now = Date.now();
-      if (now - startTimeRef.current > 90_000) {
-        // Timeout
+      if (now - startTimeRef.current > 120_000) {
+        // Timeout after 2 minutes
         setStates((prev) => {
           const next = { ...prev };
           for (const id of deviceIds) {
-            if (next[id] && next[id].status !== 'done' && next[id].status !== 'failed') {
+            if (next[id] && !['synced', 'confirmed', 'failed'].includes(next[id].status)) {
               next[id] = { ...next[id], status: 'timeout' };
             }
           }
           return next;
         });
-        setPhase('done');
-        if (intervalRef.current) clearInterval(intervalRef.current);
+        setPhase('confirming');
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
         return;
       }
 
@@ -289,69 +294,111 @@ function SyncProgressModal({ deviceIds, devices, onClose }: {
           const detail = resp.data;
           const currentPending = detail.pendingSyncItems ?? detail.pendingSyncCount ?? 0;
           const prevEntry = prevPendingRef.current[id];
+          // Check command status from latest commands
+          const latestCmd = detail.commands?.find((c: MdmCommand) => c.type === 'FORCE_SYNC');
+          const cmdStatus = latestCmd?.status ?? 'PENDING';
 
           setStates((prev) => {
             const s = prev[id];
-            if (!s || s.status === 'done' || s.status === 'failed' || s.status === 'timeout') return prev;
+            if (!s || ['synced', 'confirmed', 'failed'].includes(s.status)) return prev;
 
             const totalItems = s.totalItems || prevEntry?.count || 1;
             const synced = Math.max(0, totalItems - currentPending);
             const progress = totalItems > 0 ? Math.min(100, Math.round((synced / totalItems) * 100)) : 0;
 
-            // Speed calculation
+            // Speed: items/s based on actual decrease
             let speed = s.speed;
             if (prevEntry && prevEntry.count > currentPending) {
-              const itemsDelta = prevEntry.count - currentPending;
               const timeDelta = (now - prevEntry.time) / 1000;
-              if (timeDelta > 0) speed = Math.round(itemsDelta / timeDelta);
+              if (timeDelta > 0) speed = Math.round((prevEntry.count - currentPending) / timeDelta);
             }
 
-            const isDone = currentPending === 0 && totalItems > 0;
+            // Determine status from real data
+            let newStatus = s.status;
+            if (cmdStatus === 'EXECUTED' && currentPending === 0) {
+              newStatus = 'synced'; // Real confirmation from device
+            } else if (cmdStatus === 'EXECUTED') {
+              newStatus = 'syncing';
+            } else if (cmdStatus === 'DELIVERED') {
+              newStatus = 'delivered';
+            } else if (cmdStatus === 'FAILED') {
+              newStatus = 'failed';
+            } else if (s.status === 'command_sent') {
+              newStatus = 'waiting'; // Waiting for device to pick up command
+            }
 
-            return {
-              ...prev,
-              [id]: {
-                ...s,
-                status: isDone ? 'done' : 'syncing',
-                progress: isDone ? 100 : progress,
-                itemsSynced: synced,
-                speed,
-              },
-            };
+            return { ...prev, [id]: { ...s, status: newStatus, progress: newStatus === 'synced' ? 100 : progress, itemsSynced: synced, speed } };
           });
 
           prevPendingRef.current[id] = { count: currentPending, time: now };
         } catch {
-          // Polling error — ignore, will retry
+          // Network error — will retry next cycle
         }
       }
 
-      // Check if all done
+      // Check if all devices reached a terminal state
       setStates((prev) => {
-        const allFinished = deviceIds.every((id) => {
-          const s = prev[id];
-          return s && (s.status === 'done' || s.status === 'failed' || s.status === 'timeout');
+        const allTerminal = deviceIds.every((id) => {
+          const s = prev[id]?.status;
+          return s && ['synced', 'confirmed', 'failed', 'timeout'].includes(s);
         });
-        if (allFinished) {
-          setPhase('done');
-          if (intervalRef.current) clearInterval(intervalRef.current);
+        if (allTerminal && intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+          setPhase('confirming');
         }
         return prev;
       });
-    }, 3000);
+    }, 5000);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return stopTimers;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Stop elapsed timer when we enter confirming or done phase
+  useEffect(() => {
+    if ((phase === 'confirming' || phase === 'done') && timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, [phase]);
+
+  const handleConfirm = (deviceId: string) => {
+    setConfirmed((prev) => new Set([...prev, deviceId]));
+    setStates((prev) => ({ ...prev, [deviceId]: { ...prev[deviceId], status: 'confirmed' } }));
+  };
+  const handleReject = (deviceId: string) => {
+    setStates((prev) => ({ ...prev, [deviceId]: { ...prev[deviceId], status: 'failed', error: 'Rejected by admin' } }));
+  };
+
+  // Auto-advance to done when all confirmed/rejected
+  useEffect(() => {
+    if (phase !== 'confirming') return;
+    const allDone = deviceIds.every((id) => ['confirmed', 'failed', 'timeout'].includes(states[id]?.status ?? ''));
+    if (allDone) setPhase('done');
+  }, [states, phase, deviceIds]);
+
   const deviceMap = useMemo(() => new Map(devices.map((d) => [d.id, d])), [devices]);
-  const succeeded = deviceIds.filter((id) => states[id]?.status === 'done').length;
+  const succeeded = deviceIds.filter((id) => states[id]?.status === 'confirmed').length;
+  const syncedNoConfirm = deviceIds.filter((id) => states[id]?.status === 'synced').length;
   const failed = deviceIds.filter((id) => states[id]?.status === 'failed' || states[id]?.status === 'timeout').length;
   const totalItemsSynced = deviceIds.reduce((sum, id) => sum + (states[id]?.itemsSynced ?? 0), 0);
   const avgSpeed = deviceIds.reduce((sum, id) => sum + (states[id]?.speed ?? 0), 0) / Math.max(1, deviceIds.length);
+
+  const statusLabel = (s: DeviceSyncState) => {
+    switch (s.status) {
+      case 'sending': return 'Sending command...';
+      case 'command_sent': return 'Command sent — waiting for device';
+      case 'waiting': return 'Waiting for device to start...';
+      case 'delivered': return 'Command received by device';
+      case 'syncing': return 'Synchronizing data...';
+      case 'synced': return 'Sync complete — awaiting confirmation';
+      case 'confirmed': return 'Confirmed by admin';
+      case 'timeout': return 'Timed out — device may still be syncing';
+      case 'failed': return s.error || 'Failed';
+      default: return s.status;
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -360,102 +407,116 @@ function SyncProgressModal({ deviceIds, devices, onClose }: {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-500/10">
-              <RefreshCw className={cn('h-4 w-4 text-blue-600', phase === 'running' && 'animate-spin')} />
+              <RefreshCw className={cn('h-4 w-4 text-blue-600', phase === 'polling' && 'animate-spin')} />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Synchronization</h3>
-              <p className="text-[11px] text-gray-400">{deviceIds.length} device{deviceIds.length > 1 ? 's' : ''} — {formatDuration(elapsed)}</p>
+              <p className="text-[11px] text-gray-400">
+                {deviceIds.length} device{deviceIds.length > 1 ? 's' : ''} — {formatDuration(elapsed)}
+                {phase === 'confirming' && ' — awaiting confirmation'}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">
-            <X className="h-4 w-4" />
-          </button>
+          {phase === 'done' && (
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Phase indicator */}
+        <div className="px-6 py-2 flex items-center gap-3 border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-800/10">
+          {['sending', 'polling', 'confirming', 'done'].map((p, i) => (
+            <div key={p} className="flex items-center gap-1.5">
+              {i > 0 && <div className="w-6 h-px bg-gray-200 dark:bg-gray-700" />}
+              <div className={cn('h-2 w-2 rounded-full', phase === p || (['sending', 'polling', 'confirming', 'done'].indexOf(phase) > i) ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600')} />
+              <span className={cn('text-[10px] font-medium', phase === p ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400')}>
+                {p === 'sending' ? 'Send' : p === 'polling' ? 'Sync' : p === 'confirming' ? 'Confirm' : 'Report'}
+              </span>
+            </div>
+          ))}
         </div>
 
         {/* Device list */}
-        <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/50">
+        <div className="max-h-[340px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/50">
           {deviceIds.map((id) => {
             const dev = deviceMap.get(id);
             const s = states[id];
             if (!s) return null;
-            const statusIcon = s.status === 'done'
-              ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              : s.status === 'failed' || s.status === 'timeout'
-                ? <XCircle className="h-4 w-4 text-red-500" />
-                : <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+            const icon = s.status === 'confirmed' ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              : s.status === 'synced' ? <Clock className="h-4 w-4 text-amber-500" />
+              : s.status === 'failed' || s.status === 'timeout' ? <XCircle className="h-4 w-4 text-red-500" />
+              : <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
 
             return (
               <div key={id} className="flex items-center gap-3 px-6 py-3">
-                {statusIcon}
+                {icon}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
-                      {dev?.deviceName || 'Device'}
-                    </p>
-                    <span className="text-[10px] text-gray-400 shrink-0 ml-2">
-                      {s.itemsSynced}/{s.totalItems} items
-                    </span>
+                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{dev?.deviceName || 'Device'}</p>
+                    <span className="text-[10px] text-gray-400 shrink-0 ml-2">{s.itemsSynced}/{s.totalItems} items</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                      <div
-                        className={cn(
-                          'h-full rounded-full transition-all duration-500',
-                          s.status === 'done' ? 'bg-emerald-500' : s.status === 'failed' || s.status === 'timeout' ? 'bg-red-400' : 'bg-blue-500',
-                        )}
-                        style={{ width: `${s.progress}%` }}
-                      />
+                      <div className={cn('h-full rounded-full transition-all duration-700', s.status === 'confirmed' ? 'bg-emerald-500' : s.status === 'synced' ? 'bg-amber-400' : s.status === 'failed' || s.status === 'timeout' ? 'bg-red-400' : 'bg-blue-500')} style={{ width: `${s.progress}%` }} />
                     </div>
                     <span className="text-[10px] font-mono text-gray-500 w-8 text-right">{s.progress}%</span>
                   </div>
-                  {s.speed > 0 && s.status === 'syncing' && (
-                    <p className="text-[10px] text-gray-400 mt-0.5">~{s.speed} items/s</p>
-                  )}
-                  {s.status === 'timeout' && (
-                    <p className="text-[10px] text-amber-500 mt-0.5">Timed out — device may still be syncing</p>
-                  )}
-                  {s.error && (
-                    <p className="text-[10px] text-red-500 mt-0.5">{s.error}</p>
-                  )}
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className="text-[10px] text-gray-400">{statusLabel(s)}</p>
+                    {s.speed > 0 && ['syncing', 'delivered'].includes(s.status) && (
+                      <p className="text-[10px] text-gray-400">~{s.speed} items/s</p>
+                    )}
+                  </div>
                 </div>
+                {/* Confirm/Reject buttons — only when synced, awaiting admin confirmation */}
+                {s.status === 'synced' && (
+                  <div className="flex gap-1 shrink-0">
+                    <button onClick={() => handleConfirm(id)} title="Confirm sync OK" className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 text-emerald-600">
+                      <Check className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => handleReject(id)} title="Mark as failed" className="p-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 hover:bg-red-100 text-red-500">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
 
-        {/* Report (when done) */}
+        {/* Confirm All bar (when some are awaiting confirmation) */}
+        {phase === 'confirming' && syncedNoConfirm > 0 && (
+          <div className="border-t border-gray-100 dark:border-gray-800 px-6 py-2.5 flex items-center justify-between bg-amber-50/50 dark:bg-amber-900/10">
+            <p className="text-xs text-amber-700 dark:text-amber-400">{syncedNoConfirm} device{syncedNoConfirm > 1 ? 's' : ''} awaiting your confirmation</p>
+            <button onClick={() => { deviceIds.forEach((id) => { if (states[id]?.status === 'synced') handleConfirm(id); }); }} className="px-3 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
+              Confirm All
+            </button>
+          </div>
+        )}
+
+        {/* Final Report */}
         {phase === 'done' && (
           <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 px-6 py-4">
             <div className="flex items-center gap-2 mb-3">
-              {failed === 0
-                ? <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                : <AlertTriangle className="h-5 w-5 text-amber-500" />}
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                {failed === 0 ? 'Synchronization Complete' : 'Synchronization Finished'}
-              </h4>
+              {failed === 0 ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{failed === 0 ? 'Synchronization Confirmed' : 'Synchronization Report'}</h4>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
-                <p className="text-[10px] text-gray-400">Devices</p>
-                <p className="font-semibold text-gray-800 dark:text-gray-200">{succeeded}/{deviceIds.length} succeeded</p>
-              </div>
-              <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
-                <p className="text-[10px] text-gray-400">Items synced</p>
-                <p className="font-semibold text-gray-800 dark:text-gray-200">{totalItemsSynced}</p>
-              </div>
-              <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
-                <p className="text-[10px] text-gray-400">Duration</p>
-                <p className="font-semibold text-gray-800 dark:text-gray-200">{formatDuration(elapsed)}</p>
-              </div>
-              <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
-                <p className="text-[10px] text-gray-400">Avg speed</p>
-                <p className="font-semibold text-gray-800 dark:text-gray-200">~{Math.round(avgSpeed)} items/s</p>
-              </div>
+              {[
+                ['Devices', `${succeeded}/${deviceIds.length} confirmed`],
+                ['Items synced', `${totalItemsSynced}`],
+                ['Duration', formatDuration(elapsed)],
+                ['Avg speed', `~${Math.round(avgSpeed)} items/s`],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
+                  <p className="text-[10px] text-gray-400">{label}</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-200">{value}</p>
+                </div>
+              ))}
             </div>
             <div className="mt-3 flex justify-end">
-              <button onClick={onClose} className="px-4 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-                Close
-              </button>
+              <button onClick={onClose} className="px-4 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700">Close</button>
             </div>
           </div>
         )}
@@ -479,10 +540,11 @@ function UpdateProgressModal({ deviceIds, devices, onClose }: {
   const [selectedRelease, setSelectedRelease] = useState<MdmRelease | null>(null);
   const [states, setStates] = useState<Record<string, DeviceUpdateState>>({});
   const [elapsed, setElapsed] = useState(0);
-  const [phase, setPhase] = useState<'running' | 'done'>('running');
+  const [phase, setPhase] = useState<'sending' | 'polling' | 'confirming' | 'done'>('sending');
   const startTimeRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
 
   const deviceMap = useMemo(() => new Map(devices.map((d) => [d.id, d])), [devices]);
 
@@ -490,6 +552,7 @@ function UpdateProgressModal({ deviceIds, devices, onClose }: {
     setSelectedRelease(release);
     setStep('progress');
     startTimeRef.current = Date.now();
+    setPhase('sending');
 
     const initial: Record<string, DeviceUpdateState> = {};
     for (const id of deviceIds) {
@@ -497,48 +560,40 @@ function UpdateProgressModal({ deviceIds, devices, onClose }: {
     }
     setStates(initial);
 
-    // Send FORCE_UPDATE to each device
     const sendAll = async () => {
       for (const id of deviceIds) {
         try {
           await sendCommand.mutateAsync({
             deviceId: id,
             type: 'FORCE_UPDATE',
-            payload: {
-              versionName: release.versionName,
-              versionCode: release.versionCode,
-              fileUrl: release.fileUrl ?? '',
-              fileSize: release.fileSize ?? 0,
-            },
+            payload: { versionName: release.versionName, versionCode: release.versionCode, fileUrl: release.fileUrl ?? '', fileSize: release.fileSize ?? 0 },
           });
-          setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'delivered' } }));
+          setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'command_sent' } }));
         } catch {
           setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'failed', error: 'Command send failed' } }));
         }
       }
+      setPhase('polling');
     };
     sendAll();
 
-    // Elapsed timer
-    timerRef.current = setInterval(() => {
-      setElapsed(Date.now() - startTimeRef.current);
-    }, 1000);
+    timerRef.current = setInterval(() => setElapsed(Date.now() - startTimeRef.current), 1000);
 
-    // Poll every 5s
+    // Poll every 8s (updates take time)
     intervalRef.current = setInterval(async () => {
       const now = Date.now();
-      if (now - startTimeRef.current > 180_000) {
+      if (now - startTimeRef.current > 300_000) {
         setStates((prev) => {
           const next = { ...prev };
           for (const id of deviceIds) {
-            if (next[id] && next[id].status !== 'done' && next[id].status !== 'failed') {
+            if (next[id] && !['updated', 'confirmed', 'failed'].includes(next[id].status)) {
               next[id] = { ...next[id], status: 'timeout' };
             }
           }
           return next;
         });
-        setPhase('done');
-        if (intervalRef.current) clearInterval(intervalRef.current);
+        setPhase('confirming');
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
         return;
       }
 
@@ -546,65 +601,83 @@ function UpdateProgressModal({ deviceIds, devices, onClose }: {
         try {
           const resp = await apiClient.get(`/credential/mdm/devices/${id}`) as { data: MdmDeviceDetail };
           const detail = resp.data;
+          const latestCmd = detail.commands?.find((c: MdmCommand) => c.type === 'FORCE_UPDATE');
+          const cmdStatus = latestCmd?.status ?? 'PENDING';
+          const isUpdated = detail.appVersion === release.versionName || (detail.appVersionCode != null && detail.appVersionCode >= release.versionCode);
+          const elapsedSecs = (now - startTimeRef.current) / 1000;
+          const speed = release.fileSize ? Math.round(release.fileSize / Math.max(1, elapsedSecs)) : 0;
 
           setStates((prev) => {
             const s = prev[id];
-            if (!s || s.status === 'done' || s.status === 'failed' || s.status === 'timeout') return prev;
+            if (!s || ['updated', 'confirmed', 'failed'].includes(s.status)) return prev;
 
-            // Check if the device has updated to the target version
-            const isUpdated = detail.appVersion === release.versionName ||
-              (detail.appVersionCode != null && detail.appVersionCode >= release.versionCode);
+            if (isUpdated) return { ...prev, [id]: { ...s, status: 'updated', progress: 100, speed } };
 
-            if (isUpdated) {
-              return { ...prev, [id]: { ...s, status: 'done', progress: 100 } };
-            }
+            let newStatus = s.status;
+            let progress = s.progress;
+            if (cmdStatus === 'EXECUTED') { newStatus = 'installing'; progress = Math.min(85, progress + 5); }
+            else if (cmdStatus === 'DELIVERED') { newStatus = 'downloading'; progress = Math.min(60, Math.round(elapsedSecs / 2)); }
+            else if (cmdStatus === 'FAILED') { newStatus = 'failed'; }
+            else if (s.status === 'command_sent') { newStatus = 'waiting'; progress = 5; }
 
-            // Estimate progress based on elapsed time (typical update takes ~60-120s)
-            const elapsedSecs = (now - startTimeRef.current) / 1000;
-            const estimatedProgress = Math.min(90, Math.round((elapsedSecs / 120) * 90));
-            const speed = release.fileSize ? Math.round(release.fileSize / Math.max(1, elapsedSecs)) : 0;
-
-            return {
-              ...prev,
-              [id]: {
-                ...s,
-                status: s.status === 'sending' ? s.status : 'updating',
-                progress: estimatedProgress,
-                speed,
-              },
-            };
+            return { ...prev, [id]: { ...s, status: newStatus, progress, speed } };
           });
-        } catch {
-          // Polling error — ignore
-        }
+        } catch { /* retry */ }
       }
 
-      // Check if all done
       setStates((prev) => {
-        const allFinished = deviceIds.every((id) => {
-          const s = prev[id];
-          return s && (s.status === 'done' || s.status === 'failed' || s.status === 'timeout');
-        });
-        if (allFinished) {
-          setPhase('done');
-          if (intervalRef.current) clearInterval(intervalRef.current);
+        const allTerminal = deviceIds.every((id) => ['updated', 'confirmed', 'failed', 'timeout'].includes(prev[id]?.status ?? ''));
+        if (allTerminal && intervalRef.current) {
+          clearInterval(intervalRef.current); intervalRef.current = null;
+          setPhase('confirming');
         }
         return prev;
       });
-    }, 5000);
+    }, 8000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceIds]);
 
-  // Cleanup
   useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    if ((phase === 'confirming' || phase === 'done') && timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }, [phase]);
+
+  useEffect(() => () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
   }, []);
 
-  const succeeded = deviceIds.filter((id) => states[id]?.status === 'done').length;
+  const handleConfirm = (id: string) => {
+    setConfirmed((prev) => new Set([...prev, id]));
+    setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'confirmed' } }));
+  };
+  const handleReject = (id: string) => {
+    setStates((prev) => ({ ...prev, [id]: { ...prev[id], status: 'failed', error: 'Rejected by admin' } }));
+  };
+
+  useEffect(() => {
+    if (phase !== 'confirming') return;
+    const allDone = deviceIds.every((id) => ['confirmed', 'failed', 'timeout'].includes(states[id]?.status ?? ''));
+    if (allDone) setPhase('done');
+  }, [states, phase, deviceIds]);
+
+  const succeeded = deviceIds.filter((id) => states[id]?.status === 'confirmed').length;
+  const updatedNoConfirm = deviceIds.filter((id) => states[id]?.status === 'updated').length;
   const failed = deviceIds.filter((id) => states[id]?.status === 'failed' || states[id]?.status === 'timeout').length;
+
+  const updateStatusLabel = (s: DeviceUpdateState) => {
+    switch (s.status) {
+      case 'sending': return 'Sending command...';
+      case 'command_sent': return 'Command sent — waiting for device';
+      case 'waiting': return 'Waiting for device...';
+      case 'downloading': return 'Device downloading APK...';
+      case 'installing': return 'Installing update...';
+      case 'updated': return 'Update installed — awaiting confirmation';
+      case 'confirmed': return 'Confirmed by admin';
+      case 'timeout': return 'Timed out — check device manually';
+      case 'failed': return s.error || 'Failed';
+      default: return s.status;
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -613,7 +686,7 @@ function UpdateProgressModal({ deviceIds, devices, onClose }: {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
-              <ArrowUpCircle className={cn('h-4 w-4 text-emerald-600', step === 'progress' && phase === 'running' && 'animate-pulse')} />
+              <ArrowUpCircle className={cn('h-4 w-4 text-emerald-600', step === 'progress' && phase === 'polling' && 'animate-pulse')} />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Force Update</h3>
@@ -672,94 +745,98 @@ function UpdateProgressModal({ deviceIds, devices, onClose }: {
         {/* Step 2: Progress */}
         {step === 'progress' && (
           <>
-            <div className="max-h-[320px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/50">
+            {/* Phase indicator */}
+            <div className="px-6 py-2 flex items-center gap-3 border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-800/10">
+              {['sending', 'polling', 'confirming', 'done'].map((p, i) => (
+                <div key={p} className="flex items-center gap-1.5">
+                  {i > 0 && <div className="w-6 h-px bg-gray-200 dark:bg-gray-700" />}
+                  <div className={cn('h-2 w-2 rounded-full', phase === p || (['sending', 'polling', 'confirming', 'done'].indexOf(phase) > i) ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600')} />
+                  <span className={cn('text-[10px] font-medium', phase === p ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400')}>
+                    {p === 'sending' ? 'Send' : p === 'polling' ? 'Update' : p === 'confirming' ? 'Confirm' : 'Report'}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="max-h-[300px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/50">
               {deviceIds.map((id) => {
                 const dev = deviceMap.get(id);
                 const s = states[id];
                 if (!s) return null;
-                const statusIcon = s.status === 'done'
-                  ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  : s.status === 'failed' || s.status === 'timeout'
-                    ? <XCircle className="h-4 w-4 text-red-500" />
-                    : <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
-
-                const statusLabel = s.status === 'sending' ? 'Sending command...'
-                  : s.status === 'delivered' ? 'Command delivered'
-                  : s.status === 'updating' ? 'Installing update...'
-                  : s.status === 'done' ? 'Updated'
-                  : s.status === 'timeout' ? 'Timed out'
-                  : 'Failed';
+                const icon = s.status === 'confirmed' ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  : s.status === 'updated' ? <Clock className="h-4 w-4 text-amber-500" />
+                  : s.status === 'failed' || s.status === 'timeout' ? <XCircle className="h-4 w-4 text-red-500" />
+                  : <Loader2 className="h-4 w-4 text-emerald-500 animate-spin" />;
 
                 return (
                   <div key={id} className="flex items-center gap-3 px-6 py-3">
-                    {statusIcon}
+                    {icon}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
-                          {dev?.deviceName || 'Device'}
-                        </p>
-                        <span className="text-[10px] text-gray-400 shrink-0 ml-2">
-                          {dev?.appVersion ?? '?'} → {selectedRelease?.versionName}
-                        </span>
+                        <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{dev?.deviceName || 'Device'}</p>
+                        <span className="text-[10px] text-gray-400 shrink-0 ml-2">{dev?.appVersion ?? '?'} → {selectedRelease?.versionName}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                          <div
-                            className={cn(
-                              'h-full rounded-full transition-all duration-500',
-                              s.status === 'done' ? 'bg-emerald-500' : s.status === 'failed' || s.status === 'timeout' ? 'bg-red-400' : 'bg-emerald-500',
-                            )}
-                            style={{ width: `${s.progress}%` }}
-                          />
+                          <div className={cn('h-full rounded-full transition-all duration-700', s.status === 'confirmed' ? 'bg-emerald-500' : s.status === 'updated' ? 'bg-amber-400' : s.status === 'failed' || s.status === 'timeout' ? 'bg-red-400' : 'bg-emerald-500')} style={{ width: `${s.progress}%` }} />
                         </div>
                         <span className="text-[10px] font-mono text-gray-500 w-8 text-right">{s.progress}%</span>
                       </div>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <p className="text-[10px] text-gray-400">{statusLabel}</p>
-                        {s.speed > 0 && s.status === 'updating' && (
+                      <div className="flex items-center justify-between mt-0.5">
+                        <p className="text-[10px] text-gray-400">{updateStatusLabel(s)}</p>
+                        {s.speed > 0 && ['downloading', 'installing'].includes(s.status) && (
                           <p className="text-[10px] text-gray-400">~{formatBytes(s.speed / (1024 * 1024))}/s</p>
                         )}
                       </div>
-                      {s.error && <p className="text-[10px] text-red-500 mt-0.5">{s.error}</p>}
                     </div>
+                    {/* Confirm/Reject buttons */}
+                    {s.status === 'updated' && (
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={() => handleConfirm(id)} title="Confirm update OK" className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 text-emerald-600">
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => handleReject(id)} title="Mark as failed" className="p-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 hover:bg-red-100 text-red-500">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Report */}
+            {/* Confirm All bar */}
+            {phase === 'confirming' && updatedNoConfirm > 0 && (
+              <div className="border-t border-gray-100 dark:border-gray-800 px-6 py-2.5 flex items-center justify-between bg-amber-50/50 dark:bg-amber-900/10">
+                <p className="text-xs text-amber-700 dark:text-amber-400">{updatedNoConfirm} device{updatedNoConfirm > 1 ? 's' : ''} awaiting your confirmation</p>
+                <button onClick={() => { deviceIds.forEach((id) => { if (states[id]?.status === 'updated') handleConfirm(id); }); }} className="px-3 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
+                  Confirm All
+                </button>
+              </div>
+            )}
+
+            {/* Final Report */}
             {phase === 'done' && (
               <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 px-6 py-4">
                 <div className="flex items-center gap-2 mb-3">
-                  {failed === 0
-                    ? <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                    : <AlertTriangle className="h-5 w-5 text-amber-500" />}
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {failed === 0 ? 'Update Complete' : 'Update Finished'}
-                  </h4>
+                  {failed === 0 ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{failed === 0 ? 'Update Confirmed' : 'Update Report'}</h4>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                  <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
-                    <p className="text-[10px] text-gray-400">Devices</p>
-                    <p className="font-semibold text-gray-800 dark:text-gray-200">{succeeded}/{deviceIds.length} succeeded</p>
-                  </div>
-                  <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
-                    <p className="text-[10px] text-gray-400">Failed</p>
-                    <p className="font-semibold text-gray-800 dark:text-gray-200">{failed}</p>
-                  </div>
-                  <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
-                    <p className="text-[10px] text-gray-400">Duration</p>
-                    <p className="font-semibold text-gray-800 dark:text-gray-200">{formatDuration(elapsed)}</p>
-                  </div>
-                  <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
-                    <p className="text-[10px] text-gray-400">Version</p>
-                    <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRelease?.versionName}</p>
-                  </div>
+                  {[
+                    ['Devices', `${succeeded}/${deviceIds.length} confirmed`],
+                    ['Failed', `${failed}`],
+                    ['Duration', formatDuration(elapsed)],
+                    ['Version', selectedRelease?.versionName ?? '-'],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3 py-2">
+                      <p className="text-[10px] text-gray-400">{label}</p>
+                      <p className="font-semibold text-gray-800 dark:text-gray-200">{value}</p>
+                    </div>
+                  ))}
                 </div>
                 <div className="mt-3 flex justify-end">
-                  <button onClick={onClose} className="px-4 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
-                    Close
-                  </button>
+                  <button onClick={onClose} className="px-4 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Close</button>
                 </div>
               </div>
             )}
