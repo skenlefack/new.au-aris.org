@@ -8,6 +8,7 @@ import type { FaostatService } from '../services/faostat.service';
 import type { ConnectorService } from '../services/connector.service';
 import type { CountryIngestionService } from '../services/country-ingestion.service';
 import type { ExportSchedulerService } from '../services/export-scheduler.service';
+import type { HubAuditService } from '../hub/audit-service';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -15,11 +16,16 @@ declare module 'fastify' {
     redis: Redis;
     kafka: StandaloneKafkaProducer;
     minio: MinioStorage;
+
+    // Legacy services
     wahisService: WahisService;
     empresService: EmpresService;
     faostatService: FaostatService;
     connectorService: ConnectorService;
     countryIngestionService: CountryIngestionService;
     exportScheduler: ExportSchedulerService;
+
+    // Hub v3 services
+    hubAudit: HubAuditService;
   }
 }

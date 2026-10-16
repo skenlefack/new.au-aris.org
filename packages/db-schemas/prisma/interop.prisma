@@ -1,0 +1,734 @@
+// ARIS 4.0 — Unified Interoperability Hub Schema
+// Replaces: interop-hub.prisma + interop-v2.prisma
+// Pattern: OpenHIE Mediator — central gateway + per-system adapters
+// Supports: Inbound (countries → ARIS) + Outbound (ARIS → WAHIS/FAO/etc.)
+
+// ═══════════════════════════════════════════════════════════════════
+//  ENUMS
+// ═══════════════════════════════════════════════════════════════════
+
+/// Direction of data flow through the hub
+enum HubDirection {
+  INBOUND  // External system → ARIS
+  OUTBOUND // ARIS → External system
+
+  @@schema("interop")
+}
+
+/// How the external system connects
+enum HubTransportType {
+  REST_API    // HTTP REST push/pull
+  SFTP        // Batch file transfer
+  KAFKA       // Streaming via Kafka bridge
+  FILE_UPLOAD // Manual file upload (CSV/JSON/XLS)
+  WEBHOOK     // Event-driven HTTP callback
+  DHIS2       // Native DHIS2 data exchange API
+  FHIR        // HL7 FHIR R4 resources
+  WAHIS       // WOAH WAHIS format (XML/JSON)
+  SOAP        // Legacy SOAP web services
+
+  @@schema("interop")
+}
+
+/// Authentication method for external connections
+enum HubAuthType {
+  NONE
+  BASIC
+  OAUTH2
+  API_KEY
+  BEARER_TOKEN
+  CERTIFICATE
+  HMAC
+
+  @@schema("interop")
+}
+
+/// Connection lifecycle
+enum HubConnectionStatus {
+  DRAFT
+  TESTING
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+
+  @@schema("interop")
+}
+
+/// Pipeline processing mode
+enum HubPipelineMode {
+  AUTOMATIC // Data flows end-to-end without human intervention
+  MANUAL    // Data lands in inbox/outbox, manager reviews before routing
+
+  @@schema("interop")
+}
+
+/// Pipeline execution status
+enum HubPipelineStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ERROR
+  ARCHIVED
+
+  @@schema("interop")
+}
+
+/// Transaction lifecycle
+enum HubTransactionStatus {
+  RECEIVED      // Data arrived at hub
+  QUEUED        // In processing queue
+  MAPPING       // Referential mapping in progress
+  TRANSFORMING  // Field transformation in progress
+  VALIDATING    // Quality gates running
+  AWAITING_REVIEW // Manual mode — waiting for INTEROP_MANAGER
+  APPROVED      // Manager approved (manual mode)
+  REJECTED      // Manager rejected (manual mode)
+  LOADING       // Writing to target (campaign/form or external system)
+  COMPLETED     // Successfully processed end-to-end
+  PARTIAL       // Some records failed, some succeeded
+  FAILED        // Processing failed
+  RETRY         // Scheduled for retry
+  CANCELLED     // Manually cancelled
+
+  @@schema("interop")
+}
+
+/// Step type in the pipeline
+enum HubStepType {
+  RECEIVE         // Accept data from source
+  REFERENTIAL_MAP // Map national codes → ARIS (or reverse)
+  FIELD_TRANSFORM // JSONata field-level transformations
+  SCHEMA_VALIDATE // Validate against JSON Schema (form template)
+  QUALITY_GATE    // Run 8 ARIS quality rules
+  ENRICH          // Enrich from master-data (species, diseases, geo)
+  FORMAT_BUILD    // Build target format (WOAH XML, FAO CSV, etc.)
+  ROUTE           // Route to campaign/form (inbound) or external system (outbound)
+  NOTIFY          // Send notification to INTEROP_MANAGER
+  DELIVER         // HTTP/SFTP/Kafka delivery to external system
+
+  @@schema("interop")
+}
+
+/// Target format for outbound exports
+enum HubExportFormat {
+  WOAH_JSON       // WAHIS JSON format
+  WOAH_XML        // WAHIS XML format
+  EMPRES_JSON     // EMPRES signal format
+  FAOSTAT_CSV     // FAOSTAT CSV with domain/element/item/area/year
+  FAOSTAT_JSON    // FAOSTAT JSON
+  FISHSTATJ_CSV   // FishStatJ CSV (FAO species/areas)
+  CITES_CSV       // CITES permit CSV
+  DHIS2_JSON      // DHIS2 data value sets
+  FHIR_JSON       // FHIR R4 Bundle
+  CSV_GENERIC     // Generic CSV export
+  JSON_GENERIC    // Generic JSON export
+  EXCEL           // Excel workbook
+
+  @@schema("interop")
+}
+
+/// Type of referential being mapped
+enum HubReferentialType {
+  DISEASE
+  SPECIES
+  GEO_ADMIN
+  GEO_COUNTRY
+  UNIT
+  LAB
+  COMMODITY
+  MARKET
+  VACCINE
+  BREED
+  AGE_GROUP
+  PRODUCTION_SYSTEM
+  CUSTOM
+
+  @@schema("interop")
+}
+
+/// Schedule frequency
+enum HubScheduleFrequency {
+  REALTIME    // Event-driven (Kafka/webhook)
+  HOURLY
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  BIANNUAL    // 6-monthly (WAHIS)
+  ANNUAL
+  ON_DEMAND   // Manual trigger only
+
+  @@schema("interop")
+}
+
+/// Agreement status (bilateral data exchange)
+enum HubAgreementStatus {
+  DRAFT
+  PROPOSED
+  UNDER_REVIEW
+  ACCEPTED
+  ACTIVE
+  EXPIRED
+  REJECTED
+  REVOKED
+
+  @@schema("interop")
+}
+
+/// Notification type
+enum HubNotificationType {
+  INBOUND_RECEIVED
+  INBOUND_AWAITING_REVIEW
+  INBOUND_APPROVED
+  INBOUND_REJECTED
+  INBOUND_LOADED
+  INBOUND_FAILED
+  OUTBOUND_READY
+  OUTBOUND_AWAITING_REVIEW
+  OUTBOUND_SENT
+  OUTBOUND_FAILED
+  CONNECTION_HEALTH_DOWN
+  CONNECTION_HEALTH_RESTORED
+  SLA_BREACH
+  PIPELINE_ERROR
+
+  @@schema("interop")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CONNECTIONS — Who connects and how
+// ═══════════════════════════════════════════════════════════════════
+
+/// A connection to an external system (country system, WAHIS, DHIS2, etc.)
+model HubConnection {
+  id               String              @id @default(uuid()) @db.Uuid
+  tenant_id        String              @db.Uuid
+  name             String              @db.VarChar(255) // "Kenya KLHIS", "WAHIS WOAH", "DHIS2 Ethiopia"
+  description      String?
+
+  // External system info
+  system_type      HubTransportType    // REST_API, DHIS2, FHIR, WAHIS, etc.
+  system_name      String?             @db.VarChar(255) // "KLHIS", "NADIS", "WAHIS+"
+  system_version   String?             @db.VarChar(50)
+  country_code     String?             @db.VarChar(3) // ISO country code (null for international orgs)
+  country_name     String?             @db.VarChar(100)
+  organization     String?             @db.VarChar(255) // "WOAH", "FAO", "Ministry of Agriculture Kenya"
+
+  // Endpoint config
+  base_url         String?             @db.VarChar(500)
+  auth_type        HubAuthType         @default(NONE)
+  credentials      Json                @default("{}") // Encrypted: { username, password, token, clientId, clientSecret, etc. }
+  headers          Json                @default("{}") // Custom HTTP headers
+  tls_config       Json?               // { ca, cert, key, rejectUnauthorized }
+
+  // Direction & scope
+  direction        HubDirection        // INBOUND or OUTBOUND
+  domains          String[]            // ["animal-health", "livestock-prod", "fisheries"]
+
+  // Status & health
+  status           HubConnectionStatus @default(DRAFT)
+  last_health_at   DateTime?
+  last_health_ok   Boolean             @default(false)
+  health_message   String?
+
+  // Contacts
+  focal_technical  Json?               // { name, email, phone, role }
+  focal_data_owner Json?               // { name, email, phone, role }
+
+  // Stats
+  total_transactions   Int             @default(0)
+  total_records        Int             @default(0)
+  total_errors         Int             @default(0)
+  last_transaction_at  DateTime?
+
+  // Metadata
+  notes            String?
+  config           Json                @default("{}") // Adapter-specific config
+  created_by       String              @db.Uuid
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @updatedAt
+
+  // Relations
+  pipelines           HubPipeline[]
+  referential_mappings HubReferentialMapping[]
+  field_mappings      HubFieldMapping[]
+  transactions        HubTransaction[]
+  schedules           HubSchedule[]
+  agreements          HubAgreement[]
+
+  @@unique([tenant_id, name])
+  @@index([tenant_id])
+  @@index([direction])
+  @@index([country_code])
+  @@index([status])
+  @@index([system_type])
+  @@map("hub_connections")
+  @@schema("interop")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PIPELINES — How data flows through the hub
+// ═══════════════════════════════════════════════════════════════════
+
+/// A pipeline defines the processing chain for a connection+domain pair
+model HubPipeline {
+  id                String            @id @default(uuid()) @db.Uuid
+  connection_id     String            @db.Uuid
+  tenant_id         String            @db.Uuid
+  name              String            @db.VarChar(255) // "Kenya Animal Health → ARIS"
+  description       String?
+
+  // Scope
+  direction         HubDirection
+  domain            String            @db.VarChar(50) // "animal-health"
+  sub_domain        String?           @db.VarChar(50) // "outbreaks", "vaccination"
+  entity_type       String?           @db.VarChar(100) // "health_events", "vaccination_records"
+
+  // Mode
+  mode              HubPipelineMode   @default(MANUAL) // AUTOMATIC or MANUAL
+  status            HubPipelineStatus @default(DRAFT)
+
+  // Target routing (INBOUND: where to load data in ARIS)
+  target_campaign_id   String?        @db.Uuid // Campaign to load data into
+  target_form_id       String?        @db.Uuid // Form template to map data to
+  target_workflow_id   String?        @db.Uuid // Workflow definition for validation
+
+  // Target format (OUTBOUND: how to format exported data)
+  export_format     HubExportFormat?
+
+  // Quality config
+  quality_gates_enabled Boolean       @default(true)
+  min_quality_score     Float?        @default(0.7) // Minimum 70% quality
+  reject_on_quality_fail Boolean      @default(false) // false = warn, true = block
+
+  // Error handling
+  max_retries       Int               @default(3)
+  retry_delay_ms    Int               @default(60000) // 1 minute
+  dlq_enabled       Boolean           @default(true)
+
+  // Stats
+  total_runs         Int              @default(0)
+  successful_runs    Int              @default(0)
+  failed_runs        Int              @default(0)
+  last_run_at        DateTime?
+  last_run_status    String?          @db.VarChar(20)
+
+  created_by        String            @db.Uuid
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @updatedAt
+
+  // Relations
+  connection HubConnection @relation(fields: [connection_id], references: [id], onDelete: Cascade)
+  steps      HubPipelineStep[]
+  transactions HubTransaction[]
+
+  @@unique([connection_id, domain, direction])
+  @@index([tenant_id])
+  @@index([connection_id])
+  @@index([direction, domain])
+  @@index([status])
+  @@map("hub_pipelines")
+  @@schema("interop")
+}
+
+/// Individual step in a pipeline (ordered)
+model HubPipelineStep {
+  id           String       @id @default(uuid()) @db.Uuid
+  pipeline_id  String       @db.Uuid
+  step_order   Int          // Execution order (1, 2, 3...)
+  step_type    HubStepType  // RECEIVE, REFERENTIAL_MAP, FIELD_TRANSFORM, etc.
+  name         String       @db.VarChar(255)
+  description  String?
+  is_enabled   Boolean      @default(true)
+  config       Json         @default("{}") // Step-specific config (JSONata expressions, quality rule IDs, etc.)
+  on_error     String       @default("STOP") @db.VarChar(20) // STOP, SKIP, RETRY, CONTINUE
+  timeout_ms   Int          @default(30000) // Step timeout
+  created_at   DateTime     @default(now())
+  updated_at   DateTime     @updatedAt
+
+  pipeline HubPipeline @relation(fields: [pipeline_id], references: [id], onDelete: Cascade)
+
+  @@unique([pipeline_id, step_order])
+  @@index([pipeline_id])
+  @@map("hub_pipeline_steps")
+  @@schema("interop")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MAPPINGS — How data is translated
+// ═══════════════════════════════════════════════════════════════════
+
+/// Referential mapping: national code ↔ ARIS code for a connection
+model HubReferentialMapping {
+  id               String             @id @default(uuid()) @db.Uuid
+  connection_id    String             @db.Uuid
+  referential_type HubReferentialType // DISEASE, SPECIES, GEO_ADMIN, etc.
+  direction        HubDirection       @default(INBOUND)
+
+  // Source (external system)
+  source_code      String             @db.VarChar(100)
+  source_label     String?            @db.VarChar(255)
+
+  // Target (ARIS)
+  target_code      String             @db.VarChar(100)
+  target_label     String?            @db.VarChar(255)
+  target_id        String?            @db.Uuid // ARIS entity UUID
+
+  is_verified      Boolean            @default(false)
+  is_active        Boolean            @default(true)
+  notes            String?
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+
+  connection HubConnection @relation(fields: [connection_id], references: [id], onDelete: Cascade)
+
+  @@unique([connection_id, referential_type, direction, source_code])
+  @@index([connection_id, referential_type])
+  @@map("hub_referential_mappings")
+  @@schema("interop")
+}
+
+/// Field-level mapping with JSONata transformation
+model HubFieldMapping {
+  id              String       @id @default(uuid()) @db.Uuid
+  connection_id   String       @db.Uuid
+  entity_type     String       @db.VarChar(100) // "health_events", "captures", etc.
+  direction       HubDirection
+
+  source_field    String       @db.VarChar(255) // Source field path (dot notation)
+  target_field    String       @db.VarChar(255) // Target field path
+  transformation  String?      // JSONata expression (null = direct copy)
+  default_value   String?      // Default if source is null
+  is_required     Boolean      @default(false)
+  is_active       Boolean      @default(true)
+  notes           String?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  connection HubConnection @relation(fields: [connection_id], references: [id], onDelete: Cascade)
+
+  @@unique([connection_id, entity_type, direction, source_field, target_field])
+  @@index([connection_id, entity_type])
+  @@map("hub_field_mappings")
+  @@schema("interop")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SCHEDULES — When data flows
+// ═══════════════════════════════════════════════════════════════════
+
+/// Schedule for automatic pipeline execution
+model HubSchedule {
+  id             String               @id @default(uuid()) @db.Uuid
+  connection_id  String               @db.Uuid
+  pipeline_id    String?              @db.Uuid // null = applies to all pipelines of this connection
+  tenant_id      String               @db.Uuid
+
+  frequency      HubScheduleFrequency
+  cron_expression String?             @db.VarChar(100) // Custom cron (overrides frequency)
+  timezone        String              @default("UTC") @db.VarChar(50)
+  window_start    String?             @db.VarChar(10) // e.g. "02:00" — preferred execution window
+  window_end      String?             @db.VarChar(10) // e.g. "04:00"
+
+  // Scope filter
+  period_type     String?             @db.VarChar(20) // "previous_week", "previous_month", "previous_quarter", "custom"
+  period_start    DateTime?           // For custom period
+  period_end      DateTime?
+
+  is_active       Boolean             @default(true)
+  last_run_at     DateTime?
+  next_run_at     DateTime?
+  last_run_ok     Boolean?
+
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @updatedAt
+
+  connection HubConnection @relation(fields: [connection_id], references: [id], onDelete: Cascade)
+
+  @@index([connection_id])
+  @@index([is_active, next_run_at])
+  @@map("hub_schedules")
+  @@schema("interop")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  TRANSACTIONS — Every data exchange tracked
+// ═══════════════════════════════════════════════════════════════════
+
+/// A transaction = one execution of a pipeline (batch of records)
+model HubTransaction {
+  id               String                @id @default(uuid()) @db.Uuid
+  pipeline_id      String                @db.Uuid
+  connection_id    String                @db.Uuid
+  tenant_id        String                @db.Uuid
+  direction        HubDirection
+
+  // Processing
+  status           HubTransactionStatus  @default(RECEIVED)
+  current_step     String?               @db.VarChar(100) // Current pipeline step name
+  mode             HubPipelineMode       // AUTOMATIC or MANUAL (snapshot from pipeline)
+
+  // Domain context
+  domain           String                @db.VarChar(50)
+  entity_type      String?               @db.VarChar(100)
+  country_code     String?               @db.VarChar(3)
+
+  // Target routing (INBOUND)
+  target_campaign_id  String?            @db.Uuid
+  target_form_id      String?            @db.Uuid
+
+  // Export format (OUTBOUND)
+  export_format    HubExportFormat?
+
+  // Record counts
+  records_total    Int                   @default(0)
+  records_accepted Int                   @default(0)
+  records_rejected Int                   @default(0)
+  records_warning  Int                   @default(0)
+
+  // Payloads
+  source_payload   Json?                 // Original data received
+  mapped_payload   Json?                 // After referential + field mapping
+  target_payload   Json?                 // Final formatted output
+  validation_report Json?                // Quality gate results
+  rejection_details Json?                // Per-record rejection reasons
+
+  // File handling
+  source_file_url  String?              @db.VarChar(500) // MinIO URL of uploaded file
+  source_file_name String?              @db.VarChar(255)
+  source_file_size Int?
+  output_file_url  String?              @db.VarChar(500) // MinIO URL of export package
+  output_file_name String?              @db.VarChar(255)
+  output_file_size Int?
+
+  // Delivery (OUTBOUND)
+  delivery_url     String?              @db.VarChar(500) // External endpoint called
+  delivery_method  String?              @db.VarChar(20)  // POST, PUT, SFTP, etc.
+  delivery_status  Int?                 // HTTP status code
+  delivery_response String?             // Response body (truncated)
+
+  // Error handling
+  error_message    String?
+  error_details    Json?                // Stack trace, step details
+  retry_count      Int                  @default(0)
+  max_retries      Int                  @default(3)
+
+  // Review (MANUAL mode)
+  reviewed_by      String?              @db.Uuid
+  reviewed_at      DateTime?
+  review_notes     String?
+
+  // Audit
+  initiated_by     String               @db.Uuid // User or SYSTEM
+  started_at       DateTime?
+  completed_at     DateTime?
+  duration_ms      Int?                 // Total processing time
+  created_at       DateTime             @default(now())
+
+  // Relations
+  pipeline   HubPipeline   @relation(fields: [pipeline_id], references: [id])
+  connection HubConnection @relation(fields: [connection_id], references: [id])
+  records    HubTransactionRecord[]
+  steps_log  HubTransactionStepLog[]
+
+  @@index([pipeline_id, status])
+  @@index([connection_id, created_at])
+  @@index([tenant_id, created_at])
+  @@index([direction, status])
+  @@index([status]) // For inbox/outbox queries
+  @@index([domain])
+  @@map("hub_transactions")
+  @@schema("interop")
+}
+
+/// Per-record detail within a transaction
+model HubTransactionRecord {
+  id              String  @id @default(uuid()) @db.Uuid
+  transaction_id  String  @db.Uuid
+  record_index    Int     // Position in batch (0-based)
+
+  // Status
+  status          String  @db.VarChar(20) // ACCEPTED, REJECTED, WARNING
+  error_message   String?
+  error_fields    Json?   // [{ field, rule, message }]
+
+  // Data snapshots
+  source_data     Json?   // Original record
+  mapped_data     Json?   // After mapping
+  target_data     Json?   // Final record
+
+  // Linkage (INBOUND — where this record was loaded)
+  submission_id   String? @db.Uuid // collecte.submissions.id
+  form_entry_id   String? @db.Uuid // form entry in target form
+
+  // Quality
+  quality_score   Float?
+  quality_report  Json?   // Per-record quality gate results
+
+  created_at      DateTime @default(now())
+
+  transaction HubTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+
+  @@index([transaction_id, status])
+  @@map("hub_transaction_records")
+  @@schema("interop")
+}
+
+/// Step execution log for a transaction (provenance trail)
+model HubTransactionStepLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  transaction_id  String   @db.Uuid
+  step_type       HubStepType
+  step_name       String   @db.VarChar(255)
+  step_order      Int
+
+  status          String   @db.VarChar(20) // STARTED, COMPLETED, FAILED, SKIPPED
+  input_summary   Json?    // Abbreviated input (for audit)
+  output_summary  Json?    // Abbreviated output
+  error_message   String?
+  duration_ms     Int?
+
+  started_at      DateTime
+  completed_at    DateTime?
+
+  transaction HubTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+
+  @@index([transaction_id, step_order])
+  @@map("hub_transaction_step_logs")
+  @@schema("interop")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  AGREEMENTS — Bilateral data exchange agreements
+// ═══════════════════════════════════════════════════════════════════
+
+/// Bilateral data exchange agreement between two parties
+model HubAgreement {
+  id                String             @id @default(uuid()) @db.Uuid
+  connection_id     String             @db.Uuid
+  reference         String             @unique @db.VarChar(50) // "HUB-2026-00042"
+  tenant_id         String             @db.Uuid
+
+  // Parties
+  owner_tenant_id   String             @db.Uuid
+  owner_name        String             @db.VarChar(255)
+  partner_tenant_id String?            @db.Uuid
+  partner_name      String             @db.VarChar(255) // "WOAH", "FAO", "Kenya MoA"
+
+  // Scope
+  title             String             @db.VarChar(255)
+  description       String?
+  purpose           String?
+  legal_basis       String?
+  domains           String[]           // ["animal-health", "fisheries"]
+  direction         HubDirection
+
+  // Data scope
+  data_scope        Json?              // { entities[], fields{}, filters{}, geoFilter{}, timeRange{} }
+  data_classification String?          @db.VarChar(20) // PUBLIC, PARTNER, RESTRICTED, CONFIDENTIAL
+
+  // SLA
+  frequency         HubScheduleFrequency?
+  timeliness_sla_hours Int?            // Max hours from event to delivery
+  quality_min_score    Float?          // Minimum quality score (0-1)
+
+  // Status & workflow
+  status            HubAgreementStatus @default(DRAFT)
+  proposed_at       DateTime?
+  reviewed_at       DateTime?
+  accepted_at       DateTime?
+  rejected_at       DateTime?
+  revoked_at        DateTime?
+  valid_from        DateTime?
+  valid_until       DateTime?
+
+  // Audit
+  created_by        String             @db.Uuid
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
+
+  connection HubConnection @relation(fields: [connection_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([status])
+  @@index([owner_tenant_id])
+  @@index([partner_tenant_id])
+  @@map("hub_agreements")
+  @@schema("interop")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  NOTIFICATIONS — Alerts for INTEROP_MANAGER
+// ═══════════════════════════════════════════════════════════════════
+
+/// Notification log for interop events
+model HubNotification {
+  id               String              @id @default(uuid()) @db.Uuid
+  tenant_id        String              @db.Uuid
+  transaction_id   String?             @db.Uuid
+  connection_id    String?             @db.Uuid
+
+  type             HubNotificationType
+  title            String              @db.VarChar(255)
+  message          String
+  severity         String              @default("INFO") @db.VarChar(10) // INFO, WARNING, ERROR, CRITICAL
+  metadata         Json                @default("{}")
+
+  // Delivery
+  channels         String[]            // ["in_app", "email", "sms", "push"]
+  sent_at          DateTime?
+  read_at          DateTime?
+  read_by          String?             @db.Uuid
+
+  created_at       DateTime            @default(now())
+
+  @@index([tenant_id, created_at])
+  @@index([type])
+  @@index([read_at])
+  @@map("hub_notifications")
+  @@schema("interop")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CONNECTOR HEALTH — External endpoint monitoring
+// ═══════════════════════════════════════════════════════════════════
+
+/// Health check history for connections
+model HubHealthCheck {
+  id              String   @id @default(uuid()) @db.Uuid
+  connection_id   String   @db.Uuid
+  status          String   @db.VarChar(20) // UP, DOWN, DEGRADED, TIMEOUT
+  response_time_ms Int?
+  status_code     Int?
+  error_message   String?
+  checked_at      DateTime @default(now())
+
+  @@index([connection_id, checked_at])
+  @@map("hub_health_checks")
+  @@schema("interop")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  AUDIT LOG — Immutable trail
+// ═══════════════════════════════════════════════════════════════════
+
+/// Immutable audit log for all hub operations
+model HubAuditLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenant_id       String   @db.Uuid
+  entity_type     String   @db.VarChar(50) // "connection", "pipeline", "transaction", "agreement"
+  entity_id       String   @db.Uuid
+  action          String   @db.VarChar(50) // CREATE, UPDATE, DELETE, APPROVE, REJECT, DELIVER, etc.
+  actor_id        String   @db.Uuid
+  actor_role      String   @db.VarChar(50)
+  details         Json     @default("{}")
+  ip_address      String?  @db.VarChar(45)
+  created_at      DateTime @default(now())
+
+  @@index([tenant_id, created_at])
+  @@index([entity_type, entity_id])
+  @@index([actor_id])
+  @@map("hub_audit_logs")
+  @@schema("interop")
+}

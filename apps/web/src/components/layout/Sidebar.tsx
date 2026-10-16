@@ -45,6 +45,7 @@ import {
   Presentation,
   FileUp,
   Briefcase,
+  Network,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -107,6 +108,7 @@ const STATIC_GROUPS: NavGroup[] = [
     items: [
       { tKey: 'quality', href: '/quality', icon: ShieldCheck, matchPrefix: '/quality' },
       { tKey: 'interop', href: '/interop', icon: ArrowLeftRight, matchPrefix: '/interop' },
+      { tKey: 'interopHub', href: '/interop-hub', icon: Network, matchPrefix: '/interop-hub' },
       { tKey: 'analytics', href: '/analytics', icon: BarChart3, matchPrefix: '/analytics' },
       { tKey: 'historicalData', href: '/historical', icon: HardDrive, matchPrefix: '/historical' },
       { tKey: 'reports', href: '/reports', icon: FileBarChart, matchPrefix: '/reports' },
@@ -224,7 +226,7 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   WAHIS_FOCAL_POINT: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/interop', '/data-sharing', '/support',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/interop', '/interop-hub', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   DATA_STEWARD: new Set([
@@ -238,7 +240,7 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
   ]),
   REC_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/workflow', '/master-data', '/quality',
-    '/interop', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/programme-monitoring', '/support',
+    '/interop', '/interop-hub', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/programme-monitoring', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   CONTINENTAL_ADMIN: new Set(), // full access handled below
@@ -264,6 +266,12 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
   ]),
   DECISION_MAKER: new Set([
     '/home', '/my-dashboards', '/analytics', '/historical', '/reports', '/slideshows',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/support',
+  ]),
+  INTEROP_MANAGER: new Set([
+    '/home', '/my-dashboards', '/interop-hub', '/interop', '/data-sharing', '/analytics',
+    '/historical', '/reports', '/collecte', '/workflow', '/quality',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
     '/support',
   ]),

@@ -163,7 +163,7 @@ export const TOPIC_AU_INTEROP_CONNECTION_SUSPENDED = 'au.interop.connection.susp
 export const TOPIC_AU_INTEROP_PULL_SCHEDULED = 'au.interop.pull.scheduled.v1' as const;
 export const TOPIC_AU_INTEROP_PULL_COMPLETED = 'au.interop.pull.completed.v1' as const;
 
-// ── Interop V2 Topics ──
+// ── Interop V2 Topics (legacy — kept for backward compatibility) ──
 export const TOPIC_AU_INTEROP_DHIS2_SYNCED = 'au.interop.dhis2.synced.v1' as const;
 export const TOPIC_AU_INTEROP_FHIR_SYNCED = 'au.interop.fhir.synced.v1' as const;
 export const TOPIC_AU_INTEROP_OMS_SYNCED = 'au.interop.oms.synced.v1' as const;
@@ -172,6 +172,41 @@ export const TOPIC_AU_INTEROP_V2_SYNC_COMPLETED = 'au.interop.v2.sync.completed.
 export const TOPIC_AU_INTEROP_V2_SYNC_FAILED = 'au.interop.v2.sync.failed.v1' as const;
 export const TOPIC_AU_INTEROP_V2_TRANSACTION_CREATED = 'au.interop.v2.transaction.created.v1' as const;
 export const TOPIC_AU_INTEROP_V2_FHIR_RESOURCE_RECEIVED = 'au.interop.v2.fhir.resource.received.v1' as const;
+
+// ── Interop Hub v3 Topics (unified hub) ──
+// Connection lifecycle
+export const TOPIC_AU_HUB_CONNECTION_CREATED = 'au.hub.connection.created.v1' as const;
+export const TOPIC_AU_HUB_CONNECTION_ACTIVATED = 'au.hub.connection.activated.v1' as const;
+export const TOPIC_AU_HUB_CONNECTION_SUSPENDED = 'au.hub.connection.suspended.v1' as const;
+export const TOPIC_AU_HUB_CONNECTION_HEALTH_DOWN = 'au.hub.connection.health-down.v1' as const;
+export const TOPIC_AU_HUB_CONNECTION_HEALTH_RESTORED = 'au.hub.connection.health-restored.v1' as const;
+// Pipeline lifecycle
+export const TOPIC_AU_HUB_PIPELINE_ACTIVATED = 'au.hub.pipeline.activated.v1' as const;
+export const TOPIC_AU_HUB_PIPELINE_PAUSED = 'au.hub.pipeline.paused.v1' as const;
+export const TOPIC_AU_HUB_PIPELINE_ERROR = 'au.hub.pipeline.error.v1' as const;
+// Inbound transaction flow
+export const TOPIC_AU_HUB_INBOUND_RECEIVED = 'au.hub.inbound.received.v1' as const;
+export const TOPIC_AU_HUB_INBOUND_MAPPED = 'au.hub.inbound.mapped.v1' as const;
+export const TOPIC_AU_HUB_INBOUND_VALIDATED = 'au.hub.inbound.validated.v1' as const;
+export const TOPIC_AU_HUB_INBOUND_AWAITING_REVIEW = 'au.hub.inbound.awaiting-review.v1' as const;
+export const TOPIC_AU_HUB_INBOUND_APPROVED = 'au.hub.inbound.approved.v1' as const;
+export const TOPIC_AU_HUB_INBOUND_REJECTED = 'au.hub.inbound.rejected.v1' as const;
+export const TOPIC_AU_HUB_INBOUND_LOADED = 'au.hub.inbound.loaded.v1' as const;
+export const TOPIC_AU_HUB_INBOUND_FAILED = 'au.hub.inbound.failed.v1' as const;
+// Outbound transaction flow
+export const TOPIC_AU_HUB_OUTBOUND_PREPARED = 'au.hub.outbound.prepared.v1' as const;
+export const TOPIC_AU_HUB_OUTBOUND_AWAITING_REVIEW = 'au.hub.outbound.awaiting-review.v1' as const;
+export const TOPIC_AU_HUB_OUTBOUND_APPROVED = 'au.hub.outbound.approved.v1' as const;
+export const TOPIC_AU_HUB_OUTBOUND_REJECTED = 'au.hub.outbound.rejected.v1' as const;
+export const TOPIC_AU_HUB_OUTBOUND_DELIVERED = 'au.hub.outbound.delivered.v1' as const;
+export const TOPIC_AU_HUB_OUTBOUND_FAILED = 'au.hub.outbound.failed.v1' as const;
+// Agreement lifecycle
+export const TOPIC_AU_HUB_AGREEMENT_PROPOSED = 'au.hub.agreement.proposed.v1' as const;
+export const TOPIC_AU_HUB_AGREEMENT_ACCEPTED = 'au.hub.agreement.accepted.v1' as const;
+export const TOPIC_AU_HUB_AGREEMENT_REJECTED = 'au.hub.agreement.rejected.v1' as const;
+export const TOPIC_AU_HUB_AGREEMENT_REVOKED = 'au.hub.agreement.revoked.v1' as const;
+// DLQ
+export const TOPIC_AU_HUB_DLQ = 'au.hub.dlq.v1' as const;
 
 // ── Datalake OLAP Topics ──
 export const TOPIC_SYS_DATALAKE_ENTRY_INGESTED = 'sys.datalake.entry.ingested.v1' as const;
@@ -420,6 +455,34 @@ export const ALL_TOPICS = [
   TOPIC_DLQ_ALL,
   TOPIC_DLQ_HEALTH,
   TOPIC_DLQ_COLLECTE,
+  // Interop Hub v3
+  TOPIC_AU_HUB_CONNECTION_CREATED,
+  TOPIC_AU_HUB_CONNECTION_ACTIVATED,
+  TOPIC_AU_HUB_CONNECTION_SUSPENDED,
+  TOPIC_AU_HUB_CONNECTION_HEALTH_DOWN,
+  TOPIC_AU_HUB_CONNECTION_HEALTH_RESTORED,
+  TOPIC_AU_HUB_PIPELINE_ACTIVATED,
+  TOPIC_AU_HUB_PIPELINE_PAUSED,
+  TOPIC_AU_HUB_PIPELINE_ERROR,
+  TOPIC_AU_HUB_INBOUND_RECEIVED,
+  TOPIC_AU_HUB_INBOUND_MAPPED,
+  TOPIC_AU_HUB_INBOUND_VALIDATED,
+  TOPIC_AU_HUB_INBOUND_AWAITING_REVIEW,
+  TOPIC_AU_HUB_INBOUND_APPROVED,
+  TOPIC_AU_HUB_INBOUND_REJECTED,
+  TOPIC_AU_HUB_INBOUND_LOADED,
+  TOPIC_AU_HUB_INBOUND_FAILED,
+  TOPIC_AU_HUB_OUTBOUND_PREPARED,
+  TOPIC_AU_HUB_OUTBOUND_AWAITING_REVIEW,
+  TOPIC_AU_HUB_OUTBOUND_APPROVED,
+  TOPIC_AU_HUB_OUTBOUND_REJECTED,
+  TOPIC_AU_HUB_OUTBOUND_DELIVERED,
+  TOPIC_AU_HUB_OUTBOUND_FAILED,
+  TOPIC_AU_HUB_AGREEMENT_PROPOSED,
+  TOPIC_AU_HUB_AGREEMENT_ACCEPTED,
+  TOPIC_AU_HUB_AGREEMENT_REJECTED,
+  TOPIC_AU_HUB_AGREEMENT_REVOKED,
+  TOPIC_AU_HUB_DLQ,
 ] as const;
 
 export type TopicName = (typeof ALL_TOPICS)[number];

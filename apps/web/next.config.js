@@ -88,6 +88,7 @@ const nextConfig = {
       { source: '/api/v1/analytics/:path*',       destination: `${svc('ANALYTICS', 3030)}/api/v1/analytics/:path*` },
       { source: '/api/v1/geo/:path*',             destination: `${svc('GEO', 3031)}/api/v1/geo/:path*` },
       { source: '/api/v1/interop-hub/:path*',     destination: `${svc('INTEROP_HUB', 3032)}/api/v1/interop-hub/:path*` },
+      { source: '/api/v1/hub/:path*',             destination: `${svc('INTEROP_HUB', 3032)}/api/v1/hub/:path*` },
       { source: '/api/v1/knowledge/:path*',       destination: `${svc('KNOWLEDGE', 3033)}/api/v1/knowledge/:path*` },
 
       // ── BI Tools ──

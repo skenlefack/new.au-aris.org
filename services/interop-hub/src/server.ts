@@ -13,7 +13,11 @@ if (envResult.error) {
 import { initTracing } from '@aris/observability/tracing';
 initTracing('interop-hub', '0.1.0');
 
-import { buildApp } from './app.js';
+// Use Hub v3 if HUB_V3 is set, otherwise legacy app
+const useHubV3 = process.env['HUB_V3'] !== '0';
+const buildApp = useHubV3
+  ? (await import('./hub/app-hub.js')).buildHubApp
+  : (await import('./app.js')).buildApp;
 
 const SERVICE_NAME = 'interop-hub';
 
