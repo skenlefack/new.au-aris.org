@@ -25,7 +25,6 @@ import {
   GitPullRequestArrow,
   Database,
   ShieldCheck,
-  ArrowLeftRight,
   BarChart3,
   BarChart2,
   FileBarChart,
@@ -107,7 +106,6 @@ const STATIC_GROUPS: NavGroup[] = [
     tKey: 'sectionMonitoring',
     items: [
       { tKey: 'quality', href: '/quality', icon: ShieldCheck, matchPrefix: '/quality' },
-      { tKey: 'interop', href: '/interop', icon: ArrowLeftRight, matchPrefix: '/interop' },
       { tKey: 'interopHub', href: '/interop-hub', icon: Network, matchPrefix: '/interop-hub' },
       { tKey: 'analytics', href: '/analytics', icon: BarChart3, matchPrefix: '/analytics' },
       { tKey: 'historicalData', href: '/historical', icon: HardDrive, matchPrefix: '/historical' },
@@ -226,7 +224,7 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   WAHIS_FOCAL_POINT: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/interop', '/interop-hub', '/data-sharing', '/support',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/interop-hub', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   DATA_STEWARD: new Set([
@@ -240,7 +238,7 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
   ]),
   REC_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/workflow', '/master-data', '/quality',
-    '/interop', '/interop-hub', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/programme-monitoring', '/support',
+    '/interop-hub', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/programme-monitoring', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   CONTINENTAL_ADMIN: new Set(), // full access handled below
