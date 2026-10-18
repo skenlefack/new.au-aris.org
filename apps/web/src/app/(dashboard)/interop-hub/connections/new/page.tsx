@@ -1,18 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Globe, Server, Database, Mail, FileText, Plug, Shield, Wifi } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
+import { cn } from '@/lib/utils';
 import { useCreateHubConnection } from '@/lib/api/hub-hooks';
 
-const SYSTEM_TYPES = ['WAHIS', 'DHIS2', 'FHIR', 'EMPRES', 'FAOSTAT', 'FISHSTATJ', 'CITES', 'CUSTOM_API', 'FILE_EXCHANGE', 'EMAIL', 'OTHER'];
+/* ── Constants ────────────────────────────────────────────────── */
+
+const SYSTEM_TYPES = [
+  { value: 'WAHIS', label: 'WAHIS (WOAH)', icon: Globe, color: 'from-blue-500 to-blue-600' },
+  { value: 'DHIS2', label: 'DHIS2', icon: Database, color: 'from-cyan-500 to-blue-500' },
+  { value: 'FHIR', label: 'FHIR / HL7', icon: Shield, color: 'from-red-500 to-pink-500' },
+  { value: 'EMPRES', label: 'EMPRES-i', icon: Globe, color: 'from-orange-500 to-red-500' },
+  { value: 'FAOSTAT', label: 'FAOSTAT', icon: Database, color: 'from-green-500 to-emerald-500' },
+  { value: 'FISHSTATJ', label: 'FishStatJ', icon: Database, color: 'from-sky-500 to-blue-500' },
+  { value: 'CITES', label: 'CITES', icon: Shield, color: 'from-purple-500 to-violet-500' },
+  { value: 'CUSTOM_API', label: 'Custom API', icon: Plug, color: 'from-indigo-500 to-purple-500' },
+  { value: 'FILE_EXCHANGE', label: 'File Exchange', icon: FileText, color: 'from-amber-500 to-orange-500' },
+  { value: 'EMAIL', label: 'Email', icon: Mail, color: 'from-pink-500 to-rose-500' },
+  { value: 'OTHER', label: 'Other', icon: Server, color: 'from-gray-500 to-gray-600' },
+];
+
 const DIRECTIONS = ['INBOUND', 'OUTBOUND', 'BIDIRECTIONAL'];
 const TRANSPORT_TYPES = ['REST', 'SOAP', 'SFTP', 'KAFKA', 'EMAIL', 'FILE', 'CUSTOM'];
 const AUTH_TYPES = ['NONE', 'BASIC', 'BEARER', 'API_KEY', 'OAUTH2', 'CERTIFICATE'];
 const ARIS_DOMAINS = [
-  'animal-health', 'livestock-prod', 'fisheries', 'wildlife',
-  'apiculture', 'trade-sps', 'governance', 'climate-env',
+  { value: 'animal-health', color: 'from-red-500 to-rose-500' },
+  { value: 'livestock-prod', color: 'from-amber-500 to-orange-500' },
+  { value: 'fisheries', color: 'from-blue-500 to-cyan-500' },
+  { value: 'wildlife', color: 'from-emerald-500 to-green-500' },
+  { value: 'apiculture', color: 'from-yellow-500 to-amber-500' },
+  { value: 'trade-sps', color: 'from-purple-500 to-violet-500' },
+  { value: 'governance', color: 'from-indigo-500 to-blue-500' },
+  { value: 'climate-env', color: 'from-teal-500 to-cyan-500' },
 ];
 
 interface FormData {
@@ -29,19 +51,13 @@ interface FormData {
 }
 
 const INITIAL: FormData = {
-  name: '',
-  description: '',
-  direction: 'INBOUND',
-  externalSystem: 'CUSTOM_API',
-  transportType: 'REST',
-  baseUrl: '',
-  authType: 'NONE',
-  credentials: {},
-  domains: [],
-  config: {},
+  name: '', description: '', direction: 'INBOUND', externalSystem: 'CUSTOM_API',
+  transportType: 'REST', baseUrl: '', authType: 'NONE', credentials: {}, domains: [], config: {},
 };
 
 const STEPS = ['basic', 'endpoint', 'domains', 'review'] as const;
+
+/* ── Page ─────────────────────────────────────────────────────── */
 
 export default function NewConnectionPage() {
   const t = useTranslations('interopHub');
@@ -50,10 +66,11 @@ export default function NewConnectionPage() {
 
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(INITIAL);
+  const [slideDir, setSlideDir] = useState<'left' | 'right'>('right');
 
-  function update(patch: Partial<FormData>) {
+  const update = useCallback((patch: Partial<FormData>) => {
     setForm((prev) => ({ ...prev, ...patch }));
-  }
+  }, []);
 
   function toggleDomain(d: string) {
     setForm((prev) => ({
@@ -62,6 +79,17 @@ export default function NewConnectionPage() {
         ? prev.domains.filter((x) => x !== d)
         : [...prev.domains, d],
     }));
+  }
+
+  function goNext() {
+    setSlideDir('right');
+    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  }
+
+  function goBack() {
+    setSlideDir('left');
+    if (step > 0) setStep((s) => s - 1);
+    else router.push('/interop-hub/connections');
   }
 
   async function handleCreate() {
@@ -78,9 +106,7 @@ export default function NewConnectionPage() {
         config: { domains: form.domains },
       });
       router.push('/interop-hub/connections');
-    } catch {
-      // error handled by mutation
-    }
+    } catch { /* error handled by mutation */ }
   }
 
   const canNext =
@@ -91,249 +117,258 @@ export default function NewConnectionPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
-      {/* Header */}
-      <div>
-        <button
-          type="button"
-          onClick={() => router.push('/interop-hub/connections')}
-          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> {t('actions.back')}
-        </button>
-        <h1 className="text-2xl font-bold tracking-tight">{t('connections.new')}</h1>
-      </div>
+      {/* Back button */}
+      <button
+        type="button"
+        onClick={() => router.push('/interop-hub/connections')}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" /> {t('actions.back')}
+      </button>
 
-      {/* Step indicator */}
-      <div className="flex items-center gap-2">
+      {/* Title */}
+      <h1 className="text-2xl font-bold tracking-tight">{t('connections.new')}</h1>
+
+      {/* Horizontal step indicator */}
+      <div className="flex items-center justify-between">
         {STEPS.map((s, i) => (
-          <div key={s} className="flex items-center gap-2">
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
-                i < step ? 'bg-primary text-primary-foreground' :
-                i === step ? 'border-2 border-primary text-primary' :
-                'border border-muted-foreground/30 text-muted-foreground'
-              }`}
-            >
-              {i < step ? <Check className="h-4 w-4" /> : i + 1}
+          <div key={s} className="flex items-center flex-1 last:flex-none">
+            <div className="flex items-center gap-2">
+              <div
+                className={cn(
+                  'flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold transition-all duration-300',
+                  i < step
+                    ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/25'
+                    : i === step
+                      ? 'border-2 border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-950/50'
+                      : 'border-2 border-border/50 text-muted-foreground bg-card/50'
+                )}
+              >
+                {i < step ? <Check className="h-4 w-4" /> : i + 1}
+              </div>
+              <span className={cn(
+                'hidden text-sm sm:block transition-colors',
+                i === step ? 'font-semibold text-foreground' : 'text-muted-foreground'
+              )}>
+                {t(`wizard.${s}`)}
+              </span>
             </div>
-            <span className={`text-sm ${i === step ? 'font-medium' : 'text-muted-foreground'}`}>
-              {t(`wizard.${s}`)}
-            </span>
-            {i < STEPS.length - 1 && <div className="mx-2 h-px w-8 bg-border" />}
+            {i < STEPS.length - 1 && (
+              <div className="mx-3 h-0.5 flex-1 rounded-full bg-border/50">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-500"
+                  style={{ width: i < step ? '100%' : '0%' }}
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Step content */}
-      <div className="rounded-lg border bg-card p-6">
-        {step === 0 && (
-          <div className="space-y-4">
-            <FieldGroup label={t('field.name')} required>
-              <input
-                className="w-full rounded-md border px-3 py-2 text-sm"
+      {/* Step content in glass card */}
+      <div className="overflow-hidden rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 p-6">
+        <div key={step} className={cn(
+          'animate-in duration-300',
+          slideDir === 'right' ? 'slide-in-from-right-4 fade-in' : 'slide-in-from-left-4 fade-in'
+        )}>
+          {step === 0 && (
+            <div className="space-y-5">
+              <h2 className="text-lg font-semibold">{t('wizard.basic')}</h2>
+
+              {/* System type as icon grid */}
+              <div>
+                <label className="mb-2 block text-sm font-medium">{t('field.systemType')} <span className="text-destructive">*</span></label>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {SYSTEM_TYPES.map((sys) => {
+                    const SysIcon = sys.icon;
+                    const active = form.externalSystem === sys.value;
+                    return (
+                      <button
+                        key={sys.value}
+                        type="button"
+                        onClick={() => update({ externalSystem: sys.value })}
+                        className={cn(
+                          'flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-all duration-200',
+                          active
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 shadow-sm'
+                            : 'border-border/50 hover:border-border hover:bg-accent/50'
+                        )}
+                      >
+                        <div className={cn(
+                          'flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br text-white',
+                          sys.color,
+                          !active && 'opacity-60'
+                        )}>
+                          <SysIcon className="h-4 w-4" />
+                        </div>
+                        <span className={cn('text-xs', active ? 'font-semibold' : 'text-muted-foreground')}>
+                          {sys.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <FloatingInput
+                label={t('field.name')}
+                required
                 value={form.name}
-                onChange={(e) => update({ name: e.target.value })}
+                onChange={(v) => update({ name: v })}
                 placeholder={t('placeholder.connectionName')}
               />
-            </FieldGroup>
-            <FieldGroup label={t('field.description')}>
-              <textarea
-                className="w-full rounded-md border px-3 py-2 text-sm"
-                rows={3}
-                value={form.description}
-                onChange={(e) => update({ description: e.target.value })}
-              />
-            </FieldGroup>
-            <div className="grid grid-cols-2 gap-4">
-              <FieldGroup label={t('field.direction')} required>
-                <select
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={form.direction}
-                  onChange={(e) => update({ direction: e.target.value })}
-                >
-                  {DIRECTIONS.map((d) => (
-                    <option key={d} value={d}>{t(`direction.${d}`)}</option>
-                  ))}
-                </select>
-              </FieldGroup>
-              <FieldGroup label={t('field.systemType')} required>
-                <select
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={form.externalSystem}
-                  onChange={(e) => update({ externalSystem: e.target.value })}
-                >
-                  {SYSTEM_TYPES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </FieldGroup>
-            </div>
-          </div>
-        )}
 
-        {step === 1 && (
-          <div className="space-y-4">
-            <FieldGroup label={t('field.transportType')}>
-              <select
-                className="w-full rounded-md border px-3 py-2 text-sm"
+              <FloatingTextarea
+                label={t('field.description')}
+                value={form.description}
+                onChange={(v) => update({ description: v })}
+              />
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FloatingSelect
+                  label={t('field.direction')}
+                  required
+                  value={form.direction}
+                  onChange={(v) => update({ direction: v })}
+                  options={DIRECTIONS.map((d) => ({ value: d, label: t(`direction.${d}`) }))}
+                />
+              </div>
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="space-y-5">
+              <h2 className="text-lg font-semibold">{t('wizard.endpoint') || 'Endpoint'}</h2>
+
+              <FloatingSelect
+                label={t('field.transportType')}
                 value={form.transportType}
-                onChange={(e) => update({ transportType: e.target.value })}
-              >
-                {TRANSPORT_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </FieldGroup>
-            <FieldGroup label={t('field.baseUrl')}>
-              <input
-                className="w-full rounded-md border px-3 py-2 text-sm"
+                onChange={(v) => update({ transportType: v })}
+                options={TRANSPORT_TYPES.map((tp) => ({ value: tp, label: tp }))}
+              />
+
+              <FloatingInput
+                label={t('field.baseUrl')}
                 value={form.baseUrl}
-                onChange={(e) => update({ baseUrl: e.target.value })}
+                onChange={(v) => update({ baseUrl: v })}
                 placeholder="https://api.example.org/v1"
               />
-            </FieldGroup>
-            <FieldGroup label={t('field.authType')}>
-              <select
-                className="w-full rounded-md border px-3 py-2 text-sm"
+
+              <FloatingSelect
+                label={t('field.authType')}
                 value={form.authType}
-                onChange={(e) => update({ authType: e.target.value, credentials: {} })}
-              >
-                {AUTH_TYPES.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
-            </FieldGroup>
+                onChange={(v) => update({ authType: v, credentials: {} })}
+                options={AUTH_TYPES.map((a) => ({ value: a, label: a }))}
+              />
 
-            {form.authType === 'BASIC' && (
-              <div className="grid grid-cols-2 gap-4">
-                <FieldGroup label={t('field.username')}>
-                  <input
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    value={form.credentials.username ?? ''}
-                    onChange={(e) => update({ credentials: { ...form.credentials, username: e.target.value } })}
-                  />
-                </FieldGroup>
-                <FieldGroup label={t('field.password')}>
-                  <input
-                    type="password"
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    value={form.credentials.password ?? ''}
-                    onChange={(e) => update({ credentials: { ...form.credentials, password: e.target.value } })}
-                  />
-                </FieldGroup>
-              </div>
-            )}
-            {form.authType === 'API_KEY' && (
-              <div className="grid grid-cols-2 gap-4">
-                <FieldGroup label={t('field.headerName')}>
-                  <input
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    value={form.credentials.headerName ?? 'X-API-Key'}
-                    onChange={(e) => update({ credentials: { ...form.credentials, headerName: e.target.value } })}
-                  />
-                </FieldGroup>
-                <FieldGroup label={t('field.apiKey')}>
-                  <input
-                    type="password"
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    value={form.credentials.apiKey ?? ''}
-                    onChange={(e) => update({ credentials: { ...form.credentials, apiKey: e.target.value } })}
-                  />
-                </FieldGroup>
-              </div>
-            )}
-            {form.authType === 'BEARER' && (
-              <FieldGroup label={t('field.token')}>
-                <input
-                  type="password"
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={form.credentials.token ?? ''}
-                  onChange={(e) => update({ credentials: { ...form.credentials, token: e.target.value } })}
-                />
-              </FieldGroup>
-            )}
-            {form.authType === 'OAUTH2' && (
-              <div className="grid grid-cols-2 gap-4">
-                <FieldGroup label={t('field.clientId')}>
-                  <input
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    value={form.credentials.clientId ?? ''}
-                    onChange={(e) => update({ credentials: { ...form.credentials, clientId: e.target.value } })}
-                  />
-                </FieldGroup>
-                <FieldGroup label={t('field.clientSecret')}>
-                  <input
-                    type="password"
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    value={form.credentials.clientSecret ?? ''}
-                    onChange={(e) => update({ credentials: { ...form.credentials, clientSecret: e.target.value } })}
-                  />
-                </FieldGroup>
-                <FieldGroup label={t('field.tokenUrl')}>
-                  <input
-                    className="col-span-2 w-full rounded-md border px-3 py-2 text-sm"
-                    value={form.credentials.tokenUrl ?? ''}
-                    onChange={(e) => update({ credentials: { ...form.credentials, tokenUrl: e.target.value } })}
-                  />
-                </FieldGroup>
-              </div>
-            )}
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">{t('wizard.domainsHint')}</p>
-            <div className="grid grid-cols-2 gap-3">
-              {ARIS_DOMAINS.map((d) => (
-                <label
-                  key={d}
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
-                    form.domains.includes(d) ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.domains.includes(d)}
-                    onChange={() => toggleDomain(d)}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <span className="text-sm font-medium">{d}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-4">
-            <h3 className="font-semibold">{t('wizard.reviewTitle')}</h3>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-              <ReviewField label={t('field.name')} value={form.name} />
-              <ReviewField label={t('field.direction')} value={t(`direction.${form.direction}`)} />
-              <ReviewField label={t('field.systemType')} value={form.externalSystem} />
-              <ReviewField label={t('field.transportType')} value={form.transportType} />
-              <ReviewField label={t('field.baseUrl')} value={form.baseUrl || '-'} />
-              <ReviewField label={t('field.authType')} value={form.authType} />
-              <div className="col-span-2">
-                <ReviewField label={t('field.domains')} value={form.domains.join(', ')} />
-              </div>
-              {form.description && (
-                <div className="col-span-2">
-                  <ReviewField label={t('field.description')} value={form.description} />
+              {form.authType === 'BASIC' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FloatingInput label={t('field.username')} value={form.credentials.username ?? ''} onChange={(v) => update({ credentials: { ...form.credentials, username: v } })} />
+                  <FloatingInput label={t('field.password')} type="password" value={form.credentials.password ?? ''} onChange={(v) => update({ credentials: { ...form.credentials, password: v } })} />
+                </div>
+              )}
+              {form.authType === 'API_KEY' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FloatingInput label={t('field.headerName')} value={form.credentials.headerName ?? 'X-API-Key'} onChange={(v) => update({ credentials: { ...form.credentials, headerName: v } })} />
+                  <FloatingInput label={t('field.apiKey')} type="password" value={form.credentials.apiKey ?? ''} onChange={(v) => update({ credentials: { ...form.credentials, apiKey: v } })} />
+                </div>
+              )}
+              {form.authType === 'BEARER' && (
+                <FloatingInput label={t('field.token')} type="password" value={form.credentials.token ?? ''} onChange={(v) => update({ credentials: { ...form.credentials, token: v } })} />
+              )}
+              {form.authType === 'OAUTH2' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FloatingInput label={t('field.clientId')} value={form.credentials.clientId ?? ''} onChange={(v) => update({ credentials: { ...form.credentials, clientId: v } })} />
+                  <FloatingInput label={t('field.clientSecret')} type="password" value={form.credentials.clientSecret ?? ''} onChange={(v) => update({ credentials: { ...form.credentials, clientSecret: v } })} />
+                  <div className="col-span-2">
+                    <FloatingInput label={t('field.tokenUrl')} value={form.credentials.tokenUrl ?? ''} onChange={(v) => update({ credentials: { ...form.credentials, tokenUrl: v } })} />
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
+
+          {step === 2 && (
+            <div className="space-y-5">
+              <h2 className="text-lg font-semibold">{t('wizard.domains') || 'Domains'}</h2>
+              <p className="text-sm text-muted-foreground">{t('wizard.domainsHint')}</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {ARIS_DOMAINS.map((d) => {
+                  const active = form.domains.includes(d.value);
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => toggleDomain(d.value)}
+                      className={cn(
+                        'flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all duration-200',
+                        active
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 shadow-sm'
+                          : 'border-border/50 hover:border-border hover:bg-accent/50'
+                      )}
+                    >
+                      <div className={cn(
+                        'flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br text-white text-sm font-bold',
+                        d.color,
+                        !active && 'opacity-50'
+                      )}>
+                        {d.value.charAt(0).toUpperCase()}
+                      </div>
+                      <span className={cn('text-xs text-center', active ? 'font-semibold' : 'text-muted-foreground')}>
+                        {d.value}
+                      </span>
+                      {active && (
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white">
+                          <Check className="h-3 w-3" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-5">
+              <h2 className="text-lg font-semibold">{t('wizard.reviewTitle')}</h2>
+              <div className="rounded-lg border border-border/50 bg-muted/30 p-5 space-y-4">
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                  <ReviewField label={t('field.name')} value={form.name} />
+                  <ReviewField label={t('field.direction')} value={t(`direction.${form.direction}`)} />
+                  <ReviewField label={t('field.systemType')} value={form.externalSystem} />
+                  <ReviewField label={t('field.transportType')} value={form.transportType} />
+                  <ReviewField label={t('field.baseUrl')} value={form.baseUrl || '-'} />
+                  <ReviewField label={t('field.authType')} value={form.authType} />
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">{t('field.domains')}</span>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {form.domains.map((d) => (
+                      <span key={d} className="inline-flex rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                {form.description && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">{t('field.description')}</span>
+                    <p className="mt-0.5 text-sm">{form.description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => step > 0 ? setStep(step - 1) : router.push('/interop-hub/connections')}
-          className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm hover:bg-accent"
+          onClick={goBack}
+          className="inline-flex items-center gap-2 rounded-lg border border-border/50 bg-card/50 px-5 py-2.5 text-sm font-medium transition-all hover:bg-accent"
         >
           <ArrowLeft className="h-4 w-4" /> {step > 0 ? t('actions.previous') : t('actions.cancel')}
         </button>
@@ -342,8 +377,8 @@ export default function NewConnectionPage() {
           <button
             type="button"
             disabled={!canNext}
-            onClick={() => setStep(step + 1)}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            onClick={goNext}
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-40 disabled:hover:translate-y-0"
           >
             {t('actions.next')} <ArrowRight className="h-4 w-4" />
           </button>
@@ -352,7 +387,7 @@ export default function NewConnectionPage() {
             type="button"
             disabled={createMut.isPending}
             onClick={handleCreate}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-40"
           >
             {createMut.isPending ? t('actions.creating') : t('actions.create')}
             <Check className="h-4 w-4" />
@@ -363,13 +398,61 @@ export default function NewConnectionPage() {
   );
 }
 
-function FieldGroup({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+/* ── Form sub-components ──────────────────────────────────────── */
+
+function FloatingInput({ label, value, onChange, placeholder, type = 'text', required }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; required?: boolean;
+}) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium">
+      <label className="mb-1.5 block text-sm font-medium">
         {label} {required && <span className="text-destructive">*</span>}
       </label>
-      {children}
+      <input
+        type={type}
+        className="w-full rounded-lg border border-border/50 bg-background px-3 py-2.5 text-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+  );
+}
+
+function FloatingTextarea({ label, value, onChange }: {
+  label: string; value: string; onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium">{label}</label>
+      <textarea
+        className="w-full rounded-lg border border-border/50 bg-background px-3 py-2.5 text-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none resize-none"
+        rows={3}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+function FloatingSelect({ label, value, onChange, options, required }: {
+  label: string; value: string; onChange: (v: string) => void;
+  options: { value: string; label: string }[]; required?: boolean;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium">
+        {label} {required && <span className="text-destructive">*</span>}
+      </label>
+      <select
+        className="w-full rounded-lg border border-border/50 bg-background px-3 py-2.5 text-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
     </div>
   );
 }

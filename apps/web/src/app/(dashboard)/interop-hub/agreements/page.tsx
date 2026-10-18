@@ -2,8 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, MoreHorizontal, Send, Check, X, Ban } from 'lucide-react';
+import {
+  FileText, Send, Check, X, Ban, ArrowRight, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
+  AlertTriangle,
+} from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
+import { cn } from '@/lib/utils';
 import {
   useHubAgreements,
   useProposeHubAgreement,
@@ -14,17 +18,26 @@ import {
   type HubDirection,
 } from '@/lib/api/hub-hooks';
 
-const STATUS_CLS: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  PROPOSED: 'bg-blue-100 text-blue-700',
-  ACCEPTED: 'bg-teal-100 text-teal-700',
-  ACTIVE: 'bg-green-100 text-green-700',
-  SUSPENDED: 'bg-orange-100 text-orange-700',
-  REVOKED: 'bg-red-100 text-red-700',
-  EXPIRED: 'bg-gray-100 text-gray-600',
+/* ── Constants ────────────────────────────────────────────────── */
+
+const STATUS_CFG: Record<string, { dot: string; bg: string; text: string; step: number }> = {
+  DRAFT: { dot: 'bg-gray-400', bg: 'bg-gray-50 dark:bg-gray-800/30', text: 'text-gray-600', step: 0 },
+  PROPOSED: { dot: 'bg-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30', text: 'text-blue-700 dark:text-blue-300', step: 1 },
+  ACCEPTED: { dot: 'bg-teal-500', bg: 'bg-teal-50 dark:bg-teal-950/30', text: 'text-teal-700 dark:text-teal-300', step: 2 },
+  ACTIVE: { dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', text: 'text-emerald-700 dark:text-emerald-300', step: 3 },
+  SUSPENDED: { dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/30', text: 'text-amber-700 dark:text-amber-300', step: -1 },
+  REVOKED: { dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-950/30', text: 'text-red-700 dark:text-red-300', step: -1 },
+  EXPIRED: { dot: 'bg-gray-400', bg: 'bg-gray-50 dark:bg-gray-800/30', text: 'text-gray-500', step: -1 },
 };
 
+const PROGRESS_STEPS = ['DRAFT', 'PROPOSED', 'ACCEPTED', 'ACTIVE'];
 const STATUSES: HubAgreementStatus[] = ['DRAFT', 'PROPOSED', 'ACCEPTED', 'ACTIVE', 'SUSPENDED', 'REVOKED', 'EXPIRED'];
+
+const DIR_ICON: Record<string, React.ElementType> = {
+  INBOUND: ArrowDownLeft, OUTBOUND: ArrowUpRight, BIDIRECTIONAL: ArrowLeftRight,
+};
+
+/* ── Page ─────────────────────────────────────────────────────── */
 
 export default function AgreementsListPage() {
   const t = useTranslations('interopHub');
@@ -34,8 +47,7 @@ export default function AgreementsListPage() {
 
   const { data, isLoading } = useHubAgreements({
     status: (status as HubAgreementStatus) || undefined,
-    page,
-    limit,
+    page, limit,
   });
 
   const agreements = data?.data ?? [];
@@ -47,170 +59,192 @@ export default function AgreementsListPage() {
   const rejectMut = useRejectHubAgreement();
   const revokeMut = useRevokeHubAgreement();
 
-  const [menuOpen, setMenuOpen] = useState<string | null>(null);
-
   return (
     <div className="space-y-6 p-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t('agreements.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('agreements.subtitle')}</p>
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 p-6">
+        <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 via-emerald-500/5 to-transparent" />
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500 text-white shadow-lg shadow-teal-500/25">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{t('agreements.title')}</h1>
+            <p className="text-sm text-muted-foreground">{t('agreements.subtitle')}</p>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('filter.status')}</label>
-          <select
-            value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="">{t('filter.all')}</option>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
+      {/* Filter pills */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground mr-1">{t('filter.status')}:</span>
+        <FilterPill label={t('filter.all')} active={!status} onClick={() => { setStatus(''); setPage(1); }} />
+        {STATUSES.map((s) => (
+          <FilterPill
+            key={s}
+            label={s}
+            active={status === s}
+            onClick={() => { setStatus(s); setPage(1); }}
+            dot={(STATUS_CFG[s] ?? STATUS_CFG.DRAFT).dot}
+          />
+        ))}
       </div>
 
-      <div className="rounded-lg border bg-card">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs text-muted-foreground">
-                <th className="px-4 py-3 font-medium">{t('col.title')}</th>
-                <th className="px-4 py-3 font-medium">{t('col.partner')}</th>
-                <th className="px-4 py-3 font-medium">{t('col.direction')}</th>
-                <th className="px-4 py-3 font-medium">{t('col.domains')}</th>
-                <th className="px-4 py-3 font-medium">{t('col.status')}</th>
-                <th className="px-4 py-3 font-medium">{t('col.validUntil')}</th>
-                <th className="px-4 py-3 font-medium">{t('col.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b">
-                    <td colSpan={7} className="px-4 py-4"><div className="h-5 animate-pulse rounded bg-muted" /></td>
-                  </tr>
-                ))
-              ) : agreements.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center text-muted-foreground">{t('agreements.empty')}</td>
-                </tr>
-              ) : (
-                agreements.map((ag) => (
-                  <tr key={ag.id} className="border-b last:border-0 hover:bg-muted/50">
-                    <td className="px-4 py-3">
-                      <Link href={`/interop-hub/agreements/${ag.id}`} className="font-medium text-primary hover:underline">
+      {/* Agreement cards */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-44 animate-pulse rounded-xl bg-card/50 border border-border/50" />
+          ))}
+        </div>
+      ) : agreements.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 py-20">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <FileText className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <p className="mt-4 text-sm font-medium text-muted-foreground">{t('agreements.empty')}</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {agreements.map((ag) => {
+              const stCfg = STATUS_CFG[ag.status] ?? STATUS_CFG.DRAFT;
+              const DirI = DIR_ICON[ag.direction] ?? ArrowLeftRight;
+              const daysLeft = ag.validTo ? Math.ceil((new Date(ag.validTo).getTime() - Date.now()) / 86400000) : null;
+              const expiring = daysLeft !== null && daysLeft > 0 && daysLeft <= 30;
+
+              return (
+                <div
+                  key={ag.id}
+                  className="rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  {/* Partner + direction */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted/50">
+                      <DirI className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/interop-hub/agreements/${ag.id}`} className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-1">
                         {ag.name}
                       </Link>
-                      {ag.description && (
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground" style={{ maxWidth: 240 }}>
-                          {ag.description}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs">{ag.partnerTenantId?.slice(0, 8) ?? '-'}</td>
-                    <td className="px-4 py-3 text-xs">{t(`direction.${ag.direction}`)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {ag.domains.slice(0, 3).map((d) => (
-                          <span key={d} className="inline-flex rounded bg-muted px-1.5 py-0.5 text-[10px]">{d}</span>
-                        ))}
-                        {ag.domains.length > 3 && (
-                          <span className="text-[10px] text-muted-foreground">+{ag.domains.length - 3}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLS[ag.status] ?? 'bg-gray-100'}`}>
-                        {ag.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {ag.validTo ? new Date(ag.validTo).toLocaleDateString() : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setMenuOpen(menuOpen === ag.id ? null : ag.id)}
-                          className="rounded-md p-1 hover:bg-muted"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
-                        {menuOpen === ag.id && (
-                          <div className="absolute right-0 z-20 mt-1 w-40 rounded-md border bg-popover py-1 shadow-md">
-                            <Link
-                              href={`/interop-hub/agreements/${ag.id}`}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent"
-                              onClick={() => setMenuOpen(null)}
-                            >
-                              {t('actions.edit')}
-                            </Link>
-                            {ag.status === 'DRAFT' && (
-                              <button
-                                type="button"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent"
-                                onClick={() => { proposeMut.mutate(ag.id); setMenuOpen(null); }}
-                              >
-                                <Send className="h-3.5 w-3.5" /> {t('actions.propose')}
-                              </button>
-                            )}
-                            {ag.status === 'PROPOSED' && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent"
-                                  onClick={() => { acceptMut.mutate(ag.id); setMenuOpen(null); }}
-                                >
-                                  <Check className="h-3.5 w-3.5" /> {t('actions.accept')}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-accent"
-                                  onClick={() => { rejectMut.mutate({ id: ag.id }); setMenuOpen(null); }}
-                                >
-                                  <X className="h-3.5 w-3.5" /> {t('actions.reject')}
-                                </button>
-                              </>
-                            )}
-                            {['ACTIVE', 'ACCEPTED'].includes(ag.status) && (
-                              <button
-                                type="button"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-accent"
-                                onClick={() => {
-                                  const reason = prompt(t('agreements.revokeReason'));
-                                  if (reason) revokeMut.mutate({ id: ag.id, reason });
-                                  setMenuOpen(null);
-                                }}
-                              >
-                                <Ban className="h-3.5 w-3.5" /> {t('actions.revoke')}
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Partner: {ag.partnerTenantId?.slice(0, 8) ?? '-'}
+                      </p>
+                    </div>
+                    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium', stCfg.bg, stCfg.text)}>
+                      <span className={cn('h-1.5 w-1.5 rounded-full', stCfg.dot)} />
+                      {ag.status}
+                    </span>
+                  </div>
 
-        {pageCount > 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <p className="text-xs text-muted-foreground">
-              {t('pagination.showing', { from: String((page - 1) * limit + 1), to: String(Math.min(page * limit, total)), total: String(total) })}
-            </p>
-            <div className="flex gap-1">
-              <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded border px-3 py-1 text-xs disabled:opacity-50">{t('pagination.prev')}</button>
-              <button type="button" disabled={page >= pageCount} onClick={() => setPage(page + 1)} className="rounded border px-3 py-1 text-xs disabled:opacity-50">{t('pagination.next')}</button>
-            </div>
+                  {/* Domain chips */}
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {ag.domains.map((d) => (
+                      <span key={d} className="inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Progress bar DRAFT -> PROPOSED -> ACCEPTED -> ACTIVE */}
+                  {stCfg.step >= 0 && (
+                    <div className="mt-4 flex items-center gap-1">
+                      {PROGRESS_STEPS.map((ps, i) => (
+                        <div key={ps} className="flex items-center gap-1 flex-1">
+                          <div className={cn(
+                            'h-1 flex-1 rounded-full transition-all',
+                            i <= stCfg.step ? 'bg-emerald-500' : 'bg-muted'
+                          )} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Footer: valid until + actions */}
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-xs text-muted-foreground">
+                      {ag.validTo ? (
+                        <span className={cn(expiring && 'text-amber-600 font-medium')}>
+                          {expiring && <AlertTriangle className="inline h-3 w-3 mr-1" />}
+                          Until {new Date(ag.validTo).toLocaleDateString()}
+                          {expiring && ` (${daysLeft}d)`}
+                        </span>
+                      ) : '-'}
+                    </div>
+                    <div className="flex gap-1">
+                      {ag.status === 'DRAFT' && (
+                        <ActionBtn icon={Send} label={t('actions.propose')} onClick={() => proposeMut.mutate(ag.id)} className="text-primary" />
+                      )}
+                      {ag.status === 'PROPOSED' && (
+                        <>
+                          <ActionBtn icon={Check} label={t('actions.accept')} onClick={() => acceptMut.mutate(ag.id)} className="text-emerald-600" />
+                          <ActionBtn icon={X} label={t('actions.reject')} onClick={() => rejectMut.mutate({ id: ag.id })} className="text-red-600" />
+                        </>
+                      )}
+                      {['ACTIVE', 'ACCEPTED'].includes(ag.status) && (
+                        <ActionBtn
+                          icon={Ban}
+                          label={t('actions.revoke')}
+                          onClick={() => { const reason = prompt(t('agreements.revokeReason')); if (reason) revokeMut.mutate({ id: ag.id, reason }); }}
+                          className="text-destructive"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
+
+          {/* Pagination */}
+          {pageCount > 1 && (
+            <div className="flex items-center justify-between rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 px-5 py-3">
+              <p className="text-xs text-muted-foreground">
+                {t('pagination.showing', { from: String((page - 1) * limit + 1), to: String(Math.min(page * limit, total)), total: String(total) })}
+              </p>
+              <div className="flex gap-1">
+                <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded-lg border border-border/50 bg-card/50 px-3 py-1.5 text-xs font-medium transition-all hover:bg-accent disabled:opacity-40">{t('pagination.prev')}</button>
+                <button type="button" disabled={page >= pageCount} onClick={() => setPage(page + 1)} className="rounded-lg border border-border/50 bg-card/50 px-3 py-1.5 text-xs font-medium transition-all hover:bg-accent disabled:opacity-40">{t('pagination.next')}</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
+  );
+}
+
+/* ── Sub-components ───────────────────────────────────────────── */
+
+function FilterPill({ label, active, onClick, dot }: {
+  label: string; active: boolean; onClick: () => void; dot?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-200',
+        active ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-card/50 border border-border/50 text-muted-foreground hover:bg-accent hover:text-foreground'
+      )}
+    >
+      {dot && <span className={cn('h-1.5 w-1.5 rounded-full', dot)} />}
+      {label}
+    </button>
+  );
+}
+
+function ActionBtn({ icon: Icon, label, onClick, className }: {
+  icon: React.ElementType; label: string; onClick: () => void; className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      onClick={onClick}
+      className={cn('flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-all hover:bg-accent', className)}
+    >
+      <Icon className="h-3 w-3" /> <span className="hidden sm:inline">{label}</span>
+    </button>
   );
 }

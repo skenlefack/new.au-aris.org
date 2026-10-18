@@ -1,25 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Shield, ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  Shield, ChevronDown, ChevronRight,
+  Plus, Pencil, Trash2, Zap, Play, Pause, Check, X, RefreshCw, Ban,
+} from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
+import { cn } from '@/lib/utils';
 import { useHubAuditLogs, type HubAuditAction } from '@/lib/api/hub-hooks';
 
-const ACTION_CLS: Record<string, string> = {
-  CREATE: 'bg-green-100 text-green-700',
-  UPDATE: 'bg-blue-100 text-blue-700',
-  DELETE: 'bg-red-100 text-red-700',
-  ACTIVATE: 'bg-emerald-100 text-emerald-700',
-  SUSPEND: 'bg-orange-100 text-orange-700',
-  EXECUTE: 'bg-indigo-100 text-indigo-700',
-  APPROVE: 'bg-teal-100 text-teal-700',
-  REJECT: 'bg-red-100 text-red-700',
-  RETRY: 'bg-amber-100 text-amber-700',
-  CANCEL: 'bg-gray-100 text-gray-600',
+/* ── Constants ────────────────────────────────────────────────── */
+
+const ACTION_CFG: Record<string, { icon: React.ElementType; dot: string }> = {
+  CREATE: { icon: Plus, dot: 'bg-emerald-500' },
+  UPDATE: { icon: Pencil, dot: 'bg-blue-500' },
+  DELETE: { icon: Trash2, dot: 'bg-red-500' },
+  ACTIVATE: { icon: Play, dot: 'bg-emerald-500' },
+  SUSPEND: { icon: Pause, dot: 'bg-amber-500' },
+  EXECUTE: { icon: Zap, dot: 'bg-indigo-500' },
+  APPROVE: { icon: Check, dot: 'bg-teal-500' },
+  REJECT: { icon: X, dot: 'bg-red-500' },
+  RETRY: { icon: RefreshCw, dot: 'bg-amber-500' },
+  CANCEL: { icon: Ban, dot: 'bg-gray-400' },
 };
 
 const ENTITY_TYPES = ['CONNECTION', 'PIPELINE', 'TRANSACTION', 'AGREEMENT', 'SCHEDULE', 'MAPPING'];
 const ACTIONS: HubAuditAction[] = ['CREATE', 'UPDATE', 'DELETE', 'ACTIVATE', 'SUSPEND', 'EXECUTE', 'APPROVE', 'REJECT', 'RETRY', 'CANCEL'];
+
+/* ── Page ─────────────────────────────────────────────────────── */
 
 export default function AuditLogPage() {
   const t = useTranslations('interopHub');
@@ -35,8 +43,7 @@ export default function AuditLogPage() {
     action: (action as HubAuditAction) || undefined,
     from: dateFrom || undefined,
     to: dateTo || undefined,
-    page,
-    limit,
+    page, limit,
   });
 
   const logs = data?.data ?? [];
@@ -45,166 +52,225 @@ export default function AuditLogPage() {
 
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  // Group logs by date
+  const grouped = useMemo(() => {
+    const groups: Record<string, typeof logs> = {};
+    for (const log of logs) {
+      const day = new Date(log.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      if (!groups[day]) groups[day] = [];
+      groups[day].push(log);
+    }
+    return groups;
+  }, [logs]);
+
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t('audit.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('audit.subtitle')}</p>
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 p-6">
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-500/10 via-slate-500/5 to-transparent" />
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-gray-600 to-slate-700 text-white shadow-lg shadow-gray-500/25">
+            <Shield className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{t('audit.title')}</h1>
+            <p className="text-sm text-muted-foreground">{t('audit.subtitle')}</p>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-end gap-3">
-        <FilterSelect
-          label={t('filter.entityType')}
-          value={entityType}
-          onChange={(v) => { setEntityType(v); setPage(1); }}
-          options={ENTITY_TYPES.map((e) => ({ value: e, label: e }))}
-          allLabel={t('filter.all')}
-        />
-        <FilterSelect
-          label={t('filter.action')}
-          value={action}
-          onChange={(v) => { setAction(v); setPage(1); }}
-          options={ACTIONS.map((a) => ({ value: a, label: a }))}
-          allLabel={t('filter.all')}
-        />
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('filter.dateFrom')}</label>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('filter.dateTo')}</label>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-          />
+      <div className="rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('filter.entityType')}</label>
+            <div className="flex flex-wrap gap-1">
+              <FilterPill label={t('filter.all')} active={!entityType} onClick={() => { setEntityType(''); setPage(1); }} />
+              {ENTITY_TYPES.map((e) => (
+                <FilterPill key={e} label={e} active={entityType === e} onClick={() => { setEntityType(e); setPage(1); }} />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('filter.action')}</label>
+            <div className="flex flex-wrap gap-1">
+              <FilterPill label={t('filter.all')} active={!action} onClick={() => { setAction(''); setPage(1); }} />
+              {ACTIONS.map((a) => (
+                <FilterPill
+                  key={a}
+                  label={a}
+                  active={action === a}
+                  onClick={() => { setAction(a); setPage(1); }}
+                  dot={(ACTION_CFG[a] ?? { dot: 'bg-gray-400' }).dot}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('filter.dateFrom')}</label>
+            <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+              className="rounded-lg border border-border/50 bg-background px-3 py-2 text-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t('filter.dateTo')}</label>
+            <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+              className="rounded-lg border border-border/50 bg-background px-3 py-2 text-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none" />
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-lg border bg-card">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs text-muted-foreground">
-                <th className="w-8 px-4 py-3" />
-                <th className="px-4 py-3 font-medium">{t('col.date')}</th>
-                <th className="px-4 py-3 font-medium">{t('col.action')}</th>
-                <th className="px-4 py-3 font-medium">{t('col.entityType')}</th>
-                <th className="px-4 py-3 font-medium">{t('col.entityId')}</th>
-                <th className="px-4 py-3 font-medium">{t('col.actor')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i} className="border-b">
-                    <td colSpan={6} className="px-4 py-4"><div className="h-5 animate-pulse rounded bg-muted" /></td>
-                  </tr>
-                ))
-              ) : logs.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-16 text-center">
-                    <Shield className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground">{t('audit.empty')}</p>
-                  </td>
-                </tr>
-              ) : (
-                logs.map((log) => {
-                  const isExpanded = expanded === log.id;
+      {/* Timeline audit log */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-16 animate-pulse rounded-xl bg-card/50 border border-border/50" />
+          ))}
+        </div>
+      ) : logs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 py-20">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <Shield className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <p className="mt-4 text-sm font-medium text-muted-foreground">{t('audit.empty')}</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(grouped).map(([day, dayLogs]) => (
+            <div key={day}>
+              {/* Date grouping header */}
+              <div className="sticky top-0 z-10 mb-3">
+                <div className="inline-flex rounded-full bg-muted/80 backdrop-blur-sm px-3 py-1 text-xs font-medium text-muted-foreground">
+                  {day}
+                </div>
+              </div>
+
+              {/* Timeline entries */}
+              <div className="relative ml-6">
+                <div className="absolute left-3 top-3 bottom-3 w-px bg-border/50" />
+                {dayLogs.map((log) => {
+                  const cfg = ACTION_CFG[log.action] ?? { icon: Shield, dot: 'bg-gray-400' };
+                  const Icon = cfg.icon;
+                  const isExp = expanded === log.id;
+                  const hasDetail = log.details || log.previousState || log.newState;
+
                   return (
-                    <React.Fragment key={log.id}>
-                      <tr className="border-b hover:bg-muted/50">
-                        <td className="px-4 py-3">
-                          {log.details && (
-                            <button type="button" onClick={() => setExpanded(isExpanded ? null : log.id)} className="rounded p-1 hover:bg-muted">
-                              {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                            </button>
+                    <div key={log.id} className="relative flex gap-4 pb-4 last:pb-0">
+                      {/* Timeline node */}
+                      <div className="relative z-10 mt-1.5">
+                        <div className={cn('flex h-6 w-6 items-center justify-center rounded-full ring-4 ring-background', cfg.dot)}>
+                          <Icon className="h-3 w-3 text-white" />
+                        </div>
+                      </div>
+
+                      {/* Content card */}
+                      <div className={cn(
+                        'min-w-0 flex-1 rounded-xl border transition-all duration-200',
+                        isExp ? 'border-blue-500/50 bg-blue-50/30 dark:bg-blue-950/10' : 'border-border/50 bg-card/50 backdrop-blur-sm hover:bg-accent/20'
+                      )}>
+                        <button
+                          type="button"
+                          onClick={hasDetail ? () => setExpanded(isExp ? null : log.id) : undefined}
+                          className={cn('flex w-full items-center gap-3 p-3 text-left', hasDetail && 'cursor-pointer')}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold',
+                                log.action === 'CREATE' ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300' :
+                                log.action === 'DELETE' ? 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-300' :
+                                'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
+                              )}>
+                                {log.action}
+                              </span>
+                              <span className="text-xs font-medium">{log.entityType}</span>
+                              <span className="font-mono text-[10px] text-muted-foreground">{log.entityId.slice(0, 8)}</span>
+                            </div>
+                            <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
+                              <span>Actor: {log.actorId?.slice(0, 8) ?? '-'}</span>
+                              {log.actorRole && <span>({log.actorRole})</span>}
+                              <span>{new Date(log.createdAt).toLocaleTimeString()}</span>
+                              {log.ipAddress && <span>IP: {log.ipAddress}</span>}
+                            </div>
+                          </div>
+                          {hasDetail && (
+                            <span className="shrink-0">
+                              {isExp ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                            </span>
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">
-                          {new Date(log.createdAt).toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ACTION_CLS[log.action] ?? 'bg-gray-100 text-gray-700'}`}>
-                            {log.action}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-xs">{log.entityType}</td>
-                        <td className="px-4 py-3 font-mono text-xs">{log.entityId.slice(0, 8)}</td>
-                        <td className="px-4 py-3 text-xs">{log.actorId?.slice(0, 8) ?? '-'}</td>
-                      </tr>
-                      {isExpanded && log.details && (
-                        <tr className="border-b bg-muted/20">
-                          <td colSpan={6} className="px-8 py-3">
-                            <pre className="max-h-48 overflow-auto rounded bg-muted p-3 text-xs">
-                              {JSON.stringify(log.details, null, 2)}
-                            </pre>
+                        </button>
+
+                        {/* Expanded detail */}
+                        {isExp && hasDetail && (
+                          <div className="border-t border-border/30 p-3 space-y-2 animate-in slide-in-from-top-1 fade-in duration-200">
+                            {log.details && (
+                              <div>
+                                <p className="text-[10px] font-medium text-muted-foreground mb-1">Details</p>
+                                <pre className="max-h-48 overflow-auto rounded-lg bg-muted/50 border border-border/30 p-2 text-xs font-mono">
+                                  {JSON.stringify(log.details, null, 2)}
+                                </pre>
+                              </div>
+                            )}
                             {log.previousState && (
-                              <details className="mt-2">
-                                <summary className="cursor-pointer text-xs text-primary">{t('audit.previousState')}</summary>
-                                <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted p-2 text-xs">
+                              <details>
+                                <summary className="cursor-pointer text-xs font-medium text-primary">{t('audit.previousState')}</summary>
+                                <pre className="mt-1 max-h-32 overflow-auto rounded-lg bg-muted/50 border border-border/30 p-2 text-xs font-mono">
                                   {JSON.stringify(log.previousState, null, 2)}
                                 </pre>
                               </details>
                             )}
                             {log.newState && (
-                              <details className="mt-2">
-                                <summary className="cursor-pointer text-xs text-primary">{t('audit.newState')}</summary>
-                                <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted p-2 text-xs">
+                              <details>
+                                <summary className="cursor-pointer text-xs font-medium text-primary">{t('audit.newState')}</summary>
+                                <pre className="mt-1 max-h-32 overflow-auto rounded-lg bg-muted/50 border border-border/30 p-2 text-xs font-mono">
                                   {JSON.stringify(log.newState, null, 2)}
                                 </pre>
                               </details>
                             )}
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {pageCount > 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <p className="text-xs text-muted-foreground">
-              {t('pagination.showing', { from: String((page - 1) * limit + 1), to: String(Math.min(page * limit, total)), total: String(total) })}
-            </p>
-            <div className="flex gap-1">
-              <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded border px-3 py-1 text-xs disabled:opacity-50">{t('pagination.prev')}</button>
-              <button type="button" disabled={page >= pageCount} onClick={() => setPage(page + 1)} className="rounded border px-3 py-1 text-xs disabled:opacity-50">{t('pagination.next')}</button>
+                })}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          ))}
+
+          {/* Pagination */}
+          {pageCount > 1 && (
+            <div className="flex items-center justify-between rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 px-5 py-3">
+              <p className="text-xs text-muted-foreground">
+                {t('pagination.showing', { from: String((page - 1) * limit + 1), to: String(Math.min(page * limit, total)), total: String(total) })}
+              </p>
+              <div className="flex gap-1">
+                <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded-lg border border-border/50 bg-card/50 px-3 py-1.5 text-xs font-medium transition-all hover:bg-accent disabled:opacity-40">{t('pagination.prev')}</button>
+                <button type="button" disabled={page >= pageCount} onClick={() => setPage(page + 1)} className="rounded-lg border border-border/50 bg-card/50 px-3 py-1.5 text-xs font-medium transition-all hover:bg-accent disabled:opacity-40">{t('pagination.next')}</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function FilterSelect({ label, value, onChange, options, allLabel }: {
-  label: string; value: string; onChange: (v: string) => void;
-  options: { value: string; label: string }[]; allLabel: string;
+/* ── Sub-components ───────────────────────────────────────────── */
+
+function FilterPill({ label, active, onClick, dot }: {
+  label: string; active: boolean; onClick: () => void; dot?: string;
 }) {
   return (
-    <div>
-      <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-      >
-        <option value="">{allLabel}</option>
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all duration-200',
+        active ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-card/50 border border-border/50 text-muted-foreground hover:bg-accent hover:text-foreground'
+      )}
+    >
+      {dot && <span className={cn('h-1.5 w-1.5 rounded-full', dot)} />}
+      {label}
+    </button>
   );
 }
