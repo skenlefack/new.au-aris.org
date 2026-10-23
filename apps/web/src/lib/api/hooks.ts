@@ -296,16 +296,19 @@ interface TenantNode {
 
 export function useLogin() {
   const setAuth = useAuthStore((s) => s.setAuth);
+  // Store the password temporarily so we can derive the encryption key in onSuccess
+  let lastPassword = '';
 
   return useMutation({
     mutationFn: async (data: LoginRequest) => {
+      lastPassword = data.password;
       const res = await apiClient.post<LoginResponse>('/credential/auth/login', data);
       if (res.data.mfaRequired) {
         throw new MfaRequiredError();
       }
       return res;
     },
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       const { user, accessToken, refreshToken, permissions } = res.data as LoginResponse['data'] & { user: NonNullable<LoginResponse['data']['user']> };
       const effectiveRoles = user.roles ?? [user.role];
       setAuth(
@@ -348,6 +351,17 @@ export function useLogin() {
           });
         }
       } catch { /* JWT decode failed — /me/access will hydrate later */ }
+
+      // Initialize offline encryption key from the user's password.
+      // This derives an AES-GCM key via PBKDF2 and keeps it in memory only.
+      // Must happen AFTER setAuth so tokens are already stored.
+      if (lastPassword) {
+        try {
+          const { initEncryption } = await import('@/lib/offline/crypto');
+          await initEncryption(lastPassword);
+        } catch { /* non-blocking — data will be stored unencrypted */ }
+        lastPassword = ''; // Clear from memory
+      }
     },
   });
 }

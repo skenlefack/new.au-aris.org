@@ -350,6 +350,7 @@ export async function clearTenantData(tenantId: string): Promise<void> {
 
 /**
  * Store auth tokens in IndexedDB so the Service Worker can access them.
+ * Tokens are encrypted if the crypto module is initialized.
  * Call this after login and after every token refresh.
  */
 export async function storeAuthTokens(
@@ -357,11 +358,18 @@ export async function storeAuthTokens(
   refreshToken: string,
 ): Promise<void> {
   try {
+    // Lazy import to avoid circular deps at module load time
+    const { encryptValue, isEncryptionReady } = await import('./crypto');
     const db = await getDB();
+
+    // Encrypt tokens if crypto is available
+    const at = isEncryptionReady() ? (await encryptValue(accessToken) as string) : accessToken;
+    const rt = isEncryptionReady() ? (await encryptValue(refreshToken) as string) : refreshToken;
+
     await db.put('auth-tokens', {
       key: 'current',
-      accessToken,
-      refreshToken,
+      accessToken: at,
+      refreshToken: rt,
       updatedAt: Date.now(),
     });
   } catch {
@@ -371,13 +379,23 @@ export async function storeAuthTokens(
 
 /**
  * Read auth tokens from IndexedDB (used by SW and sync-queue).
+ * Decrypts tokens if they were encrypted.
  */
 export async function getAuthTokens(): Promise<{ accessToken: string; refreshToken: string } | null> {
   try {
     const db = await getDB();
     const entry = await db.get('auth-tokens', 'current');
     if (!entry) return null;
-    return { accessToken: entry.accessToken, refreshToken: entry.refreshToken };
+
+    // Try to decrypt if encrypted
+    const { decryptValue } = await import('./crypto');
+    const at = await decryptValue<string>(entry.accessToken);
+    const rt = await decryptValue<string>(entry.refreshToken);
+
+    return {
+      accessToken: at ?? entry.accessToken,
+      refreshToken: rt ?? entry.refreshToken,
+    };
   } catch {
     return null;
   }

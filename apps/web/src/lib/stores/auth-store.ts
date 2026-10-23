@@ -100,6 +100,10 @@ export const useAuthStore = create<AuthState>()(
         import('@/lib/offline/db').then(({ clearAuthTokens }) => {
           clearAuthTokens().catch(() => {});
         }).catch(() => {});
+        // Destroy encryption key from memory
+        import('@/lib/offline/crypto').then(({ destroyEncryption }) => {
+          destroyEncryption();
+        }).catch(() => {});
         set({
           user: null,
           accessToken: null,

@@ -7,12 +7,42 @@
  */
 
 import { getDB, type OfflineSubmission, type SubmissionSyncStatus } from './db';
+import { encryptValue, decryptValue, isEncryptionReady } from './crypto';
 
 /**
  * Generate a client-side UUID for offline submissions.
  */
 function generateId(): string {
   return crypto.randomUUID();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Encryption helpers for submission data                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Encrypt the `data` field of a submission before storing.
+ */
+async function encryptSubmission(sub: OfflineSubmission): Promise<OfflineSubmission> {
+  if (!isEncryptionReady()) return sub;
+  const encryptedData = await encryptValue(sub.data);
+  return { ...sub, data: encryptedData as Record<string, unknown> };
+}
+
+/**
+ * Decrypt the `data` field of a submission after reading.
+ */
+async function decryptSubmission(sub: OfflineSubmission): Promise<OfflineSubmission> {
+  const decrypted = await decryptValue<Record<string, unknown>>(sub.data);
+  if (decrypted === null) return sub; // Can't decrypt — return as-is
+  return { ...sub, data: decrypted };
+}
+
+/**
+ * Decrypt an array of submissions.
+ */
+async function decryptSubmissions(subs: OfflineSubmission[]): Promise<OfflineSubmission[]> {
+  return Promise.all(subs.map(decryptSubmission));
 }
 
 /* ------------------------------------------------------------------ */
@@ -32,8 +62,9 @@ export async function createOfflineSubmission(
     offlineCreatedAt: Date.now(),
     syncStatus: 'DRAFT',
   };
-  await db.put('submissions', submission);
-  return submission;
+  const toStore = await encryptSubmission(submission);
+  await db.put('submissions', toStore);
+  return submission; // Return the unencrypted version to the caller
 }
 
 /**
@@ -44,11 +75,13 @@ export async function updateOfflineSubmission(
   data: Record<string, unknown>,
 ): Promise<OfflineSubmission | null> {
   const db = await getDB();
-  const existing = await db.get('submissions', id);
-  if (!existing) return null;
+  const raw = await db.get('submissions', id);
+  if (!raw) return null;
 
+  const existing = await decryptSubmission(raw);
   const updated: OfflineSubmission = { ...existing, data };
-  await db.put('submissions', updated);
+  const toStore = await encryptSubmission(updated);
+  await db.put('submissions', toStore);
   return updated;
 }
 
@@ -112,7 +145,8 @@ export async function getOfflineSubmissions(
   tenantId: string,
 ): Promise<OfflineSubmission[]> {
   const db = await getDB();
-  return db.getAllFromIndex('submissions', 'by-tenant', tenantId);
+  const raw = await db.getAllFromIndex('submissions', 'by-tenant', tenantId);
+  return decryptSubmissions(raw);
 }
 
 /**
@@ -122,7 +156,8 @@ export async function getSubmissionsByCampaign(
   campaignId: string,
 ): Promise<OfflineSubmission[]> {
   const db = await getDB();
-  return db.getAllFromIndex('submissions', 'by-campaign', campaignId);
+  const raw = await db.getAllFromIndex('submissions', 'by-campaign', campaignId);
+  return decryptSubmissions(raw);
 }
 
 /**
@@ -132,7 +167,8 @@ export async function getSubmissionsByStatus(
   status: SubmissionSyncStatus,
 ): Promise<OfflineSubmission[]> {
   const db = await getDB();
-  return db.getAllFromIndex('submissions', 'by-status', status);
+  const raw = await db.getAllFromIndex('submissions', 'by-status', status);
+  return decryptSubmissions(raw);
 }
 
 /**
@@ -149,7 +185,9 @@ export async function getOfflineSubmission(
   id: string,
 ): Promise<OfflineSubmission | undefined> {
   const db = await getDB();
-  return db.get('submissions', id);
+  const raw = await db.get('submissions', id);
+  if (!raw) return undefined;
+  return decryptSubmission(raw);
 }
 
 /**

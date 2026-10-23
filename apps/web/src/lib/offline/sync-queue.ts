@@ -14,6 +14,7 @@ import {
   markSubmissionSynced,
   markSubmissionFailed,
 } from './submission-store';
+import { encryptValue, decryptValue, isEncryptionReady } from './crypto';
 
 /* ------------------------------------------------------------------ */
 /*  Background Sync registration                                       */
@@ -80,8 +81,14 @@ export async function enqueueSync(
   item: Omit<SyncQueueItem, 'id' | 'createdAt' | 'retryCount' | 'status'>,
 ): Promise<number> {
   const db = await getDB();
+  // Encrypt the payload before storing
+  const encryptedPayload = isEncryptionReady()
+    ? await encryptValue(item.payload)
+    : item.payload;
+
   const entry: SyncQueueItem = {
     ...item,
+    payload: encryptedPayload,
     createdAt: Date.now(),
     retryCount: 0,
     status: 'PENDING',
@@ -117,11 +124,18 @@ export async function getSyncQueueStatus(): Promise<{
 }
 
 /**
- * Get all items in the sync queue.
+ * Get all items in the sync queue (with decrypted payloads for display).
  */
 export async function getSyncQueue(): Promise<SyncQueueItem[]> {
   const db = await getDB();
-  return db.getAllFromIndex('sync-queue', 'by-created');
+  const items = await db.getAllFromIndex('sync-queue', 'by-created');
+  // Decrypt payloads for UI display
+  return Promise.all(
+    items.map(async (item) => ({
+      ...item,
+      payload: (await decryptValue(item.payload)) ?? item.payload,
+    })),
+  );
 }
 
 /**
@@ -282,13 +296,16 @@ export async function processQueue(): Promise<SyncResult> {
       await db.put('sync-queue', { ...item, status: 'IN_FLIGHT' as SyncStatus });
 
       try {
+        // Decrypt payload if it was encrypted
+        const payload = await decryptValue(item.payload) ?? item.payload;
+
         const res = await fetch(item.endpoint, {
           method: item.method,
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
-          body: JSON.stringify(item.payload),
+          body: JSON.stringify(payload),
         });
 
         if (res.ok) {
@@ -296,9 +313,9 @@ export async function processQueue(): Promise<SyncResult> {
           await removeSyncItem(item.id!);
 
           // If this was a submission, mark it as synced
-          const payload = item.payload as any;
-          if (payload?.submissionId) {
-            await markSubmissionSynced(payload.submissionId);
+          const p = payload as any;
+          if (p?.submissionId) {
+            await markSubmissionSynced(p.submissionId);
           }
         } else if (res.status === 401) {
           // Token expired — try to refresh

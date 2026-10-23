@@ -5,6 +5,11 @@ export type {
   SyncOperationType, SyncStatus, SubmissionSyncStatus,
 } from './db';
 
+export {
+  initEncryption, destroyEncryption, isEncryptionReady, hasCryptoSupport,
+  encryptValue, decryptValue, isEncrypted,
+} from './crypto';
+
 export { TTL, isCacheFresh, markCacheRefreshed, getLastRefresh, invalidateCache } from './cache-policy';
 
 export {
