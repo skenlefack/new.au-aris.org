@@ -15,6 +15,7 @@ import {
   markSubmissionFailed,
 } from './submission-store';
 import { encryptValue, decryptValue, isEncryptionReady } from './crypto';
+import { isTokenExpired, checkRefreshTokenStatus, emitReauthRequired } from './token-manager';
 
 /* ------------------------------------------------------------------ */
 /*  Background Sync registration                                       */
@@ -259,6 +260,8 @@ export interface SyncResult {
   succeeded: number;
   failed: number;
   conflicts: number;
+  /** True when sync was skipped because the refresh token is expired */
+  needsReauth?: boolean;
 }
 
 /**
@@ -272,11 +275,28 @@ export async function processQueue(): Promise<SyncResult> {
   }
 
   processing = true;
-  const result: SyncResult = { processed: 0, succeeded: 0, failed: 0, conflicts: 0 };
+  const result: SyncResult = { processed: 0, succeeded: 0, failed: 0, conflicts: 0, needsReauth: false };
 
   try {
+    // 0. Check if refresh token is expired (long offline session)
+    const refreshStatus = await checkRefreshTokenStatus();
+    if (refreshStatus?.expired) {
+      // Don't mark items as FAILED — keep them PENDING for after re-auth
+      const { pending } = await getSyncQueueStatus();
+      if (pending > 0) {
+        emitReauthRequired(pending, refreshStatus.daysExpired);
+        console.warn(`[ARIS Sync] Refresh token expired (${refreshStatus.daysExpired}d) — ${pending} items waiting for re-auth`);
+      }
+      result.needsReauth = true;
+      return result;
+    }
+
     // 1. Ensure we have a valid token
     let token = await getAccessToken();
+    if (token && isTokenExpired(token)) {
+      // Access token expired but refresh token still valid — refresh
+      token = await refreshAccessToken();
+    }
     if (!token) {
       token = await refreshAccessToken();
       if (!token) {

@@ -48,3 +48,11 @@ export {
   SYNC_TAG, PERIODIC_SYNC_TAG,
   type SyncResult,
 } from './sync-queue';
+
+export {
+  isTokenExpired, getTokenExpiry, getTokenTTL,
+  checkRefreshTokenStatus,
+  emitReauthRequired, emitReauthCompleted, onReauthEvent,
+  recordOfflineStart, clearOfflineStart, getOfflineDays,
+  type ReauthEvent,
+} from './token-manager';

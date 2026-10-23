@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getSyncQueueStatus, processQueue, isSyncing, type SyncResult } from '@/lib/offline/sync-queue';
+import { onReauthEvent, type ReauthEvent } from '@/lib/offline/token-manager';
 import { useOffline } from './use-offline';
 
 export interface SyncStatusState {
@@ -13,6 +14,10 @@ export interface SyncStatusState {
   lastSyncResult: SyncResult | null;
   /** Whether the last sync was performed by the Service Worker in the background */
   lastSyncWasBackground: boolean;
+  /** True when refresh token is expired and user needs to re-login to sync */
+  needsReauth: boolean;
+  /** Number of days the refresh token has been expired */
+  reauthDaysExpired: number;
   triggerSync: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -32,6 +37,8 @@ export function useSyncStatus(): SyncStatusState {
   const [syncing, setSyncing] = useState(false);
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
   const [lastSyncWasBackground, setLastSyncWasBackground] = useState(false);
+  const [needsReauth, setNeedsReauth] = useState(false);
+  const [reauthDaysExpired, setReauthDaysExpired] = useState(0);
 
   const refresh = useCallback(async () => {
     try {
@@ -48,6 +55,11 @@ export function useSyncStatus(): SyncStatusState {
     try {
       const result = await processQueue();
       setLastResult(result);
+      if (result.needsReauth) {
+        setNeedsReauth(true);
+      } else {
+        setNeedsReauth(false);
+      }
       await refresh();
     } finally {
       setSyncing(false);
@@ -89,6 +101,22 @@ export function useSyncStatus(): SyncStatusState {
     return () => clearInterval(interval);
   }, [isOnline, refresh]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Listen for re-auth events (expired refresh token after long offline)
+  useEffect(() => {
+    return onReauthEvent((event: ReauthEvent) => {
+      if (event.type === 'REAUTH_REQUIRED') {
+        setNeedsReauth(true);
+        setReauthDaysExpired(event.daysExpired ?? 0);
+        refresh();
+      } else if (event.type === 'REAUTH_COMPLETED') {
+        setNeedsReauth(false);
+        setReauthDaysExpired(0);
+        // Re-trigger sync after successful re-auth
+        triggerSync();
+      }
+    });
+  }, [refresh, triggerSync]);
+
   // Listen for Background Sync results from Service Worker
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -115,6 +143,8 @@ export function useSyncStatus(): SyncStatusState {
     isSyncing: syncing,
     lastSyncResult: lastResult,
     lastSyncWasBackground,
+    needsReauth,
+    reauthDaysExpired,
     triggerSync,
     refresh,
   };

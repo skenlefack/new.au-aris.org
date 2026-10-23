@@ -14,6 +14,7 @@ import { StorageQuotaWarning } from '@/components/offline/StorageQuotaWarning';
 import { SyncConflictDialog } from '@/components/offline/SyncConflictDialog';
 import { SwUpdateBanner } from '@/components/offline/SwUpdateBanner';
 import { SyncProgressWidget } from '@/components/offline/SyncProgressWidget';
+import { ReauthPrompt } from '@/components/offline/ReauthPrompt';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { KeyboardShortcutsHelp } from '@/components/ui/KeyboardShortcutsHelp';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
@@ -152,6 +153,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <SyncConflictDialog />
               <SwUpdateBanner />
               <SyncProgressWidget />
+              <ReauthPrompt />
               <CommandPalette />
               <KeyboardShortcutsHelp />
             </KeyboardShortcutsProvider>
