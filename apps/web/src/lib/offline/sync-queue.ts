@@ -8,12 +8,58 @@
  * Modeled on the mobile app's SyncRepository pattern.
  */
 
-import { getDB, type SyncQueueItem, type SyncStatus } from './db';
+import { getDB, getAuthTokens, storeAuthTokens, type SyncQueueItem, type SyncStatus } from './db';
 import {
   getPendingSubmissions,
   markSubmissionSynced,
   markSubmissionFailed,
 } from './submission-store';
+
+/* ------------------------------------------------------------------ */
+/*  Background Sync registration                                       */
+/* ------------------------------------------------------------------ */
+
+export const SYNC_TAG = 'aris-sync-queue';
+export const PERIODIC_SYNC_TAG = 'aris-periodic-sync';
+
+/**
+ * Request the browser to trigger a background sync.
+ * If the Background Sync API is not supported, this is a no-op.
+ */
+export async function requestBackgroundSync(): Promise<void> {
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    if (reg && 'sync' in reg) {
+      await (reg as any).sync.register(SYNC_TAG);
+    }
+  } catch {
+    // Background Sync API not supported — fall back to in-page sync
+  }
+}
+
+/**
+ * Register periodic background sync (Chrome PWA only).
+ * minInterval is advisory — browser decides actual frequency.
+ */
+export async function requestPeriodicSync(minIntervalMs = 15 * 60 * 1000): Promise<boolean> {
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    if (reg && 'periodicSync' in reg) {
+      const status = await navigator.permissions.query({
+        name: 'periodic-background-sync' as any,
+      });
+      if (status.state === 'granted') {
+        await (reg as any).periodicSync.register(PERIODIC_SYNC_TAG, {
+          minInterval: minIntervalMs,
+        });
+        return true;
+      }
+    }
+  } catch {
+    // Not supported
+  }
+  return false;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Retry config                                                       */
@@ -41,6 +87,10 @@ export async function enqueueSync(
     status: 'PENDING',
   };
   const id = await db.add('sync-queue', entry);
+
+  // Request background sync so the SW can process even if the app is closed
+  requestBackgroundSync().catch(() => {});
+
   return id as number;
 }
 
@@ -100,30 +150,54 @@ export async function discardSyncItem(id: number): Promise<void> {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Auth helper                                                        */
+/*  Auth helper (IndexedDB primary, localStorage fallback)             */
 /* ------------------------------------------------------------------ */
 
-function getAccessToken(): string | null {
+/**
+ * Get the current access token — tries IndexedDB first (works in SW),
+ * then falls back to localStorage (works in main thread).
+ */
+async function getAccessToken(): Promise<string | null> {
+  // 1. Try IndexedDB (works in both main thread and Service Worker)
   try {
-    const raw = localStorage.getItem('aris-auth');
-    if (raw) return JSON.parse(raw)?.state?.accessToken ?? null;
+    const tokens = await getAuthTokens();
+    if (tokens?.accessToken) return tokens.accessToken;
+  } catch { /* ignore */ }
+
+  // 2. Fallback to localStorage (main thread only, not available in SW)
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem('aris-auth');
+      if (raw) return JSON.parse(raw)?.state?.accessToken ?? null;
+    }
   } catch { /* ignore */ }
   return null;
 }
 
-function getRefreshToken(): string | null {
+/**
+ * Get the current refresh token — tries IndexedDB first, then localStorage.
+ */
+async function getRefreshToken(): Promise<string | null> {
   try {
-    const raw = localStorage.getItem('aris-auth');
-    if (raw) return JSON.parse(raw)?.state?.refreshToken ?? null;
+    const tokens = await getAuthTokens();
+    if (tokens?.refreshToken) return tokens.refreshToken;
+  } catch { /* ignore */ }
+
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem('aris-auth');
+      if (raw) return JSON.parse(raw)?.state?.refreshToken ?? null;
+    }
   } catch { /* ignore */ }
   return null;
 }
 
 /**
  * Attempt to refresh the access token before syncing.
+ * Updates both IndexedDB and localStorage.
  */
 async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = getRefreshToken();
+  const refreshToken = await getRefreshToken();
   if (!refreshToken) return null;
 
   try {
@@ -134,22 +208,27 @@ async function refreshAccessToken(): Promise<string | null> {
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const newToken = data?.accessToken ?? data?.data?.accessToken;
-    if (newToken) {
-      // Update the stored token
+    const newAccessToken = data?.accessToken ?? data?.data?.accessToken;
+    const newRefreshToken = data?.refreshToken ?? data?.data?.refreshToken ?? refreshToken;
+
+    if (newAccessToken) {
+      // Update IndexedDB (primary store — accessible by SW)
+      await storeAuthTokens(newAccessToken, newRefreshToken).catch(() => {});
+
+      // Update localStorage (for zustand auth store consistency)
       try {
-        const raw = localStorage.getItem('aris-auth');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          parsed.state.accessToken = newToken;
-          if (data?.refreshToken || data?.data?.refreshToken) {
-            parsed.state.refreshToken = data.refreshToken ?? data.data.refreshToken;
+        if (typeof localStorage !== 'undefined') {
+          const raw = localStorage.getItem('aris-auth');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            parsed.state.accessToken = newAccessToken;
+            parsed.state.refreshToken = newRefreshToken;
+            localStorage.setItem('aris-auth', JSON.stringify(parsed));
           }
-          localStorage.setItem('aris-auth', JSON.stringify(parsed));
         }
       } catch { /* ignore */ }
     }
-    return newToken;
+    return newAccessToken;
   } catch {
     return null;
   }
@@ -183,7 +262,7 @@ export async function processQueue(): Promise<SyncResult> {
 
   try {
     // 1. Ensure we have a valid token
-    let token = getAccessToken();
+    let token = await getAccessToken();
     if (!token) {
       token = await refreshAccessToken();
       if (!token) {
@@ -284,7 +363,7 @@ export async function processQueue(): Promise<SyncResult> {
     }
 
     // 3. Also sync pending offline submissions not yet in queue
-    await syncPendingSubmissions(token);
+    if (token) await syncPendingSubmissions(token);
 
   } finally {
     processing = false;
@@ -330,6 +409,27 @@ async function syncPendingSubmissions(token: string): Promise<void> {
     } catch {
       // Network error — leave as PENDING for next sync attempt
     }
+  }
+}
+
+/**
+ * Notify all open clients (tabs) about sync results via the SW.
+ * Used by the Service Worker after Background Sync completes.
+ */
+export async function broadcastSyncResult(result: SyncResult): Promise<void> {
+  try {
+    if (typeof self !== 'undefined' && 'clients' in self) {
+      // We're in the Service Worker context
+      const clients = await (self as any).clients.matchAll({ type: 'window' });
+      for (const client of clients) {
+        client.postMessage({
+          type: 'BACKGROUND_SYNC_RESULT',
+          payload: result,
+        });
+      }
+    }
+  } catch {
+    // Silently fail
   }
 }
 

@@ -23,11 +23,15 @@ try {
 }
 
 // ── Version ──
-const SW_VERSION = 'aris-sw-v4';
+const SW_VERSION = 'aris-sw-v5';
 const STATIC_CACHE = 'aris-static-v2';
 const PAGES_CACHE = 'aris-pages-v2';
 const RSC_CACHE = 'aris-rsc-v1';
 const API_CACHE = 'aris-api-v2';
+
+// ── Background Sync tags ──
+const SYNC_TAG = 'aris-sync-queue';
+const PERIODIC_SYNC_TAG = 'aris-periodic-sync';
 
 // ── Skip waiting + claim ──
 self.addEventListener('message', (event) => {
@@ -280,3 +284,301 @@ if (typeof workbox !== 'undefined') {
     }
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  BACKGROUND SYNC — process offline queue even when app is closed
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Open the aris-offline IndexedDB directly from the Service Worker.
+ * Returns the raw IDBDatabase (not the `idb` wrapper — it's not available here).
+ */
+function openOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('aris-offline-v1', 2);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+    // If the DB hasn't been upgraded yet, create the auth-tokens store
+    req.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('auth-tokens')) {
+        db.createObjectStore('auth-tokens', { keyPath: 'key' });
+      }
+    };
+  });
+}
+
+/**
+ * Read auth tokens from IndexedDB.
+ */
+async function getTokensFromIDB() {
+  try {
+    const db = await openOfflineDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction('auth-tokens', 'readonly');
+      const store = tx.objectStore('auth-tokens');
+      const req = store.get('current');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Update auth tokens in IndexedDB after a refresh.
+ */
+async function updateTokensInIDB(accessToken, refreshToken) {
+  try {
+    const db = await openOfflineDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction('auth-tokens', 'readwrite');
+      const store = tx.objectStore('auth-tokens');
+      store.put({ key: 'current', accessToken, refreshToken, updatedAt: Date.now() });
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Read all PENDING items from the sync-queue in IndexedDB.
+ */
+async function getPendingFromIDB() {
+  try {
+    const db = await openOfflineDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction('sync-queue', 'readonly');
+      const store = tx.objectStore('sync-queue');
+      const idx = store.index('by-status');
+      const req = idx.getAll('PENDING');
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Update a sync-queue item's status in IndexedDB.
+ */
+async function updateSyncItemInIDB(item) {
+  try {
+    const db = await openOfflineDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction('sync-queue', 'readwrite');
+      const store = tx.objectStore('sync-queue');
+      store.put(item);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Remove a sync-queue item from IndexedDB.
+ */
+async function removeSyncItemFromIDB(id) {
+  try {
+    const db = await openOfflineDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction('sync-queue', 'readwrite');
+      const store = tx.objectStore('sync-queue');
+      store.delete(id);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Mark an offline submission as SYNCED in IndexedDB.
+ */
+async function markSubmissionSyncedInIDB(submissionId) {
+  try {
+    const db = await openOfflineDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction('submissions', 'readwrite');
+      const store = tx.objectStore('submissions');
+      const req = store.get(submissionId);
+      req.onsuccess = () => {
+        const sub = req.result;
+        if (sub) {
+          sub.syncStatus = 'SYNCED';
+          sub.syncedAt = Date.now();
+          store.put(sub);
+        }
+        tx.oncomplete = () => resolve(true);
+      };
+      req.onerror = () => resolve(false);
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Refresh the access token using the refresh token.
+ */
+async function refreshTokenForSync(refreshToken) {
+  try {
+    const res = await fetch('/api/v1/credential/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const newAccess = data?.accessToken || data?.data?.accessToken;
+    const newRefresh = data?.refreshToken || data?.data?.refreshToken || refreshToken;
+    if (newAccess) {
+      await updateTokensInIDB(newAccess, newRefresh);
+      return newAccess;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Process the sync queue from the Service Worker context.
+ * Called by the 'sync' event and 'periodicsync' event.
+ */
+async function processSyncFromSW() {
+  const BATCH_SIZE = 10;
+  const MAX_RETRIES = 5;
+  const result = { processed: 0, succeeded: 0, failed: 0, conflicts: 0 };
+
+  // 1. Get auth tokens
+  const tokens = await getTokensFromIDB();
+  if (!tokens || !tokens.accessToken) {
+    console.warn('[ARIS SW Sync] No tokens in IDB — sync deferred');
+    return result;
+  }
+
+  let accessToken = tokens.accessToken;
+
+  // 2. Get pending items
+  const pending = await getPendingFromIDB();
+  if (pending.length === 0) return result;
+
+  console.log(`[ARIS SW Sync] Processing ${Math.min(pending.length, BATCH_SIZE)} items`);
+
+  for (const item of pending.slice(0, BATCH_SIZE)) {
+    result.processed++;
+
+    // Mark as in-flight
+    await updateSyncItemInIDB({ ...item, status: 'IN_FLIGHT' });
+
+    try {
+      const res = await fetch(item.endpoint, {
+        method: item.method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(item.payload),
+      });
+
+      if (res.ok) {
+        result.succeeded++;
+        await removeSyncItemFromIDB(item.id);
+
+        // Mark submission as synced if applicable
+        const payload = item.payload;
+        if (payload && payload.submissionId) {
+          await markSubmissionSyncedInIDB(payload.submissionId);
+        }
+      } else if (res.status === 401) {
+        // Token expired — try to refresh
+        const newToken = await refreshTokenForSync(tokens.refreshToken);
+        if (newToken) {
+          accessToken = newToken;
+          // Put back as pending for retry in same cycle
+          await updateSyncItemInIDB({ ...item, status: 'PENDING' });
+        } else {
+          await updateSyncItemInIDB({
+            ...item,
+            status: 'FAILED',
+            lastError: 'Authentication expired — please log in again',
+          });
+          result.failed++;
+        }
+      } else if (res.status === 409) {
+        let serverData;
+        try { serverData = await res.json(); } catch { /* ignore */ }
+        await updateSyncItemInIDB({
+          ...item,
+          status: 'CONFLICT',
+          serverResponse: serverData,
+        });
+        result.conflicts++;
+      } else {
+        // Other error — increment retry
+        const newRetryCount = item.retryCount + 1;
+        if (newRetryCount >= MAX_RETRIES) {
+          let errMsg;
+          try { errMsg = (await res.json())?.message || `HTTP ${res.status}`; } catch { errMsg = `HTTP ${res.status}`; }
+          await updateSyncItemInIDB({
+            ...item,
+            status: 'FAILED',
+            retryCount: newRetryCount,
+            lastError: errMsg,
+          });
+          result.failed++;
+        } else {
+          await updateSyncItemInIDB({
+            ...item,
+            status: 'PENDING',
+            retryCount: newRetryCount,
+          });
+        }
+      }
+    } catch (err) {
+      // Network error — put back as pending
+      await updateSyncItemInIDB({
+        ...item,
+        status: 'PENDING',
+        retryCount: item.retryCount + 1,
+        lastError: err.message || 'Network error',
+      });
+    }
+  }
+
+  // 3. Notify all open tabs about the sync result
+  try {
+    const allClients = await self.clients.matchAll({ type: 'window' });
+    for (const client of allClients) {
+      client.postMessage({
+        type: 'BACKGROUND_SYNC_RESULT',
+        payload: result,
+      });
+    }
+  } catch { /* no clients open — that's fine */ }
+
+  console.log(`[ARIS SW Sync] Done: ${result.succeeded} ok, ${result.failed} failed, ${result.conflicts} conflicts`);
+  return result;
+}
+
+// ── Background Sync event ──
+self.addEventListener('sync', (event) => {
+  if (event.tag === SYNC_TAG) {
+    event.waitUntil(processSyncFromSW());
+  }
+});
+
+// ── Periodic Background Sync event (Chrome PWA only) ──
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === PERIODIC_SYNC_TAG) {
+    event.waitUntil(processSyncFromSW());
+  }
+});

@@ -11,6 +11,8 @@ export interface SyncStatusState {
   total: number;
   isSyncing: boolean;
   lastSyncResult: SyncResult | null;
+  /** Whether the last sync was performed by the Service Worker in the background */
+  lastSyncWasBackground: boolean;
   triggerSync: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -22,12 +24,14 @@ export interface SyncStatusState {
  * - Connection comes back online
  * - App gains focus (visibilitychange)
  * - Every 5 minutes while online
+ * - Service Worker completes a Background Sync (listens for SW messages)
  */
 export function useSyncStatus(): SyncStatusState {
   const { isOnline } = useOffline();
   const [status, setStatus] = useState({ pending: 0, failed: 0, conflict: 0, total: 0 });
   const [syncing, setSyncing] = useState(false);
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
+  const [lastSyncWasBackground, setLastSyncWasBackground] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -40,6 +44,7 @@ export function useSyncStatus(): SyncStatusState {
   const triggerSync = useCallback(async () => {
     if (syncing || !isOnline) return;
     setSyncing(true);
+    setLastSyncWasBackground(false);
     try {
       const result = await processQueue();
       setLastResult(result);
@@ -84,6 +89,24 @@ export function useSyncStatus(): SyncStatusState {
     return () => clearInterval(interval);
   }, [isOnline, refresh]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Listen for Background Sync results from Service Worker
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'BACKGROUND_SYNC_RESULT') {
+        const result = event.data.payload as SyncResult;
+        setLastResult(result);
+        setLastSyncWasBackground(true);
+        // Refresh the queue status since the SW just processed items
+        refresh();
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleSWMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+  }, [refresh]);
+
   return {
     pending: status.pending,
     failed: status.failed,
@@ -91,6 +114,7 @@ export function useSyncStatus(): SyncStatusState {
     total: status.total,
     isSyncing: syncing,
     lastSyncResult: lastResult,
+    lastSyncWasBackground,
     triggerSync,
     refresh,
   };

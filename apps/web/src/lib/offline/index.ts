@@ -1,7 +1,7 @@
-export { getDB, clearTenantData, clearAllData } from './db';
+export { getDB, clearTenantData, clearAllData, storeAuthTokens, getAuthTokens, clearAuthTokens } from './db';
 export type {
   RefDataItem, GeoEntity, FormTemplateCache, SyncQueueItem,
-  OfflineSubmission, CampaignCache, DashboardCacheItem,
+  OfflineSubmission, CampaignCache, DashboardCacheItem, AuthTokens,
   SyncOperationType, SyncStatus, SubmissionSyncStatus,
 } from './db';
 
@@ -35,5 +35,7 @@ export {
 export {
   enqueueSync, getSyncQueueStatus, getSyncQueue, removeSyncItem,
   retrySyncItem, discardSyncItem, processQueue, isSyncing,
+  requestBackgroundSync, requestPeriodicSync,
+  SYNC_TAG, PERIODIC_SYNC_TAG,
   type SyncResult,
 } from './sync-queue';

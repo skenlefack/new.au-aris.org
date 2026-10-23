@@ -122,6 +122,18 @@ export default function RootLayout({
                           }
                         });
                       });
+                      // Register Periodic Background Sync (Chrome PWA only)
+                      // This allows the SW to sync offline mutations every ~15 min
+                      // even when the app is not open.
+                      if ('periodicSync' in reg) {
+                        navigator.permissions.query({ name: 'periodic-background-sync' }).then(function(status) {
+                          if (status.state === 'granted') {
+                            reg.periodicSync.register('aris-periodic-sync', {
+                              minInterval: 15 * 60 * 1000
+                            }).catch(function() {});
+                          }
+                        }).catch(function() {});
+                      }
                     }).catch(function() {});
                   });
                 }

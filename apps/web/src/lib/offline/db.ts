@@ -127,6 +127,17 @@ export interface DashboardCacheItem {
   ttlMs: number;
 }
 
+/**
+ * Auth tokens stored in IndexedDB so the Service Worker
+ * can read them for Background Sync (SW has no access to localStorage).
+ */
+export interface AuthTokens {
+  key: 'current'; // singleton — always 'current'
+  accessToken: string;
+  refreshToken: string;
+  updatedAt: number;
+}
+
 /* ------------------------------------------------------------------ */
 /*  IDB Schema                                                         */
 /* ------------------------------------------------------------------ */
@@ -193,6 +204,10 @@ interface ArisOfflineDB extends DBSchema {
       'by-tenant': string;
     };
   };
+  'auth-tokens': {
+    key: string;
+    value: AuthTokens;
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -200,7 +215,7 @@ interface ArisOfflineDB extends DBSchema {
 /* ------------------------------------------------------------------ */
 
 const DB_NAME = 'aris-offline-v1';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<ArisOfflineDB>> | null = null;
 
@@ -281,6 +296,11 @@ export function getDB(): Promise<IDBPDatabase<ArisOfflineDB>> {
           });
           dashStore.createIndex('by-tenant', 'tenantId');
         }
+
+        // ── auth-tokens (v2) — needed for Background Sync in Service Worker ──
+        if (!db.objectStoreNames.contains('auth-tokens')) {
+          db.createObjectStore('auth-tokens', { keyPath: 'key' });
+        }
       },
     });
   }
@@ -295,20 +315,83 @@ export function getDB(): Promise<IDBPDatabase<ArisOfflineDB>> {
 export async function clearTenantData(tenantId: string): Promise<void> {
   const db = await getDB();
 
-  const stores: (keyof ArisOfflineDB)[] = [
-    'submissions', 'sync-queue', 'campaigns', 'dashboard-cache',
-  ];
-
-  for (const storeName of stores) {
+  // Stores with a 'by-tenant' index
+  const tenantStores = ['submissions', 'campaigns', 'dashboard-cache'] as const;
+  for (const storeName of tenantStores) {
     const tx = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
-    const idx = store.index('by-tenant' as string);
+    const idx = store.index('by-tenant');
     let cursor = await idx.openCursor(tenantId);
     while (cursor) {
       await cursor.delete();
       cursor = await cursor.continue();
     }
     await tx.done;
+  }
+
+  // sync-queue doesn't have a by-tenant index — filter manually
+  {
+    const tx = db.transaction('sync-queue', 'readwrite');
+    const store = tx.objectStore('sync-queue');
+    let cursor = await store.openCursor();
+    while (cursor) {
+      if (cursor.value.tenantId === tenantId) {
+        await cursor.delete();
+      }
+      cursor = await cursor.continue();
+    }
+    await tx.done;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Auth tokens (for Service Worker Background Sync)                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Store auth tokens in IndexedDB so the Service Worker can access them.
+ * Call this after login and after every token refresh.
+ */
+export async function storeAuthTokens(
+  accessToken: string,
+  refreshToken: string,
+): Promise<void> {
+  try {
+    const db = await getDB();
+    await db.put('auth-tokens', {
+      key: 'current',
+      accessToken,
+      refreshToken,
+      updatedAt: Date.now(),
+    });
+  } catch {
+    // Best-effort — don't break the app if IDB fails
+  }
+}
+
+/**
+ * Read auth tokens from IndexedDB (used by SW and sync-queue).
+ */
+export async function getAuthTokens(): Promise<{ accessToken: string; refreshToken: string } | null> {
+  try {
+    const db = await getDB();
+    const entry = await db.get('auth-tokens', 'current');
+    if (!entry) return null;
+    return { accessToken: entry.accessToken, refreshToken: entry.refreshToken };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Clear auth tokens from IndexedDB (call on logout).
+ */
+export async function clearAuthTokens(): Promise<void> {
+  try {
+    const db = await getDB();
+    await db.delete('auth-tokens', 'current');
+  } catch {
+    // Best-effort
   }
 }
 

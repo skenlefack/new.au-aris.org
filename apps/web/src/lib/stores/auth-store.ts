@@ -60,10 +60,28 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
-      setAuth: (user, accessToken, refreshToken) =>
-        set({ user, accessToken, refreshToken, isAuthenticated: true }),
-      updateToken: (accessToken) => set({ accessToken }),
-      updateTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+      setAuth: (user, accessToken, refreshToken) => {
+        set({ user, accessToken, refreshToken, isAuthenticated: true });
+        // Mirror tokens to IndexedDB so Service Worker Background Sync can read them
+        import('@/lib/offline/db').then(({ storeAuthTokens }) => {
+          storeAuthTokens(accessToken, refreshToken).catch(() => {});
+        }).catch(() => {});
+      },
+      updateToken: (accessToken) => {
+        set({ accessToken });
+        const rt = useAuthStore.getState().refreshToken;
+        if (rt) {
+          import('@/lib/offline/db').then(({ storeAuthTokens }) => {
+            storeAuthTokens(accessToken, rt).catch(() => {});
+          }).catch(() => {});
+        }
+      },
+      updateTokens: (accessToken, refreshToken) => {
+        set({ accessToken, refreshToken });
+        import('@/lib/offline/db').then(({ storeAuthTokens }) => {
+          storeAuthTokens(accessToken, refreshToken).catch(() => {});
+        }).catch(() => {});
+      },
       clearMustChangePassword: () =>
         set((state) =>
           state.user
@@ -78,6 +96,10 @@ export const useAuthStore = create<AuthState>()(
             clearTenantData(currentUser.tenantId).catch(() => {});
           }).catch(() => {});
         }
+        // Clear auth tokens from IndexedDB (Service Worker won't sync after logout)
+        import('@/lib/offline/db').then(({ clearAuthTokens }) => {
+          clearAuthTokens().catch(() => {});
+        }).catch(() => {});
         set({
           user: null,
           accessToken: null,
