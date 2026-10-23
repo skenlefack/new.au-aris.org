@@ -28,7 +28,11 @@ export { cacheDashboardData, getCachedDashboardData, dashboardCacheKey, clearDas
 
 export { withOfflineCache, withRefDataCache, withDashboardCache } from './query-offline';
 
-export { runOfflinePrefetch, isPrefetching, onPrefetchProgress, type PrefetchProgress } from './offline-prefetcher';
+export {
+  runOfflinePrefetch, isPrefetching, cancelPrefetch,
+  onPrefetchProgress, PrefetchPriority,
+  type PrefetchProgress,
+} from './offline-prefetcher';
 
 export {
   createOfflineSubmission, updateOfflineSubmission, deleteOfflineSubmission,

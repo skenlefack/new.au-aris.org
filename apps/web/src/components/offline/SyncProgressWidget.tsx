@@ -3,9 +3,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { CloudDownload, Check, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { onPrefetchProgress, type PrefetchProgress } from '@/lib/offline/offline-prefetcher';
+import { onPrefetchProgress, PrefetchPriority, type PrefetchProgress } from '@/lib/offline/offline-prefetcher';
 
 type WidgetState = 'hidden' | 'syncing' | 'done';
+
+const PRIORITY_LABELS: Record<PrefetchPriority, string> = {
+  [PrefetchPriority.CRITICAL]: 'Essential',
+  [PrefetchPriority.HIGH]: 'Important',
+  [PrefetchPriority.LOW]: 'Background',
+};
 
 /**
  * Discrete sync progress widget — appears bottom-right during offline data sync.
@@ -19,6 +25,7 @@ export function SyncProgressWidget() {
   const [state, setState] = useState<WidgetState>('hidden');
   const [progress, setProgress] = useState<PrefetchProgress>({
     total: 0, completed: 0, currentTask: '', done: false,
+    currentPriority: PrefetchPriority.CRITICAL, connectionSpeed: 'fast',
   });
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -57,7 +64,7 @@ export function SyncProgressWidget() {
         isDone
           ? 'border-emerald-200 bg-emerald-50/95 dark:border-emerald-800 dark:bg-emerald-950/95'
           : 'border-gray-200 bg-white/95 dark:border-gray-700 dark:bg-gray-900/95',
-        state === 'hidden' ? 'translate-y-4 opacity-0' : 'translate-y-0 opacity-100',
+        'translate-y-0 opacity-100',
       )}
       style={{ minWidth: '220px' }}
     >
@@ -85,6 +92,11 @@ export function SyncProgressWidget() {
             {!isDone && (
               <p className="mt-0.5 truncate text-[10px] text-gray-500 dark:text-gray-400">
                 {progress.currentTask}
+                {progress.currentPriority !== undefined && (
+                  <span className="ml-1 opacity-60">
+                    ({PRIORITY_LABELS[progress.currentPriority]})
+                  </span>
+                )}
               </p>
             )}
           </div>
