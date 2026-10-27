@@ -6,7 +6,7 @@ import {
   Power, Clock, Plus, Upload, Shield, ChevronDown, X, Package,
   AlertTriangle, Check, WifiOff, BatteryWarning, MonitorSmartphone,
   CheckCircle2, Loader2, Timer, ArrowUpCircle, Gauge, Activity, XCircle,
-  Bell, MapPin, BarChart3,
+  Bell, MapPin, BarChart3, QrCode, Copy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
@@ -1337,6 +1337,57 @@ function DevicesTab() {
   );
 }
 
+/* ─── QR Code Modal ──────────────────────────────────────────────────────── */
+
+function QrCodeModal({ url, versionName, onClose }: { url: string; versionName: string; onClose: () => void }) {
+  const t = useTranslations('mdm');
+  const [copied, setCopied] = useState(false);
+  const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(url)}&size=250&margin=2`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard may not be available */ }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('qrCode')} — {versionName}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
+        </div>
+        <div className="flex justify-center">
+          <img src={qrUrl} alt="QR Code" className="rounded-lg" width={250} height={250} />
+        </div>
+        <p className="text-center text-xs text-gray-500 dark:text-gray-400">{t('scanToDownload')}</p>
+        <div className="flex gap-2">
+          <input readOnly value={url} className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs text-gray-600 dark:text-gray-400 truncate" />
+          <button
+            onClick={handleCopy}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-white transition-colors',
+              copied ? 'bg-emerald-600' : 'bg-blue-600 hover:bg-blue-700',
+            )}
+          >
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
+        <div className="flex justify-end">
+          <button onClick={onClose} className="px-4 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            {t('closeModal')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Releases Tab ───────────────────────────────────────────────────────── */
 
 function ReleasesTab() {
@@ -1347,6 +1398,7 @@ function ReleasesTab() {
 
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [qrRelease, setQrRelease] = useState<MdmRelease | null>(null);
   const [form, setForm] = useState({
     versionName: '', versionCode: 0, fileUrl: '',
     releaseNotes: '', isRequired: false, fileSize: 0, sha256: '',
@@ -1500,13 +1552,24 @@ function ReleasesTab() {
                 </td>
                 <td className="px-3 py-2.5 text-gray-500">{new Date(r.createdAt).toLocaleDateString()}</td>
                 <td className="px-3 py-2.5 text-right">
-                  <button
-                    onClick={() => setDeleteId(r.id)}
-                    className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600"
-                    title="Delete release"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="inline-flex items-center gap-1">
+                    {r.fileUrl && (
+                      <button
+                        onClick={() => setQrRelease(r)}
+                        className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-400 hover:text-blue-600"
+                        title="QR Code"
+                      >
+                        <QrCode className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setDeleteId(r.id)}
+                      className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600"
+                      title="Delete release"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -1525,6 +1588,15 @@ function ReleasesTab() {
         }}
         onCancel={() => setDeleteId(null)}
       />
+
+      {/* QR Code Modal */}
+      {qrRelease && qrRelease.fileUrl && (
+        <QrCodeModal
+          url={qrRelease.fileUrl}
+          versionName={qrRelease.versionName}
+          onClose={() => setQrRelease(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1556,10 +1628,10 @@ export default function MdmSettingsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight flex items-center gap-2.5">
             <MonitorSmartphone className="h-6 w-6 text-blue-600" />
-            {t('mdmTitle')}
+            {t('title')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t('mdmDescription')}
+            {t('description')}
           </p>
         </div>
 
