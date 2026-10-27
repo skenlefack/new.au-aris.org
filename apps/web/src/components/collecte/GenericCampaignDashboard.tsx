@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import { BarChart3, Database, Calendar, Globe2, Hash } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 /* ── Color palettes ── */
 const CHART_COLORS = [
@@ -13,6 +15,118 @@ const CHART_COLORS = [
   '#0D9488', '#6D28D9', '#B91C1C', '#CA8A04',
 ];
 const HEADER_BG = '#1F4E79';
+
+/* ── UUID detection ── */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(v: unknown): boolean {
+  return typeof v === 'string' && UUID_RE.test(v);
+}
+
+/* ── Known ref-data types keyed by common field name patterns ── */
+const FIELD_TO_REFTYPE: [RegExp, string][] = [
+  [/^disease$/i, 'diseases'],
+  [/disease/i, 'diseases'],
+  [/^species$/i, 'species'],
+  [/species/i, 'species'],
+  [/basis.?diag|diagnosis.?bas/i, 'diagnosis-bases'],
+  [/outbreak.?status/i, 'outbreak-statuses'],
+  [/source.?infect/i, 'source-of-infections'],
+  [/control.?measure/i, 'control-measures'],
+  [/vaccine.?type/i, 'vaccine-types'],
+  [/sample.?type/i, 'sample-types'],
+  [/test.?type/i, 'test-types'],
+  [/breed/i, 'breeds'],
+  [/age.?group/i, 'age-groups'],
+  [/gear.?type/i, 'gear-types'],
+  [/commodity|commodities/i, 'commodities'],
+  [/lab($|s|_)/i, 'labs'],
+  [/production.?system/i, 'production-systems'],
+  [/epidemiological.?unit/i, 'epidemiological-unit-types'],
+  [/animal.?sex/i, 'animal-sexes'],
+  [/clinical.?sign/i, 'clinical-signs'],
+  [/notification.?reason/i, 'notification-reasons'],
+  [/transport.?mode/i, 'transport-modes'],
+  [/causal.?agent/i, 'causal-agent-types'],
+  [/body.?part/i, 'body-parts'],
+  [/species.?group/i, 'species-groups'],
+];
+
+function guessRefType(fieldKey: string): string | null {
+  for (const [re, refType] of FIELD_TO_REFTYPE) {
+    if (re.test(fieldKey)) return refType;
+  }
+  return null;
+}
+
+/* ── Ref-data fetcher ── */
+async function fetchRefDataMap(types: string[], locale: string): Promise<Record<string, string>> {
+  const token = useAuthStore.getState().accessToken || '';
+  const map: Record<string, string> = {};
+  await Promise.all(
+    types.map(async (type) => {
+      try {
+        const res = await fetch(`/api/v1/master-data/ref/${type}/for-select?limit=10000`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        for (const item of json?.data || []) {
+          if (!item.id) continue;
+          const name = item.name;
+          let label = '';
+          if (typeof name === 'string') label = name;
+          else if (name && typeof name === 'object') label = name[locale] || name.en || name.fr || name.pt || Object.values(name).find((v: any) => v) || '';
+          if (!label) label = item.code || item.label || '';
+          if (label) {
+            map[item.id] = label;
+            if (item.code) map[item.code] = label;
+          }
+        }
+      } catch { /* ignore */ }
+    }),
+  );
+  return map;
+}
+
+/* ── Hook to load ref-data for UUID fields ── */
+function useRefDataResolver(rawSubs: any[]) {
+  const [refMap, setRefMap] = useState<Record<string, string>>({});
+  const fetched = useRef(false);
+  const { locale } = useLocaleStore();
+
+  useEffect(() => {
+    if (fetched.current || rawSubs.length === 0) return;
+    fetched.current = true;
+
+    // Detect which fields contain UUIDs and guess their ref-data type
+    const typesNeeded = new Set<string>();
+    const fieldRefType: Record<string, string> = {};
+
+    for (const sub of rawSubs.slice(0, 10)) {
+      const d = sub.data || sub;
+      for (const [key, val] of Object.entries(d)) {
+        if (isUuid(val)) {
+          const refType = guessRefType(key);
+          if (refType) {
+            typesNeeded.add(refType);
+            fieldRefType[key] = refType;
+          }
+        }
+      }
+    }
+
+    // Also always load common types that appear in animal health
+    for (const t of ['diseases', 'diagnosis-bases', 'outbreak-statuses', 'source-of-infections', 'species', 'control-measures', 'vaccine-types']) {
+      typesNeeded.add(t);
+    }
+
+    if (typesNeeded.size > 0) {
+      fetchRefDataMap([...typesNeeded], locale).then(setRefMap);
+    }
+  }, [rawSubs, locale]);
+
+  return refMap;
+}
 
 /* ── Field type classification ── */
 type FieldType = 'numeric' | 'categorical' | 'country' | 'date' | 'text';
@@ -65,7 +179,14 @@ function humanizeKey(key: string): string {
     .trim();
 }
 
-/* ── Pie chart (conic-gradient, same as DigitalToolsDashboard) ── */
+/** Resolve a value using refMap — returns human name or original value */
+function resolve(val: unknown, refMap: Record<string, string>): string {
+  if (val == null || val === '') return '';
+  const s = String(val).trim();
+  return refMap[s] || s;
+}
+
+/* ── Pie chart (conic-gradient) ── */
 function PieChart({ entries, colors, size = 150 }: {
   entries: { label: string; value: number }[];
   colors: string[];
@@ -144,6 +265,9 @@ export default function GenericCampaignDashboard({
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
 
+  // Load ref-data for UUID resolution
+  const refMap = useRefDataResolver(rawSubs);
+
   const analysis = useMemo(() => {
     if (rawSubs.length === 0) return null;
 
@@ -194,7 +318,6 @@ export default function GenericCampaignDashboard({
         }
       }
     }
-    // Fallback: check createdAt on submissions
     if (!latestDate) {
       for (const sub of rawSubs) {
         const ca = sub.createdAt || sub.created_at;
@@ -211,14 +334,16 @@ export default function GenericCampaignDashboard({
     /* ── Charts ── */
     const charts: { key: string; label: string; type: 'pie' | 'bar'; entries: { label: string; value: number }[] }[] = [];
 
-    // Categorical fields -> pie charts
+    // Categorical fields -> pie charts (resolve UUIDs via refMap)
     const categoricals = classified.filter((f) => f.type === 'categorical');
     for (const cf of categoricals) {
       if (charts.length >= 6) break;
       const counts = new Map<string, number>();
       for (const v of cf.samples) {
-        const s = v != null ? String(v).trim() : '';
-        if (s) counts.set(s, (counts.get(s) || 0) + 1);
+        const raw = v != null ? String(v).trim() : '';
+        if (!raw) continue;
+        const resolved = resolve(raw, refMap);
+        counts.set(resolved, (counts.get(resolved) || 0) + 1);
       }
       const entries = Array.from(counts.entries())
         .map(([label, value]) => ({ label, value }))
@@ -229,7 +354,7 @@ export default function GenericCampaignDashboard({
       }
     }
 
-    // Numeric fields -> bar charts (top values by first categorical or country, or just top submissions)
+    // Numeric fields -> bar charts
     const numerics = classified.filter((f) => f.type === 'numeric');
     const groupByField = countryFields[0] || categoricals[0];
     for (const nf of numerics) {
@@ -241,7 +366,7 @@ export default function GenericCampaignDashboard({
           const groupVal = d[groupByField.key];
           const numVal = Number(d[nf.key]);
           if (groupVal && !isNaN(numVal)) {
-            const g = String(groupVal).trim();
+            const g = resolve(String(groupVal).trim(), refMap);
             grouped.set(g, (grouped.get(g) || 0) + numVal);
           }
         }
@@ -253,7 +378,6 @@ export default function GenericCampaignDashboard({
           charts.push({ key: nf.key, label: `${nf.label} / ${groupByField.label}`, type: 'bar', entries });
         }
       } else {
-        // No group field: show distribution as bar chart of top values
         const valueCounts = new Map<string, number>();
         for (const v of nf.samples) {
           if (v != null && v !== '') {
@@ -285,7 +409,7 @@ export default function GenericCampaignDashboard({
       charts,
       tableColumns,
     };
-  }, [rawSubs]);
+  }, [rawSubs, refMap]);
 
   return (
     <div className="flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden dark:border-gray-700 dark:bg-gray-950">
@@ -399,11 +523,15 @@ export default function GenericCampaignDashboard({
                       return (
                         <tr key={si} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                           <td className="px-4 py-2 text-gray-400 text-xs">{si + 1}</td>
-                          {analysis.tableColumns.map((col) => (
-                            <td key={col.key} className="px-4 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap max-w-[200px] truncate">
-                              {d[col.key] != null && d[col.key] !== '' ? String(d[col.key]) : '\u2014'}
-                            </td>
-                          ))}
+                          {analysis.tableColumns.map((col) => {
+                            const raw = d[col.key];
+                            const display = raw != null && raw !== '' ? resolve(raw, refMap) : '\u2014';
+                            return (
+                              <td key={col.key} className="px-4 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap max-w-[200px] truncate">
+                                {display}
+                              </td>
+                            );
+                          })}
                         </tr>
                       );
                     })}
