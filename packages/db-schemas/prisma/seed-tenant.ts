@@ -161,11 +161,11 @@ async function main(): Promise<void> {
     { id: TENANT_IDS.SD, name: 'Republic of the Sudan', code: 'SD', countryCode: 'SD', recCode: 'IGAD', parentId: TENANT_IDS.IGAD, domain: 'sd.au-aris.org' },
     { id: TENANT_IDS.SS, name: 'Republic of South Sudan', code: 'SS', countryCode: 'SS', recCode: 'IGAD', parentId: TENANT_IDS.IGAD, domain: 'ss.au-aris.org' },
 
-    // ECOWAS (15)
+    // ECOWAS (12) — BF, ML, NE withdrawn; now under CEN-SAD only
     { id: TENANT_IDS.NG, name: 'Federal Republic of Nigeria', code: 'NG', countryCode: 'NG', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'ng.au-aris.org' },
     { id: TENANT_IDS.SN, name: 'Republic of Senegal', code: 'SN', countryCode: 'SN', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'sn.au-aris.org' },
     { id: TENANT_IDS.BJ, name: 'Republic of Benin', code: 'BJ', countryCode: 'BJ', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'bj.au-aris.org' },
-    { id: TENANT_IDS.BF, name: 'Burkina Faso', code: 'BF', countryCode: 'BF', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'bf.au-aris.org' },
+    { id: TENANT_IDS.BF, name: 'Burkina Faso', code: 'BF', countryCode: 'BF', recCode: 'CENSAD', parentId: TENANT_IDS.CEN_SAD, domain: 'bf.au-aris.org' },
     { id: TENANT_IDS.CV, name: 'Republic of Cabo Verde', code: 'CV', countryCode: 'CV', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'cv.au-aris.org' },
     { id: TENANT_IDS.CI, name: "Republic of Côte d'Ivoire", code: 'CI', countryCode: 'CI', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'ci.au-aris.org' },
     { id: TENANT_IDS.GM, name: 'Republic of The Gambia', code: 'GM', countryCode: 'GM', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'gm.au-aris.org' },
@@ -173,8 +173,8 @@ async function main(): Promise<void> {
     { id: TENANT_IDS.GN, name: 'Republic of Guinea', code: 'GN', countryCode: 'GN', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'gn.au-aris.org' },
     { id: TENANT_IDS.GW, name: 'Republic of Guinea-Bissau', code: 'GW', countryCode: 'GW', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'gw.au-aris.org' },
     { id: TENANT_IDS.LR, name: 'Republic of Liberia', code: 'LR', countryCode: 'LR', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'lr.au-aris.org' },
-    { id: TENANT_IDS.ML, name: 'Republic of Mali', code: 'ML', countryCode: 'ML', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'ml.au-aris.org' },
-    { id: TENANT_IDS.NE, name: 'Republic of Niger', code: 'NE', countryCode: 'NE', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'ne.au-aris.org' },
+    { id: TENANT_IDS.ML, name: 'Republic of Mali', code: 'ML', countryCode: 'ML', recCode: 'CENSAD', parentId: TENANT_IDS.CEN_SAD, domain: 'ml.au-aris.org' },
+    { id: TENANT_IDS.NE, name: 'Republic of Niger', code: 'NE', countryCode: 'NE', recCode: 'CENSAD', parentId: TENANT_IDS.CEN_SAD, domain: 'ne.au-aris.org' },
     { id: TENANT_IDS.SL, name: 'Republic of Sierra Leone', code: 'SL', countryCode: 'SL', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'sl.au-aris.org' },
     { id: TENANT_IDS.TG, name: 'Togolese Republic', code: 'TG', countryCode: 'TG', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'tg.au-aris.org' },
 

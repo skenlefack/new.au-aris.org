@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
 import { useDomainStore, ROUTE_TO_DOMAIN } from '@/lib/stores/domain-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import { useOffline } from '@/hooks/use-offline';
 import { useTranslations } from '@/lib/i18n/translations';
 import { usePublicDomains } from '@/lib/api/settings-hooks';
 import { useOpenTicketCount } from '@/lib/api/support-hooks';
@@ -45,6 +46,7 @@ import {
   FileUp,
   Briefcase,
   Network,
+  WifiOff,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -163,6 +165,17 @@ const CODE_TO_ROUTE: Record<string, string> = {
   'trade-sps': '/trade',
   'knowledge-hub': '/knowledge/admin',
 };
+
+/**
+ * Routes that work offline (data prefetched to IndexedDB).
+ * Everything else is disabled when the browser is offline.
+ */
+const OFFLINE_AVAILABLE_ROUTES = new Set([
+  '/home',
+  '/my-dashboards',
+  '/collecte',
+  '/settings',
+]);
 
 function domainHref(domain: { code: string; metadata?: Record<string, unknown> | null }): string {
   // 1. Explicit href in metadata takes priority
@@ -343,6 +356,7 @@ export function Sidebar({
   const locale = useLocaleStore((s) => s.locale);
   const t = useTranslations('nav');
   const hasAccess = useDomainStore((s) => s.hasAccess);
+  const { isOnline } = useOffline();
 
   // Platform branding from settings config
   const { name: platformName, logoUrl: platformLogoUrl } = usePlatformConfig();
@@ -370,23 +384,27 @@ export function Sidebar({
   const { badgeTotal: wfBadgeTotal } = useWorkflowPendingCount();
   const workflowPendingCount = wfBadgeTotal ?? 0;
 
-  // Inject dynamic badges into nav items (support + workflow)
+  // Inject dynamic badges + offline disabling into nav items
   const visibleGroups = useMemo(() => {
-    const hasBadges = openTicketCount > 0 || workflowPendingCount > 0;
-    if (!hasBadges) return filteredGroups;
     return filteredGroups.map((group) => ({
       ...group,
       items: group.items.map((item) => {
-        if (item.tKey === 'support' && openTicketCount > 0) {
-          return { ...item, badge: String(openTicketCount) };
+        let patched = item;
+        // Badges
+        if (patched.tKey === 'support' && openTicketCount > 0) {
+          patched = { ...patched, badge: String(openTicketCount) };
         }
-        if (item.tKey === 'workflow' && workflowPendingCount > 0) {
-          return { ...item, badge: String(workflowPendingCount) };
+        if (patched.tKey === 'workflow' && workflowPendingCount > 0) {
+          patched = { ...patched, badge: String(workflowPendingCount) };
         }
-        return item;
+        // Offline: disable items that require network
+        if (!isOnline && !OFFLINE_AVAILABLE_ROUTES.has(patched.matchPrefix)) {
+          patched = { ...patched, disabled: true };
+        }
+        return patched;
       }),
     }));
-  }, [filteredGroups, openTicketCount, workflowPendingCount]);
+  }, [filteredGroups, openTicketCount, workflowPendingCount, isOnline]);
 
   const sidebarRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -443,13 +461,15 @@ export function Sidebar({
   function renderDisabledItem(item: NavItem) {
     const Icon = item.icon;
     const label = getLabel(item);
+    const offlineDisabled = !isOnline && !OFFLINE_AVAILABLE_ROUTES.has(item.matchPrefix);
     return (
       <div key={item.matchPrefix} className="group relative" onMouseEnter={handleTooltipEnter}>
         <div
           className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium cursor-not-allowed opacity-50',
+            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium cursor-not-allowed opacity-40',
             collapsed && 'justify-center px-0',
           )}
+          title={offlineDisabled ? t('offlineUnavailable') : undefined}
         >
           <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-slate-300 dark:text-slate-600">
             <Icon className="h-[18px] w-[18px]" />
@@ -457,7 +477,10 @@ export function Sidebar({
           {!collapsed && (
             <span className="truncate text-slate-400 dark:text-slate-600">{label}</span>
           )}
-          {!collapsed && item.badge && (
+          {!collapsed && offlineDisabled && (
+            <WifiOff className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-amber-400 dark:text-amber-500" />
+          )}
+          {!collapsed && !offlineDisabled && item.badge && (
             <span className="ml-auto rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 dark:bg-slate-800 dark:text-slate-500">
               {item.badge}
             </span>
@@ -466,7 +489,7 @@ export function Sidebar({
         {collapsed && (
           <div className="sidebar-tooltip">
             <div className="sidebar-tooltip-arrow" />
-            {label} ({item.badge})
+            {label}{offlineDisabled ? ' (offline)' : item.badge ? ` (${item.badge})` : ''}
           </div>
         )}
       </div>
