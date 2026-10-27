@@ -478,7 +478,7 @@ export default function SyncMonitoringPage() {
                         </p>
                         {conflict.campaignName && (
                           <span className="rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:text-gray-400">
-                            {conflict.campaignName}
+                            {typeof conflict.campaignName === 'object' ? ((conflict.campaignName as any)?.en || (conflict.campaignName as any)?.fr || '') : conflict.campaignName}
                           </span>
                         )}
                       </div>

@@ -91,7 +91,7 @@ export default function SubmissionDetailPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to {submission.campaignName}
+          Back to {typeof submission.campaignName === 'object' ? (submission.campaignName?.en || submission.campaignName?.fr || '') : submission.campaignName}
         </Link>
         <div className="mt-2 flex items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900">

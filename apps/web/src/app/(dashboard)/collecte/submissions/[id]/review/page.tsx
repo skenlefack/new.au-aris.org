@@ -735,7 +735,7 @@ export default function SubmissionReviewPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
         >
           <ArrowLeft className="h-4 w-4" />
-          {submission.campaignName ? `Back to ${submission.campaignName}` : t('backToCampaigns')}
+          {submission.campaignName ? `Back to ${localizeName(submission.campaignName)}` : t('backToCampaigns')}
         </Link>
         <div className="mt-2 flex items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -1044,7 +1044,7 @@ export default function SubmissionReviewPage() {
               {submission.campaignName && (
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 dark:text-gray-400">Campaign</span>
-                  <span className="text-gray-700 dark:text-gray-300">{submission.campaignName}</span>
+                  <span className="text-gray-700 dark:text-gray-300">{localizeName(submission.campaignName)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
