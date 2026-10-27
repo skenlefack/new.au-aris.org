@@ -174,3 +174,15 @@ export const UpdateProgressSchema = Type.Object({
   failureReason: Type.Optional(Type.String()),
 });
 export type UpdateProgressInput = Static<typeof UpdateProgressSchema>;
+
+// ── Stats Query ──
+export const StatsQuerySchema = Type.Object({});
+export type StatsQueryInput = Static<typeof StatsQuerySchema>;
+
+// ── Charts Query ──
+export const ChartsQuerySchema = Type.Object({
+  metric: Type.String(), // device-status | battery-distribution | os-versions | network-types | sync-health | devices-over-time
+  from: Type.Optional(Type.String({ format: 'date-time' })),
+  to: Type.Optional(Type.String({ format: 'date-time' })),
+});
+export type ChartsQueryInput = Static<typeof ChartsQuerySchema>;

@@ -673,6 +673,105 @@ export class MdmService {
     return { data: { tracking, summary } };
   }
 
+  // ── Dashboard Stats ──
+  async getStats(user: AuthenticatedUser): Promise<ApiResponse<any>> {
+    const tenantFilter = this.buildTenantFilter(user);
+    const fiveMinAgo = new Date(Date.now() - 5 * 60_000);
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60_000);
+
+    const [total, online, offline, lowBattery, activeAlerts, compliant, nonCompliant, pendingEnrollment] = await Promise.all([
+      (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, status: 'ACTIVE' } }),
+      (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, status: 'ACTIVE', lastHeartbeatAt: { gte: fiveMinAgo } } }),
+      (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, status: 'ACTIVE', OR: [{ lastHeartbeatAt: null }, { lastHeartbeatAt: { lt: thirtyMinAgo } }] } }),
+      (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, status: 'ACTIVE', batteryLevel: { lt: 20 } } }),
+      (this.prisma as any).mdmAlert.count({ where: { ...tenantFilter, isResolved: false } }),
+      (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, complianceStatus: 'COMPLIANT' } }),
+      (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, complianceStatus: 'NON_COMPLIANT' } }),
+      (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, enrollmentStatus: 'PENDING_APPROVAL' } }),
+    ]);
+
+    return {
+      data: { total, online, offline, lowBattery, activeAlerts, compliant, nonCompliant, pendingEnrollment },
+    };
+  }
+
+  // ── Dashboard Charts ──
+  async getChartData(user: AuthenticatedUser, metric: string, from?: string, to?: string): Promise<ApiResponse<any>> {
+    const tenantFilter = this.buildTenantFilter(user);
+
+    switch (metric) {
+      case 'device-status': {
+        const [active, inactive] = await Promise.all([
+          (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, status: 'ACTIVE' } }),
+          (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, status: { not: 'ACTIVE' } } }),
+        ]);
+        const fiveMinAgo = new Date(Date.now() - 5 * 60_000);
+        const thirtyMinAgo = new Date(Date.now() - 30 * 60_000);
+        const online = await (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, status: 'ACTIVE', lastHeartbeatAt: { gte: fiveMinAgo } } });
+        const offline = await (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, status: 'ACTIVE', OR: [{ lastHeartbeatAt: null }, { lastHeartbeatAt: { lt: thirtyMinAgo } }] } });
+        const idle = active - online - offline;
+        return { data: { labels: ['Online', 'Idle', 'Offline', 'Inactive'], values: [online, Math.max(0, idle), offline, inactive] } };
+      }
+
+      case 'battery-distribution': {
+        const devices = await (this.prisma as any).mdmDevice.findMany({
+          where: { ...tenantFilter, status: 'ACTIVE', batteryLevel: { not: null } },
+          select: { batteryLevel: true },
+        });
+        const buckets = { critical: 0, low: 0, medium: 0, good: 0, full: 0 };
+        for (const d of devices) {
+          const l = d.batteryLevel;
+          if (l < 15) buckets.critical++;
+          else if (l < 30) buckets.low++;
+          else if (l < 60) buckets.medium++;
+          else if (l < 90) buckets.good++;
+          else buckets.full++;
+        }
+        return { data: { labels: ['Critical (<15%)', 'Low (15-29%)', 'Medium (30-59%)', 'Good (60-89%)', 'Full (90%+)'], values: [buckets.critical, buckets.low, buckets.medium, buckets.good, buckets.full] } };
+      }
+
+      case 'os-versions': {
+        const devices = await (this.prisma as any).mdmDevice.findMany({
+          where: { ...tenantFilter, status: 'ACTIVE' },
+          select: { osVersion: true },
+        });
+        const map = new Map<string, number>();
+        for (const d of devices) {
+          const v = d.osVersion || 'Unknown';
+          map.set(v, (map.get(v) ?? 0) + 1);
+        }
+        const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+        return { data: { labels: sorted.map(e => e[0]), values: sorted.map(e => e[1]) } };
+      }
+
+      case 'network-types': {
+        const devices = await (this.prisma as any).mdmDevice.findMany({
+          where: { ...tenantFilter, status: 'ACTIVE' },
+          select: { networkType: true },
+        });
+        const map = new Map<string, number>();
+        for (const d of devices) {
+          const t = d.networkType || 'Unknown';
+          map.set(t, (map.get(t) ?? 0) + 1);
+        }
+        const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
+        return { data: { labels: sorted.map(e => e[0]), values: sorted.map(e => e[1]) } };
+      }
+
+      case 'compliance-status': {
+        const [compliant, nonCompliant, unknown] = await Promise.all([
+          (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, complianceStatus: 'COMPLIANT' } }),
+          (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, complianceStatus: 'NON_COMPLIANT' } }),
+          (this.prisma as any).mdmDevice.count({ where: { ...tenantFilter, complianceStatus: 'UNKNOWN' } }),
+        ]);
+        return { data: { labels: ['Compliant', 'Non-Compliant', 'Unknown'], values: [compliant, nonCompliant, unknown] } };
+      }
+
+      default:
+        return { data: { labels: [], values: [] } };
+    }
+  }
+
   private buildTenantFilter(caller: AuthenticatedUser): Record<string, unknown> {
     switch (caller.tenantLevel) {
       case TenantLevel.CONTINENTAL: return {};

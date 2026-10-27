@@ -33,6 +33,8 @@ import {
   type EnrollmentSettingsInput,
   UpdateProgressSchema,
   type UpdateProgressInput,
+  ChartsQuerySchema,
+  type ChartsQueryInput,
 } from '../schemas/mdm.schemas.js';
 
 export async function registerMdmRoutes(app: FastifyInstance): Promise<void> {
@@ -284,5 +286,27 @@ export async function registerMdmRoutes(app: FastifyInstance): Promise<void> {
     preHandler: adminOnly,
   }, async (request) => {
     return app.mdmService.getRolloutStatus(request.params.id);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Dashboard (Phase 6)
+  // ═══════════════════════════════════════════════════════════════════
+
+  // GET /api/v1/credential/mdm/stats
+  app.get('/api/v1/credential/mdm/stats', {
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.getStats(user);
+  });
+
+  // GET /api/v1/credential/mdm/charts
+  app.get<{ Querystring: ChartsQueryInput }>('/api/v1/credential/mdm/charts', {
+    schema: { querystring: ChartsQuerySchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    const { metric, from, to } = request.query;
+    return app.mdmService.getChartData(user, metric, from, to);
   });
 }

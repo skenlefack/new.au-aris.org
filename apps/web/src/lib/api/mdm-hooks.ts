@@ -387,12 +387,27 @@ export function useUpdateMdmEnrollmentSettings() {
   });
 }
 
-// ── Stats (Phase 6 placeholder) ──
+// ── Stats ──
 
 export function useMdmStats() {
   return useQuery({
     queryKey: ['mdm', 'stats'],
-    queryFn: () => Promise.resolve({ data: null }),
-    enabled: false,
+    queryFn: async () => {
+      const res: any = await apiClient.get('/credential/mdm/stats');
+      return res.data;
+    },
+    refetchInterval: 30_000,
+  });
+}
+
+export function useMdmChartData(metric: string, enabled = true) {
+  return useQuery({
+    queryKey: ['mdm', 'charts', metric],
+    queryFn: async () => {
+      const res: any = await apiClient.get(`/credential/mdm/charts?metric=${metric}`);
+      return res.data;
+    },
+    enabled,
+    staleTime: 60_000,
   });
 }
