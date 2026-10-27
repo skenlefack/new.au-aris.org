@@ -1249,7 +1249,12 @@ export class CollectionCampaignService {
       );
 
       // Check if submissions exist for this campaign ID (same ID shared with Campaign table)
-      const submissionCount = await (this.prisma as any).submission.count({ where: { campaignId: c.id } }).catch(() => 0);
+      // Apply tenant filter so non-CONTINENTAL users only see their own submissions
+      const tenantFilter: Record<string, unknown> = { campaignId: c.id };
+      if (user.tenantLevel !== TenantLevel.CONTINENTAL) {
+        tenantFilter['tenantId'] = user.tenantId;
+      }
+      const submissionCount = await (this.prisma as any).submission.count({ where: tenantFilter }).catch(() => 0);
 
       let totalSubmissions = 0;
       let validated = 0;
@@ -1259,9 +1264,13 @@ export class CollectionCampaignService {
 
       if (submissionCount > 0) {
         // Real submissions exist — get detailed stats
+        const tenantSql = user.tenantLevel !== TenantLevel.CONTINENTAL
+          ? `AND tenant_id = $2::uuid` : '';
+        const tenantParams = user.tenantLevel !== TenantLevel.CONTINENTAL
+          ? [c.id, user.tenantId] : [c.id];
         const [val, rej, countriesRaw] = await Promise.all([
-          (this.prisma as any).submission.count({ where: { campaignId: c.id, status: 'VALIDATED' } }),
-          (this.prisma as any).submission.count({ where: { campaignId: c.id, status: 'REJECTED' } }),
+          (this.prisma as any).submission.count({ where: { ...tenantFilter, status: 'VALIDATED' } }),
+          (this.prisma as any).submission.count({ where: { ...tenantFilter, status: 'REJECTED' } }),
           (this.prisma as any).$queryRawUnsafe(
             `SELECT DISTINCT loc AS country FROM (
                SELECT CASE
@@ -1270,6 +1279,7 @@ export class CollectionCampaignService {
                END AS loc
                FROM public.submissions
                WHERE campaign_id = $1::uuid
+                 ${tenantSql}
                  AND data->>'admin_location' IS NOT NULL
              ) sub
              WHERE loc IN (
@@ -1288,7 +1298,7 @@ export class CollectionCampaignService {
                'MU','MW','NA','NE','RW','SC','SL','SO','SS','SZ','TN','DZ','AO','BF','BI',
                'CF','CI','CV','GQ','KM','MA','ST','TG','ZM'
              )`,
-            c.id,
+            ...tenantParams,
           ),
         ]);
         totalSubmissions = Math.max(submissionCount, c.metadata?.importedRows ?? 0);
@@ -1344,7 +1354,12 @@ export class CollectionCampaignService {
     const fromAssignments = campaign.assignments.reduce((sum: number, a: any) => sum + (a.completedSubmissions ?? 0), 0);
 
     // Check if submissions exist for this campaign ID (same ID shared with Campaign table)
-    const submissionCount = await (this.prisma as any).submission.count({ where: { campaignId: id } }).catch(() => 0);
+    // Apply tenant filter so non-CONTINENTAL users only see their own submissions
+    const tenantFilter: Record<string, unknown> = { campaignId: id };
+    if (user.tenantLevel !== TenantLevel.CONTINENTAL) {
+      tenantFilter['tenantId'] = user.tenantId;
+    }
+    const submissionCount = await (this.prisma as any).submission.count({ where: tenantFilter }).catch(() => 0);
 
     let totalSubmissions = 0;
     let validated = 0;
@@ -1353,9 +1368,13 @@ export class CollectionCampaignService {
     let distinctCountries: string[] = [];
 
     if (submissionCount > 0) {
+      const tenantSql = user.tenantLevel !== TenantLevel.CONTINENTAL
+        ? `AND tenant_id = $2::uuid` : '';
+      const tenantParams = user.tenantLevel !== TenantLevel.CONTINENTAL
+        ? [id, user.tenantId] : [id];
       const [val, rej, countriesRaw] = await Promise.all([
-        (this.prisma as any).submission.count({ where: { campaignId: id, status: 'VALIDATED' } }),
-        (this.prisma as any).submission.count({ where: { campaignId: id, status: 'REJECTED' } }),
+        (this.prisma as any).submission.count({ where: { ...tenantFilter, status: 'VALIDATED' } }),
+        (this.prisma as any).submission.count({ where: { ...tenantFilter, status: 'REJECTED' } }),
         (this.prisma as any).$queryRawUnsafe(
           `SELECT DISTINCT loc AS country FROM (
              SELECT CASE
@@ -1364,6 +1383,7 @@ export class CollectionCampaignService {
              END AS loc
              FROM public.submissions
              WHERE campaign_id = $1::uuid
+               ${tenantSql}
                AND data->>'admin_location' IS NOT NULL
            ) sub
            WHERE loc IN (
@@ -1382,7 +1402,7 @@ export class CollectionCampaignService {
              'MU','MW','NA','NE','RW','SC','SL','SO','SS','SZ','TN','DZ','AO','BF','BI',
              'CF','CI','CV','GQ','KM','MA','ST','TG','ZM'
            )`,
-          id,
+          ...tenantParams,
         ),
       ]);
       totalSubmissions = Math.max(submissionCount, campaign.metadata?.importedRows ?? 0);
