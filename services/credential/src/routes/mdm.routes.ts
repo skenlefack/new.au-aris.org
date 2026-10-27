@@ -21,13 +21,25 @@ import {
   type ListDevicesQueryInput,
   type VersionCheckQueryInput,
   type UuidParamInput,
+  ListAlertsQuerySchema,
+  type ListAlertsQueryInput,
+  LocationHistoryQuerySchema,
+  type LocationHistoryQueryInput,
+  CreatePolicySchema,
+  type CreatePolicyInput,
+  UpdatePolicySchema,
+  type UpdatePolicyInput,
+  EnrollmentSettingsSchema,
+  type EnrollmentSettingsInput,
+  UpdateProgressSchema,
+  type UpdateProgressInput,
 } from '../schemas/mdm.schemas.js';
 
 export async function registerMdmRoutes(app: FastifyInstance): Promise<void> {
   const authAndTenant = [app.authHookFn, tenantHook()];
   const adminOnly = [
     ...authAndTenant,
-    rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN),
+    rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.NATIONAL_ADMIN, UserRole.REC_ADMIN),
   ];
 
   // ═══════════════════════════════════════════════════════════════════
@@ -57,7 +69,8 @@ export async function registerMdmRoutes(app: FastifyInstance): Promise<void> {
     schema: { params: UuidParamSchema, body: AcknowledgeCommandSchema },
     preHandler: authAndTenant,
   }, async (request) => {
-    return app.mdmService.acknowledgeCommand(request.params.id, request.body);
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.acknowledgeCommand(request.params.id, request.body, user);
   });
 
   // GET /api/v1/credential/mdm/version-check
@@ -131,5 +144,145 @@ export async function registerMdmRoutes(app: FastifyInstance): Promise<void> {
     preHandler: adminOnly,
   }, async (request) => {
     return app.mdmService.deleteRelease(request.params.id);
+  });
+
+  // GET /api/v1/credential/mdm/alerts
+  app.get<{ Querystring: ListAlertsQueryInput }>('/api/v1/credential/mdm/alerts', {
+    schema: { querystring: ListAlertsQuerySchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.listAlerts(user, request.query);
+  });
+
+  // PATCH /api/v1/credential/mdm/alerts/:id/resolve
+  app.patch<{ Params: UuidParamInput }>('/api/v1/credential/mdm/alerts/:id/resolve', {
+    schema: { params: UuidParamSchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.resolveAlert(request.params.id, user);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Location History & Security Policies (Phase 2)
+  // ═══════════════════════════════════════════════════════════════════
+
+  // GET /api/v1/credential/mdm/devices/:id/locations
+  app.get<{ Params: UuidParamInput; Querystring: LocationHistoryQueryInput }>('/api/v1/credential/mdm/devices/:id/locations', {
+    schema: { params: UuidParamSchema, querystring: LocationHistoryQuerySchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    return app.mdmService.getLocationHistory(request.params.id, request.query);
+  });
+
+  // GET /api/v1/credential/mdm/policies
+  app.get('/api/v1/credential/mdm/policies', {
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.listPolicies(user);
+  });
+
+  // POST /api/v1/credential/mdm/policies
+  app.post<{ Body: CreatePolicyInput }>('/api/v1/credential/mdm/policies', {
+    schema: { body: CreatePolicySchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.createPolicy(request.body, user);
+  });
+
+  // PATCH /api/v1/credential/mdm/policies/:id
+  app.patch<{ Params: UuidParamInput; Body: UpdatePolicyInput }>('/api/v1/credential/mdm/policies/:id', {
+    schema: { params: UuidParamSchema, body: UpdatePolicySchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    return app.mdmService.updatePolicy(request.params.id, request.body);
+  });
+
+  // DELETE /api/v1/credential/mdm/policies/:id
+  app.delete<{ Params: UuidParamInput }>('/api/v1/credential/mdm/policies/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    return app.mdmService.deletePolicy(request.params.id);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Enrollment workflow
+  // ═══════════════════════════════════════════════════════════════════
+
+  // PATCH /api/v1/credential/mdm/devices/:id/approve
+  app.patch<{ Params: UuidParamInput }>('/api/v1/credential/mdm/devices/:id/approve', {
+    schema: { params: UuidParamSchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.approveDevice(request.params.id, user);
+  });
+
+  // PATCH /api/v1/credential/mdm/devices/:id/reject
+  app.patch<{ Params: UuidParamInput }>('/api/v1/credential/mdm/devices/:id/reject', {
+    schema: { params: UuidParamSchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.rejectDevice(request.params.id, user);
+  });
+
+  // PATCH /api/v1/credential/mdm/devices/:id/revoke
+  app.patch<{ Params: UuidParamInput }>('/api/v1/credential/mdm/devices/:id/revoke', {
+    schema: { params: UuidParamSchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.revokeDevice(request.params.id, user);
+  });
+
+  // GET /api/v1/credential/mdm/settings
+  app.get('/api/v1/credential/mdm/settings', {
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.getEnrollmentSettings(user);
+  });
+
+  // PATCH /api/v1/credential/mdm/settings
+  app.patch<{ Body: EnrollmentSettingsInput }>('/api/v1/credential/mdm/settings', {
+    schema: { body: EnrollmentSettingsSchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.updateEnrollmentSettings(request.body, user);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Compliance & OTA Update Tracking (Phase 3)
+  // ═══════════════════════════════════════════════════════════════════
+
+  // GET /api/v1/credential/mdm/devices/:id/compliance
+  app.get<{ Params: UuidParamInput }>('/api/v1/credential/mdm/devices/:id/compliance', {
+    schema: { params: UuidParamSchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    return app.mdmService.getDeviceCompliance(request.params.id);
+  });
+
+  // POST /api/v1/credential/mdm/update-progress (mobile)
+  app.post<{ Body: UpdateProgressInput }>('/api/v1/credential/mdm/update-progress', {
+    schema: { body: UpdateProgressSchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.mdmService.reportUpdateProgress(request.body, user);
+  });
+
+  // GET /api/v1/credential/mdm/releases/:id/rollout
+  app.get<{ Params: UuidParamInput }>('/api/v1/credential/mdm/releases/:id/rollout', {
+    schema: { params: UuidParamSchema },
+    preHandler: adminOnly,
+  }, async (request) => {
+    return app.mdmService.getRolloutStatus(request.params.id);
   });
 }

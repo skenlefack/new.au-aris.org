@@ -102,3 +102,75 @@ export const UuidParamSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
 });
 export type UuidParamInput = Static<typeof UuidParamSchema>;
+
+// ── List Alerts Query ──
+export const ListAlertsQuerySchema = Type.Object({
+  page: Type.Optional(Type.Integer({ minimum: 1 })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+  type: Type.Optional(Type.String()),
+  severity: Type.Optional(Type.String()),
+  isResolved: Type.Optional(Type.String()),
+});
+export type ListAlertsQueryInput = Static<typeof ListAlertsQuerySchema>;
+
+// ── Location History Query ──
+export const LocationHistoryQuerySchema = Type.Object({
+  from: Type.Optional(Type.String({ format: 'date-time' })),
+  to: Type.Optional(Type.String({ format: 'date-time' })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 500, default: 100 })),
+});
+export type LocationHistoryQueryInput = Static<typeof LocationHistoryQuerySchema>;
+
+// ── Create Policy ──
+export const CreatePolicySchema = Type.Object({
+  name: Type.String({ minLength: 1, maxLength: 255 }),
+  description: Type.Optional(Type.String()),
+  rules: Type.Object({
+    minAppVersion: Type.Optional(Type.Integer({ minimum: 1 })),
+    requireScreenLock: Type.Optional(Type.Boolean()),
+    maxOfflineDays: Type.Optional(Type.Integer({ minimum: 1 })),
+    minBatteryForSync: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+    gpsRequired: Type.Optional(Type.Boolean()),
+    maxStorageUsagePercent: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+  }),
+  isActive: Type.Optional(Type.Boolean()),
+  priority: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type CreatePolicyInput = Static<typeof CreatePolicySchema>;
+
+// ── Update Policy ──
+export const UpdatePolicySchema = Type.Object({
+  name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+  description: Type.Optional(Type.String()),
+  rules: Type.Optional(Type.Object({
+    minAppVersion: Type.Optional(Type.Integer({ minimum: 1 })),
+    requireScreenLock: Type.Optional(Type.Boolean()),
+    maxOfflineDays: Type.Optional(Type.Integer({ minimum: 1 })),
+    minBatteryForSync: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+    gpsRequired: Type.Optional(Type.Boolean()),
+    maxStorageUsagePercent: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+  })),
+  isActive: Type.Optional(Type.Boolean()),
+  priority: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type UpdatePolicyInput = Static<typeof UpdatePolicySchema>;
+
+// ── Enrollment Settings ──
+export const EnrollmentSettingsSchema = Type.Object({
+  enrollmentMode: Type.Union([Type.Literal('AUTO'), Type.Literal('APPROVAL_REQUIRED')]),
+});
+export type EnrollmentSettingsInput = Static<typeof EnrollmentSettingsSchema>;
+
+// ── Update Progress (mobile) ──
+export const UpdateProgressSchema = Type.Object({
+  deviceId: Type.String({ format: 'uuid' }),
+  releaseId: Type.String({ format: 'uuid' }),
+  status: Type.Union([
+    Type.Literal('DOWNLOADING'), Type.Literal('DOWNLOADED'),
+    Type.Literal('INSTALLING'), Type.Literal('INSTALLED'),
+    Type.Literal('FAILED'), Type.Literal('SKIPPED'),
+  ]),
+  downloadProgress: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+  failureReason: Type.Optional(Type.String()),
+});
+export type UpdateProgressInput = Static<typeof UpdateProgressSchema>;

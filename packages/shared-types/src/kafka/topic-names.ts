@@ -6,6 +6,15 @@ export const TOPIC_SYS_CREDENTIAL_USER_AUTHENTICATED = 'sys.credential.user.auth
 export const TOPIC_SYS_CREDENTIAL_PASSWORD_RESET = 'sys.credential.password.reset.v1' as const;
 export const TOPIC_SYS_CREDENTIAL_USER_DOMAINS_UPDATED = 'sys.credential.user.domains-updated.v1' as const;
 export const TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN = 'sys.credential.new-device-login.v1' as const;
+
+// ── MDM Topics ──
+export const TOPIC_SYS_CREDENTIAL_MDM_DEVICE_ENROLLED = 'sys.credential.mdm.device.enrolled.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_MDM_HEARTBEAT_RECEIVED = 'sys.credential.mdm.heartbeat.received.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_MDM_COMMAND_ISSUED = 'sys.credential.mdm.command.issued.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_MDM_COMMAND_EXECUTED = 'sys.credential.mdm.command.executed.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_MDM_RELEASE_PUBLISHED = 'sys.credential.mdm.release.published.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_MDM_ALERT_TRIGGERED = 'sys.credential.mdm.alert.triggered.v1' as const;
+
 export const TOPIC_SYS_MESSAGE_NOTIFICATION_SENT = 'sys.message.notification.sent.v1' as const;
 export const TOPIC_SYS_MESSAGE_NOTIFICATION_FAILED = 'sys.message.notification.failed.v1' as const;
 export const TOPIC_SYS_DRIVE_FILE_UPLOADED = 'sys.drive.file.uploaded.v1' as const;
@@ -483,6 +492,13 @@ export const ALL_TOPICS = [
   TOPIC_AU_HUB_AGREEMENT_REJECTED,
   TOPIC_AU_HUB_AGREEMENT_REVOKED,
   TOPIC_AU_HUB_DLQ,
+  // MDM Topics
+  TOPIC_SYS_CREDENTIAL_MDM_DEVICE_ENROLLED,
+  TOPIC_SYS_CREDENTIAL_MDM_HEARTBEAT_RECEIVED,
+  TOPIC_SYS_CREDENTIAL_MDM_COMMAND_ISSUED,
+  TOPIC_SYS_CREDENTIAL_MDM_COMMAND_EXECUTED,
+  TOPIC_SYS_CREDENTIAL_MDM_RELEASE_PUBLISHED,
+  TOPIC_SYS_CREDENTIAL_MDM_ALERT_TRIGGERED,
 ] as const;
 
 export type TopicName = (typeof ALL_TOPICS)[number];

@@ -27,6 +27,8 @@ import { registerAuditRoutes } from './routes/audit.routes.js';
 import { registerSessionRoutes } from './routes/session.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 import { MdmService } from './services/mdm.service.js';
+import { MdmAlertEngine } from './services/mdm-alert.engine.js';
+import { MdmComplianceEngine } from './services/mdm-compliance.engine.js';
 import { registerMdmRoutes } from './routes/mdm.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -109,7 +111,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   const auditService = new AuditService(app.prisma);
   const geoService = new GeolocationService(app.redis);
   const sessionService = new SessionService(app.prisma, app.redis, geoService);
-  const mdmService = new MdmService(app.prisma);
+  const mdmAlertEngine = new MdmAlertEngine(app.prisma);
+  const mdmComplianceEngine = new MdmComplianceEngine(app.prisma);
+  const mdmService = new MdmService(app.prisma, app.kafka, mdmAlertEngine, mdmComplianceEngine);
 
   app.decorate('authService', authService);
   app.decorate('userService', userService);

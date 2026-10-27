@@ -6,6 +6,7 @@ import {
   Power, Clock, Plus, Upload, Shield, ChevronDown, X, Package,
   AlertTriangle, Check, WifiOff, BatteryWarning, MonitorSmartphone,
   CheckCircle2, Loader2, Timer, ArrowUpCircle, Gauge, Activity, XCircle,
+  Bell, MapPin, BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
@@ -16,6 +17,12 @@ import {
   type MdmDevice, type MdmDeviceDetail, type MdmRelease, type MdmCommand,
 } from '@/lib/api/mdm-hooks';
 import { apiClient } from '@/lib/api/client';
+import { useTranslations } from '@/lib/i18n/translations';
+import { OverviewTab } from './components/OverviewTab';
+import { AlertsTab } from './components/AlertsTab';
+import { PoliciesTab } from './components/PoliciesTab';
+import { MapTab } from './components/MapTab';
+import { AnalyticsTab } from './components/AnalyticsTab';
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 
@@ -1524,10 +1531,21 @@ function ReleasesTab() {
 
 /* ─── Main Page ──────────────────────────────────────────────────────────── */
 
-type Tab = 'devices' | 'releases';
+type Tab = 'overview' | 'devices' | 'alerts' | 'policies' | 'releases' | 'map' | 'analytics';
+
+const TABS: readonly { key: Tab; icon: React.ElementType; labelKey: string }[] = [
+  { key: 'overview', icon: Activity, labelKey: 'tabOverview' },
+  { key: 'devices', icon: Smartphone, labelKey: 'tabDevices' },
+  { key: 'alerts', icon: Bell, labelKey: 'tabAlerts' },
+  { key: 'policies', icon: Shield, labelKey: 'tabPolicies' },
+  { key: 'releases', icon: Package, labelKey: 'tabReleases' },
+  { key: 'map', icon: MapPin, labelKey: 'tabMap' },
+  { key: 'analytics', icon: BarChart3, labelKey: 'tabAnalytics' },
+];
 
 export default function MdmSettingsPage() {
-  const [tab, setTab] = useState<Tab>('devices');
+  const t = useTranslations('mdm');
+  const [tab, setTab] = useState<Tab>('overview');
 
   return (
     <SuperAdminGuard>
@@ -1538,38 +1556,45 @@ export default function MdmSettingsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight flex items-center gap-2.5">
             <MonitorSmartphone className="h-6 w-6 text-blue-600" />
-            Mobile Device Management
+            {t('mdmTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Monitor enrolled devices, send remote commands, and manage OTA updates.
+            {t('mdmDescription')}
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
-          {([
-            { key: 'devices' as Tab, label: 'Devices', icon: <Smartphone className="h-3.5 w-3.5" /> },
-            { key: 'releases' as Tab, label: 'OTA Updates', icon: <Package className="h-3.5 w-3.5" /> },
-          ]).map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={cn(
-                'flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 -mb-px transition-colors',
-                tab === t.key
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',
-              )}
-            >
-              {t.icon}
-              {t.label}
-            </button>
-          ))}
+        <div className="overflow-x-auto -mx-1 px-1">
+          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 min-w-max">
+            {TABS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => setTab(item.key)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap',
+                    tab === item.key
+                      ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {t(item.labelKey)}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Tab Content */}
+        {tab === 'overview' && <OverviewTab />}
         {tab === 'devices' && <DevicesTab />}
+        {tab === 'alerts' && <AlertsTab />}
+        {tab === 'policies' && <PoliciesTab />}
         {tab === 'releases' && <ReleasesTab />}
+        {tab === 'map' && <MapTab />}
+        {tab === 'analytics' && <AnalyticsTab />}
       </div>
     </SuperAdminGuard>
   );
