@@ -521,13 +521,21 @@ export default function CampaignDetailPage() {
               </>
             )}
             {editable && campaign.status === 'ACTIVE' && (
-              <button
-                onClick={() => handleStatusChange('COMPLETED')}
-                disabled={completeMut.isPending}
-                className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                <CheckCircle2 className="h-3 w-3" /> {t('complete')}
-              </button>
+              <>
+                <Link
+                  href={`/collecte/campaigns/${campaignId}/edit`}
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  <Pencil className="h-3 w-3" /> {t('edit')}
+                </Link>
+                <button
+                  onClick={() => handleStatusChange('COMPLETED')}
+                  disabled={completeMut.isPending}
+                  className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="h-3 w-3" /> {t('complete')}
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -1114,6 +1122,13 @@ export default function CampaignDetailPage() {
               )}
               {editable && campaign.status === 'ACTIVE' && (
                 <>
+                  <Link
+                    href={`/collecte/campaigns/${campaignId}/edit`}
+                    className="flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                  >
+                    <Pencil className="h-4 w-4 text-gray-400" />
+                    {t('editCampaign')}
+                  </Link>
                   <button
                     onClick={() => handleStatusChange('COMPLETED')}
                     disabled={completeMut.isPending}
