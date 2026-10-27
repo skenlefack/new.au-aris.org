@@ -120,17 +120,16 @@ const SEED_TEMPLATES: FormTemplateListItem[] = [
   { id: 'c0000003-0002-4000-8000-00000000000f', tenantId: '', name: 'Import and Export', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
 ];
 
-// ── Permission helper — mirrors backend CollectionCampaignService.assertCanEdit ──
-const LEVEL_RANK: Record<string, number> = { MEMBER_STATE: 1, COUNTRY: 1, REC: 2, CONTINENTAL: 3 };
+// ── Permission helper: only creator + continental admins can edit ──
 
 function canEditCampaign(user: AuthUser | null, campaign: AnyCampaign): boolean {
   if (!user || !campaign) return false;
-  const userRank = LEVEL_RANK[user.tenantLevel?.toUpperCase() ?? ''] ?? 0;
-  const ownerRank = LEVEL_RANK[campaign.ownerType?.toUpperCase() ?? ''] ?? 0;
-  if (userRank === 3) return true; // CONTINENTAL can edit all
-  if (userRank < ownerRank) return false; // lower cannot edit higher
-  if (userRank === ownerRank) return user.tenantId === campaign.ownerId;
-  return true; // higher can edit lower (REC editing MS within scope — backend double-checks)
+  const role = user.role?.toUpperCase() ?? '';
+  // Continental admins can edit all campaigns
+  if (role === 'SUPER_ADMIN' || role === 'CONTINENTAL_ADMIN') return true;
+  // Campaign creator can edit their own campaign
+  if (campaign.createdBy && campaign.createdBy === user.id) return true;
+  return false;
 }
 
 const STATUS_CONFIG: Record<string, { tKey: string; color: string; bg: string; icon: React.ReactNode }> = {
