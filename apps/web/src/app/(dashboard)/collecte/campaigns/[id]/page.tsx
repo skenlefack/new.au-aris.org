@@ -455,13 +455,13 @@ export default function CampaignDetailPage() {
   if (!campaign) {
     return (
       <div className="space-y-4 pb-12">
-        <Link
-          href="/collecte"
+        <button
+          onClick={() => router.back()}
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           <ArrowLeft className="h-4 w-4" />
           {t('backToCampaigns')}
-        </Link>
+        </button>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('campaignNotFound')}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t('campaignNotFoundDesc')}
@@ -474,13 +474,13 @@ export default function CampaignDetailPage() {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
-        <Link
-          href="/collecte"
+        <button
+          onClick={() => router.back()}
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           <ArrowLeft className="h-4 w-4" />
           {t('backToCampaigns')}
-        </Link>
+        </button>
         <div className="mt-2 flex items-center justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
