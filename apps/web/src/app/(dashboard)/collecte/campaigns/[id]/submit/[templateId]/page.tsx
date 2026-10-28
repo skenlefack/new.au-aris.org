@@ -10,6 +10,7 @@ import { useLocaleStore } from '@/lib/stores/locale-store';
 import { resolveTemplateName } from '@/lib/utils/template-names';
 import { useSubmitCampaignForm } from '@/lib/api/hooks';
 import { useCollectionCampaign } from '@/lib/api/workflow-hooks';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   useFormBuilderTemplate,
   useFormBuilderTemplates,
@@ -166,6 +167,27 @@ export default function CampaignSubmitPage() {
           {t('backToCampaigns')}
         </Link>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('campaignNotFound')}</h1>
+      </div>
+    );
+  }
+
+  // DECISION_MAKER and ANALYST cannot submit forms — redirect to campaign detail
+  const userRole = useAuthStore((s) => s.user?.role);
+  const isReadOnlyRole = userRole === 'DECISION_MAKER' || userRole === 'ANALYST';
+  if (isReadOnlyRole && !isPreview) {
+    return (
+      <div className="space-y-4 pb-12">
+        <Link
+          href={`/collecte/campaigns/${campaignId}`}
+          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t('backToCampaign')}
+        </Link>
+        <div className="rounded-card border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-800 dark:bg-amber-900/20">
+          <AlertCircle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
+          <p className="text-sm text-amber-700 dark:text-amber-400">{t('readOnlyAccess') || 'Your role does not allow form submission.'}</p>
+        </div>
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import { tenantHook } from '@aris/auth-middleware';
+import { rolesHook, tenantHook } from '@aris/auth-middleware';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+import { UserRole } from '@aris/shared-types';
 import { SubmissionService } from '../services/submission.service';
 import {
   CreateSubmissionSchema,
@@ -25,6 +26,17 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
   const auth = app.authHookFn;
   const tenant = tenantHook();
 
+  // Roles allowed to submit data (DECISION_MAKER and ANALYST are read-only)
+  const SUBMIT_ROLES = [
+    UserRole.SUPER_ADMIN,
+    UserRole.CONTINENTAL_ADMIN,
+    UserRole.REC_ADMIN,
+    UserRole.NATIONAL_ADMIN,
+    UserRole.DATA_STEWARD,
+    UserRole.WAHIS_FOCAL_POINT,
+    UserRole.FIELD_AGENT,
+  ];
+
   // Set up Kafka event consumers AFTER server is ready (non-blocking)
   // This avoids Fastify plugin timeout when Kafka broker is slow to respond
   app.addHook('onReady', async () => {
@@ -36,7 +48,7 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
   // POST /api/v1/collecte/submissions
   app.post<{ Body: CreateSubmissionBody }>('/api/v1/collecte/submissions', {
     schema: { body: CreateSubmissionSchema },
-    preHandler: [auth, tenant],
+    preHandler: [auth, tenant, rolesHook(...SUBMIT_ROLES)],
   }, async (request, reply) => {
     const user = request.user as AuthenticatedUser;
     const result = await service.submit(request.body, user);

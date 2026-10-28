@@ -203,6 +203,7 @@ export default function CampaignDetailPage() {
 
   const user = useAuthStore((s) => s.user);
   const editable = canEditCampaign(user, campaign);
+  const readOnlyRole = user?.role === 'DECISION_MAKER' || user?.role === 'ANALYST';
 
   const [activeTab, setActiveTab] = useState<'details' | 'submissions' | 'lab-results' | 'dashboards'>('details');
   const [editingTarget, setEditingTarget] = useState(false);
@@ -706,7 +707,7 @@ export default function CampaignDetailPage() {
                           </p>
                         )}
                       </div>
-                      {campaign.status === 'ACTIVE' && linkId && (
+                      {campaign.status === 'ACTIVE' && linkId && !readOnlyRole && (
                         <Link
                           href={`/collecte/campaigns/${campaignId}/submit/${linkId}`}
                           className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 shrink-0"

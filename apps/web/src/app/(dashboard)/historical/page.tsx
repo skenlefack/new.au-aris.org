@@ -21,6 +21,7 @@ import {
   type HistoricalDataset,
 } from '@/lib/api/historical-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 /* ------------------------------------------------------------------ */
 /*  Domain config                                                       */
@@ -53,6 +54,8 @@ const STATUS_BADGE: Record<string, string> = {
 
 export default function HistoricalDataPage() {
   const t = useTranslations('historical');
+  const userRole = useAuthStore((s) => s.user?.role);
+  const canImport = userRole !== 'DECISION_MAKER' && userRole !== 'ANALYST';
   const [domainFilter, setDomainFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [searchText, setSearchText] = useState('');
@@ -93,13 +96,15 @@ export default function HistoricalDataPage() {
             <BarChart3 className="h-4 w-4" />
             Analytics Dashboard
           </Link>
-          <Link
-            href="/historical/import"
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-          >
-            <Upload className="h-4 w-4" />
-            Import Dataset
-          </Link>
+          {canImport && (
+            <Link
+              href="/historical/import"
+              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            >
+              <Upload className="h-4 w-4" />
+              Import Dataset
+            </Link>
+          )}
         </div>
       </div>
 
@@ -237,7 +242,7 @@ export default function HistoricalDataPage() {
               ? 'Try adjusting your filters'
               : 'Import your first dataset to get started'}
           </p>
-          {!searchText && !domainFilter && !statusFilter && (
+          {canImport && !searchText && !domainFilter && !statusFilter && (
             <Link
               href="/historical/import"
               className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
