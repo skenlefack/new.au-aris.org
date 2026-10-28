@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { useFormBuilderTemplate } from '@/lib/api/form-builder-hooks';
 import { resolveTemplateName } from '@/lib/utils/template-names';
 import {
@@ -210,6 +211,22 @@ export default function ImportPage() {
   const router = useRouter();
   const t = useTranslations('collecte');
   const locale = useLocaleStore((s) => s.locale);
+
+  // DECISION_MAKER and ANALYST cannot import data
+  const userRole = useAuthStore((s) => s.user?.role);
+  if (userRole === 'DECISION_MAKER' || userRole === 'ANALYST') {
+    return (
+      <div className="space-y-4 pb-12">
+        <Link href={`/collecte/campaigns/${campaignId}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+          <ArrowLeft className="h-4 w-4" /> {t('backToCampaign')}
+        </Link>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-800 dark:bg-amber-900/20">
+          <AlertCircle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
+          <p className="text-sm text-amber-700 dark:text-amber-400">{t('readOnlyAccess') || 'Your role does not allow data import.'}</p>
+        </div>
+      </div>
+    );
+  }
 
   const { data: tplRes } = useFormBuilderTemplate(templateId);
   const template = tplRes?.data;

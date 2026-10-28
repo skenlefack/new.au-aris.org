@@ -738,12 +738,14 @@ export default function CampaignDetailPage() {
                       >
                         {t('export')}
                       </Link>
-                      <Link
-                        href={`/collecte/campaigns/${campaignId}/import/${linkId}`}
-                        className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 shrink-0"
-                      >
-                        {t('import')}
-                      </Link>
+                      {!readOnlyRole && (
+                        <Link
+                          href={`/collecte/campaigns/${campaignId}/import/${linkId}`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 shrink-0"
+                        >
+                          {t('import')}
+                        </Link>
+                      )}
                       {/* Extend button: REC/Country admins can add custom fields */}
                       {linkId && (user?.tenantLevel === 'REC' || user?.tenantLevel === 'MEMBER_STATE') && (
                         <Link
