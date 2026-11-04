@@ -23,11 +23,11 @@ try {
 }
 
 // ── Version ──
-const SW_VERSION = 'aris-sw-v5';
+const SW_VERSION = 'aris-sw-v6';
 const STATIC_CACHE = 'aris-static-v2';
 const PAGES_CACHE = 'aris-pages-v2';
 const RSC_CACHE = 'aris-rsc-v1';
-const API_CACHE = 'aris-api-v2';
+const API_CACHE = 'aris-api-v3'; // v3: purge stale transactional responses cached by v2 (SWR)
 
 // ── Background Sync tags ──
 const SYNC_TAG = 'aris-sync-queue';
@@ -50,7 +50,8 @@ self.addEventListener('activate', (event) => {
             k === 'aris-v4' ||
             k === 'aris-static-v1' || k === 'aris-chunks-v1' || k === 'aris-styles-v1' ||
             k === 'aris-pages-v1' || k === 'aris-refdata-v1' || k === 'aris-templates-v1' ||
-            k === 'aris-dashboard-v1' || k === 'aris-collecte-v1'
+            k === 'aris-dashboard-v1' || k === 'aris-collecte-v1' ||
+            k === 'aris-api-v2'
           )
           .map((k) => caches.delete(k)),
       ),
@@ -75,6 +76,13 @@ function isRscRequest(request) {
   // Next.js App Router client-side navigation sends RSC:1 header
   return request.headers.get('RSC') === '1' ||
          request.headers.get('Next-Router-State-Tree') !== null;
+}
+
+// Reference data that rarely changes — safe to serve from cache first
+function isRefDataApi(url) {
+  const p = url.pathname;
+  return p.startsWith('/api/v1/master-data/') ||
+         p.startsWith('/api/v1/i18n/');
 }
 
 function isNextDataRequest(url) {
@@ -138,15 +146,31 @@ if (typeof workbox !== 'undefined') {
     }),
   );
 
-  // ── 4. API GET requests: StaleWhileRevalidate ──
+  // ── 4a. Reference data API GETs: StaleWhileRevalidate (rarely changes) ──
   routing.registerRoute(
     ({ url, request }) =>
-      request.method === 'GET' && url.pathname.startsWith('/api/'),
+      request.method === 'GET' && isRefDataApi(url),
     new strategies.StaleWhileRevalidate({
       cacheName: API_CACHE,
       plugins: [
         new cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
         new expiration.ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 24 * 3600 }),
+      ],
+    }),
+  );
+
+  // ── 4b. All other API GETs: NetworkFirst ──
+  // Transactional data (submissions, workflow, campaigns...) must reflect the
+  // server immediately after a mutation. Cache is only an offline fallback.
+  routing.registerRoute(
+    ({ url, request }) =>
+      request.method === 'GET' && url.pathname.startsWith('/api/'),
+    new strategies.NetworkFirst({
+      cacheName: API_CACHE,
+      networkTimeoutSeconds: 8,
+      plugins: [
+        new cacheableResponse.CacheableResponsePlugin({ statuses: [0, 200] }),
+        new expiration.ExpirationPlugin({ maxEntries: 300, maxAgeSeconds: 24 * 3600 }),
       ],
     }),
   );
@@ -245,7 +269,25 @@ if (typeof workbox !== 'undefined') {
       return;
     }
 
-    // StaleWhileRevalidate for RSC + API
+    // NetworkFirst for transactional API data (cache = offline fallback only)
+    if (url.pathname.startsWith('/api/') && !isRefDataApi(url)) {
+      event.respondWith(
+        fetch(req).then((res) => {
+          if (res && res.ok) {
+            const clone = res.clone();
+            caches.open(API_CACHE).then((c) => c.put(req, clone));
+          }
+          return res;
+        }).catch(() =>
+          caches.match(req).then((cached) =>
+            cached || new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json' } }),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // StaleWhileRevalidate for RSC + reference data API
     if (isRscRequest(req) || url.pathname.startsWith('/api/')) {
       const cacheName = isRscRequest(req) ? RSC_CACHE : API_CACHE;
       event.respondWith(
