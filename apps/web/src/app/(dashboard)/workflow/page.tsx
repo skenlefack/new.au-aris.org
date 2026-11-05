@@ -890,14 +890,19 @@ export default function WorkflowPage() {
     validated: countValidated?.meta?.total ?? 0,
   };
 
+  function showActionError(err: unknown) {
+    const msg = err instanceof Error && err.message ? err.message : '';
+    setBulkToast({ message: msg ? `${t('actionFailed')}: ${msg}` : t('actionFailed'), type: 'error' });
+    setTimeout(() => setBulkToast(null), 6000);
+  }
   function handleValidate(id: string) {
-    updateStatus.mutate({ id, status: 'VALIDATED' }, { onSuccess: () => setViewingSub(null) });
+    updateStatus.mutate({ id, status: 'VALIDATED' }, { onSuccess: () => setViewingSub(null), onError: showActionError });
   }
   function handleReject(id: string, reason: string) {
-    updateStatus.mutate({ id, status: 'REJECTED', reason }, { onSuccess: () => setViewingSub(null) });
+    updateStatus.mutate({ id, status: 'REJECTED', reason }, { onSuccess: () => setViewingSub(null), onError: showActionError });
   }
   function handleReturn(id: string, reason: string) {
-    updateStatus.mutate({ id, status: 'RETURNED', reason }, { onSuccess: () => setViewingSub(null) });
+    updateStatus.mutate({ id, status: 'RETURNED', reason }, { onSuccess: () => setViewingSub(null), onError: showActionError });
   }
   function handleStartWorkflow(entityId: string, domain: string) {
     // Always show validator chooser to let user pick who validates
@@ -918,16 +923,17 @@ export default function WorkflowPage() {
           // Now start the workflow
           startValidation.mutate(
             { entityType: 'Submission', entityId: showValidatorChooser.submissionId, domain: showValidatorChooser.domain },
-            { onSuccess: () => { setShowValidatorChooser(null); setViewingSub(null); } },
+            { onSuccess: () => { setShowValidatorChooser(null); setViewingSub(null); }, onError: showActionError },
           );
         },
+        onError: showActionError,
       },
     );
   }
   function handleWfAction(id: string, action: 'approve' | 'reject' | 'return', text: string) {
     workflowAction.mutate(
       { id, action, ...(action === 'approve' ? { comment: text } : { reason: text }) },
-      { onSuccess: () => setActionDialog(null) },
+      { onSuccess: () => setActionDialog(null), onError: showActionError },
     );
   }
 
@@ -1189,14 +1195,15 @@ export default function WorkflowPage() {
         </div>
       )}
 
-      {/* Bulk toast notification */}
-      {bulkToast && (
-        <div className={cn(
-          'fixed top-6 right-6 z-50 rounded-lg px-4 py-3 text-sm font-medium shadow-lg',
+      {/* Toast notification — portal so it stays above the detail modal */}
+      {bulkToast && createPortal(
+        <div role="alert" className={cn(
+          'fixed top-6 right-6 z-[100000] max-w-md rounded-lg px-4 py-3 text-sm font-medium shadow-lg',
           bulkToast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white',
         )}>
           {bulkToast.message}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

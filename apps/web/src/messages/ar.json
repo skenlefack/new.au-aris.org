@@ -940,6 +940,7 @@
     "bulkSuccess": "تمت معالجة {count} عناصر بنجاح",
     "bulkPartial": "نجح {succeeded}، فشل {failed}",
     "bulkFailed": "فشل الإجراء الجماعي",
+    "actionFailed": "فشل الإجراء",
     "selected": "محدد",
     "tabToValidate": "للتحقق",
     "tabRejected": "مرفوضة",

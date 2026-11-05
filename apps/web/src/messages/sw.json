@@ -940,6 +940,7 @@
     "bulkSuccess": "vipengee {count} vimeshughulikiwa kwa mafanikio",
     "bulkPartial": "{succeeded} vimefanikiwa, {failed} vimeshindwa",
     "bulkFailed": "Hatua ya wingi imeshindwa",
+    "actionFailed": "Hatua imeshindwa",
     "selected": "Imechaguliwa",
     "tabToValidate": "Kuthibitisha",
     "tabRejected": "Imekataliwa",

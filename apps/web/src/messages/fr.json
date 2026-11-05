@@ -980,6 +980,7 @@
     "bulkSuccess": "{count} elements traites avec succes",
     "bulkPartial": "{succeeded} reussis, {failed} echoues",
     "bulkFailed": "Action groupee echouee",
+    "actionFailed": "L'action a échoué",
     "selected": "selectionnes",
     "tabToValidate": "A valider",
     "tabRejected": "Rejetees",

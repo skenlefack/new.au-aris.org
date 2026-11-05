@@ -980,6 +980,7 @@
     "bulkSuccess": "{count} items processed successfully",
     "bulkPartial": "{succeeded} succeeded, {failed} failed",
     "bulkFailed": "Bulk action failed",
+    "actionFailed": "Action failed",
     "selected": "selected",
     "tabToValidate": "To Validate",
     "tabRejected": "Rejected",

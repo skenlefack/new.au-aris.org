@@ -940,6 +940,7 @@
     "bulkSuccess": "{count} elementos procesados con exito",
     "bulkPartial": "{succeeded} exitosos, {failed} fallidos",
     "bulkFailed": "La accion masiva fallo",
+    "actionFailed": "La acción falló",
     "selected": "seleccionados",
     "tabToValidate": "Por validar",
     "tabRejected": "Rechazados",
