@@ -228,6 +228,9 @@ export async function buildHubApp(): Promise<FastifyInstance> {
     exportScheduler.start();
     scheduleService.startScheduler();
 
+    // Subscribe in the background: each consumer group join takes ~3s, and
+    // awaiting them here exceeds Fastify's 10s onReady timeout (crash loop).
+    void (async () => {
     try {
       const runOutbound = (
         tenantId: string,
@@ -279,6 +282,7 @@ export async function buildHubApp(): Promise<FastifyInstance> {
     } catch (err) {
       app.log.warn(`Failed to subscribe Kafka consumers: ${err}`);
     }
+    })();
   });
 
   return app;
