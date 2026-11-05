@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useAuthStore } from '../auth-store';
+import { useAuthStore, adoptSessionFromOtherTab } from '../auth-store';
 import type { AuthUser } from '../auth-store';
 
 const mockUser: AuthUser = {
@@ -70,5 +71,48 @@ describe('useAuthStore', () => {
     expect(state.accessToken).toBeNull();
     expect(state.refreshToken).toBeNull();
     expect(state.isAuthenticated).toBe(false);
+  });
+});
+
+describe('adoptSessionFromOtherTab', () => {
+  const writeStorage = (state: Record<string, unknown> | null) => {
+    if (state) localStorage.setItem('aris-auth', JSON.stringify({ state, version: 0 }));
+    else localStorage.removeItem('aris-auth');
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    useAuthStore.setState({
+      user: mockUser,
+      accessToken: 'old-access',
+      refreshToken: 'old-refresh',
+      isAuthenticated: true,
+    });
+  });
+
+  it('adopts a newer session written by another tab', () => {
+    writeStorage({ user: mockUser, accessToken: 'new-access', refreshToken: 'new-refresh', isAuthenticated: true });
+
+    expect(adoptSessionFromOtherTab()).toBe(true);
+    const state = useAuthStore.getState();
+    expect(state.accessToken).toBe('new-access');
+    expect(state.refreshToken).toBe('new-refresh');
+    expect(state.isAuthenticated).toBe(true);
+  });
+
+  it('does nothing when storage holds the same session', () => {
+    writeStorage({ user: mockUser, accessToken: 'old-access', refreshToken: 'old-refresh', isAuthenticated: true });
+
+    expect(adoptSessionFromOtherTab()).toBe(false);
+    expect(useAuthStore.getState().accessToken).toBe('old-access');
+  });
+
+  it('does nothing when storage is logged out or empty', () => {
+    writeStorage({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+    expect(adoptSessionFromOtherTab()).toBe(false);
+
+    writeStorage(null);
+    expect(adoptSessionFromOtherTab()).toBe(false);
+    expect(useAuthStore.getState().accessToken).toBe('old-access');
   });
 });

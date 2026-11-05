@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError, apiClient } from './client';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 const TENANT_API = process.env['NEXT_PUBLIC_TENANT_API_URL'] ?? '';
 
@@ -19,11 +20,14 @@ function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (typeof window === 'undefined') return headers;
   try {
-    const raw = localStorage.getItem('aris-auth');
-    if (raw) {
-      const token = JSON.parse(raw)?.state?.accessToken;
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+    // Prefer the in-memory token (same source as the main API client);
+    // fall back to localStorage if the store isn't hydrated yet.
+    let token = useAuthStore.getState().accessToken;
+    if (!token) {
+      const raw = localStorage.getItem('aris-auth');
+      if (raw) token = JSON.parse(raw)?.state?.accessToken ?? null;
     }
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const tenant = localStorage.getItem('aris-tenant');
     if (tenant) {
       const tid = JSON.parse(tenant)?.state?.selectedTenantId;

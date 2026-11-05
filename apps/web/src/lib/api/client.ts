@@ -1,4 +1,4 @@
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAuthStore, adoptSessionFromOtherTab } from '@/lib/stores/auth-store';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { usePermissionStore } from '@/lib/stores/permission-store';
 
@@ -124,6 +124,8 @@ function updateStoredTokens(accessToken: string, refreshToken?: string): void {
 
 function clearStoredAuth(): void {
   if (typeof window === 'undefined') return;
+  // Another tab of this browser opened a newer session: use it instead of logging out
+  if (adoptSessionFromOtherTab()) return;
   // Go through Zustand so both in-memory state and localStorage (via persist) stay in sync.
   // AuthGuard subscribes to Zustand and will handle the redirect gracefully.
   useAuthStore.getState().logout();

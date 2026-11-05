@@ -123,3 +123,44 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+/**
+ * Adopt a newer session written to localStorage by another tab of the same
+ * browser. Call this before logging out on an auth failure: when the user
+ * logs in from tab B, the server revokes tab A's session (single-session
+ * policy). Without this check tab A would log out and wipe tab B's fresh
+ * tokens from the shared localStorage. Returns true if a session was adopted.
+ */
+export function adoptSessionFromOtherTab(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = localStorage.getItem('aris-auth');
+    const stored = raw ? JSON.parse(raw)?.state : null;
+    const current = useAuthStore.getState();
+    if (
+      stored?.isAuthenticated &&
+      stored.accessToken &&
+      stored.refreshToken &&
+      stored.refreshToken !== current.refreshToken
+    ) {
+      useAuthStore.setState({
+        user: stored.user,
+        accessToken: stored.accessToken,
+        refreshToken: stored.refreshToken,
+        isAuthenticated: true,
+      });
+      return true;
+    }
+  } catch {
+    /* ignore parse errors */
+  }
+  return false;
+}
+
+// Keep tabs in sync: when another tab logs in, refreshes or logs out,
+// reload the session from localStorage so this tab uses the same tokens.
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'aris-auth') void useAuthStore.persist.rehydrate();
+  });
+}

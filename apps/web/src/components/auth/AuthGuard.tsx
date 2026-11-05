@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAuthStore, adoptSessionFromOtherTab } from '@/lib/stores/auth-store';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { usePermissionStore } from '@/lib/stores/permission-store';
 import { useMyPermissions } from '@/lib/api/hooks';
@@ -133,6 +133,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
    * Optionally passes a reason code in the URL so the login page can show a specific message.
    */
   const handleAuthFailure = useCallback((reason?: string) => {
+    // Another tab of this browser opened a newer session: use it instead of logging out
+    if (adoptSessionFromOtherTab()) return;
     logout();
     useDomainStore.getState().reset();
     usePermissionStore.getState().reset();
