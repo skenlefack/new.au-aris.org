@@ -272,7 +272,12 @@ describe('SubmissionService', () => {
           recordId: mockSubmission.id,
           entityType: 'Submission',
           domain: 'health',
-          record: { speciesCode: 'BOV' },
+          record: {
+            sourceSystem: 'ARIS-collecte',
+            responsibleUnit: fieldAgent.tenantId,
+            validationStatus: 'SUBMITTED',
+            speciesCode: 'BOV',
+          },
           tenantId: fieldAgent.tenantId,
           userId: fieldAgent.userId,
         },

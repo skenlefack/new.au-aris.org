@@ -557,12 +557,20 @@ export class SubmissionService {
       schemaVersion: '1',
       timestamp: new Date().toISOString(),
     };
+    // Audit metadata required by the AUDITABILITY gate. Collecte owns these,
+    // not the form, so fill them in when the form doesn't provide them.
+    const record = {
+      sourceSystem: 'ARIS-collecte',
+      responsibleUnit: user.tenantId,
+      validationStatus: 'SUBMITTED',
+      ...((submission.data ?? {}) as Record<string, unknown>),
+    };
     // data-quality reads these fields directly from the message value
     const payload = {
       recordId: submission.id,
       entityType: 'Submission',
       domain,
-      record: (submission.data ?? {}) as Record<string, unknown>,
+      record,
       tenantId: user.tenantId,
       userId: user.userId,
     };
