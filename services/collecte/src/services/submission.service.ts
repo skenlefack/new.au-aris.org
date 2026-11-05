@@ -8,10 +8,6 @@ import {
   EVENTS,
 } from '@aris/kafka-client';
 import type {
-  QualityValidationRequestedEvent,
-  WorkflowInstanceRequestedEvent,
-  QualityRecordValidatedEvent,
-  QualityRecordRejectedEvent,
   WorkflowInstanceCreatedEvent,
 } from '@aris/kafka-client';
 import {
@@ -551,72 +547,38 @@ export class SubmissionService {
     domain: string,
     user: AuthenticatedUser,
   ): Promise<void> {
-    if (!this.kafka) return;
+    if (!this.kafkaProducer) return;
+
+    const headers: KafkaHeaders = {
+      correlationId: uuidv4(),
+      sourceService: SERVICE_NAME,
+      tenantId: user.tenantId,
+      userId: user.userId,
+      schemaVersion: '1',
+      timestamp: new Date().toISOString(),
+    };
+    // data-quality reads these fields directly from the message value
+    const payload = {
+      recordId: submission.id,
+      entityType: 'Submission',
+      domain,
+      record: (submission.data ?? {}) as Record<string, unknown>,
+      tenantId: user.tenantId,
+      userId: user.userId,
+    };
 
     try {
-      const event: Omit<QualityValidationRequestedEvent, 'eventId' | 'timestamp'> = {
-        eventType: EVENTS.QUALITY.VALIDATION_REQUESTED,
-        source: SERVICE_NAME,
-        version: 1,
-        tenantId: user.tenantId,
-        userId: user.userId,
-        payload: {
-          recordId: submission.id,
-          entityType: 'Submission',
-          domain,
-          record: submission.data as Record<string, unknown>,
-        },
-      };
-
-      await this.kafka.publish(event as any);
+      // 5s timeout: never block the submission on Kafka
+      await Promise.race([
+        this.kafkaProducer.send(EVENTS.QUALITY.VALIDATION_REQUESTED, submission.id, payload, headers),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Kafka publish timeout (5s)')), 5000)),
+      ]);
       console.log(
         `[SubmissionService] Quality validation requested for submission ${submission.id} via Kafka`,
       );
     } catch (error) {
       console.error(
         `[SubmissionService] Failed to publish quality validation request for ${submission.id}`,
-        error instanceof Error ? error.stack : String(error),
-      );
-    }
-  }
-
-  /**
-   * Request workflow instance creation asynchronously by publishing a Kafka event.
-   * Called when quality validation passes.
-   */
-  async requestWorkflowCreation(
-    submissionId: string,
-    domain: string,
-    qualityReportId: string | null,
-    tenantId: string,
-    userId: string,
-    campaignId?: string,
-  ): Promise<void> {
-    if (!this.kafka) return;
-
-    try {
-      const event: Omit<WorkflowInstanceRequestedEvent, 'eventId' | 'timestamp'> & { payload: { campaignId?: string } } = {
-        eventType: EVENTS.WORKFLOW.INSTANCE_REQUESTED,
-        source: SERVICE_NAME,
-        version: 1,
-        tenantId,
-        userId,
-        payload: {
-          entityType: 'Submission',
-          entityId: submissionId,
-          domain,
-          qualityReportId: qualityReportId ?? undefined,
-          campaignId,
-        },
-      };
-
-      await this.kafka.publish(event as any);
-      console.log(
-        `[SubmissionService] Workflow creation requested for submission ${submissionId} via Kafka`,
-      );
-    } catch (error) {
-      console.error(
-        `[SubmissionService] Failed to publish workflow creation request for ${submissionId}`,
         error instanceof Error ? error.stack : String(error),
       );
     }
@@ -630,28 +592,20 @@ export class SubmissionService {
     submissionId: string,
     reportId: string,
     overallStatus: string,
-    domain: string,
-    tenantId: string,
-    userId: string,
   ): Promise<void> {
-    const passed = overallStatus === 'PASSED' || overallStatus === 'WARNING';
-
-    const submission = await (this.prisma as any).submission.update({
+    // Advisory mode: quality gates only attach their report to the submission.
+    // The status is decided by the human validator on the Validation page.
+    const res = await (this.prisma as any).submission.updateMany({
       where: { id: submissionId },
-      data: {
-        qualityReportId: reportId,
-        status: passed ? 'VALIDATED' : 'REJECTED',
-      },
+      data: { qualityReportId: reportId },
     });
-
-    if (passed) {
-      console.log(`[SubmissionService] Submission ${submissionId} passed quality gates`);
-      await this.requestWorkflowCreation(submissionId, domain, reportId, tenantId, userId, submission.campaignId);
-    } else {
-      console.warn(
-        `[SubmissionService] Submission ${submissionId} rejected by quality gates: ${overallStatus}`,
-      );
+    if (res.count === 0) {
+      console.warn(`[SubmissionService] Quality report ${reportId} for unknown submission ${submissionId}`);
+      return;
     }
+    console.log(
+      `[SubmissionService] Quality report ${reportId} (${overallStatus}) attached to submission ${submissionId}`,
+    );
   }
 
   /**
@@ -682,38 +636,22 @@ export class SubmissionService {
       await this.kafka.subscribe(
         { topic: EVENTS.QUALITY.RECORD_VALIDATED, groupId: 'collecte-quality-validated-consumer' },
         async (payload) => {
-          const event = payload as unknown as QualityRecordValidatedEvent;
-          const { recordId, reportId, overallStatus, domain } = event.payload;
-          console.log(
-            `[CollecteEventConsumer] Quality VALIDATED for record ${recordId}: ${overallStatus}`,
-          );
-          await this.handleQualityResult(
-            recordId,
-            reportId,
-            overallStatus,
-            domain,
-            event.tenantId ?? '',
-            event.userId ?? '',
-          );
+          const { recordId, reportId, overallStatus } = payload as {
+            recordId: string; reportId: string; overallStatus: string;
+          };
+          if (!recordId || !reportId) return;
+          await this.handleQualityResult(recordId, reportId, overallStatus);
         },
       );
 
       await this.kafka.subscribe(
         { topic: EVENTS.QUALITY.RECORD_REJECTED, groupId: 'collecte-quality-rejected-consumer' },
         async (payload) => {
-          const event = payload as unknown as QualityRecordRejectedEvent;
-          const { recordId, reportId, overallStatus, domain } = event.payload;
-          console.log(
-            `[CollecteEventConsumer] Quality REJECTED for record ${recordId}: ${overallStatus}`,
-          );
-          await this.handleQualityResult(
-            recordId,
-            reportId,
-            overallStatus,
-            domain,
-            event.tenantId ?? '',
-            event.userId ?? '',
-          );
+          const { recordId, reportId, overallStatus } = payload as {
+            recordId: string; reportId: string; overallStatus: string;
+          };
+          if (!recordId || !reportId) return;
+          await this.handleQualityResult(recordId, reportId, overallStatus);
         },
       );
 

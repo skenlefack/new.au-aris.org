@@ -45,7 +45,7 @@ import {
   type WorkflowLevel,
   type SubmissionRecord,
 } from '@/lib/api/hooks';
-import { collecteClient } from '@/lib/api/client';
+import { apiClient, collecteClient } from '@/lib/api/client';
 import {
   useBulkWorkflowAction,
   useValidationChainsByUser,
@@ -376,6 +376,68 @@ function ChooseValidatorDialog({ onClose, onSelect, t }: {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
+/* ── Quality Report Panel (advisory — the validator decides) ─────────── */
+/* ══════════════════════════════════════════════════════════════════════════ */
+
+interface RawQualityViolation { id: string; gate: string; field: string; message: string; severity: string }
+interface RawQualityReport { id: string; overallStatus: 'PASSED' | 'WARNING' | 'FAILED'; violations?: RawQualityViolation[] }
+
+function QualityReportPanel({ reportId, t }: { reportId: string | null | undefined; t: (key: string) => string }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['quality', 'reports', reportId],
+    queryFn: () => apiClient.get<{ data: RawQualityReport }>(`/data-quality/reports/${reportId}`),
+    enabled: !!reportId,
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  if (!reportId) {
+    return (
+      <div className="mx-6 mb-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800">
+        <Shield className="h-4 w-4 shrink-0" /> {t('qualityPending')}
+      </div>
+    );
+  }
+  if (isLoading) return null;
+  const report = (data as any)?.data ?? data;
+  if (isError || !report?.overallStatus) {
+    return (
+      <div className="mx-6 mb-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800">
+        <Shield className="h-4 w-4 shrink-0" /> {t('qualityUnavailable')}
+      </div>
+    );
+  }
+
+  const status = report.overallStatus as RawQualityReport['overallStatus'];
+  const violations: RawQualityViolation[] = Array.isArray(report.violations) ? report.violations : [];
+  const style = {
+    PASSED: { box: 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-400', icon: <CheckCircle className="h-4 w-4 shrink-0" />, label: t('qualityPassed') },
+    WARNING: { box: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-400', icon: <AlertTriangle className="h-4 w-4 shrink-0" />, label: t('qualityWarning') },
+    FAILED: { box: 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-400', icon: <XCircle className="h-4 w-4 shrink-0" />, label: t('qualityFailed') },
+  }[status] ?? { box: 'border-gray-200 bg-gray-50', text: 'text-gray-600', icon: <Shield className="h-4 w-4 shrink-0" />, label: status };
+
+  return (
+    <div className={cn('mx-6 mb-3 rounded-xl border px-4 py-3', style.box)}>
+      <div className={cn('flex items-center gap-2 text-sm font-semibold', style.text)}>
+        {style.icon} {style.label}
+        {violations.length > 0 && <span className="text-xs font-normal">({violations.length})</span>}
+      </div>
+      {violations.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {violations.slice(0, 10).map((v) => (
+            <li key={v.id} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
+              <span className={cn('mt-1 h-1.5 w-1.5 shrink-0 rounded-full', v.severity === 'FAIL' ? 'bg-red-500' : 'bg-amber-500')} />
+              <span><span className="font-medium">{v.gate}</span>{v.field ? ` · ${v.field}` : ''} — {v.message}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-2 text-[11px] text-gray-500">{t('qualityAdvisory')}</p>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════ */
 /* ── Submission Detail Modal                                             ── */
 /* ══════════════════════════════════════════════════════════════════════════ */
 
@@ -531,6 +593,9 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                   <div><p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">{t('version')}</p><p className="text-sm font-semibold text-gray-900 dark:text-white">v{item.version}</p></div>
                 </div>
               </div>
+
+              {/* Quality gates (advisory) */}
+              <QualityReportPanel reportId={(item as any).qualityReportId} t={t} />
 
               {/* Data sections */}
               <div className="space-y-1 px-6 pb-6">
