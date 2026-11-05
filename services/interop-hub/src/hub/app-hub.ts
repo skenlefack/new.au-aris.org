@@ -44,6 +44,15 @@ import { registerCountryIngestionRoutes } from '../routes/country-ingestion.rout
 
 // Hub v3 services
 import { HubAuditService } from './audit-service';
+import { ConnectionService } from './connection.service';
+import { PipelineService } from './pipeline.service';
+import { PipelineEngineService } from './pipeline-engine.service';
+import { MappingService } from './mapping.service';
+import { TransactionService } from './transaction.service';
+import { AgreementService } from './agreement.service';
+import { NotificationService } from './notification.service';
+import { ScheduleService } from './schedule.service';
+import { triggerOutboundPipelines } from './outbound-trigger';
 
 // Hub v3 routes
 import { registerConnectionRoutes } from './routes/connection.routes';
@@ -144,7 +153,35 @@ export async function buildHubApp(): Promise<FastifyInstance> {
 
   // ─── Hub v3 services ───────────────────────────────────────
   const hubAudit = new HubAuditService(app.prisma);
+  const connectionService = new ConnectionService(app.prisma, kafkaProducer, app.log);
+  const pipelineService = new PipelineService(app.prisma, kafkaProducer, app.log);
+  const mappingService = new MappingService(app.prisma, app.log);
+  const notificationService = new NotificationService(app.prisma, app.log);
+  const pipelineEngine = new PipelineEngineService(
+    app.prisma, kafkaProducer, mappingService, notificationService, app.log,
+  );
+  const transactionService = new TransactionService(
+    app.prisma, kafkaProducer, pipelineEngine, app.log,
+  );
+  const agreementService = new AgreementService(app.prisma, kafkaProducer, app.log);
+  const scheduleService = new ScheduleService(
+    app.prisma, pipelineEngine, app.log,
+  );
+
   app.decorate('hubAudit', hubAudit);
+  app.decorate('hubConnectionService', connectionService);
+  app.decorate('hubPipelineService', pipelineService);
+  app.decorate('hubMappingService', mappingService);
+  app.decorate('hubNotificationService', notificationService);
+  app.decorate('hubPipelineEngine', pipelineEngine);
+  app.decorate('hubTransactionService', transactionService);
+  app.decorate('hubAgreementService', agreementService);
+  app.decorate('hubScheduleService', scheduleService);
+
+  // Stop the hub scheduler on shutdown
+  app.addHook('onClose', async () => {
+    scheduleService.stopScheduler();
+  });
 
   // ─── Error handler ─────────────────────────────────────────
   app.setErrorHandler((error: FastifyError, request, reply) => {
@@ -187,155 +224,53 @@ export async function buildHubApp(): Promise<FastifyInstance> {
 
   // ─── Kafka consumers (set up after server ready) ───────────
   app.addHook('onReady', async () => {
-    // Start legacy export scheduler
+    // Start legacy export scheduler + hub scheduler
     exportScheduler.start();
+    scheduleService.startScheduler();
 
     try {
-      // Subscribe to WAHIS-ready events (Level 2 approved)
-      // Triggers outbound WAHIS pipeline
+      const runOutbound = (
+        tenantId: string,
+        data: Record<string, unknown>,
+        filter: Record<string, unknown>,
+      ) => triggerOutboundPipelines(app.prisma as any, pipelineEngine, app.log, tenantId, data, filter);
+
+      // WAHIS-ready events (Level 2 approved) → trigger WAHIS outbound
       await kafkaConsumer.subscribe(
         { topic: TOPIC_AU_WORKFLOW_WAHIS_READY, groupId: 'interop-hub-wahis-ready' },
         async (payload, headers) => {
           const data = payload as Record<string, unknown> | null;
           if (!data) return;
-
-          const instanceId = data.id ?? data.instanceId ?? data.instance_id;
-          const tenantId = headers['tenantId'] ?? (data.tenantId as string | undefined) ?? (data.tenant_id as string | undefined);
-
-          app.log.info(`WAHIS-ready event: instance=${instanceId as string} tenant=${tenantId as string}`);
-
-          // Find WAHIS outbound pipelines and trigger them
+          const tenantId = (headers['tenantId'] ?? data.tenantId ?? data.tenant_id) as string | undefined;
           if (tenantId) {
-            const wahisPipelines = await app.prisma.hubPipeline.findMany({
-              where: {
-                tenant_id: tenantId as string,
-                direction: 'OUTBOUND',
-                status: 'ACTIVE',
-                mode: 'AUTOMATIC',
-                connection: { system_type: 'WAHIS' },
-              },
-              include: { connection: true },
-            });
-
-            for (const pipeline of wahisPipelines) {
-              await app.prisma.hubTransaction.create({
-                data: {
-                  pipeline_id: pipeline.id,
-                  connection_id: pipeline.connection_id,
-                  tenant_id: pipeline.tenant_id,
-                  direction: 'OUTBOUND',
-                  status: 'QUEUED',
-                  mode: pipeline.mode,
-                  domain: pipeline.domain,
-                  entity_type: pipeline.entity_type,
-                  country_code: pipeline.connection.country_code,
-                  export_format: pipeline.export_format,
-                  source_payload: data,
-                  max_retries: pipeline.max_retries,
-                  initiated_by: pipeline.created_by,
-                },
-              });
-              app.log.info(`Queued WAHIS outbound transaction for pipeline=${pipeline.id}`);
-            }
+            await runOutbound(tenantId, data, { connection: { system_type: 'WAHIS' } });
           }
         },
       );
 
-      // Subscribe to analytics-ready events (Level 4 approved)
-      // Triggers outbound analytics pipelines (FAOSTAT, EMPRES, etc.)
+      // Analytics-ready events (Level 4 approved) → trigger FAOSTAT/EMPRES/etc.
       await kafkaConsumer.subscribe(
         { topic: TOPIC_AU_WORKFLOW_ANALYTICS_READY, groupId: 'interop-hub-analytics-ready' },
         async (payload, headers) => {
           const data = payload as Record<string, unknown> | null;
           if (!data) return;
-
-          const instanceId = data.id ?? data.instanceId ?? data.instance_id;
-          const tenantId = headers['tenantId'] ?? (data.tenantId as string | undefined) ?? (data.tenant_id as string | undefined);
-
-          app.log.info(`Analytics-ready event: instance=${instanceId as string} tenant=${tenantId as string}`);
-
-          // Find non-WAHIS outbound pipelines and trigger them
+          const tenantId = (headers['tenantId'] ?? data.tenantId ?? data.tenant_id) as string | undefined;
           if (tenantId) {
-            const pipelines = await app.prisma.hubPipeline.findMany({
-              where: {
-                tenant_id: tenantId as string,
-                direction: 'OUTBOUND',
-                status: 'ACTIVE',
-                mode: 'AUTOMATIC',
-                connection: { system_type: { not: 'WAHIS' } },
-              },
-              include: { connection: true },
-            });
-
-            for (const pipeline of pipelines) {
-              await app.prisma.hubTransaction.create({
-                data: {
-                  pipeline_id: pipeline.id,
-                  connection_id: pipeline.connection_id,
-                  tenant_id: pipeline.tenant_id,
-                  direction: 'OUTBOUND',
-                  status: 'QUEUED',
-                  mode: pipeline.mode,
-                  domain: pipeline.domain,
-                  entity_type: pipeline.entity_type,
-                  country_code: pipeline.connection.country_code,
-                  export_format: pipeline.export_format,
-                  source_payload: data,
-                  max_retries: pipeline.max_retries,
-                  initiated_by: pipeline.created_by,
-                },
-              });
-              app.log.info(`Queued analytics outbound transaction for pipeline=${pipeline.id}`);
-            }
+            await runOutbound(tenantId, data, { connection: { system_type: { not: 'WAHIS' } } });
           }
         },
       );
 
-      // Subscribe to form submissions — for inbound triggers tied to collecte
+      // Form submissions → trigger domain-specific outbound
       await kafkaConsumer.subscribe(
         { topic: TOPIC_MS_COLLECTE_FORM_SUBMITTED, groupId: 'interop-hub-form-submitted' },
         async (payload, headers) => {
           const data = payload as Record<string, unknown> | null;
           if (!data) return;
-
-          const tenantId = headers['tenantId'] ?? (data.tenantId as string | undefined) ?? (data.tenant_id as string | undefined);
+          const tenantId = (headers['tenantId'] ?? data.tenantId ?? data.tenant_id) as string | undefined;
           const domain = data.domain as string | undefined;
-
-          app.log.info(`Form submitted event: tenant=${tenantId as string} domain=${domain ?? 'unknown'}`);
-
-          // Find outbound pipelines triggered by form submissions
           if (tenantId && domain) {
-            const pipelines = await app.prisma.hubPipeline.findMany({
-              where: {
-                tenant_id: tenantId as string,
-                direction: 'OUTBOUND',
-                domain,
-                status: 'ACTIVE',
-                mode: 'AUTOMATIC',
-              },
-              include: { connection: true },
-            });
-
-            for (const pipeline of pipelines) {
-              await app.prisma.hubTransaction.create({
-                data: {
-                  pipeline_id: pipeline.id,
-                  connection_id: pipeline.connection_id,
-                  tenant_id: pipeline.tenant_id,
-                  direction: 'OUTBOUND',
-                  status: 'QUEUED',
-                  mode: pipeline.mode,
-                  domain: pipeline.domain,
-                  entity_type: pipeline.entity_type,
-                  country_code: pipeline.connection.country_code,
-                  export_format: pipeline.export_format,
-                  source_payload: data,
-                  max_retries: pipeline.max_retries,
-                  initiated_by: pipeline.created_by,
-                },
-              });
-              app.log.info(`Queued form-triggered outbound for pipeline=${pipeline.id}`);
-            }
+            await runOutbound(tenantId, data, { domain });
           }
         },
       );

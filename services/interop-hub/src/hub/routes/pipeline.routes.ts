@@ -254,40 +254,32 @@ export async function registerPipelineRoutes(app: FastifyInstance): Promise<void
       throw badRequest('Pipeline must be ACTIVE to execute');
     }
 
-    // Create a transaction record for this execution
-    const transaction = await app.prisma.hubTransaction.create({
-      data: {
-        pipeline_id: id,
-        connection_id: pipeline.connection_id,
-        tenant_id: user.tenantId,
-        direction: pipeline.direction,
-        status: 'QUEUED',
-        mode: pipeline.mode,
-        domain: pipeline.domain,
-        entity_type: pipeline.entity_type,
-        country_code: pipeline.connection.country_code,
-        target_campaign_id: pipeline.target_campaign_id,
-        target_form_id: pipeline.target_form_id,
-        export_format: pipeline.export_format,
-        source_payload: body.payload ?? body.records ?? null,
-        max_retries: pipeline.max_retries,
-        initiated_by: user.userId,
-      },
+    if (!pipeline.steps.some((st: { is_enabled: boolean }) => st.is_enabled)) {
+      throw badRequest('Pipeline has no enabled steps');
+    }
+
+    // Records: explicit array, or a single payload object wrapped as one record
+    let records: Record<string, unknown>[] = [];
+    if (Array.isArray(body.records)) {
+      records = body.records as Record<string, unknown>[];
+    } else if (Array.isArray(body.payload)) {
+      records = body.payload as Record<string, unknown>[];
+    } else if (body.payload && typeof body.payload === 'object') {
+      records = [body.payload as Record<string, unknown>];
+    }
+
+    // The engine creates the transaction, runs every step and updates the
+    // pipeline run counters; it returns the final transaction.
+    const transaction = await app.hubPipelineEngine.executePipeline(id, { records }, user.userId);
+
+    await app.hubAudit.log(user, 'pipeline', id, 'EXECUTE', {
+      transactionId: transaction.id,
+      status: transaction.status,
     });
 
-    // Increment total_runs
-    await app.prisma.hubPipeline.update({
-      where: { id },
-      data: { total_runs: { increment: 1 }, last_run_at: new Date(), last_run_status: 'QUEUED' },
-    });
-
-    await app.hubAudit.log(user, 'pipeline', id, 'EXECUTE', { transactionId: transaction.id });
-
-    // TODO: Enqueue pipeline execution via Kafka or in-process engine
-    // For now, return the transaction to track status
-    return reply.code(202).send({
+    return reply.code(200).send({
       data: transaction,
-      message: 'Pipeline execution queued',
+      message: `Pipeline executed (${transaction.status})`,
     });
   });
 
