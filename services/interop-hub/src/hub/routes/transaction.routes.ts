@@ -88,19 +88,10 @@ export async function registerTransactionRoutes(app: FastifyInstance): Promise<v
       throw badRequest(`Transaction must be in AWAITING_REVIEW status (current: ${transaction.status})`);
     }
 
-    const updated = await app.prisma.hubTransaction.update({
-      where: { id },
-      data: {
-        status: 'APPROVED',
-        reviewed_by: user.userId,
-        reviewed_at: new Date(),
-        review_notes: body.notes ?? null,
-      },
-    });
+    // Marks APPROVED, then runs the pipeline steps after the review (loading / delivery)
+    const updated = await app.hubTransactionService.approve(id, user.tenantId, user.userId, body.notes);
 
-    await app.hubAudit.log(user, 'transaction', id, 'APPROVE', { notes: body.notes });
-
-    // TODO: Resume pipeline execution after approval
+    await app.hubAudit.log(user, 'transaction', id, 'APPROVE', { notes: body.notes, status: updated.status });
 
     return { data: updated };
   });
@@ -170,7 +161,22 @@ export async function registerTransactionRoutes(app: FastifyInstance): Promise<v
 
     await app.hubAudit.log(user, 'transaction', id, 'RETRY', { retryCount: updated.retry_count });
 
-    // TODO: Enqueue retry via Kafka or in-process engine
+    // Re-run the pipeline on the same transaction with the original records
+    const records = Array.isArray(transaction.source_payload)
+      ? (transaction.source_payload as Record<string, unknown>[])
+      : transaction.source_payload ? [transaction.source_payload as Record<string, unknown>] : [];
+    await app.prisma.hubTransactionRecord.deleteMany({ where: { transaction_id: id } });
+    setImmediate(() => {
+      app.hubPipelineEngine
+        .executePipeline(transaction.pipeline_id, { records }, user.userId, { transactionId: id })
+        .catch(async (err: Error) => {
+          app.log.error(`Retry of transaction ${id} failed: ${err.message}`);
+          await app.prisma.hubTransaction.update({
+            where: { id },
+            data: { status: 'FAILED', error_message: err.message.slice(0, 1000), completed_at: new Date() },
+          }).catch(() => undefined);
+        });
+    });
 
     return { data: updated, message: 'Transaction queued for retry' };
   });

@@ -155,102 +155,22 @@ export async function registerCountryIngestionRoutes(app: FastifyInstance): Prom
   // Data Ingestion Endpoints
   // ────────────────────────────────────────────────
 
-  // POST /api/v1/interop/country-ingestion/push — API Push ingestion
-  app.post('/api/v1/interop/country-ingestion/push', {
-    preHandler: [...authAndTenant, ingestionRoles],
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const user = request.user as AuthenticatedUser;
-    const dto = request.body as {
-      domain: string;
-      entityType: string;
-      sourceSystem?: string;
-      sourceVersion?: string;
-      records: Record<string, unknown>[];
-      mappingProfile?: string;
-    };
-
-    if (!dto.domain || !dto.entityType || !Array.isArray(dto.records) || dto.records.length === 0) {
-      return reply.code(400).send({
-        statusCode: 400,
-        message: 'domain, entityType, and non-empty records array are required',
+  // Legacy ingestion endpoints are retired: they validated records but never loaded
+  // them into ARIS. Partners must use the Interop-Hub ingest API, which runs the full
+  // pipeline (mapping, quality gates, review, loading into collecte).
+  const retired = (replacement: string) =>
+    async (_request: FastifyRequest, reply: FastifyReply) => reply
+      .code(410)
+      .header('Link', `<${replacement}>; rel="successor-version"`)
+      .send({
+        statusCode: 410,
+        message: `This endpoint has been retired. Use ${replacement} (see the ARIS Interop-Hub specification).`,
+        errors: [{ field: 'endpoint', message: `Replaced by ${replacement}` }],
       });
-    }
 
-    if (dto.records.length > 10000) {
-      return reply.code(400).send({
-        statusCode: 400,
-        message: 'Maximum 10,000 records per push. Use file upload for larger batches.',
-      });
-    }
-
-    const result = await app.countryIngestionService.ingestPush(dto, user);
-    return reply.code(201).send(result);
-  });
-
-  // POST /api/v1/interop/country-ingestion/upload — File upload ingestion
-  app.post('/api/v1/interop/country-ingestion/upload', {
-    preHandler: [...authAndTenant, ingestionRoles],
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const user = request.user as AuthenticatedUser;
-
-    // Fastify multipart — file comes from request body for multipart
-    const data = await (request as any).file();
-    if (!data) {
-      return reply.code(400).send({
-        statusCode: 400,
-        message: 'File upload is required (multipart/form-data with file field)',
-      });
-    }
-
-    const fileBuffer = await data.toBuffer();
-    const fileName = data.filename;
-
-    // Get fields from multipart
-    const fields = data.fields as Record<string, { value: string }>;
-    const domain = fields.domain?.value;
-    const entityType = fields.entityType?.value;
-    const countryCode = fields.countryCode?.value;
-    const period = fields.period?.value;
-    const mappingProfile = fields.mappingProfile?.value;
-
-    if (!domain || !entityType || !countryCode) {
-      return reply.code(400).send({
-        statusCode: 400,
-        message: 'domain, entityType, and countryCode fields are required',
-      });
-    }
-
-    const result = await app.countryIngestionService.ingestFileUpload(
-      { domain, entityType, countryCode, period, mappingProfile },
-      fileBuffer,
-      fileName,
-      user,
-    );
-    return reply.code(201).send(result);
-  });
-
-  // POST /api/v1/interop/country-ingestion/pull — Trigger manual API Pull
-  app.post('/api/v1/interop/country-ingestion/pull', {
-    preHandler: [...authAndTenant, adminRoles],
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const user = request.user as AuthenticatedUser;
-    const dto = request.body as {
-      connectionId: string;
-      domain?: string;
-      dateFrom?: string;
-      dateTo?: string;
-    };
-
-    if (!dto.connectionId) {
-      return reply.code(400).send({
-        statusCode: 400,
-        message: 'connectionId is required',
-      });
-    }
-
-    const result = await app.countryIngestionService.triggerPull(dto.connectionId, dto, user);
-    return reply.code(201).send(result);
-  });
+  app.post('/api/v1/interop/country-ingestion/push', retired('/api/v1/hub/ingest/push'));
+  app.post('/api/v1/interop/country-ingestion/upload', retired('/api/v1/hub/ingest/upload'));
+  app.post('/api/v1/interop/country-ingestion/pull', retired('/api/v1/hub/pipelines/{id}/execute'));
 
   // ────────────────────────────────────────────────
   // Transaction History

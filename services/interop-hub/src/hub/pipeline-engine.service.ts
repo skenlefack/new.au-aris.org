@@ -44,8 +44,19 @@ import type {
 } from './types';
 import type { MappingService } from './mapping.service';
 import type { NotificationService } from './notification.service';
+import { adapterRegistry } from './adapters';
+import type { FormatBuildResult } from './adapters';
+import { issueServiceToken } from './service-token';
 
 const KAFKA_TIMEOUT_MS = 5_000;
+
+/** Export format -> adapter system type used to build it. */
+const FORMAT_ADAPTER: Record<string, string> = {
+  WOAH_XML: 'WAHIS', WOAH_JSON: 'WAHIS', EMPRES_JSON: 'EMPRES',
+  FAOSTAT_CSV: 'FAOSTAT', FAOSTAT_JSON: 'FAOSTAT', FISHSTATJ_CSV: 'FISHSTATJ',
+  CITES_CSV: 'CITES', DHIS2_JSON: 'DHIS2', FHIR_JSON: 'FHIR',
+  CSV_GENERIC: 'REST_API', JSON_GENERIC: 'REST_API',
+};
 const SERVICE_NAME = 'interop-hub';
 
 /** Status mapping: step type -> transaction status while that step is running */
@@ -63,6 +74,9 @@ const STEP_STATUS_MAP: Partial<Record<HubStepType, HubTransactionStatus>> = {
 };
 
 export class PipelineEngineService {
+  /** Output of the FORMAT_BUILD step, kept per transaction until DELIVER / finalize. */
+  private readonly formatted = new Map<string, FormatBuildResult>();
+
   constructor(
     private readonly prisma: PrismaClient,
     private readonly kafka: StandaloneKafkaProducer,
@@ -123,6 +137,7 @@ export class PipelineEngineService {
     pipelineId: string,
     input: PipelineExecutionInput,
     initiatedBy: string,
+    opts: { transactionId?: string } = {},
   ): Promise<HubTransaction> {
     // Load pipeline with steps and connection
     const pipeline = await (this.prisma as any).hubPipeline.findUnique({
@@ -145,7 +160,18 @@ export class PipelineEngineService {
 
     // Create transaction
     const startedAt = new Date();
-    const transaction = await this.txDb.create({
+    const transaction = opts.transactionId
+      ? await this.txDb.update({
+        where: { id: opts.transactionId },
+        data: {
+          status: 'RECEIVED' as HubTransactionStatus,
+          records_total: input.records.length,
+          source_payload: input.records as any,
+          started_at: startedAt,
+          error_message: null,
+        },
+      })
+      : await this.txDb.create({
       data: {
         pipeline_id: pipelineId,
         connection_id: pipeline.connection_id,
@@ -182,6 +208,7 @@ export class PipelineEngineService {
     let finalStatus: HubTransactionStatus = 'COMPLETED';
     let errorMessage: string | null = null;
     let stoppedAtNotify = false;
+    const rejected = new Map<number, string>();
 
     for (const step of pipeline.steps) {
       // Update transaction status
@@ -206,6 +233,10 @@ export class PipelineEngineService {
         if (stepResult.success) {
           logStatus = 'COMPLETED';
           currentRecords = stepResult.records;
+          // Per-record errors on a successful step reject only those records
+          for (const e of stepResult.errors ?? []) {
+            if (e.record_index >= 0 && !rejected.has(e.record_index)) rejected.set(e.record_index, e.message);
+          }
         } else {
           logStatus = 'FAILED';
           stepErrorMsg = stepResult.errors?.map(e => e.message).join('; ') ?? 'Step failed';
@@ -284,30 +315,39 @@ export class PipelineEngineService {
     let recordsRejected = 0;
     let recordsWarning = 0;
 
-    if (finalStatus === 'COMPLETED' || finalStatus === 'PARTIAL') {
+    if (finalStatus === 'COMPLETED') {
       // Create transaction records
       for (let i = 0; i < currentRecords.length; i++) {
-        const recordStatus = 'ACCEPTED';
+        const reason = rejected.get(i);
         await this.recordDb.create({
           data: {
             transaction_id: txId,
             record_index: i,
-            status: recordStatus,
+            status: reason ? 'REJECTED' : 'ACCEPTED',
+            error_message: reason ?? null,
             source_data: (input.records[i] ?? null) as any,
             mapped_data: (currentRecords[i] ?? null) as any,
-            target_data: (currentRecords[i] ?? null) as any,
+            target_data: reason ? null : (currentRecords[i] ?? null) as any,
           },
         });
-        recordsAccepted++;
+        if (reason) recordsRejected++; else recordsAccepted++;
+      }
+      if (recordsRejected > 0) {
+        finalStatus = recordsAccepted > 0 ? 'PARTIAL' : 'FAILED';
+        errorMessage = `${recordsRejected} record(s) rejected`;
       }
     }
+    const built = this.formatted.get(txId);
+    this.formatted.delete(txId);
 
     await this.txDb.update({
       where: { id: txId },
       data: {
         status: finalStatus,
         current_step: stoppedAtNotify ? 'AWAITING_REVIEW' : null,
-        target_payload: finalStatus === 'COMPLETED' ? (currentRecords as any) : null,
+        target_payload: finalStatus === 'COMPLETED' || finalStatus === 'PARTIAL'
+          ? (built ? this.serializeFormatted(built) : currentRecords) as any
+          : null,
         records_accepted: recordsAccepted,
         records_rejected: recordsRejected,
         records_warning: recordsWarning,
@@ -391,7 +431,7 @@ export class PipelineEngineService {
       case 'ENRICH':
         return this.stepEnrich(records, config as EnrichStepConfig);
       case 'FORMAT_BUILD':
-        return this.stepFormatBuild(records, config as FormatBuildStepConfig, pipeline);
+        return this.stepFormatBuild(records, config as FormatBuildStepConfig, pipeline, transaction);
       case 'ROUTE':
         return this.stepRoute(records, config as RouteStepConfig, pipeline, transaction);
       case 'NOTIFY':
@@ -639,20 +679,40 @@ export class PipelineEngineService {
   private async stepFormatBuild(
     records: Record<string, unknown>[],
     config: FormatBuildStepConfig,
-    pipeline: HubPipeline,
+    pipeline: HubPipeline & { connection?: any },
+    transaction: any,
   ): Promise<StepResult> {
     const format = config.format ?? pipeline.export_format;
     if (!format) {
       return { success: true, records };
     }
-
-    // Format building is delegated to specialized builders.
-    // For now, return records as-is — real adapters (WAHIS XML, FAOSTAT CSV, etc.)
-    // will be implemented in Phase 7.
+    const adapter = adapterRegistry.get(FORMAT_ADAPTER[format] ?? pipeline.connection?.system_type ?? '');
+    if (!adapter) {
+      return { success: false, records, errors: [{ record_index: -1, message: `No format builder for ${format}` }] };
+    }
+    const result = await adapter.formatBuild(records, {
+      ...(config.options ?? {}),
+      format,
+      baseUrl: pipeline.connection?.base_url ?? undefined,
+      authType: pipeline.connection?.auth_type ?? 'NONE',
+      credentials: (pipeline.connection?.credentials ?? {}) as Record<string, unknown>,
+    });
+    this.formatted.set(transaction.id, result);
     return {
       success: true,
       records,
-      metadata: { format, builder: 'stub' },
+      metadata: { format: result.format, filename: result.filename, recordCount: result.recordCount },
+    };
+  }
+
+  private serializeFormatted(f: FormatBuildResult): Record<string, unknown> {
+    return {
+      format: f.format,
+      filename: f.filename,
+      content_type: f.contentType,
+      record_count: f.recordCount,
+      data: typeof f.data === 'string' ? f.data : f.data.toString('base64'),
+      encoding: typeof f.data === 'string' ? 'utf-8' : 'base64',
     };
   }
 
@@ -663,41 +723,58 @@ export class PipelineEngineService {
     transaction: any,
   ): Promise<StepResult> {
     if (pipeline.direction === 'INBOUND') {
-      // Route to collecte service — create submissions
-      const collecteUrl = config.collecte_url ?? process.env['COLLECTE_URL'] ?? 'http://localhost:3011';
+      // Load into ARIS: one collecte submission per record, authenticated as the pipeline owner
+      const collecteUrl = (config.collecte_url ?? process.env['COLLECTE_URL'] ?? 'http://collecte:3011').replace(/\/+$/, '');
       const campaignId = config.campaign_id ?? pipeline.target_campaign_id;
-      const formId = config.form_id ?? pipeline.target_form_id;
 
-      if (!campaignId || !formId) {
-        return { success: false, records, errors: [{ record_index: -1, message: 'No target campaign or form configured for INBOUND routing' }] };
+      if (!campaignId) {
+        return { success: false, records, errors: [{ record_index: -1, message: 'No target campaign configured for INBOUND routing' }] };
       }
 
+      let token: string;
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30_000);
-
-        const response = await fetch(`${collecteUrl}/api/v1/collecte/campaigns/${campaignId}/submissions/bulk`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            form_id: formId,
-            records,
-            source: 'interop-hub',
-            transaction_id: transaction.id,
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const body = await response.text();
-          return { success: false, records, errors: [{ record_index: -1, message: `Collecte service returned ${response.status}: ${body}` }] };
-        }
-
-        return { success: true, records };
+        token = await issueServiceToken(this.prisma as any, pipeline.created_by);
       } catch (err: any) {
-        return { success: false, records, errors: [{ record_index: -1, message: `Route to collecte failed: ${err.message}` }] };
+        return { success: false, records, errors: [{ record_index: -1, message: err.message }] };
       }
+
+      const errors: NonNullable<StepResult['errors']> = [];
+      for (let i = 0; i < records.length; i++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30_000);
+          const response = await fetch(`${collecteUrl}/api/v1/collecte/submissions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              campaignId,
+              data: records[i],
+              // Provenance: hub transaction + record position (data itself is left untouched)
+              deviceId: `interop-hub:${transaction.id}:${i}`,
+            }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+          const text = await response.text();
+          if (!response.ok) {
+            let message = text;
+            try { message = JSON.parse(text).message ?? text; } catch { /* keep raw text */ }
+            errors.push({ record_index: i, message: `Collecte ${response.status}: ${String(message).slice(0, 300)}` });
+            continue;
+          }
+          try {
+            const submissionId = JSON.parse(text)?.data?.id;
+            if (submissionId) records[i] = { ...records[i], _submission_id: submissionId };
+          } catch { /* response body is informative only */ }
+        } catch (err: any) {
+          errors.push({ record_index: i, message: `Route to collecte failed: ${err.message}` });
+        }
+      }
+
+      if (errors.length === records.length && records.length > 0) {
+        return { success: false, records, errors };
+      }
+      return { success: true, records, errors };
     }
 
     // OUTBOUND — prepare delivery (no-op; actual delivery in DELIVER step)
@@ -742,7 +819,13 @@ export class PipelineEngineService {
     transaction: any,
   ): Promise<StepResult> {
     const url = config.url ?? pipeline.connection?.base_url;
+    const built = this.formatted.get(transaction.id);
     if (!url) {
+      if (built) {
+        // No receiving API (e.g. WAHIS focal point, FAOSTAT): the package stays on the
+        // transaction (target_payload) for download.
+        return { success: true, records, metadata: { delivery: 'download', filename: built.filename } };
+      }
       return { success: false, records, errors: [{ record_index: -1, message: 'No delivery URL configured' }] };
     }
 
@@ -750,7 +833,7 @@ export class PipelineEngineService {
     const maxRetries = config.max_retries ?? 3;
     const retryDelay = config.retry_delay_ms ?? 5_000;
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      'Content-Type': built?.contentType ?? 'application/json',
       'User-Agent': 'ARIS-InteropHub/1.0',
       ...(config.headers ?? {}),
     };
@@ -783,7 +866,7 @@ export class PipelineEngineService {
         const response = await fetch(url, {
           method,
           headers,
-          body: JSON.stringify(records),
+          body: built ? built.data : JSON.stringify(records),
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
@@ -840,7 +923,7 @@ export class PipelineEngineService {
    */
   async resumeTransaction(transactionId: string, tenantId: string): Promise<HubTransaction> {
     const transaction = await this.txDb.findFirst({
-      where: { id: transactionId, tenant_id: tenantId, status: 'AWAITING_REVIEW' },
+      where: { id: transactionId, tenant_id: tenantId, status: { in: ['AWAITING_REVIEW', 'APPROVED'] } },
     });
     if (!transaction) {
       this.throwHttp(404, `Transaction ${transactionId} not found or not awaiting review`);
@@ -867,6 +950,7 @@ export class PipelineEngineService {
     let currentRecords = (transaction.mapped_payload ?? transaction.source_payload ?? []) as Record<string, unknown>[];
     let finalStatus: HubTransactionStatus = 'COMPLETED';
     let errorMessage: string | null = null;
+    const rejected = new Map<number, string>();
 
     for (const step of remainingSteps) {
       const stepStatus = STEP_STATUS_MAP[step.step_type as HubStepType] ?? 'LOADING';
@@ -888,6 +972,9 @@ export class PipelineEngineService {
         if (stepResult.success) {
           logStatus = 'COMPLETED';
           currentRecords = stepResult.records;
+          for (const e of stepResult.errors ?? []) {
+            if (e.record_index >= 0 && !rejected.has(e.record_index)) rejected.set(e.record_index, e.message);
+          }
         } else {
           logStatus = 'FAILED';
           stepErrorMsg = stepResult.errors?.map(e => e.message).join('; ') ?? 'Step failed';
@@ -920,12 +1007,41 @@ export class PipelineEngineService {
       }
     }
 
+    let recordsAccepted = 0;
+    let recordsRejected = 0;
+    if (finalStatus === 'COMPLETED') {
+      for (let i = 0; i < currentRecords.length; i++) {
+        const reason = rejected.get(i);
+        await this.recordDb.create({
+          data: {
+            transaction_id: transactionId,
+            record_index: i,
+            status: reason ? 'REJECTED' : 'ACCEPTED',
+            error_message: reason ?? null,
+            mapped_data: (currentRecords[i] ?? null) as any,
+            target_data: reason ? null : (currentRecords[i] ?? null) as any,
+          },
+        });
+        if (reason) recordsRejected++; else recordsAccepted++;
+      }
+      if (recordsRejected > 0) {
+        finalStatus = recordsAccepted > 0 ? 'PARTIAL' : 'FAILED';
+        errorMessage = `${recordsRejected} record(s) rejected`;
+      }
+    }
+    const built = this.formatted.get(transactionId);
+    this.formatted.delete(transactionId);
+
     await this.txDb.update({
       where: { id: transactionId },
       data: {
         status: finalStatus,
         current_step: null,
-        target_payload: finalStatus === 'COMPLETED' ? (currentRecords as any) : null,
+        records_accepted: recordsAccepted,
+        records_rejected: recordsRejected,
+        target_payload: finalStatus === 'COMPLETED' || finalStatus === 'PARTIAL'
+          ? (built ? this.serializeFormatted(built) : currentRecords) as any
+          : null,
         error_message: errorMessage,
         completed_at: new Date(),
         duration_ms: Date.now() - new Date(transaction.started_at).getTime(),

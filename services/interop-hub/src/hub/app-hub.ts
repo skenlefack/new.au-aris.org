@@ -53,6 +53,7 @@ import { AgreementService } from './agreement.service';
 import { NotificationService } from './notification.service';
 import { ScheduleService } from './schedule.service';
 import { triggerOutboundPipelines } from './outbound-trigger';
+import { registerRawJsonParser } from './raw-json-parser';
 
 // Hub v3 routes
 import { registerConnectionRoutes } from './routes/connection.routes';
@@ -88,6 +89,9 @@ export async function buildHubApp(): Promise<FastifyInstance> {
       files: 1,
     },
   });
+
+  // ─── JSON body parser that keeps the raw body (webhook HMAC check) ──
+  registerRawJsonParser(app);
 
   // ─── Tracing ───────────────────────────────────────────────
   await app.register(tracingPlugin);
