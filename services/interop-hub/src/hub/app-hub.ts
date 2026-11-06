@@ -54,6 +54,7 @@ import { NotificationService } from './notification.service';
 import { ScheduleService } from './schedule.service';
 import { triggerOutboundPipelines } from './outbound-trigger';
 import { registerRawJsonParser } from './raw-json-parser';
+import { maskCredentials } from './redact';
 
 // Hub v3 routes
 import { registerConnectionRoutes } from './routes/connection.routes';
@@ -68,6 +69,8 @@ import { registerIngestRoutes } from './routes/ingest.routes';
 
 export async function buildHubApp(): Promise<FastifyInstance> {
   const app = Fastify({
+    // Ingest batches of up to 10,000 records do not fit Fastify's 1 MiB default
+    bodyLimit: 50 * 1024 * 1024,
     logger: {
       level: process.env['LOG_LEVEL'] ?? 'info',
       transport: process.env['NODE_ENV'] !== 'production'
@@ -92,6 +95,9 @@ export async function buildHubApp(): Promise<FastifyInstance> {
 
   // ─── JSON body parser that keeps the raw body (webhook HMAC check) ──
   registerRawJsonParser(app);
+
+  // Never return connection secrets (apiKey, token, webhookSecret, passwords)
+  app.addHook('preSerialization', async (_request, _reply, payload) => maskCredentials(payload));
 
   // ─── Tracing ───────────────────────────────────────────────
   await app.register(tracingPlugin);

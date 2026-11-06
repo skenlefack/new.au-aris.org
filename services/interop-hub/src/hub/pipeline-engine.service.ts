@@ -49,6 +49,9 @@ import type { FormatBuildResult } from './adapters';
 import { issueServiceToken } from './service-token';
 
 const KAFKA_TIMEOUT_MS = 5_000;
+const ROUTE_CONCURRENCY = 5;
+/** Loading time budget per record for the ROUTE step (one collecte call each). */
+const ROUTE_MS_PER_RECORD = 1_500;
 
 /** Export format -> adapter system type used to build it. */
 const FORMAT_ADAPTER: Record<string, string> = {
@@ -227,7 +230,7 @@ export class PipelineEngineService {
         // Execute step with timeout
         stepResult = await this.executeWithTimeout(
           () => this.executeStep(step, currentRecords, transaction, pipeline),
-          step.timeout_ms,
+          this.stepTimeout(step, currentRecords.length),
         );
 
         if (stepResult.success) {
@@ -739,7 +742,15 @@ export class PipelineEngineService {
       }
 
       const errors: NonNullable<StepResult['errors']> = [];
-      for (let i = 0; i < records.length; i++) {
+      // Up to ROUTE_CONCURRENCY submissions in flight at once
+      let next = 0;
+      const worker = async () => {
+        while (next < records.length) {
+          const i = next++;
+          await loadOne(i);
+        }
+      };
+      const loadOne = async (i: number) => {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 30_000);
@@ -760,7 +771,7 @@ export class PipelineEngineService {
             let message = text;
             try { message = JSON.parse(text).message ?? text; } catch { /* keep raw text */ }
             errors.push({ record_index: i, message: `Collecte ${response.status}: ${String(message).slice(0, 300)}` });
-            continue;
+            return;
           }
           try {
             const submissionId = JSON.parse(text)?.data?.id;
@@ -769,7 +780,9 @@ export class PipelineEngineService {
         } catch (err: any) {
           errors.push({ record_index: i, message: `Route to collecte failed: ${err.message}` });
         }
-      }
+      };
+      await Promise.all(Array.from({ length: Math.min(ROUTE_CONCURRENCY, records.length) }, worker));
+      errors.sort((x, y) => x.record_index - y.record_index);
 
       if (errors.length === records.length && records.length > 0) {
         return { success: false, records, errors };
@@ -906,6 +919,13 @@ export class PipelineEngineService {
 
   // ─── Utilities ──────────────────────────────────────────────────
 
+  /** ROUTE makes one call per record: its timeout grows with the batch size. */
+  private stepTimeout(step: HubPipelineStep, recordCount: number): number {
+    const base = step.timeout_ms ?? 30_000;
+    if (step.step_type !== 'ROUTE') return base;
+    return Math.max(base, 10_000 + Math.ceil(recordCount / ROUTE_CONCURRENCY) * ROUTE_MS_PER_RECORD);
+  }
+
   private async executeWithTimeout<T>(fn: () => Promise<T>, timeoutMs: number): Promise<T> {
     return Promise.race([
       fn(),
@@ -967,7 +987,7 @@ export class PipelineEngineService {
       try {
         stepResult = await this.executeWithTimeout(
           () => this.executeStep(step, currentRecords, transaction, pipeline),
-          step.timeout_ms,
+          this.stepTimeout(step, currentRecords.length),
         );
         if (stepResult.success) {
           logStatus = 'COMPLETED';

@@ -9,7 +9,7 @@
 import { readFileSync } from 'node:fs';
 import jwt from 'jsonwebtoken';
 
-const TOKEN_TTL_SECONDS = 300;
+const TOKEN_TTL_SECONDS = 3600; // covers loading of the largest batches
 
 interface UserLookup {
   user: {

@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authAndTenant, hubManagerRoles, hubReadRoles } from '../auth';
 import { parsePagination, paginatedResponse, qs, getUser, badRequest, notFound } from '../helpers';
+import { mergeCredentials } from '../redact';
 
 export async function registerConnectionRoutes(app: FastifyInstance): Promise<void> {
   const prefix = '/api/v1/hub/connections';
@@ -128,6 +129,12 @@ export async function registerConnectionRoutes(app: FastifyInstance): Promise<vo
 
     // Strip read-only fields
     const { id: _, tenant_id: __, created_by: ___, created_at: ____, ...updates } = body;
+    if (updates.credentials && typeof updates.credentials === 'object') {
+      updates.credentials = mergeCredentials(
+        existing.credentials as Record<string, unknown> | null,
+        updates.credentials as Record<string, unknown>,
+      );
+    }
 
     const updated = await app.prisma.hubConnection.update({
       where: { id },

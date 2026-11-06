@@ -44,38 +44,31 @@ function processInBackground(
   });
 }
 
+
+/** Finds the ACTIVE inbound connection matching the X-API-Key header or a connection Bearer token. */
+async function identifyConnection(app: FastifyInstance, request: FastifyRequest): Promise<any | null> {
+  const apiKey = request.headers['x-api-key'] as string | undefined;
+  const authHeader = request.headers['authorization'] as string | undefined;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+  if (!apiKey && !token) return null;
+  const connections = await app.prisma.hubConnection.findMany({
+    where: { status: 'ACTIVE', direction: 'INBOUND' },
+  });
+  return connections.find((c: any) => {
+    const creds = c.credentials as Record<string, unknown> | null;
+    if (!creds) return false;
+    if (apiKey) return creds.apiKey === apiKey || creds.api_key === apiKey;
+    return creds.token === token || creds.bearerToken === token;
+  }) ?? null;
+}
+
 export async function registerIngestRoutes(app: FastifyInstance): Promise<void> {
   const prefix = '/api/v1/hub/ingest';
 
   // ── POST /ingest/push — Receive data push from external system ──
   // Identifies the connection by API key header or Bearer token
   app.post(`${prefix}/push`, async (request: FastifyRequest, reply: FastifyReply) => {
-    // Try to identify the connection by API key or authorization header
-    const apiKey = request.headers['x-api-key'] as string | undefined;
-    const authHeader = request.headers['authorization'] as string | undefined;
-
-    let connection: any = null;
-
-    if (apiKey) {
-      // Look up connection by API key stored in credentials.apiKey
-      const connections = await app.prisma.hubConnection.findMany({
-        where: { status: 'ACTIVE', direction: 'INBOUND' },
-      });
-      connection = connections.find((c) => {
-        const creds = c.credentials as Record<string, unknown> | null;
-        return creds && (creds.apiKey === apiKey || creds.api_key === apiKey);
-      });
-    } else if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      // Look up connection by bearer token stored in credentials.token
-      const connections = await app.prisma.hubConnection.findMany({
-        where: { status: 'ACTIVE', direction: 'INBOUND' },
-      });
-      connection = connections.find((c) => {
-        const creds = c.credentials as Record<string, unknown> | null;
-        return creds && (creds.token === token || creds.bearerToken === token);
-      });
-    }
+    const connection = await identifyConnection(app, request);
 
     if (!connection) {
       return reply.code(401).send({
@@ -281,6 +274,43 @@ export async function registerIngestRoutes(app: FastifyInstance): Promise<void> 
         message: pipeline.mode === 'AUTOMATIC' ? 'File queued for processing' : 'File queued; it will await manual review before loading',
       },
     });
+  });
+
+  // ── GET /ingest/transactions/:id — Status of a transaction, for the partner system ──
+  // Same credentials as the push (X-API-Key or connection token); limited to that connection.
+  app.get(`${prefix}/transactions/:id`, async (request: FastifyRequest, reply: FastifyReply) => {
+    const connection = await identifyConnection(app, request);
+    if (!connection) {
+      return reply.code(401).send({
+        statusCode: 401,
+        message: 'Invalid or missing API key / bearer token. Could not identify connection.',
+      });
+    }
+    const { id } = request.params as { id: string };
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw badRequest('Invalid transaction id');
+    const tx = await app.prisma.hubTransaction.findFirst({
+      where: { id, connection_id: connection.id },
+      include: { records: { orderBy: { record_index: 'asc' } } },
+    });
+    if (!tx) throw notFound('Transaction');
+    return {
+      data: {
+        transaction_id: tx.id,
+        status: tx.status,
+        records_total: tx.records_total,
+        records_accepted: tx.records_accepted,
+        records_rejected: tx.records_rejected,
+        error_message: tx.error_message,
+        started_at: tx.started_at,
+        completed_at: tx.completed_at,
+        records: tx.records.map((r: any) => ({
+          record_index: r.record_index,
+          status: r.status,
+          error_message: r.error_message,
+          submission_id: (r.target_data as Record<string, unknown> | null)?._submission_id ?? null,
+        })),
+      },
+    };
   });
 
   // ── POST /ingest/webhook/:connectionId — Webhook receiver ──
