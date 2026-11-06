@@ -594,7 +594,7 @@ services:
     volumes: *service-volumes
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.interop-hub.rule=PathPrefix(`/api/v1/interop`)"
+      - "traefik.http.routers.interop-hub.rule=PathPrefix(`/api/v1/interop`) || PathPrefix(`/api/v1/hub`)"
       - "traefik.http.routers.interop-hub.entrypoints=websecure"
       - "traefik.http.services.interop-hub.loadbalancer.server.port=3032"
 
