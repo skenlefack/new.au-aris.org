@@ -62,6 +62,25 @@ const FORMAT_ADAPTER: Record<string, string> = {
 };
 const SERVICE_NAME = 'interop-hub';
 
+/**
+ * Where a standard system expects the package when the pipeline gives no explicit URL:
+ * DHIS2 imports data values at /api/dataValueSets; a FHIR server takes transaction and
+ * batch bundles at its base URL and stores other bundles as Bundle resources.
+ */
+export function standardEndpoint(
+  connection: { base_url?: string | null; system_type?: string | null } | undefined,
+  built?: { format?: string; metadata?: Record<string, unknown> },
+): string | undefined {
+  const base = connection?.base_url?.replace(/\/+$/, '');
+  if (!base) return undefined;
+  if (built?.format === 'DHIS2_JSON' && !/\/api\/dataValueSets$/.test(base)) return `${base}/api/dataValueSets`;
+  if (built?.format === 'FHIR_JSON') {
+    const type = built.metadata?.bundleType;
+    return type === 'transaction' || type === 'batch' ? base : `${base}/Bundle`;
+  }
+  return base;
+}
+
 /** Status mapping: step type -> transaction status while that step is running */
 const STEP_STATUS_MAP: Partial<Record<HubStepType, HubTransactionStatus>> = {
   RECEIVE: 'RECEIVED',
@@ -831,8 +850,8 @@ export class PipelineEngineService {
     pipeline: HubPipeline & { connection?: any },
     transaction: any,
   ): Promise<StepResult> {
-    const url = config.url ?? pipeline.connection?.base_url;
     const built = this.formatted.get(transaction.id);
+    const url = config.url ?? standardEndpoint(pipeline.connection, built);
     if (!url) {
       if (built) {
         // No receiving API (e.g. WAHIS focal point, FAOSTAT): the package stays on the

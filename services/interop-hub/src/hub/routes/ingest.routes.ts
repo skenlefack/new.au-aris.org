@@ -3,6 +3,25 @@ import { authAndTenant, hubManagerRoles } from '../auth';
 import { getUser, badRequest, notFound } from '../helpers';
 import { parseIngestFile, FileParseError } from '../file-parser';
 import { verifyWebhookSignature } from '../webhook-signature';
+import { selectInboundPipeline, readIdempotencyKey, findReplay, isUniqueViolation } from '../inbound-pipeline';
+
+/** Reply to a repeated request: the original transaction, flagged as a replay. */
+function replayReply(reply: FastifyReply, tx: any) {
+  reply.header('Idempotent-Replayed', 'true');
+  return reply.code(200).send({
+    data: {
+      transaction_id: tx.id,
+      status: tx.status,
+      records_received: tx.records_total,
+      message: 'Request already received with this Idempotency-Key; returning the original transaction',
+    },
+  });
+}
+
+const IDEMPOTENCY_CONFLICT = {
+  statusCode: 422,
+  message: 'This Idempotency-Key was already used with a different payload',
+};
 
 /** Turns a request body into records: `records[]`, an array `payload`, or a single object. */
 export function toRecords(body: { records?: unknown; payload?: unknown } | null | undefined): Record<string, unknown>[] {
@@ -92,29 +111,27 @@ export async function registerIngestRoutes(app: FastifyInstance): Promise<void> 
       throw badRequest('records[] must contain at least one record');
     }
     if (records.length > 10_000) {
-      throw badRequest('Maximum 10,000 records per push. Use file upload for larger batches.');
+      throw badRequest('Maximum 10,000 records per push. Split larger batches.');
     }
 
-    // Find the matching pipeline for this connection + domain
-    const pipeline = await app.prisma.hubPipeline.findFirst({
-      where: {
-        connection_id: connection.id,
-        status: 'ACTIVE',
-        direction: 'INBOUND',
-        ...(body.domain ? { domain: body.domain } : {}),
-      },
-    });
-
-    if (!pipeline) {
-      return reply.code(422).send({
-        statusCode: 422,
-        message: `No active inbound pipeline found for connection "${connection.name}"${body.domain ? ` and domain "${body.domain}"` : ''}`,
-      });
+    const idem = readIdempotencyKey(request.headers);
+    if (idem.error) throw badRequest(idem.error);
+    if (idem.key) {
+      const seen = await findReplay(app.prisma, connection.id, idem.key, records);
+      if (seen.kind === 'replay') return replayReply(reply, seen.transaction);
+      if (seen.kind === 'conflict') return reply.code(422).send(IDEMPOTENCY_CONFLICT);
     }
 
-    // Create transaction
-    const transaction = await app.prisma.hubTransaction.create({
+    const choice = await selectInboundPipeline(app.prisma, connection, body.domain);
+    if (!('pipeline' in choice)) return reply.code(choice.statusCode).send(choice);
+    const pipeline = choice.pipeline;
+
+    // Create transaction (a concurrent request with the same key loses the race)
+    let transaction: any;
+    try {
+      transaction = await app.prisma.hubTransaction.create({
       data: {
+        idempotency_key: idem.key ?? null,
         pipeline_id: pipeline.id,
         connection_id: connection.id,
         tenant_id: connection.tenant_id,
@@ -132,7 +149,15 @@ export async function registerIngestRoutes(app: FastifyInstance): Promise<void> 
         initiated_by: connection.created_by, // System-initiated
         started_at: new Date(),
       },
-    });
+      });
+    } catch (err) {
+      if (idem.key && isUniqueViolation(err)) {
+        const seen = await findReplay(app.prisma, connection.id, idem.key, records);
+        if (seen.kind === 'replay') return replayReply(reply, seen.transaction);
+        return reply.code(422).send(IDEMPOTENCY_CONFLICT);
+      }
+      throw err;
+    }
 
     // Update connection stats
     await app.prisma.hubConnection.update({
@@ -188,19 +213,9 @@ export async function registerIngestRoutes(app: FastifyInstance): Promise<void> 
     });
     if (!connection) throw notFound('Connection');
 
-    // Find pipeline
-    const pipeline = await app.prisma.hubPipeline.findFirst({
-      where: {
-        connection_id: connectionId,
-        status: 'ACTIVE',
-        direction: 'INBOUND',
-        ...(domain ? { domain } : {}),
-      },
-    });
-
-    if (!pipeline) {
-      throw badRequest(`No active inbound pipeline found for this connection${domain ? ` and domain "${domain}"` : ''}`);
-    }
+    const choice = await selectInboundPipeline(app.prisma, connection, domain);
+    if (!('pipeline' in choice)) return reply.code(choice.statusCode).send(choice);
+    const pipeline = choice.pipeline;
 
     // Parse the file first so a bad file is rejected immediately
     let fileRecords: Record<string, unknown>[];
@@ -353,26 +368,31 @@ export async function registerIngestRoutes(app: FastifyInstance): Promise<void> 
 
     const body = (request.body ?? {}) as Record<string, unknown>;
     const records = Array.isArray(body.records) ? (body.records as Record<string, unknown>[]) : [body];
+    if (records.length > 10_000) throw badRequest('Maximum 10,000 records per webhook call');
 
-    // Find pipeline
-    const pipeline = await app.prisma.hubPipeline.findFirst({
-      where: {
-        connection_id: connectionId,
-        status: 'ACTIVE',
-        direction: 'INBOUND',
-      },
-    });
+    // Domain: ?domain=… or a top-level "domain" next to "records"
+    const query = request.query as { domain?: string };
+    const domain = query.domain
+      ?? (Array.isArray(body.records) && typeof body.domain === 'string' ? body.domain : undefined);
 
-    if (!pipeline) {
-      return reply.code(422).send({
-        statusCode: 422,
-        message: `No active inbound pipeline for connection "${connection.name}"`,
-      });
+    const idem = readIdempotencyKey(request.headers);
+    if (idem.error) throw badRequest(idem.error);
+    if (idem.key) {
+      const seen = await findReplay(app.prisma, connectionId, idem.key, records);
+      if (seen.kind === 'replay') return replayReply(reply, seen.transaction);
+      if (seen.kind === 'conflict') return reply.code(422).send(IDEMPOTENCY_CONFLICT);
     }
 
+    const choice = await selectInboundPipeline(app.prisma, connection, domain);
+    if (!('pipeline' in choice)) return reply.code(choice.statusCode).send(choice);
+    const pipeline = choice.pipeline;
+
     // Create transaction from webhook payload
-    const transaction = await app.prisma.hubTransaction.create({
+    let transaction: any;
+    try {
+      transaction = await app.prisma.hubTransaction.create({
       data: {
+        idempotency_key: idem.key ?? null,
         pipeline_id: pipeline.id,
         connection_id: connectionId,
         tenant_id: connection.tenant_id,
@@ -390,7 +410,15 @@ export async function registerIngestRoutes(app: FastifyInstance): Promise<void> 
         initiated_by: connection.created_by,
         started_at: new Date(),
       },
-    });
+      });
+    } catch (err) {
+      if (idem.key && isUniqueViolation(err)) {
+        const seen = await findReplay(app.prisma, connectionId, idem.key, records);
+        if (seen.kind === 'replay') return replayReply(reply, seen.transaction);
+        return reply.code(422).send(IDEMPOTENCY_CONFLICT);
+      }
+      throw err;
+    }
 
     // Update connection stats
     await app.prisma.hubConnection.update({

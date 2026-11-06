@@ -98,13 +98,19 @@ export class Dhis2Adapter extends BaseAdapter {
           dataSet: (groupRecords[0]?.dhis2_data_set as string) ?? dataSet,
           period: groupPeriod,
           orgUnit: groupOrgUnit,
-          completeDate: now.toISOString().split('T')[0],
           dataValues,
         });
       }
     }
 
-    const payload = { dataValueSets };
+    // DHIS2 import format (POST /api/dataValueSets): one flat dataValues array, each
+    // value carrying its own period and orgUnit, so several org units fit in one call.
+    const dataSets = [...new Set(dataValueSets.map((dvs) => dvs.dataSet).filter(Boolean))];
+    const payload = {
+      ...(dataSets.length === 1 ? { dataSet: dataSets[0] } : {}),
+      dataValues: dataValueSets.flatMap((dvs) =>
+        dvs.dataValues.map((dv) => ({ ...dv, period: dvs.period, orgUnit: dvs.orgUnit }))),
+    };
     const data = JSON.stringify(payload, null, 2);
 
     return {

@@ -519,6 +519,9 @@ model HubTransaction {
   reviewed_at      DateTime?
   review_notes     String?
 
+  // Idempotency: key sent by the partner (Idempotency-Key header), unique per connection
+  idempotency_key  String?              @db.VarChar(255)
+
   // Audit
   initiated_by     String               @db.Uuid // User or SYSTEM
   started_at       DateTime?
@@ -532,6 +535,7 @@ model HubTransaction {
   records    HubTransactionRecord[]
   steps_log  HubTransactionStepLog[]
 
+  @@unique([connection_id, idempotency_key])
   @@index([pipeline_id, status])
   @@index([connection_id, created_at])
   @@index([tenant_id, created_at])

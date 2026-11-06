@@ -66,6 +66,7 @@ import { registerScheduleRoutes } from './routes/schedule.routes';
 import { registerDashboardRoutes } from './routes/dashboard.routes';
 import { registerAuditRoutes } from './routes/audit.routes';
 import { registerIngestRoutes } from './routes/ingest.routes';
+import { prismaToHttp } from './prisma-errors';
 
 export async function buildHubApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -195,8 +196,9 @@ export async function buildHubApp(): Promise<FastifyInstance> {
 
   // ─── Error handler ─────────────────────────────────────────
   app.setErrorHandler((error: FastifyError, request, reply) => {
-    const statusCode = (error as any).statusCode ?? 500;
-    const message = error.message ?? 'Internal Server Error';
+    const fromPrisma = prismaToHttp(error);
+    const statusCode = fromPrisma?.statusCode ?? (error as any).statusCode ?? 500;
+    const message = fromPrisma?.message ?? error.message ?? 'Internal Server Error';
 
     if (statusCode >= 500) {
       request.log.error(error, 'Unhandled server error');

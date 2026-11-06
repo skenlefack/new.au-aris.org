@@ -128,6 +128,8 @@ info:
 
     * Responses use the envelope `{ "data": …, "meta"?: { "total", "page", "limit", "pages"? } }`.
     * Errors use `{ "statusCode", "message", "errors"?: [{ "field", "message" }] }`.
+      Unknown or invalid fields in a request body return `400` (e.g. `Unknown field "colour"`),
+      and a unique-value clash returns `409`.
       Some credential-service messages are currently returned in French.
     * Hub resources use `snake_case` fields; credential, master-data and direct-export
       resources use `camelCase`.
@@ -362,10 +364,10 @@ paths:
         If both headers are sent, `X-API-Key` takes precedence. Only connections with
         `status=ACTIVE` and `direction=INBOUND` are considered.
 
-        The hub selects the connection's ACTIVE INBOUND pipeline for `domain` (or any
-        active inbound pipeline of the connection if `domain` is omitted), stores the
-        records in a new transaction (`QUEUED`) and returns **`202 Accepted`**
-        immediately. Processing (mapping, validation, optional manual review,
+        The hub selects the connection's ACTIVE INBOUND pipeline for `domain`. `domain`
+        may be omitted only when the connection receives a single domain; otherwise
+        the request is refused with `422`. The hub stores the records in a new
+        transaction (`QUEUED`) and returns **`202 Accepted`** immediately. Processing (mapping, validation, optional manual review,
         loading) continues in the background.
 
         **Body formats** — records are taken from, in order: `records` (array),
@@ -375,6 +377,13 @@ paths:
 
         **Limits** — 1 to 10,000 records, and a request body of at most 50 MiB. Split
         larger batches or use file upload.
+
+        **Retries** — send an `Idempotency-Key` header (e.g. a UUID, or your batch ID)
+        so that a request repeated after a timeout or network error is not processed
+        twice. A repeat with the same key and the same records returns `200` with the
+        original `transaction_id` and the header `Idempotent-Replayed: true`; the same
+        key with different records is refused with `422`. Keys are kept per connection,
+        without expiry.
 
         **Tracking** — keep the returned `transaction_id` and poll
         `GET /api/v1/hub/ingest/transactions/{id}` with the **same** `X-API-Key` /
@@ -386,6 +395,7 @@ paths:
         ```bash
         curl -X POST https://test.au-aris.org/api/v1/hub/ingest/push \
           -H "X-API-Key: $ARIS_API_KEY" \
+          -H "Idempotency-Key: KLHIS-batch-2026-10-30-001" \
           -H "Content-Type: application/json" \
           -d '{
                 "domain": "animal-health",
@@ -403,6 +413,8 @@ paths:
       security:
         - apiKeyAuth: []
         - connectionToken: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -447,6 +459,24 @@ paths:
                     report_date: '2026-10-30'
                     cases: 3
       responses:
+        '200':
+          description: |
+            Repeated request: the `Idempotency-Key` was already used with the same records.
+            Nothing is processed again; the original transaction is returned.
+          headers:
+            Idempotent-Replayed:
+              description: Always `true` on a replayed request.
+              schema: { type: string, enum: ['true'] }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestAccepted'
+              example:
+                data:
+                  transaction_id: 6a9d1f3e-2b4c-4d8e-a1f2-3b4c5d6e7f80
+                  status: COMPLETED
+                  records_received: 2
+                  message: Request already received with this Idempotency-Key; returning the original transaction
         '202':
           description: Records stored; processing queued.
           content:
@@ -486,7 +516,7 @@ paths:
                 tooMany:
                   value:
                     statusCode: 400
-                    message: Maximum 10,000 records per push. Use file upload for larger batches.
+                    message: Maximum 10,000 records per push. Split larger batches.
         '401':
           description: No credential, or it matches no active inbound connection.
           content:
@@ -499,14 +529,26 @@ paths:
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '422':
-          description: The connection has no ACTIVE INBOUND pipeline (for the given domain).
+          description: |
+            No ACTIVE INBOUND pipeline for the domain; `domain` missing although the
+            connection receives several domains; or `Idempotency-Key` reused with other records.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-              example:
-                statusCode: 422
-                message: No active inbound pipeline found for connection "Kenya KLHIS" and domain "animal-health"
+              examples:
+                noPipeline:
+                  value:
+                    statusCode: 422
+                    message: No active inbound pipeline found for connection "Kenya KLHIS" and domain "animal-health"
+                domainRequired:
+                  value:
+                    statusCode: 422
+                    message: 'Connection "Kenya KLHIS" receives several domains (animal-health, livestock): send "domain" to choose one'
+                idempotencyConflict:
+                  value:
+                    statusCode: 422
+                    message: This Idempotency-Key was already used with a different payload
 
   /api/v1/hub/ingest/transactions/{id}:
     get:
@@ -717,9 +759,11 @@ paths:
       description: |
         Event-driven delivery from a partner system to an ACTIVE INBOUND connection.
         The body is either `{ "records": [ … ] }` (several records) or any other JSON
-        object, which is treated as **one** record. The first ACTIVE INBOUND pipeline
-        of the connection processes it (the `domain` is not selectable — use one
-        inbound pipeline per webhook connection). Returns **`202 Accepted`**.
+        object, which is treated as **one** record. Returns **`202 Accepted`**.
+
+        **Domain.** If the connection receives several domains, say which one with
+        `?domain=…` or a top-level `"domain"` next to `"records"`; otherwise the request
+        is refused with `422`. With a single domain it can be omitted.
 
         **Signature (mandatory).** Compute HMAC-SHA256 over the **exact raw bytes** of
         the request body with the connection's webhook secret, and send it in
@@ -728,8 +772,11 @@ paths:
         JSON after signing will break the signature. `Content-Type` must be
         `application/json`. Requests are rejected with `401` if the connection has no
         webhook secret configured, the header is missing, or the signature does not
-        match. There is no timestamp/replay protection: include your own event ID in
-        the payload so duplicates can be detected.
+        match.
+
+        **Retries.** Send an `Idempotency-Key` header (e.g. your event ID). A repeat with
+        the same key and body returns `200` with the original transaction and is not
+        processed again; the same key with a different body gets `422`.
 
         **Node.js**
         ```js
@@ -776,6 +823,14 @@ paths:
             type: string
             format: uuid
           example: 3f1c2a9e-5b7d-4e8a-9c21-6d0f4b8a7e11
+        - name: domain
+          in: query
+          required: false
+          description: ARIS domain of the records, required when the connection receives several domains.
+          schema:
+            type: string
+            example: animal-health
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -802,6 +857,16 @@ paths:
                   report_date: '2026-11-02'
                   cases: 9
       responses:
+        '200':
+          description: Repeated request with the same `Idempotency-Key` and body; the original transaction is returned.
+          headers:
+            Idempotent-Replayed:
+              description: Always `true` on a replayed request.
+              schema: { type: string, enum: ['true'] }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestAccepted'
         '202':
           description: Payload accepted and queued.
           content:
@@ -846,14 +911,24 @@ paths:
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '422':
-          description: The connection has no ACTIVE INBOUND pipeline.
+          description: No ACTIVE INBOUND pipeline for the domain, `domain` missing although several are possible, or `Idempotency-Key` reused with another body.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-              example:
-                statusCode: 422
-                message: No active inbound pipeline for connection "Kenya KLHIS"
+              examples:
+                noPipeline:
+                  value:
+                    statusCode: 422
+                    message: No active inbound pipeline found for connection "Kenya KLHIS"
+                domainRequired:
+                  value:
+                    statusCode: 422
+                    message: 'Connection "Kenya KLHIS" receives several domains (animal-health, livestock): send "domain" to choose one'
+                idempotencyConflict:
+                  value:
+                    statusCode: 422
+                    message: This Idempotency-Key was already used with a different payload
 
   # ═══════════════════════════ TRANSACTIONS ═══════════════════════════
   /api/v1/hub/transactions:
@@ -3996,6 +4071,18 @@ components:
         base64.
 
   parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: |
+        Unique key for this request (1–255 characters, e.g. a UUID or your batch/event ID).
+        Repeating a request with the same key returns the original transaction instead of
+        processing the data twice.
+      schema:
+        type: string
+        maxLength: 255
+      example: KLHIS-batch-2026-10-30-001
     Page:
       name: page
       in: query
@@ -4473,7 +4560,7 @@ components:
       properties:
         domain:
           type: string
-          description: ARIS domain; selects the inbound pipeline. If omitted, any active inbound pipeline of the connection is used.
+          description: ARIS domain; selects the inbound pipeline. Required when the connection receives several domains.
           example: animal-health
         entity_type:
           type: string

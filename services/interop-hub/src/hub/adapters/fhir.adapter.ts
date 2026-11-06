@@ -12,6 +12,39 @@ import {
   type PullResult,
   type HealthCheckResult,
 } from './base.adapter';
+import { randomUUID } from 'node:crypto';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** FHIR ids: [A-Za-z0-9-.]{1,64}. */
+function fhirId(value: string): string {
+  return value.replace(/[^A-Za-z0-9.-]/g, '-').slice(0, 64) || 'aris';
+}
+
+/**
+ * Removes what FHIR forbids: empty strings, empty arrays and objects, codings
+ * without a code, and extensions left without a value.
+ */
+export function pruneFhir(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    const items = value.map(pruneFhir).filter((v) => v !== undefined);
+    return items.length ? items : undefined;
+  }
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      const pruned = pruneFhir(v);
+      if (pruned !== undefined) out[k] = pruned;
+    }
+    if ('system' in out && !('code' in out) && Object.keys(out).every((k) => k === 'system' || k === 'display')) {
+      return undefined; // a Coding needs a code
+    }
+    if ('url' in out && Object.keys(out).length === 1) return undefined; // extension without value
+    return Object.keys(out).length ? out : undefined;
+  }
+  if (typeof value === 'string') return value.trim() === '' ? undefined : value;
+  return value;
+}
 
 type BundleType = 'collection' | 'transaction' | 'batch';
 
@@ -50,9 +83,12 @@ export class FhirAdapter extends BaseAdapter {
     const resourceType = (config.resource_type as string) ?? 'Observation';
 
     const entries: FhirBundleEntry[] = records.map((record, index) => {
-      const resource = this.buildResource(record, resourceType, index);
+      const resource = this.withRequired(
+        pruneFhir(this.buildResource(record, resourceType, index)) as FhirResource,
+      );
+      const id = String(record.id ?? '');
       const entry: FhirBundleEntry = {
-        fullUrl: `urn:uuid:${record.id ?? `aris-${index}`}`,
+        fullUrl: `urn:uuid:${UUID_RE.test(id) ? id.toLowerCase() : randomUUID()}`,
         resource,
       };
 
@@ -72,7 +108,6 @@ export class FhirAdapter extends BaseAdapter {
       type: bundleType,
       timestamp: now.toISOString(),
       entry: entries,
-      total: entries.length,
     };
 
     const data = JSON.stringify(bundle, null, 2);
@@ -84,6 +119,14 @@ export class FhirAdapter extends BaseAdapter {
       recordCount: records.length,
       metadata: { bundleType, resourceType, entryCount: entries.length },
     };
+  }
+
+  /** Restores elements FHIR requires (1..1) when the source record had nothing for them. */
+  private withRequired(resource: FhirResource): FhirResource {
+    if ((resource.resourceType === 'Observation' || resource.resourceType === 'DiagnosticReport') && !resource.code) {
+      return { ...resource, code: { text: 'Not specified in source record' } };
+    }
+    return resource;
   }
 
   private buildResource(
@@ -108,7 +151,7 @@ export class FhirAdapter extends BaseAdapter {
   private buildPatient(record: Record<string, unknown>, index: number): FhirResource {
     return {
       resourceType: 'Patient',
-      id: String(record.id ?? `aris-patient-${index}`),
+      id: fhirId(String(record.id ?? `aris-patient-${index}`)),
       meta: {
         source: 'ARIS-InteropHub',
         lastUpdated: this.formatDateTime(record.updated_at ?? new Date()),
@@ -171,7 +214,7 @@ export class FhirAdapter extends BaseAdapter {
   private buildObservation(record: Record<string, unknown>, index: number): FhirResource {
     return {
       resourceType: 'Observation',
-      id: String(record.id ?? `aris-obs-${index}`),
+      id: fhirId(String(record.id ?? `aris-obs-${index}`)),
       meta: {
         source: 'ARIS-InteropHub',
         lastUpdated: this.formatDateTime(record.updated_at ?? new Date()),
@@ -201,19 +244,21 @@ export class FhirAdapter extends BaseAdapter {
       subject: record.animal_id
         ? { reference: `Patient/${record.animal_id}` }
         : undefined,
-      effectiveDateTime: this.formatDateTime(
-        record.sample_date ?? record.date_collected ?? record.event_date ?? new Date(),
+      effectiveDateTime: this.optionalDateTime(
+        record.sample_date ?? record.date_collected ?? record.event_date,
       ),
-      issued: this.formatDateTime(record.result_date ?? record.date_result ?? new Date()),
-      valueString: record.value !== undefined ? String(record.value) : undefined,
-      valueQuantity:
-        record.numeric_value !== undefined
-          ? {
+      issued: this.optionalDateTime(record.result_date ?? record.date_result),
+      // value[x] is a choice: a quantity when the result is numeric, otherwise a string
+      ...(record.numeric_value !== undefined && record.numeric_value !== null && !Number.isNaN(Number(record.numeric_value))
+        ? {
+            valueQuantity: {
               value: Number(record.numeric_value),
-              unit: String(record.unit ?? ''),
-              system: 'http://unitsofmeasure.org',
-            }
-          : undefined,
+              unit: record.unit !== undefined ? String(record.unit) : undefined,
+              // UCUM system/code only when the record gives a UCUM code
+              ...(record.unit_ucum ? { system: 'http://unitsofmeasure.org', code: String(record.unit_ucum) } : {}),
+            },
+          }
+        : { valueString: record.value !== undefined && record.value !== null ? String(record.value) : undefined }),
       interpretation: record.interpretation
         ? [
             {
@@ -236,7 +281,7 @@ export class FhirAdapter extends BaseAdapter {
   private buildDiagnosticReport(record: Record<string, unknown>, index: number): FhirResource {
     return {
       resourceType: 'DiagnosticReport',
-      id: String(record.id ?? `aris-report-${index}`),
+      id: fhirId(String(record.id ?? `aris-report-${index}`)),
       meta: {
         source: 'ARIS-InteropHub',
         lastUpdated: this.formatDateTime(record.updated_at ?? new Date()),
@@ -265,10 +310,8 @@ export class FhirAdapter extends BaseAdapter {
       subject: record.animal_id
         ? { reference: `Patient/${record.animal_id}` }
         : undefined,
-      effectiveDateTime: this.formatDateTime(
-        record.report_date ?? record.date_report ?? new Date(),
-      ),
-      issued: this.formatDateTime(record.issued_at ?? new Date()),
+      effectiveDateTime: this.optionalDateTime(record.report_date ?? record.date_report),
+      issued: this.optionalDateTime(record.issued_at),
       conclusion: record.conclusion ? String(record.conclusion) : undefined,
       conclusionCode: record.disease_code
         ? [
@@ -284,6 +327,13 @@ export class FhirAdapter extends BaseAdapter {
           ]
         : undefined,
     };
+  }
+
+  /** Date-time only when the source has one: FHIR data must not invent clinical dates. */
+  private optionalDateTime(value: unknown): string | undefined {
+    if (value === undefined || value === null || value === '') return undefined;
+    const d = new Date(value as string);
+    return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
   }
 
   private mapGender(value: unknown): string {
