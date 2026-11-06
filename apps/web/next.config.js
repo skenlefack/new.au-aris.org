@@ -46,15 +46,22 @@ const nextConfig = {
   // In production Traefik handles routing — rewrites are NOT needed.
   // In dev, Next.js rewrites act as proxy so the browser stays same-origin.
   async rewrites() {
+    // Public API reference (static page in public/developers) — all environments.
+    const developers = [
+      { source: '/developers', destination: '/developers/index.html' },
+      { source: '/developers/api', destination: '/developers/index.html' },
+    ];
+
     // In production (standalone), Traefik handles all /api/v1/* routing.
     // Rewrites would fail because localhost services don't exist inside the container.
     if (process.env.NODE_ENV === 'production') {
-      return [];
+      return developers;
     }
 
     const svc = (name, port) => process.env[`SERVICE_${name}_URL`] || `http://localhost:${port}`;
 
     return [
+      ...developers,
       // ── Platform services ──
       { source: '/api/v1/credential/:path*',     destination: `${svc('CREDENTIAL', 3002)}/api/v1/credential/:path*` },
       { source: '/api/v1/tenants/:path*',         destination: `${svc('TENANT', 3001)}/api/v1/tenants/:path*` },

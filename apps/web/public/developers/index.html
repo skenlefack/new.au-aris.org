@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARIS Developers — Interoperability API</title>
+  <meta name="description" content="ARIS 4.0 Interoperability API reference — AU-IBAR Animal Resources Information System." />
+  <link rel="icon" href="/au-logo.png" />
+  <style>
+    :root {
+      --aris-green: #1A5632;
+      --aris-gold: #B4A269;
+      --aris-red: #9F2241;
+      --scalar-custom-header-height: 56px;
+    }
+    html, body { margin: 0; padding: 0; background: #fff; }
+    .aris-bar {
+      position: sticky; top: 0; z-index: 1000; height: 56px; box-sizing: border-box;
+      display: flex; align-items: center; gap: 14px; padding: 0 20px;
+      background: var(--aris-green); color: #fff;
+      font: 500 14px/1.2 Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+      border-bottom: 3px solid var(--aris-gold);
+    }
+    .aris-bar img { height: 32px; width: auto; }
+    .aris-bar .title { font-weight: 700; font-size: 16px; letter-spacing: .2px; white-space: nowrap; }
+    .aris-bar .sub { opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .aris-bar .spacer { flex: 1; }
+    .aris-bar .env {
+      padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
+      background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.35); white-space: nowrap;
+    }
+    .aris-bar .env.staging { background: var(--aris-gold); border-color: var(--aris-gold); color: #1f1f1f; }
+    .aris-bar a {
+      color: #fff; text-decoration: none; padding: 6px 10px; border-radius: 6px; white-space: nowrap;
+      border: 1px solid rgba(255,255,255,.35);
+    }
+    .aris-bar a:hover { background: rgba(255,255,255,.12); }
+    @media (max-width: 720px) {
+      .aris-bar .sub, .aris-bar a.secondary { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="aris-bar">
+    <img src="/au-logo.png" alt="African Union" />
+    <span class="title">ARIS Developers</span>
+    <span class="sub">Interoperability API · AU-IBAR Animal Resources Information System</span>
+    <span class="spacer"></span>
+    <span id="env" class="env"></span>
+    <a class="secondary" href="/developers/openapi/aris-interop.yaml" download>OpenAPI 3.1 (YAML)</a>
+    <a href="/">ARIS portal</a>
+  </header>
+
+  <div id="app"></div>
+
+  <script src="/developers/scalar/standalone.js"></script>
+  <script>
+    (function () {
+      var host = window.location.host;
+      var isProd = /^(www\.)?au-aris\.org$/.test(host);
+      var isStaging = /^test\.au-aris\.org$/.test(host);
+      var env = document.getElementById('env');
+      env.textContent = isProd ? 'Production' : isStaging ? 'Staging · sandbox' : host;
+      if (!isProd) env.classList.add('staging');
+
+      var prod = { url: 'https://au-aris.org', description: 'Production' };
+      var stg = { url: 'https://test.au-aris.org', description: 'Staging — sandbox for integration tests' };
+      var servers = isProd ? [prod, stg] : isStaging ? [stg, prod] : [{ url: window.location.origin, description: 'This server' }, stg, prod];
+
+      Scalar.createApiReference('#app', {
+        url: '/developers/openapi/aris-interop.yaml',
+        servers: servers,
+        theme: 'default',
+        layout: 'modern',
+        defaultHttpClient: { targetKey: 'shell', clientKey: 'curl' },
+        hideModels: false,
+        // No third-party cloud features: no AI agent, no developer-tools toolbar, no telemetry
+        agent: { disabled: true },
+        showDeveloperTools: 'never',
+        telemetry: false,
+        persistAuth: false,
+        metaData: { title: 'ARIS Developers — Interoperability API' },
+        favicon: '/au-logo.png',
+        customCss: [
+          '.light-mode, .dark-mode {',
+          '  --scalar-color-accent: #1A5632;',
+          '  --scalar-font: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;',
+          '}',
+          '.dark-mode { --scalar-color-accent: #6FBF8A; }',
+          '.light-mode .t-doc__sidebar { --scalar-sidebar-item-active-background: #E6F0E8; }',
+        ].join('\n'),
+      });
+    })();
+  </script>
+</body>
+</html>
