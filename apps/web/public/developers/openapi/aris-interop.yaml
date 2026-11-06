@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: ARIS 4.0 — Interoperability API
-  version: 4.0.0
+  title: ARIS — Interoperability API
+  version: 1.0.0
   summary: Exchange animal-resources data with the African Union ARIS platform.
   contact:
     name: AU-IBAR ARIS team
@@ -12,7 +12,7 @@ info:
   description: |
     ## Overview
 
-    **ARIS 4.0** (Animal Resources Information System) is the continental digital
+    **ARIS** (Animal Resources Information System) is the continental digital
     infrastructure of the African Union Inter-African Bureau for Animal Resources
     (AU-IBAR). It covers animal health and One Health, livestock production,
     fisheries and aquaculture, wildlife, apiculture, trade/SPS, governance and climate
