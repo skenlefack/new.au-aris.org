@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { MessageChannel, NotificationPayload, ChannelResult } from '../channel.interface';
 import { EmailChannel } from './email.channel';
 import { PostmarkChannel } from './postmark.channel';
+import { recordEmailAttempt } from '../email-health';
 
 interface DbConfigRow {
   key: string;
@@ -108,6 +109,7 @@ export class DynamicEmailChannel implements MessageChannel {
     try {
       const { channel, provider } = await this.getChannel();
       const result = await channel.send(payload);
+      recordEmailAttempt(provider, result.success, result.error);
       if (!result.success) {
         console.error(
           `[DynamicEmailChannel] ${provider} failed to send to ${payload.to}: ${result.error}`,
@@ -117,6 +119,7 @@ export class DynamicEmailChannel implements MessageChannel {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[DynamicEmailChannel] Unable to build email channel: ${message}`);
+      recordEmailAttempt('unknown', false, `Unable to build email channel: ${message}`);
       return { success: false, error: message };
     }
   }

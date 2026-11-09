@@ -563,6 +563,11 @@ export class AuthService {
       correlationId: randomUUID(), sourceService: SERVICE_NAME, tenantId, userId,
       schemaVersion: '1', timestamp: new Date().toISOString(),
     };
-    try { await this.kafka.send(topic, entityId, payload, headers); } catch {}
+    // Non-blocking, but never silent: a failure here means no welcome email.
+    try {
+      await this.kafka.send(topic, entityId, payload, headers);
+    } catch (err) {
+      console.error(`[kafka-publish] ${topic} failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 }

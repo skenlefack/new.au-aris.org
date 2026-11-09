@@ -1,3 +1,5 @@
+import { TOPIC_SETTINGS_ROLE_UPDATED } from './tenant-topics';
+import { trackedSend } from './kafka-publish-tracker';
 import { randomUUID } from 'crypto';
 import type { PrismaClient, Prisma } from '@prisma/client';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
@@ -5,7 +7,6 @@ import type Redis from 'ioredis';
 import type { KafkaHeaders } from '@aris/shared-types';
 
 const SERVICE_NAME = 'tenant-service';
-const TOPIC_SETTINGS_ROLE_UPDATED = 'sys.settings.role.updated.v1';
 
 const CACHE_TTL_LIST = 300;
 const CACHE_TTL_DETAIL = 600;
@@ -362,14 +363,7 @@ export class RoleService {
       schemaVersion: '1',
       timestamp: new Date().toISOString(),
     };
-    try {
-      const key = (payload.id as string) ?? randomUUID();
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Kafka send timeout')), 5000),
-      );
-      await Promise.race([this.kafka.send(topic, key, payload, headers), timeout]);
-    } catch {
-      // Non-blocking
-    }
+    const key = (payload.id as string) ?? randomUUID();
+    await trackedSend(topic, () => this.kafka.send(topic, key, payload, headers));
   }
 }

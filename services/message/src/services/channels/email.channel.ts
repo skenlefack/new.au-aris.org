@@ -1,6 +1,6 @@
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
-import type { MessageChannel, NotificationPayload, ChannelResult } from '../channel.interface';
+import type { MessageChannel, NotificationPayload, ChannelResult, ProviderCheck } from '../channel.interface';
 
 export interface SmtpConfig {
   host?: string;
@@ -44,6 +44,16 @@ export class EmailChannel implements MessageChannel {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return { success: false, error: message };
+    }
+  }
+
+  async verify(): Promise<ProviderCheck> {
+    try {
+      await this.transporter.verify();
+      return { ok: true, detail: 'SMTP server accepts connections' };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { ok: false, detail: `SMTP: ${message}` };
     }
   }
 }

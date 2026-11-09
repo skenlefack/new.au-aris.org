@@ -1,5 +1,5 @@
 import { ServerClient } from 'postmark';
-import type { MessageChannel, NotificationPayload, ChannelResult } from '../channel.interface';
+import type { MessageChannel, NotificationPayload, ChannelResult, ProviderCheck } from '../channel.interface';
 
 export interface PostmarkConfig {
   serverToken: string;
@@ -51,6 +51,16 @@ export class PostmarkChannel implements MessageChannel {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return { success: false, error: message };
+    }
+  }
+
+  async verify(): Promise<ProviderCheck> {
+    try {
+      const server = await this.client.getServer();
+      return { ok: true, detail: `Postmark server "${server.Name}" accepts the token` };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { ok: false, detail: `Postmark: ${message}` };
     }
   }
 }

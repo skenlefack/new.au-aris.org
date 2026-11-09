@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Radio, RefreshCw, ChevronDown, ChevronRight, RotateCcw, Send,
-  Plus, X, AlertTriangle, CheckCircle2, XCircle, Search,
+  Plus, X, AlertTriangle, CheckCircle2, XCircle, Search, Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,7 +31,24 @@ interface ConsumerGroupHealth {
   serviceName: string | null;
 }
 
+interface EmailCheck {
+  key: string;
+  label: string;
+  status: 'healthy' | 'warning' | 'critical';
+  detail: string;
+}
+
+interface EmailDeliveryHealth {
+  status: 'healthy' | 'warning' | 'critical';
+  checks: EmailCheck[];
+  provider: string | null;
+  sentLastHour: number | null;
+  failedLastHour: number | null;
+  checkedAt: string;
+}
+
 interface KafkaHealthSummary {
+  email?: EmailDeliveryHealth | null;
   totalGroups: number;
   healthy: number;
   warning: number;
@@ -121,6 +138,69 @@ function StatusIcon({ status }: { status: string }) {
   if (status === 'healthy') return <CheckCircle2 className="w-4 h-4 text-green-500" />;
   if (status === 'warning') return <AlertTriangle className="w-4 h-4 text-amber-500" />;
   return <XCircle className="w-4 h-4 text-red-500" />;
+}
+
+/* ─── Email Delivery ───────────────────────────────────────────────────────── */
+
+const emailHeadline: Record<string, string> = {
+  healthy: 'Emails are being delivered',
+  warning: 'Email delivery is degraded',
+  critical: 'Email delivery is down',
+};
+
+function EmailDeliveryCard({ email, loading }: { email: EmailDeliveryHealth | null | undefined; loading: boolean }) {
+  const [open, setOpen] = useState(false);
+  const status = email?.status;
+  const showChecks = open || (status !== undefined && status !== 'healthy');
+
+  return (
+    <div
+      className={cn(
+        'rounded-xl border bg-white dark:bg-gray-900',
+        status === 'critical' ? 'border-red-300 dark:border-red-800'
+          : status === 'warning' ? 'border-amber-300 dark:border-amber-800'
+          : 'border-gray-200 dark:border-gray-700',
+      )}
+    >
+      <button onClick={() => setOpen(!open)} className="flex items-center justify-between w-full p-4 text-left gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <Mail className="w-5 h-5 shrink-0 text-aris-primary-600 dark:text-aris-primary-400" />
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              Email delivery
+              {status && (
+                <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', statusBadge[status])}>
+                  {emailHeadline[status]}
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {loading ? 'Checking…'
+                : !email ? 'Not available — the check could not run'
+                : `${email.provider ?? 'Provider unknown'} · ${email.sentLastHour ?? '—'} sent, ${email.failedLastHour ?? '—'} failed in the last hour · Super Admins are alerted by email and in-app notification`}
+            </p>
+          </div>
+        </div>
+        {showChecks ? <ChevronDown className="w-4 h-4 shrink-0 text-gray-400" /> : <ChevronRight className="w-4 h-4 shrink-0 text-gray-400" />}
+      </button>
+
+      {showChecks && email && (
+        <ul className="border-t border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
+          {email.checks.map((c) => (
+            <li key={c.key} className="flex items-start gap-3 px-4 py-3">
+              <span className="mt-0.5"><StatusIcon status={c.status} /></span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{c.label}</p>
+                <p className={cn('text-xs break-words', c.status === 'healthy' ? 'text-gray-500 dark:text-gray-400' : statusColors[c.status])}>
+                  {c.detail}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 /* ─── Consumer Row ─────────────────────────────────────────────────────────── */
@@ -246,7 +326,7 @@ function AlertRecipientsPanel() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Alert Recipients</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {recipients.length} recipient{recipients.length !== 1 ? 's' : ''} — Emails sent via Postmark when a consumer is unhealthy
+              {recipients.length} recipient{recipients.length !== 1 ? 's' : ''} — Emails sent via Postmark when a consumer or email delivery is unhealthy{recipients.length === 0 ? ' (email delivery alerts then go to all Super Admins)' : ''}
             </p>
           </div>
         </div>
@@ -360,6 +440,9 @@ export default function KafkaHealthPage() {
           </button>
         </div>
       </div>
+
+      {/* Email delivery chain */}
+      <EmailDeliveryCard email={data?.email} loading={isLoading} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

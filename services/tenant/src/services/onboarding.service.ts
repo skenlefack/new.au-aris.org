@@ -1,3 +1,5 @@
+import { trackedSend } from './kafka-publish-tracker';
+import { TOPIC_TENANT_ONBOARDING_SUBMITTED } from './tenant-topics';
 import type { PrismaClient } from '@prisma/client';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
 import type { KafkaHeaders } from '@aris/shared-types';
@@ -62,15 +64,14 @@ export class OnboardingService {
         schemaVersion: '1',
         timestamp: new Date().toISOString(),
       };
-      await Promise.race([
+      await trackedSend(TOPIC_TENANT_ONBOARDING_SUBMITTED, () =>
         this.kafka.send(
-          'sys.tenant.onboarding.submitted.v1',
+          TOPIC_TENANT_ONBOARDING_SUBMITTED,
           record.id,
           { id: record.id, countryName: data.countryName, countryCode: data.countryCode },
           headers,
         ),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Kafka timeout')), 5000)),
-      ]);
+      );
     } catch { /* non-blocking */ }
 
     return { data: record };

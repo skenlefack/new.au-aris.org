@@ -5,10 +5,27 @@
  * - Sends email alerts via Postmark (direct HTTP, NOT via Kafka) when a consumer
  *   transitions to an unhealthy state
  * - Exposes data to the admin UI (GET /admin/kafka/health)
+ * - Checks the whole email chain (producers -> topics -> message consumers ->
+ *   Postmark/SMTP) and alerts by email AND in-app notification when email
+ *   delivery goes down, then again when it is restored
  */
 import { Kafka, Admin, GroupOverview } from 'kafkajs';
 import type { PrismaClient } from '@prisma/client';
 import type { FastifyBaseLogger } from 'fastify';
+import * as sharedTypes from '@aris/shared-types';
+import {
+  TOPIC_SYS_CREDENTIAL_USER_CREATED,
+  TOPIC_SYS_CREDENTIAL_PASSWORD_RESET,
+  TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN,
+} from '@aris/shared-types';
+import { TENANT_LOCAL_TOPICS } from './tenant-topics';
+import { recentPublishFailures } from './kafka-publish-tracker';
+import {
+  evaluateEmailDelivery,
+  EMAIL_CONSUMER_GROUPS,
+  type EmailDeliveryHealth,
+  type MessageEmailHealth,
+} from './email-delivery-health';
 
 // ── Types ──
 
@@ -39,6 +56,8 @@ export interface KafkaHealthSummary {
   critical: number;
   totalLag: number;
   consumers: ConsumerGroupHealth[];
+  /** Email delivery chain; null when it could not be evaluated. */
+  email: EmailDeliveryHealth | null;
   polledAt: string;
 }
 
@@ -120,11 +139,46 @@ const SERVICE_PORT_MAP: Record<string, number> = {
 
 const ALERT_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
 
+// Email delivery alerting
+const EMAIL_TOPICS: readonly string[] = [
+  TOPIC_SYS_CREDENTIAL_USER_CREATED,
+  TOPIC_SYS_CREDENTIAL_PASSWORD_RESET,
+  TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN,
+];
+const EMAIL_BAD_POLLS_BEFORE_ALERT = 2; // ~2 minutes, avoids alerts during a service restart
+const EMAIL_REMINDER_MS = 60 * 60 * 1000; // remind every hour while down
+const TOPIC_LIST_TTL_MS = 5 * 60 * 1000;
+const PUBLISH_FAILURE_WINDOW_MS = 15 * 60 * 1000;
+
+/** All topic names declared in @aris/shared-types plus the tenant's own. */
+const KNOWN_TOPICS: string[] = [...new Set([
+  ...Object.entries(sharedTypes)
+    .filter(([name, value]) => name.startsWith('TOPIC_') && typeof value === 'string')
+    .map(([, value]) => value as string),
+  ...TENANT_LOCAL_TOPICS,
+])];
+
+/** Container name prefix: aris- in production, aris-stg- on staging. */
+function containerPrefix(): string {
+  return process.env['CONTAINER_PREFIX'] ?? (process.env['NODE_ENV'] === 'staging' ? 'aris-stg-' : 'aris-');
+}
+
+interface EmailAlertState {
+  status: EmailDeliveryHealth['status'];
+  badPolls: number;
+  downSince: number | null;
+  alertedAt: number | null; // null = no alert sent for the current incident
+  alertedStatus: EmailDeliveryHealth['status'] | null;
+}
+
 export class KafkaHealthService {
   private admin: Admin | null = null;
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
   private alertStates = new Map<string, AlertState>();
   private lastSnapshot: KafkaHealthSummary | null = null;
+  private lagSince = new Map<string, number>();
+  private topicCache: { topics: Set<string>; at: number } | null = null;
+  private emailAlert: EmailAlertState = { status: 'healthy', badPolls: 0, downSince: null, alertedAt: null, alertedStatus: null };
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -172,7 +226,7 @@ export class KafkaHealthService {
     if (!port) {
       return { success: false, message: `Unknown service: ${serviceName}` };
     }
-    const containerName = `aris-${serviceName}`;
+    const containerName = `${containerPrefix()}${serviceName}`;
     const url = `http://${containerName}:${port}/admin/force-restart`;
     try {
       const res = await fetch(url, { method: 'POST', signal: AbortSignal.timeout(5000) });
@@ -260,8 +314,9 @@ export class KafkaHealthService {
     if (arisGroups.length === 0) {
       const empty: KafkaHealthSummary = {
         totalGroups: 0, healthy: 0, warning: 0, critical: 0,
-        totalLag: 0, consumers: [], polledAt: new Date().toISOString(),
+        totalLag: 0, consumers: [], email: null, polledAt: new Date().toISOString(),
       };
+      empty.email = await this.checkEmailDelivery(admin, []).catch(() => null);
       this.lastSnapshot = empty;
       return empty;
     }
@@ -337,11 +392,145 @@ export class KafkaHealthService {
         const order: Record<HealthStatus, number> = { critical: 0, warning: 1, healthy: 2 };
         return (order[a.healthStatus] ?? 3) - (order[b.healthStatus] ?? 3);
       }),
+      email: null,
       polledAt: new Date().toISOString(),
     };
+    summary.email = await this.checkEmailDelivery(admin, consumers).catch((err) => {
+      this.logger.warn(err, '[KafkaHealth] Email delivery check failed');
+      return null;
+    });
 
     this.lastSnapshot = summary;
     return summary;
+  }
+
+  // -- Email delivery --
+
+  private async checkEmailDelivery(admin: Admin, consumers: ConsumerGroupHealth[]): Promise<EmailDeliveryHealth> {
+    const now = Date.now();
+
+    // Track how long each email consumer has had pending messages
+    for (const groupId of EMAIL_CONSUMER_GROUPS) {
+      const g = consumers.find((c) => c.groupId === groupId);
+      if (g && g.totalLag > 0) {
+        if (!this.lagSince.has(groupId)) this.lagSince.set(groupId, now);
+      } else {
+        this.lagSince.delete(groupId);
+      }
+    }
+
+    // Message service: provider check + recent delivery counters
+    let message: MessageEmailHealth | null = null;
+    let messageError: string | undefined;
+    const url = process.env['MESSAGE_SERVICE_URL'] ?? `http://${containerPrefix()}message:3006`;
+    try {
+      const res = await fetch(`${url}/health/email`, { signal: AbortSignal.timeout(8000) });
+      if (res.ok) message = (await res.json()) as MessageEmailHealth;
+      else messageError = `HTTP ${res.status}`;
+    } catch (err: any) {
+      messageError = err?.cause?.code ?? err?.message ?? String(err);
+    }
+
+    // Topics (listed at most every 5 minutes)
+    let topics: Set<string> | null = null;
+    try {
+      if (!this.topicCache || now - this.topicCache.at > TOPIC_LIST_TTL_MS) {
+        this.topicCache = { topics: new Set(await admin.listTopics()), at: now };
+      }
+      topics = this.topicCache.topics;
+    } catch {
+      topics = null;
+    }
+    const missingEmailTopics = topics ? EMAIL_TOPICS.filter((t) => !topics!.has(t)) : [];
+    const missingOtherTopics = topics
+      ? KNOWN_TOPICS.filter((t) => !topics!.has(t) && !EMAIL_TOPICS.includes(t)).sort()
+      : null;
+
+    return evaluateEmailDelivery({
+      message,
+      messageError,
+      consumers,
+      lagSince: this.lagSince,
+      missingEmailTopics,
+      missingOtherTopics,
+      publishFailures: recentPublishFailures(PUBLISH_FAILURE_WINDOW_MS),
+      emailTopics: EMAIL_TOPICS,
+      now,
+    });
+  }
+
+  /** Alert when email delivery goes down (after 2 bad polls), remind hourly, announce recovery. */
+  private async alertEmailDelivery(email: EmailDeliveryHealth): Promise<void> {
+    const st = this.emailAlert;
+    const now = Date.now();
+
+    if (email.status === 'healthy') {
+      if (st.alertedAt !== null) {
+        const downFor = st.downSince ? Math.round((now - st.downSince) / 60_000) : null;
+        const subject = 'ARIS - Email delivery restored';
+        const text = `Email delivery is working again${downFor !== null ? ` after about ${downFor} minute(s)` : ''}.`;
+        this.logger.info(`[EmailHealth] ${text}`);
+        await this.notifyEmailIncident(subject, text, this.buildEmailAlertHtml(email, 'restored', text), 'restored');
+      }
+      this.emailAlert = { status: 'healthy', badPolls: 0, downSince: null, alertedAt: null, alertedStatus: null };
+      return;
+    }
+
+    st.badPolls += 1;
+    st.status = email.status;
+    st.downSince ??= now;
+    if (st.badPolls < EMAIL_BAD_POLLS_BEFORE_ALERT) return;
+
+    const escalated = st.alertedStatus === 'warning' && email.status === 'critical';
+    const reminderDue = st.alertedAt !== null && now - st.alertedAt > EMAIL_REMINDER_MS;
+    if (st.alertedAt !== null && !escalated && !reminderDue) return;
+
+    const failing = email.checks.filter((c) => c.status !== 'healthy');
+    const subject = email.status === 'critical'
+      ? 'ARIS - Email delivery is DOWN'
+      : 'ARIS - Email delivery degraded';
+    const text = failing.map((c) => `${c.label}: ${c.detail}`).join(' | ');
+    this.logger.error(`[EmailHealth] ${subject}: ${text}`);
+    await this.notifyEmailIncident(subject, text, this.buildEmailAlertHtml(email, email.status, text), email.status);
+    st.alertedAt = now;
+    st.alertedStatus = email.status;
+  }
+
+  /**
+   * Two channels on purpose: an email (via Postmark, which may itself be down)
+   * and an in-app notification for every active Super Admin, written straight
+   * to the notifications table so it works even when Postmark or Kafka is down.
+   */
+  private async notifyEmailIncident(subject: string, text: string, html: string, kind: string): Promise<void> {
+    try {
+      await this.prisma.$executeRawUnsafe(
+        `INSERT INTO public.notifications
+           (id, tenant_id, user_id, channel, subject, body, status, metadata, sent_at, created_at, updated_at)
+         SELECT gen_random_uuid(), u.tenant_id, u.id, 'IN_APP'::public.notification_channel, $1, $2,
+                'SENT'::public.notification_status, $3::jsonb, NOW(), NOW(), NOW()
+         FROM public.users u
+         WHERE u.role::text = 'SUPER_ADMIN' AND u.is_active = true`,
+        subject,
+        text.slice(0, 4000),
+        JSON.stringify({ source: 'email-delivery-monitor', kind, link: '/settings/kafka-health' }),
+      );
+    } catch (err) {
+      this.logger.error(err, '[EmailHealth] Failed to create in-app notifications');
+    }
+
+    let recipients = await this.getAlertRecipients();
+    if (recipients.length === 0) {
+      try {
+        const rows = await this.prisma.$queryRawUnsafe<{ email: string }[]>(
+          `SELECT email FROM public.users WHERE role::text = 'SUPER_ADMIN' AND is_active = true`,
+        );
+        recipients = rows.map((r) => r.email);
+      } catch { /* the in-app notification is already created */ }
+    }
+    if (recipients.length > 0) {
+      const sent = await this.sendEmail(recipients, subject, html, 'email-delivery-alert');
+      if (!sent) this.logger.warn('[EmailHealth] Alert email could not be sent (provider may be down); in-app notification created');
+    }
   }
 
   private classify(state: string, totalLag: number): HealthStatus {
@@ -359,7 +548,20 @@ export class KafkaHealthService {
       // Kafka unreachable — reconnect next time
       this.logger.warn(err, 'Kafka health poll failed, will retry');
       await this.disconnectAdmin();
+      // Kafka down means no email can be triggered either
+      await this.alertEmailDelivery({
+        status: 'critical',
+        checks: [{
+          key: 'topics', label: 'Kafka', status: 'critical',
+          detail: `Kafka unreachable: ${err instanceof Error ? err.message : String(err)}. No email can be triggered.`,
+        }],
+        provider: null, sentLastHour: null, failedLastHour: null, checkedAt: new Date().toISOString(),
+      }).catch((e) => this.logger.error(e, '[EmailHealth] alert failed'));
       return;
+    }
+
+    if (summary.email) {
+      await this.alertEmailDelivery(summary.email).catch((e) => this.logger.error(e, '[EmailHealth] alert failed'));
     }
 
     const unhealthy: ConsumerGroupHealth[] = [];
@@ -408,7 +610,7 @@ export class KafkaHealthService {
 
   // ── Email (direct Postmark, no Kafka dependency) ──
 
-  private async sendEmail(recipients: string[], subject: string, html: string): Promise<boolean> {
+  private async sendEmail(recipients: string[], subject: string, html: string, tag = 'kafka-health-alert'): Promise<boolean> {
     const token = process.env['POSTMARK_SERVER_TOKEN'];
     const from = process.env['POSTMARK_FROM'] ?? 'noreply@au-aris.org';
     if (!token) {
@@ -430,9 +632,10 @@ export class KafkaHealthService {
           Subject: subject,
           HtmlBody: html,
           MessageStream: 'outbound',
-          Tag: 'kafka-health-alert',
+          Tag: tag,
         }),
       });
+      if (!res.ok) this.logger.warn(`[KafkaHealth] Postmark answered ${res.status} to the alert email`);
       return res.ok;
     } catch (err) {
       this.logger.error(err, '[KafkaHealth] Failed to send alert email');
@@ -484,17 +687,54 @@ export class KafkaHealthService {
         <tbody>${rows}</tbody>
       </table>
       <div style="margin-top:20px;">
-        <a href="${process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org'}/admin/kafka-health"
+        <a href="${process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org'}/settings/kafka-health"
            style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px;">
           View Kafka Health Dashboard
         </a>
       </div>
     </div>
     <div style="background:#f9fafb;padding:12px 24px;border-top:1px solid #e5e7eb;">
-      <p style="color:#9ca3af;font-size:11px;margin:0;">ARIS 4.0 — AU-IBAR Animal Resources Information System</p>
+      <p style="color:#9ca3af;font-size:11px;margin:0;">ARIS — AU-IBAR Animal Resources Information System</p>
     </div>
   </div>
 </body>
 </html>`;
+  }
+  private buildEmailAlertHtml(email: EmailDeliveryHealth, kind: string, summaryText: string): string {
+    const color = kind === 'restored' ? '#16a34a' : kind === 'critical' ? '#dc2626' : '#f59e0b';
+    const title = kind === 'restored' ? 'Email delivery restored'
+      : kind === 'critical' ? 'Email delivery is down' : 'Email delivery degraded';
+    const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const dot = (st: string) => (st === 'healthy' ? '#16a34a' : st === 'warning' ? '#f59e0b' : '#dc2626');
+    const rows = email.checks.map((c) => `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;white-space:nowrap;">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${dot(c.status)};margin-right:8px;"></span>${esc(c.label)}
+        </td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${esc(c.detail)}</td>
+      </tr>`).join('');
+    return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;padding:20px;background:#f3f4f6;">
+  <div style="max-width:700px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
+    <div style="background:${color};padding:20px 24px;">
+      <h1 style="color:#fff;margin:0;font-size:18px;">ARIS - ${title}</h1>
+      <p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:13px;">${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC</p>
+    </div>
+    <div style="padding:20px 24px;">
+      <p style="font-size:14px;color:#374151;margin:0 0 16px;">${esc(summaryText)}</p>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">${rows}</table>
+      <div style="margin-top:20px;">
+        <a href="${process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org'}/settings/kafka-health"
+           style="display:inline-block;background:#1A5632;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px;">
+          Open Kafka Consumer Health
+        </a>
+      </div>
+    </div>
+    <div style="background:#f9fafb;padding:12px 24px;border-top:1px solid #e5e7eb;">
+      <p style="color:#9ca3af;font-size:11px;margin:0;">ARIS - AU-IBAR Animal Resources Information System</p>
+    </div>
+  </div>
+</body></html>`;
   }
 }

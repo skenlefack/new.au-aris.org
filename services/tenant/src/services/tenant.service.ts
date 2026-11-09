@@ -1,3 +1,4 @@
+import { trackedSend } from './kafka-publish-tracker';
 import { randomUUID } from 'crypto';
 import type { PrismaClient, Prisma } from '@prisma/client';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
@@ -167,6 +168,6 @@ export class TenantService {
       correlationId: randomUUID(), sourceService: SERVICE_NAME, tenantId: user.tenantId,
       userId: user.userId, schemaVersion: '1', timestamp: new Date().toISOString(),
     };
-    try { await this.kafka.send(topic, tenant.id as string, tenant, headers); } catch {}
+    await trackedSend(topic, () => this.kafka.send(topic, tenant.id as string, tenant, headers));
   }
 }

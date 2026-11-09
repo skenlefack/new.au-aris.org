@@ -6,6 +6,8 @@ import authPlugin from './plugins/auth';
 import schedulerPlugin from './plugins/scheduler';
 import kafkaConsumersPlugin from './plugins/kafka-consumers';
 import { registerNotificationRoutes } from './routes/notification.routes';
+import { DynamicEmailChannel } from './services/channels/email-channel.factory';
+import { checkProvider, emailDeliveryStats } from './services/email-health';
 import { registerPreferencesRoutes } from './routes/preferences.routes';
 
 export async function buildApp() {
@@ -39,6 +41,17 @@ export async function buildApp() {
   app.get('/health', async () => ({
     status: 'ok',
     service: 'message',
+    timestamp: new Date().toISOString(),
+  }));
+
+  // Email delivery health — internal, read by the Kafka health monitor (tenant).
+  // Not routed by Traefik (no /api/v1 prefix).
+  const emailProbe = new DynamicEmailChannel(app.prisma);
+  app.get('/health/email', async () => ({
+    status: 'ok',
+    service: 'message',
+    provider: await checkProvider(() => emailProbe.getChannel()),
+    delivery: emailDeliveryStats(),
     timestamp: new Date().toISOString(),
   }));
 
