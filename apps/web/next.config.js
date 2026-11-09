@@ -7,6 +7,10 @@ const nextConfig = {
   transpilePackages: ['@aris/ui-components', '@aris/shared-types'],
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    // Ship the full API spec (outside public/) with the standalone build.
+    outputFileTracingIncludes: {
+      '/api/developers/internal-spec': ['./private/openapi/**'],
+    },
   },
   eslint: {
     // Linting is handled by the CI lint job (turbo lint).
@@ -50,6 +54,9 @@ const nextConfig = {
     const developers = [
       { source: '/developers', destination: '/developers/index.html' },
       { source: '/developers/api', destination: '/developers/index.html' },
+      // Full reference: the page is an empty shell, the spec comes from
+      // /api/developers/internal-spec (Super Admin / Continental Admin only).
+      { source: '/developers/internal', destination: '/developers/internal.html' },
     ];
 
     // In production (standalone), Traefik handles all /api/v1/* routing.
