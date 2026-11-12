@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { ChevronDown, Search, Loader2, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 
 export interface MultiSearchComboboxProps<T> {
   value: T[];
@@ -65,11 +66,7 @@ export function MultiSearchCombobox<T>({
 
   const filtered = useMemo(() => {
     if (!query) return items;
-    const q = query.toLowerCase();
-    return items.filter((item) => {
-      const text = getField(item, resolvedFilterKey);
-      return text.toLowerCase().includes(q);
-    });
+    return items.filter((item) => matchesSearch(query, getField(item, resolvedFilterKey)));
   }, [items, query, resolvedFilterKey]);
 
   // +1 for "All" row

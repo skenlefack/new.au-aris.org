@@ -12,6 +12,8 @@ import { useFormBuilderTemplates, useFormBuilderTemplate } from '@/lib/api/form-
 import type { FormSchema, FormField, FormSection } from '@/components/form-builder/utils/form-schema';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { useTranslations } from '@/lib/i18n/translations';
+import { matchesSearch } from '@/lib/search';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { ColorPicker } from '@/components/settings/ColorPicker';
 import {
@@ -23,6 +25,7 @@ import {
   X,
   Check,
   AlertTriangle,
+  Search,
 } from 'lucide-react';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
@@ -102,6 +105,7 @@ export default function StatisticsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<StatForm>(EMPTY_FORM);
+  const [search, setSearch] = useState('');
 
   const openAdd = () => {
     setEditingId(null);
@@ -187,8 +191,18 @@ export default function StatisticsPage() {
     );
   }
 
+  const visibleStats = statDefs.filter((stat: any) => {
+    if (stat.id === editingId) return true;
+    const domain = domains.find((d: any) => d.code === stat.domainCode);
+    return matchesSearch(
+      search, stat.code, stat.name, stat.description, stat.domainCode, domain?.name,
+      stat.unit, stat.sourceType, stat.sourceConfig?.templateName, stat.format,
+      stat.isActive ? t('active') : t('inactive'),
+    );
+  });
+
   // Group by domain
-  const grouped = statDefs.reduce((acc: Record<string, any[]>, stat: any) => {
+  const grouped = visibleStats.reduce((acc: Record<string, any[]>, stat: any) => {
     const key = stat.domainCode ?? 'uncategorized';
     if (!acc[key]) acc[key] = [];
     acc[key].push(stat);
@@ -242,6 +256,18 @@ export default function StatisticsPage() {
           isNew
         />
       )}
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={`${t('search')}...`}
+          className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+        />
+      </div>
 
       {/* Grouped List */}
       {Object.entries(grouped).map(([domainCode, stats]) => {
@@ -429,16 +455,12 @@ function StatFormPanel({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             {t('domain')} <span className="text-red-500">*</span>
           </label>
-          <select
+          <SearchableSelect
             value={form.domainCode}
-            onChange={(e) => setForm((f) => ({ ...f, domainCode: e.target.value }))}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-          >
-            <option value="">{t('selectDomain')}</option>
-            {domains.map((d: any) => (
-              <option key={d.code} value={d.code}>{d.name?.en ?? d.code}</option>
-            ))}
-          </select>
+            onChange={(v) => setForm((f) => ({ ...f, domainCode: v }))}
+            options={domains.map((d: any) => ({ value: d.code, label: d.name?.en ?? d.code }))}
+            placeholder={t('selectDomain')}
+          />
         </div>
 
         <div className="space-y-1.5">
@@ -650,6 +672,14 @@ function FormBuilderSourceConfig({
 
   const selectedCodes = new Set((sourceConfig?.fields ?? []).map((f: SourceConfigField) => f.fieldCode));
 
+  const [fieldSearch, setFieldSearch] = useState('');
+  const visibleSectionGroups = sectionGroups
+    .map(({ section, fields }) => ({
+      section,
+      fields: fields.filter((field) => matchesSearch(fieldSearch, Object.values(field.label ?? {}), field.code, field.type, Object.values(section.name ?? {}))),
+    }))
+    .filter(({ fields }) => fields.length > 0);
+
   const selectCls = 'rounded border border-gray-200 px-2 py-1 text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white';
   const inputCls = 'w-20 rounded border border-gray-200 px-2 py-1 text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white';
 
@@ -665,18 +695,12 @@ function FormBuilderSourceConfig({
             <Loader2 className="h-3 w-3 animate-spin" /> {t('loadingTemplates')}
           </div>
         ) : (
-          <select
+          <SearchableSelect
             value={selectedTemplateId}
-            onChange={(e) => handleTemplateChange(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-          >
-            <option value="">{t('selectForm')}</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} ({t.domain}) — v{t.version}
-              </option>
-            ))}
-          </select>
+            onChange={handleTemplateChange}
+            options={templates.map((tpl: any) => ({ value: tpl.id, label: `${tpl.name} (${tpl.domain}) — v${tpl.version}` }))}
+            placeholder={t('selectForm')}
+          />
         )}
       </div>
 
@@ -691,7 +715,17 @@ function FormBuilderSourceConfig({
         ) : (
           <div className="space-y-3">
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fieldsConfig')}</label>
-            {sectionGroups.map(({ section, fields }) => (
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={fieldSearch}
+                onChange={(e) => setFieldSearch(e.target.value)}
+                placeholder={`${t('search')}...`}
+                className="w-full rounded-lg border border-gray-200 py-1.5 pl-8 pr-3 text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              />
+            </div>
+            {visibleSectionGroups.map(({ section, fields }) => (
               <div key={section.id} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
                 <p className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
                   {section.name?.en ?? t('sectionFallback')}

@@ -3,6 +3,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { FastifyKafka } from '@aris/kafka-client';
 import type { KafkaHeaders } from '@aris/shared-types';
 import type { CreateSubDomainInput, UpdateSubDomainInput } from '../schemas/subdomain.schemas.js';
+import { searchIds, SUB_DOMAIN_SEARCH_SQL } from '../utils/text-search.js';
 
 const SERVICE_NAME = 'credential-service';
 
@@ -196,14 +197,9 @@ export class SubDomainService {
     if (filters.typeEnum) where.typeEnum = filters.typeEnum;
     if (filters.active !== undefined) where.active = filters.active === 'true';
     if (filters.valueChainCode) where.valueChainCode = filters.valueChainCode;
-    if (filters.search) {
-      const q = filters.search;
-      where.OR = [
-        { code: { contains: q, mode: 'insensitive' } },
-        { labelFr: { contains: q, mode: 'insensitive' } },
-        { labelEn: { contains: q, mode: 'insensitive' } },
-        { valueChainCode: { contains: q, mode: 'insensitive' } },
-      ];
+    if (filters.search?.trim()) {
+      // Every displayed column: code, labels (all languages), parent domain, type, value chain
+      where.id = { in: await searchIds(this.prisma, SUB_DOMAIN_SEARCH_SQL, filters.search) };
     }
 
     const [data, total] = await Promise.all([

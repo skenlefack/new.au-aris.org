@@ -22,6 +22,7 @@ import {
   List,
 } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
+import { matchesSearch } from '@/lib/search';
 import { useSettingsCountry } from '@/lib/api/settings-hooks';
 import {
   useGeoZones,
@@ -76,13 +77,7 @@ function MultiSearchCombobox({
 
   const filtered = useMemo(() => {
     if (!search.trim()) return options;
-    const q = search.toLowerCase();
-    return options.filter(
-      (o) =>
-        (o.name?.en ?? '').toLowerCase().includes(q) ||
-        (o.name?.fr ?? '').toLowerCase().includes(q) ||
-        o.code.toLowerCase().includes(q),
-    );
+    return options.filter((o) => matchesSearch(search, o.name, o.code));
   }, [options, search]);
 
   const selectedEntities = useMemo(
@@ -580,8 +575,9 @@ export default function GeoZonesPage() {
   // View mode: list or dashboard
   const [viewMode, setViewMode] = useState<'list' | 'dashboard'>('list');
 
-  // Domain filter
+  // Domain filter + text search
   const [domainFilter, setDomainFilter] = useState('');
+  const [zoneSearch, setZoneSearch] = useState('');
 
   // Zones data
   const { data: zonesData, isLoading: zonesLoading } = useGeoZones({
@@ -659,6 +655,17 @@ export default function GeoZonesPage() {
       .map((id) => admin1Map.get(id)?.name?.en ?? id)
       .join(', ');
 
+  // Every displayed field: code, name/description in all languages, domain, member regions
+  const visibleZones = zones.filter((zone) => matchesSearch(
+    zoneSearch,
+    zone.code,
+    zone.name,
+    zone.description,
+    zone.domainCode,
+    domainLabel(zone.domainCode),
+    (zone.memberIds ?? []).map((id) => admin1Map.get(id)?.name ?? id),
+  ));
+
   if (countryLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -705,6 +712,16 @@ export default function GeoZonesPage() {
 
       {/* Filter bar */}
       <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={zoneSearch}
+            onChange={(e) => setZoneSearch(e.target.value)}
+            placeholder={t('searchByNameOrCode')}
+            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          />
+        </div>
         <select
           value={domainFilter}
           onChange={(e) => setDomainFilter(e.target.value)}
@@ -718,7 +735,7 @@ export default function GeoZonesPage() {
           ))}
         </select>
         <span className="text-xs text-gray-400">
-          {zones.length} {zones.length === 1 ? 'zone' : 'zones'}
+          {visibleZones.length} {visibleZones.length === 1 ? 'zone' : 'zones'}
         </span>
         <div className="ml-auto flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
           <button
@@ -755,13 +772,13 @@ export default function GeoZonesPage() {
             <div className="col-span-full flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
             </div>
-          ) : zones.length === 0 ? (
+          ) : visibleZones.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-12">
               <Map className="mb-2 h-8 w-8 text-gray-300 dark:text-gray-600" />
               <p className="text-sm text-gray-400 dark:text-gray-500">{t('noZonesYet')}</p>
             </div>
           ) : (
-            zones.map((zone) => (
+            visibleZones.map((zone) => (
               <ZoneKpiCard
                 key={zone.id}
                 zone={zone}
@@ -796,7 +813,7 @@ export default function GeoZonesPage() {
                     <Loader2 className="mx-auto h-5 w-5 animate-spin text-gray-400" />
                   </td>
                 </tr>
-              ) : zones.length === 0 ? (
+              ) : visibleZones.length === 0 ? (
                 <tr>
                   <td colSpan={canEdit ? 6 : 5} className="py-12 text-center">
                     <Map className="mx-auto mb-2 h-8 w-8 text-gray-300 dark:text-gray-600" />
@@ -816,7 +833,7 @@ export default function GeoZonesPage() {
                   </td>
                 </tr>
               ) : (
-                zones.map((zone) => (
+                visibleZones.map((zone) => (
                   <tr key={zone.id} className="group hover:bg-gray-50 dark:hover:bg-gray-900/30">
                     <td className="px-4 py-2.5 font-mono text-xs text-gray-700 dark:text-gray-300">
                       {zone.code}

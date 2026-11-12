@@ -16,6 +16,7 @@ import {
 } from './tenant-topics';
 import { trackedSend } from './kafka-publish-tracker';
 import { randomUUID } from 'crypto';
+import { searchIds, FUNCTION_SEARCH_SQL, USER_SEARCH_SQL, REC_SEARCH_SQL, COUNTRY_SEARCH_SQL } from './text-search';
 import { hash } from 'bcrypt';
 import type { PrismaClient, Prisma } from '@prisma/client';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
@@ -192,11 +193,8 @@ export class SettingsService {
       : { sortOrder: 'asc' as const };
 
     const where: Record<string, unknown> = {};
-    if (query.search) {
-      where.OR = [
-        { code: { contains: query.search, mode: 'insensitive' } },
-        { headquarters: { contains: query.search, mode: 'insensitive' } },
-      ];
+    if (query.search?.trim()) {
+      where.id = { in: await searchIds(this.prisma, REC_SEARCH_SQL, query.search) };
     }
     if (query.status === 'active') where.isActive = true;
     if (query.status === 'inactive') where.isActive = false;
@@ -412,12 +410,8 @@ export class SettingsService {
       : { sortOrder: 'asc' as const };
 
     const where: Record<string, unknown> = {};
-    if (query.search) {
-      where.OR = [
-        { code: { contains: query.search, mode: 'insensitive' } },
-        { name: { path: ['en'], string_contains: query.search } },
-        { capital: { path: ['en'], string_contains: query.search } },
-      ];
+    if (query.search?.trim()) {
+      where.id = { in: await searchIds(this.prisma, COUNTRY_SEARCH_SQL, query.search) };
     }
     if (query.status === 'active') where.isActive = true;
     if (query.status === 'inactive') where.isActive = false;
@@ -1662,10 +1656,8 @@ export class SettingsService {
       : [{ level: 'asc' as const }, { sortOrder: 'asc' as const }];
 
     const where: Record<string, unknown> = { ...(await this.buildFunctionTenantFilter(user)) };
-    if (query.search) {
-      where.OR = [
-        { code: { contains: query.search, mode: 'insensitive' } },
-      ];
+    if (query.search?.trim()) {
+      where.id = { in: await searchIds(this.prisma, FUNCTION_SEARCH_SQL, query.search) };
     }
     if (query.level) where.level = query.level;
     if (query.category) where.category = query.category;
@@ -1964,12 +1956,8 @@ export class SettingsService {
       : { createdAt: 'desc' as const };
 
     const where: Record<string, unknown> = { ...this.buildUserTenantFilter(caller) };
-    if (query.search) {
-      where.OR = [
-        { email: { contains: query.search, mode: 'insensitive' } },
-        { firstName: { contains: query.search, mode: 'insensitive' } },
-        { lastName: { contains: query.search, mode: 'insensitive' } },
-      ];
+    if (query.search?.trim()) {
+      where.id = { in: await searchIds(this.prisma, USER_SEARCH_SQL, query.search) };
     }
     if (query.role) {
       // Check if role is a primary UserRole enum value or a governance role code

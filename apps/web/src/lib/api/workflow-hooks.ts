@@ -160,7 +160,9 @@ export function useDeleteWorkflowStep() {
 // VALIDATION CHAINS
 // ═══════════════════════════════════════════════════════
 
-export function useValidationChains(query?: { page?: number; limit?: number; userId?: string; validatorId?: string }) {
+export function useValidationChains(query?: {
+  page?: number; limit?: number; userId?: string; validatorId?: string; levelType?: string; search?: string;
+}) {
   return useQuery({
     queryKey: ['validation-chains', query],
     queryFn: () => {
@@ -169,6 +171,8 @@ export function useValidationChains(query?: { page?: number; limit?: number; use
       if (query?.limit) params.set('limit', String(query.limit));
       if (query?.userId) params.set('userId', query.userId);
       if (query?.validatorId) params.set('validatorId', query.validatorId);
+      if (query?.levelType) params.set('levelType', query.levelType);
+      if (query?.search) params.set('search', query.search);
       return wfFetch<any>(`/api/v1/workflow/validation-chains?${params}`);
     },
   });

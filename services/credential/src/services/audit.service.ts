@@ -1,5 +1,16 @@
 import type { PrismaClient } from '@prisma/client';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+import { searchWords, wordIds, USER_WORD_SQL } from '../utils/text-search.js';
+
+/** gte/lte bounds of the UUIDs starting with `prefix` (4+ chars of the text form), or null. */
+function uuidPrefixRange(prefix: string): { gte: string; lte: string } | null {
+  const LOW = '00000000-0000-0000-0000-000000000000';
+  const HIGH = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
+  if (prefix.length < 4 || prefix.length > 36) return null;
+  const gte = prefix + LOW.slice(prefix.length);
+  const lte = prefix + HIGH.slice(prefix.length);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(gte) ? { gte, lte } : null;
+}
 
 export interface AuditQueryParams {
   page?: number;
@@ -48,17 +59,38 @@ export class AuditService {
       where.entityType = params.entityType;
     }
 
-    if (params.search) {
-      where.OR = [
-        { entityType: { contains: params.search, mode: 'insensitive' } },
-        { entityId: { contains: params.search, mode: 'insensitive' } },
-        { reason: { contains: params.search, mode: 'insensitive' } },
-        { actorRole: { contains: params.search, mode: 'insensitive' } },
-        { serviceName: { contains: params.search, mode: 'insensitive' } },
-      ];
-    }
-
     const p = this.prisma as any;
+
+    if (params.search) {
+      // Every word must hit one displayed field. The audit log grows without
+      // bound, so its own columns stay Prisma filters (no id lists from it);
+      // only the small user table goes through the accent-folding SQL.
+      const groups: Record<string, unknown>[] = [];
+      for (const { word, raw } of searchWords(params.search)) {
+        // The actor column shows the user's email / name, resolved from the user table
+        const actorIds = await wordIds(this.prisma, USER_WORD_SQL, word);
+        // entity_id is a UUID column (Prisma `contains` fails on it): the short id
+        // shown in the table is a hex prefix, matched as a UUID range
+        const entityRange = uuidPrefixRange(word);
+        // Enum-like columns are matched word by word ("data steward" hits DATA_STEWARD)
+        const texts = [...new Set([word, raw])];
+        groups.push({
+          OR: [
+            ...texts.flatMap((t) => [
+              { entityType: { contains: t, mode: 'insensitive' } },
+              { action: { contains: t, mode: 'insensitive' } },
+              { reason: { contains: t, mode: 'insensitive' } },
+              { actorRole: { contains: t, mode: 'insensitive' } },
+              { dataClassification: { contains: t, mode: 'insensitive' } },
+              { serviceName: { contains: t, mode: 'insensitive' } },
+            ]),
+            ...(entityRange ? [{ entityId: entityRange }] : []),
+            ...(actorIds.length > 0 ? [{ actorUserId: { in: actorIds } }] : []),
+          ],
+        });
+      }
+      if (groups.length > 0) where.AND = groups;
+    }
 
     const [entries, total] = await Promise.all([
       p.auditLog.findMany({

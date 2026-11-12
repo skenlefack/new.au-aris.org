@@ -154,6 +154,8 @@ export const ListValidationChainsQuerySchema = Type.Object({
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
   userId: Type.Optional(Type.String({ format: 'uuid' })),
   validatorId: Type.Optional(Type.String({ format: 'uuid' })),
+  levelType: Type.Optional(Type.String({ maxLength: 20 })),
+  search: Type.Optional(Type.String({ maxLength: 200 })),
 });
 export type ListValidationChainsQuery = Static<typeof ListValidationChainsQuerySchema>;
 

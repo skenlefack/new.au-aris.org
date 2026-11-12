@@ -12,6 +12,7 @@ import {
 import type { IndicatorType } from '@/lib/api/indicator-hooks';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
 import { useTranslations } from '@/lib/i18n/translations';
+import { matchesSearch } from '@/lib/search';
 import {
   Loader2,
   Plus,
@@ -21,6 +22,7 @@ import {
   Check,
   AlertTriangle,
   BarChart3,
+  Search,
 } from 'lucide-react';
 import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
@@ -253,9 +255,13 @@ function IndicatorTypesList() {
   const [showForm, setShowForm] = useState(false);
   const [editingType, setEditingType] = useState<IndicatorType | null>(null);
   const [deletingCode, setDeletingCode] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   const types = data?.data ?? [];
   const sortedTypes = [...types].sort((a, b) => a.displayOrder - b.displayOrder);
+  const visibleTypes = sortedTypes.filter((tp) =>
+    matchesSearch(search, tp.code, tp.labelFr, tp.labelEn, tp.labelPt, tp.labelAr, tp.color, tp.displayOrder),
+  );
 
   const handleCreate = async (formData: TypeFormData) => {
     try {
@@ -353,6 +359,18 @@ function IndicatorTypesList() {
         </div>
       </div>
 
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('searchTypes')}
+          className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+        />
+      </div>
+
       {/* Table */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         {isLoading ? (
@@ -374,14 +392,14 @@ function IndicatorTypesList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {sortedTypes.length === 0 ? (
+                {visibleTypes.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
                       {t('noIndicatorTypes')}
                     </td>
                   </tr>
                 ) : (
-                  sortedTypes.map((tp) => (
+                  visibleTypes.map((tp) => (
                     <tr key={tp.code} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60">
                       <td className="px-4 py-3">
                         <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">

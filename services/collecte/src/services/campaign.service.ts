@@ -680,7 +680,10 @@ export class CampaignService {
     scopeEntries: Array<{ nodeCode: string; levelCodes: string[] }>,
     user: AuthenticatedUser,
   ): Promise<ApiResponse<{ campaignId: string; scopes: CampaignScopes }>> {
-    const campaign = await (this.prisma as any).campaign.findUnique({ where: { id: campaignId } });
+    // Try CollectionCampaign first (new model), fallback to legacy Campaign
+    const campaign =
+      (await (this.prisma as any).collectionCampaign.findUnique({ where: { id: campaignId }, select: { id: true } })) ??
+      (await (this.prisma as any).campaign.findUnique({ where: { id: campaignId }, select: { id: true } }));
     if (!campaign) throw new HttpError(404, `Campaign ${campaignId} not found`);
 
     // Replace all scopes atomically

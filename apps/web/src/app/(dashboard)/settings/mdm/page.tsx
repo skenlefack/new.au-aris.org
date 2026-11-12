@@ -6,9 +6,10 @@ import {
   Power, Clock, Plus, Upload, Shield, ChevronDown, X, Package,
   AlertTriangle, Check, WifiOff, BatteryWarning, MonitorSmartphone,
   CheckCircle2, Loader2, Timer, ArrowUpCircle, Gauge, Activity, XCircle,
-  Bell, MapPin, BarChart3, QrCode, Copy,
+  Bell, MapPin, BarChart3, QrCode, Copy, Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 import {
@@ -1405,6 +1406,11 @@ function ReleasesTab() {
   });
 
   const releases: MdmRelease[] = data?.data ?? [];
+  const [search, setSearch] = useState('');
+  const visibleReleases = releases.filter((r) => matchesSearch(
+    search, r.versionName, r.versionCode, r.releaseNotes, r.isRequired ? 'Required' : 'Optional',
+    new Date(r.createdAt).toLocaleDateString(),
+  ));
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1501,6 +1507,17 @@ function ReleasesTab() {
         </div>
       )}
 
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search releases..."
+          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 pl-8 pr-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
       {/* Releases Table */}
       <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900/60">
         <table className="w-full text-xs">
@@ -1520,10 +1537,10 @@ function ReleasesTab() {
             {isLoading && (
               <tr><td colSpan={8} className="py-12 text-center text-gray-400"><RefreshCw className="h-4 w-4 animate-spin inline mr-2" />Loading...</td></tr>
             )}
-            {!isLoading && releases.length === 0 && (
-              <tr><td colSpan={8} className="py-12 text-center text-gray-400">No releases yet.</td></tr>
+            {!isLoading && visibleReleases.length === 0 && (
+              <tr><td colSpan={8} className="py-12 text-center text-gray-400">{releases.length === 0 ? 'No releases yet.' : 'No results matching filters'}</td></tr>
             )}
-            {releases.map((r) => (
+            {visibleReleases.map((r) => (
               <tr key={r.id} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/60 dark:hover:bg-gray-800/40">
                 <td className="px-4 py-2.5 font-medium text-gray-800 dark:text-gray-200">{r.versionName}</td>
                 <td className="px-3 py-2.5 text-gray-500">{r.versionCode}</td>

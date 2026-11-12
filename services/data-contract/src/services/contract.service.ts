@@ -15,6 +15,7 @@ import type {
 } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import type { DataContractEntity } from '../contract/entities/contract.entity';
+import { CONTRACT_SEARCH_SQL, searchIds } from './text-search';
 
 class HttpError extends Error {
   constructor(public statusCode: number, message: string) {
@@ -119,7 +120,7 @@ export class ContractService {
 
   async findAll(
     user: AuthenticatedUser,
-    query: PaginationQuery & { domain?: string; status?: string; owner?: string },
+    query: PaginationQuery & { domain?: string; status?: string; owner?: string; search?: string },
   ): Promise<PaginatedResponse<DataContractEntity>> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -135,6 +136,9 @@ export class ContractService {
       ...(query.status && { status: query.status }),
       ...(query.owner && { data_owner: { contains: query.owner, mode: 'insensitive' } }),
     };
+    if (query.search?.trim()) {
+      where['id'] = { in: await searchIds(this.prisma as PrismaClient, CONTRACT_SEARCH_SQL, query.search) };
+    }
 
     const [data, total] = await Promise.all([
       (this.prisma as any).dataContract.findMany({ where, skip, take: limit, orderBy }),

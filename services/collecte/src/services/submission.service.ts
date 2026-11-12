@@ -904,7 +904,7 @@ export class SubmissionService {
           where['campaignId'] = { in: ids };
         } else {
           // No campaigns for this domain — return empty result
-          where['id'] = '__NO_MATCH__';
+          where['id'] = { in: [] };
         }
       } catch {
         // CollectionCampaign table may not exist — fall back to no filter
@@ -935,7 +935,7 @@ export class SubmissionService {
           where['submittedBy'] = { in: assignedUserIds };
         } else {
           // No one assigned → empty result
-          where['id'] = '__NO_MATCH__';
+          where['id'] = { in: [] };
         }
       } else if (scope === 'mine') {
         // Only own submissions
@@ -982,7 +982,7 @@ export class SubmissionService {
           if (where['campaignId'] && typeof where['campaignId'] === 'string') {
             // Single campaign filter — block if hidden
             if (hiddenIds.includes(where['campaignId'] as string)) {
-              where['id'] = '__NO_MATCH__';
+              where['id'] = { in: [] };
             }
           } else {
             where['NOT'] = { ...(where['NOT'] as Record<string, unknown> ?? {}), campaignId: { in: hiddenIds } };

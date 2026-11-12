@@ -28,6 +28,7 @@ import type {
 } from '../schemas/mdm.schemas.js';
 import type { MdmAlertEngine } from './mdm-alert.engine.js';
 import type { MdmComplianceEngine } from './mdm-compliance.engine.js';
+import { searchIds, MDM_DEVICE_SEARCH_SQL } from '../utils/text-search.js';
 
 class HttpError extends Error {
   constructor(public statusCode: number, message: string) { super(message); }
@@ -288,18 +289,10 @@ export class MdmService {
       where.status = query.status;
     }
 
-    if (query.search) {
-      const q = query.search;
-      (where as any).OR = [
-        { deviceName: { contains: q, mode: 'insensitive' } },
-        { deviceModel: { contains: q, mode: 'insensitive' } },
-        { hardwareId: { contains: q, mode: 'insensitive' } },
-        { user: { OR: [
-          { firstName: { contains: q, mode: 'insensitive' } },
-          { lastName: { contains: q, mode: 'insensitive' } },
-          { email: { contains: q, mode: 'insensitive' } },
-        ] } },
-      ];
+    if (query.search?.trim()) {
+      // Every word must hit a displayed field: device, manufacturer/model,
+      // version, network, hardware id, user (email / name); accent-insensitive
+      where.id = { in: await searchIds(this.prisma, MDM_DEVICE_SEARCH_SQL, query.search) };
     }
 
     const [data, total] = await Promise.all([

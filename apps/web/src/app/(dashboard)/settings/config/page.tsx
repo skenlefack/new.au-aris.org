@@ -11,10 +11,14 @@ import {
   ChevronDown,
   ChevronRight,
   RefreshCw,
+  Search,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { useAllTenants } from '@/lib/api/knowledge-hub-hooks';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 import { SuperAdminGuard } from '@/components/settings/SuperAdminGuard';
 
@@ -116,6 +120,7 @@ interface NewRateLimit {
 
 export default function ConfigPage() {
   const [activeTab, setActiveTab] = useState<Tab>('feature-flags');
+  const [search, setSearch] = useState('');
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'feature-flags', label: 'Feature Flags' },
@@ -153,12 +158,22 @@ export default function ConfigPage() {
             {tab.label}
           </button>
         ))}
+        <div className="relative ml-auto w-full max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search..."
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-aris-primary-500"
+          />
+        </div>
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'feature-flags' && <FeatureFlagsTab />}
-      {activeTab === 'rate-limits' && <RateLimitsTab />}
-      {activeTab === 'kafka-topics' && <KafkaTopicsTab />}
+      {activeTab === 'feature-flags' && <FeatureFlagsTab search={search} />}
+      {activeTab === 'rate-limits' && <RateLimitsTab search={search} />}
+      {activeTab === 'kafka-topics' && <KafkaTopicsTab search={search} />}
     </div>
     </SuperAdminGuard>
   );
@@ -168,8 +183,11 @@ export default function ConfigPage() {
 /*  Feature Flags Tab                                                        */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function FeatureFlagsTab() {
-  const { data: flags, isLoading } = useFeatureFlags();
+function FeatureFlagsTab({ search }: { search: string }) {
+  const { data: allFlags, isLoading } = useFeatureFlags();
+  const flags = allFlags?.filter((flag) =>
+    matchesSearch(search, flag.key, flag.description, flag.enabled ? 'enabled' : 'disabled', Object.keys(flag.tenantOverrides ?? {})),
+  );
   const updateMutation = useUpdateFeatureFlag();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -363,8 +381,13 @@ function FeatureFlagRow({
 /*  Rate Limits Tab                                                          */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function RateLimitsTab() {
-  const { data: limits, isLoading } = useRateLimits();
+function RateLimitsTab({ search }: { search: string }) {
+  const { data: allLimits, isLoading } = useRateLimits();
+  const limits = allLimits?.filter((limit) =>
+    matchesSearch(search, limit.tenantName, limit.tenantId, limit.endpoint, limit.maxRequests, limit.windowSeconds),
+  );
+  const { data: tenantsData } = useAllTenants();
+  const tenantOptions = (tenantsData?.data ?? []).map((tn) => ({ value: tn.id, label: `${tn.name} (${tn.code})` }));
   const updateMutation = useUpdateRateLimit();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -445,14 +468,11 @@ function RateLimitsTab() {
             {showAddForm && (
               <tr className="border-b border-gray-200/50 dark:border-gray-700/50 bg-aris-primary-50/10 dark:bg-aris-primary-900/10">
                 <td className="px-4 py-3">
-                  <input
-                    type="text"
+                  <SearchableSelect
                     value={newLimit.tenantId}
-                    onChange={(e) =>
-                      setNewLimit({ ...newLimit, tenantId: e.target.value })
-                    }
-                    className="text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-aris-primary-500 focus:border-transparent w-full"
-                    placeholder="Tenant ID"
+                    onChange={(v) => setNewLimit({ ...newLimit, tenantId: v })}
+                    options={tenantOptions}
+                    placeholder="Tenant"
                   />
                 </td>
                 <td className="px-4 py-3">
@@ -642,8 +662,11 @@ function RateLimitsTab() {
 /*  Kafka Topics Tab                                                         */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function KafkaTopicsTab() {
-  const { data: topics, isLoading, refetch } = useKafkaTopics();
+function KafkaTopicsTab({ search }: { search: string }) {
+  const { data: allTopics, isLoading, refetch } = useKafkaTopics();
+  const topics = allTopics?.filter((topic) =>
+    matchesSearch(search, topic.name, topic.partitions, topic.replicationFactor, topic.consumerGroups),
+  );
 
   return (
     <div className="space-y-4">

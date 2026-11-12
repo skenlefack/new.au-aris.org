@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Filter, FileText, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { ArrowLeft, Filter, FileText, CheckCircle2, AlertTriangle, XCircle, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useDataContracts } from '@/lib/api/hooks';
@@ -38,11 +38,13 @@ export default function DataContractsSettingsPage() {
   const t = useTranslations('settings');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
 
   const { data, isLoading } = useDataContracts({
     page,
     limit: 20,
     status: statusFilter || undefined,
+    search: search || undefined,
   });
   const contracts = data?.data ?? [];
   const meta = data?.meta;
@@ -70,6 +72,16 @@ export default function DataContractsSettingsPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            placeholder={`${t('search')}...`}
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm focus:border-aris-primary-500 focus:outline-none"
+          />
+        </div>
         <Filter className="h-4 w-4 text-gray-400" />
         <select
           value={statusFilter}

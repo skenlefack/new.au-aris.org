@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, Search, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 
 export interface SearchableSelectOption {
   label: string;
@@ -51,10 +52,7 @@ export function SearchableSelect({
     // so we skip client-side filtering and show all options as-is
     if (onSearchChange) return options;
     if (!query) return options;
-    const q = query.toLowerCase();
-    return options.filter((o) =>
-      o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q),
-    );
+    return options.filter((o) => matchesSearch(query, o.label, o.value));
   }, [options, query]);
 
   useEffect(() => {

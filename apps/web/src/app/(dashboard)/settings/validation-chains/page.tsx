@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Link2,
   Plus,
@@ -28,6 +28,7 @@ import {
 } from '@/lib/api/workflow-hooks';
 import { useSettingsUsers, type ManagedUser } from '@/lib/api/settings-hooks';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 
 const LEVEL_TYPES = ['national', 'regional', 'continental', 'admin1', 'admin2', 'admin3', 'admin4', 'admin5'];
 
@@ -64,7 +65,7 @@ function userDisplayName(u?: { displayName?: string; email?: string }) {
   return u.displayName?.trim() || u.email || '—';
 }
 
-/* ── Filterable User Select (native <select> for reliability) ── */
+/* ── Searchable User Select (name, email, role; accent-insensitive) ── */
 
 function UserSelect({
   value,
@@ -81,19 +82,6 @@ function UserSelect({
   placeholder?: string;
   className?: string;
 }) {
-  const [filter, setFilter] = useState('');
-
-  const filtered = useMemo(() => {
-    if (!filter) return users;
-    const q = filter.toLowerCase();
-    return users.filter(
-      (u) =>
-        u.email.toLowerCase().includes(q) ||
-        (u.firstName ?? '').toLowerCase().includes(q) ||
-        (u.lastName ?? '').toLowerCase().includes(q),
-    );
-  }, [users, filter]);
-
   if (loading) {
     return (
       <div className={cn('flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-400', className)}>
@@ -104,34 +92,16 @@ function UserSelect({
   }
 
   return (
-    <div className={cn('space-y-1', className)}>
-      {users.length > 10 && (
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter..."
-            className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-1.5 pl-8 pr-2 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:outline-none"
-          />
-        </div>
-      )}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-2 text-sm text-gray-900 dark:text-white"
-      >
-        <option value="">{placeholder ?? '-- Select --'}</option>
-        {filtered.map((u) => (
-          <option key={u.id} value={u.id}>
-            {u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : u.email}
-            {u.firstName && u.lastName ? ` (${u.email})` : ''}
-            {' '}[{u.role}]
-          </option>
-        ))}
-      </select>
-    </div>
+    <SearchableSelect
+      value={value}
+      onChange={onChange}
+      options={users.map((u) => ({
+        value: u.id,
+        label: `${u.firstName && u.lastName ? `${u.firstName} ${u.lastName} (${u.email})` : u.email} [${u.role}]`,
+      }))}
+      placeholder={placeholder ?? '-- Select --'}
+      className={className}
+    />
   );
 }
 
@@ -149,26 +119,24 @@ export default function ValidationChainsPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState('');
 
-  const { data: chainsData, isLoading } = useValidationChains({ page, limit });
+  // Search and level filter run server-side, across every page
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { data: chainsData, isLoading } = useValidationChains({
+    page,
+    limit,
+    search: debouncedSearch || undefined,
+    levelType: filterLevel || undefined,
+  });
   const deleteMut = useDeleteValidationChain();
 
   const chains = chainsData?.data ?? [];
   const total = chainsData?.meta?.total ?? 0;
-
-  // Client-side search + filter on current page
-  const displayed = chains.filter((c: any) => {
-    if (filterLevel && c.levelType !== filterLevel) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      const match =
-        (c.user?.displayName ?? '').toLowerCase().includes(q) ||
-        (c.user?.email ?? '').toLowerCase().includes(q) ||
-        (c.validator?.displayName ?? '').toLowerCase().includes(q) ||
-        (c.validator?.email ?? '').toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    return true;
-  });
+  const displayed = chains;
 
   const handleDelete = async (id: string) => {
     setDeleteError('');
@@ -221,14 +189,14 @@ export default function ValidationChainsPage() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder={t('searchByUserOrValidator')}
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => setFilterLevel('')}
+            onClick={() => { setFilterLevel(''); setPage(1); }}
             className={cn(
               'rounded-full px-3 py-1 text-xs font-medium transition-colors',
               !filterLevel ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200',
@@ -239,7 +207,7 @@ export default function ValidationChainsPage() {
           {LEVEL_TYPES.map((lt) => (
             <button
               key={lt}
-              onClick={() => setFilterLevel(lt === filterLevel ? '' : lt)}
+              onClick={() => { setFilterLevel(lt === filterLevel ? '' : lt); setPage(1); }}
               className={cn(
                 'rounded-full px-3 py-1 text-xs font-medium transition-colors',
                 filterLevel === lt ? LEVEL_COLORS[lt] : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200',
@@ -373,7 +341,7 @@ export default function ValidationChainsPage() {
 
           <Pagination
             page={page}
-            total={search || filterLevel ? displayed.length : total}
+            total={total}
             limit={limit}
             onPageChange={setPage}
             onLimitChange={(l) => { setLimit(l); setPage(1); }}

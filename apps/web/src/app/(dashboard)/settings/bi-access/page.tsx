@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { BarChart3, PieChart, BarChart2, ShieldCheck, Eye, EyeOff, Save, ChevronDown, ChevronUp, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { BarChart3, PieChart, BarChart2, ShieldCheck, Eye, EyeOff, Save, ChevronDown, ChevronUp, Loader2, AlertTriangle, CheckCircle2, Search } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
+import { matchesSearch } from '@/lib/search';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useBiTools, useBiAccessRules, useUpsertBiAccessRule, type BiToolConfig, type BiAccessRule } from '@/lib/api/bi-hooks';
@@ -72,6 +73,7 @@ export default function BiAccessPage() {
 
   const [selectedTool, setSelectedTool] = useState('superset');
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   // Local edits keyed by role code
@@ -282,10 +284,26 @@ export default function BiAccessPage() {
         </div>
       )}
 
+      {/* Role search */}
+      {!isLoading && roles.length > 0 && (
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('searchRoles')}
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          />
+        </div>
+      )}
+
       {/* Role configurations */}
       {!isLoading && roles.length > 0 && (
         <div className="space-y-3">
-          {mergedConfigs.map((config) => {
+          {mergedConfigs
+            .filter(({ role }) => matchesSearch(search, role.code, role.name, role.level, role.tenant?.name))
+            .map((config) => {
             const { role } = config;
             const isExpanded = expandedRole === role.code;
             const hasNoAccess = config.allowedSchemas.length === 0;

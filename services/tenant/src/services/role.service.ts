@@ -1,6 +1,7 @@
 import { TOPIC_SETTINGS_ROLE_UPDATED } from './tenant-topics';
 import { trackedSend } from './kafka-publish-tracker';
 import { randomUUID } from 'crypto';
+import { searchIds, ROLE_SEARCH_SQL } from './text-search';
 import type { PrismaClient, Prisma } from '@prisma/client';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
 import type Redis from 'ioredis';
@@ -145,12 +146,8 @@ export class RoleService {
       });
     }
 
-    if (query.search) {
-      andConditions.push({
-        OR: [
-          { code: { contains: query.search, mode: 'insensitive' } },
-        ],
-      });
+    if (query.search?.trim()) {
+      andConditions.push({ id: { in: await searchIds(this.prisma, ROLE_SEARCH_SQL, query.search) } });
     }
     if (andConditions.length > 0) where.AND = andConditions;
     if (query.level) where.level = query.level;

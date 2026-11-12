@@ -30,6 +30,15 @@ import type {
 const CACHE_PREFIX = 'analytics:indicator:';
 const CACHE_TTL = 300; // 5 min
 
+// translate() keeps the search free of the unaccent extension, which PROD does not have
+const ACCENTED = 'àáâãäåāèéêëēìíîïīòóôõöōùúûüūçñýÿ';
+const PLAIN = 'aaaaaaaeeeeeiiiiioooooouuuuucnyy';
+
+/** `col` folded (lower case, no accents, "_" as space) compared with the `param` LIKE pattern. */
+function foldLike(col: string, param: string): string {
+  return `translate(replace(lower(${col}::text), '_', ' '), '${ACCENTED}', '${PLAIN}') LIKE ${param}`;
+}
+
 /** Convert snake_case DB row keys to camelCase for frontend consumption. */
 function toCamelCase(row: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -155,9 +164,20 @@ export class IndicatorService {
     if (query.measurementMode) { conditions.push(`i.measurement_mode = $${idx++}`); params.push(query.measurementMode); }
     if (query.active !== undefined) { conditions.push(`i.active = $${idx++}`); params.push(query.active); }
     if (query.search) {
-      conditions.push(`(i.name_en ILIKE $${idx} OR i.name_fr ILIKE $${idx} OR i.code ILIKE $${idx})`);
-      params.push(`%${query.search}%`);
-      idx++;
+      // Every displayed column: code, names (all languages), type label, mode, unit.
+      // Case- and accent-insensitive; every word must match one of them.
+      const words = query.search.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/_/g, ' ')
+        .toLowerCase().trim().split(/\s+/).filter(Boolean).slice(0, 5);
+      for (const word of words) {
+        const p = `$${idx++}`;
+        const f = (col: string) => foldLike(col, p);
+        conditions.push(`(${f('i.code')} OR ${f('i.name_en')} OR ${f('i.name_fr')}
+          OR ${f('i.name_pt')} OR ${f('i.name_ar')} OR ${f('i.unit')}
+          OR ${f('i.type_code')} OR ${f('i.measurement_mode')}
+          OR EXISTS (SELECT 1 FROM analytics.indicator_types it WHERE it.code = i.type_code
+                     AND (${f('it.label_en')} OR ${f('it.label_fr')} OR ${f('it.label_pt')} OR ${f('it.label_ar')})))`);
+        params.push(`%${word.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
+      }
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

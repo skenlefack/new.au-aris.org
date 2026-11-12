@@ -9,6 +9,7 @@ import {
 } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { useTranslations } from '@/lib/i18n/translations';
+import { matchesSearch } from '@/lib/search';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { ColorPicker } from '@/components/settings/ColorPicker';
@@ -22,6 +23,7 @@ import {
   Check,
   AlertTriangle,
   Circle,
+  Search,
 } from 'lucide-react';
 import { IconPicker, ICON_MAP } from '@/components/ui/IconPicker';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
@@ -61,6 +63,7 @@ export default function DomainsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<DomainForm>(EMPTY_FORM);
+  const [search, setSearch] = useState('');
 
   const openAdd = () => {
     setEditingId(null);
@@ -178,6 +181,18 @@ export default function DomainsPage() {
         />
       )}
 
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('searchByNameOrCode')}
+          className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+        />
+      </div>
+
       {/* Domains List */}
       <div className="space-y-3">
         {domains.map((domain: any, idx: number) => {
@@ -195,6 +210,10 @@ export default function DomainsPage() {
                 saving={isSaving}
               />
             );
+          }
+
+          if (!matchesSearch(search, domain.code, domain.name, domain.description, domain.isActive ? t('active') : t('inactive'))) {
+            return null;
           }
 
           return (

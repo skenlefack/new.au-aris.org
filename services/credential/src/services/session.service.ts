@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import type Redis from 'ioredis';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import type { GeolocationService } from './geolocation.service.js';
+import { likePattern, searchWords, wordIds, SESSION_VALUE_SEARCH_SQL, USER_WORD_SQL } from '../utils/text-search.js';
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
@@ -155,12 +156,36 @@ export class SessionService {
     }
 
     if (params.search) {
-      where.OR = [
-        { deviceName: { contains: params.search, mode: 'insensitive' } },
-        { ipAddress: { contains: params.search, mode: 'insensitive' } },
-        { country: { contains: params.search, mode: 'insensitive' } },
-        { city: { contains: params.search, mode: 'insensitive' } },
-      ];
+      // Every word must hit one displayed field: user (email / name), device,
+      // IP, location, status. Sessions grow without bound, so accent folding
+      // resolves small value sets (users, devices, countries, cities) and the
+      // list itself is filtered with `IN (values)`, never with session ids.
+      const groups: Record<string, unknown>[] = [];
+      for (const { word, raw } of searchWords(params.search)) {
+        const userIds = await wordIds(this.prisma, USER_WORD_SQL, word);
+        const values = await this.prisma.$queryRawUnsafe<{ col: string; v: string }[]>(
+          SESSION_VALUE_SEARCH_SQL, likePattern(word),
+        );
+        const valuesOf = (col: string) => values.filter((r) => r.col === col).map((r) => r.v);
+        const statuses = ['ACTIVE', 'EXPIRED', 'LOGGED_OUT', 'REVOKED']
+          .filter((s) => s.replace('_', ' ').toLowerCase().includes(word));
+        const texts = [...new Set([word, raw])];
+        groups.push({
+          OR: [
+            ...texts.flatMap((t) => [
+              { deviceType: { contains: t, mode: 'insensitive' } },
+              { ipAddress: { contains: t, mode: 'insensitive' } },
+              { countryCode: { contains: t, mode: 'insensitive' } },
+            ]),
+            ...(['deviceName', 'country', 'city'] as const)
+              .filter((col) => valuesOf(col).length > 0)
+              .map((col) => ({ [col]: { in: valuesOf(col) } })),
+            ...(statuses.length > 0 ? [{ status: { in: statuses } }] : []),
+            ...(userIds.length > 0 ? [{ userId: { in: userIds } }] : []),
+          ],
+        });
+      }
+      if (groups.length > 0) where.AND = groups;
     }
 
     const p = this.prisma as any;

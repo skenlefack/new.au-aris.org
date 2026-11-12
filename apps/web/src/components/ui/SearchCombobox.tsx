@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { ChevronDown, Search, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 
 export interface SearchComboboxProps<T> {
   value: T | null;
@@ -44,11 +45,7 @@ export function SearchCombobox<T>({
 
   const filtered = useMemo(() => {
     if (!query) return items;
-    const q = query.toLowerCase();
-    return items.filter((item) => {
-      const text = getLabel(item, resolvedFilterKey);
-      return text.toLowerCase().includes(q);
-    });
+    return items.filter((item) => matchesSearch(query, getLabel(item, resolvedFilterKey)));
   }, [items, query, resolvedFilterKey]);
 
   // Reset highlight when filtered list changes

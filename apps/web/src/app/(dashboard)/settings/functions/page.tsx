@@ -29,6 +29,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { toast } from 'sonner';
@@ -138,6 +139,7 @@ export default function FunctionsPage() {
   // Fetch all roles for the role picker
   const { data: rolesData } = useSettingsRoles({ limit: 50 });
   const availableRoles: RoleItem[] = rolesData?.data ?? [];
+  const [roleSearch, setRoleSearch] = useState('');
 
   const { data, isLoading } = useSettingsFunctions({
     search,
@@ -377,8 +379,20 @@ export default function FunctionsPage() {
                   ({form.roleIds.length} selected)
                 </span>
               </label>
+              <div className="relative mb-2 max-w-sm">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={roleSearch}
+                  onChange={(e) => setRoleSearch(e.target.value)}
+                  placeholder={t('searchRoles')}
+                  className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                />
+              </div>
               <div className="flex flex-wrap gap-2">
-                {availableRoles.filter((r) => r.isActive).map((role) => {
+                {availableRoles
+                  .filter((r) => r.isActive && matchesSearch(roleSearch, r.code, r.name, r.level))
+                  .map((role) => {
                   const selected = form.roleIds.includes(role.id);
                   return (
                     <button

@@ -34,6 +34,7 @@ import {
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 import { useTranslations } from '@/lib/i18n/translations';
 import { toast } from 'sonner';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
@@ -201,6 +202,12 @@ export default function RolesPage() {
   }, [allPermissions]);
 
   const moduleList = useMemo(() => Object.keys(permissionTree).sort(), [permissionTree]);
+
+  // Search inside the permission matrix (module code/label + feature)
+  const [permissionSearch, setPermissionSearch] = useState('');
+  const moduleLabel = (module: string) => (MODULE_KEY_MAP[module] ? t(MODULE_KEY_MAP[module]) : module);
+  const featureMatches = (module: string, feature: string) =>
+    matchesSearch(permissionSearch, module, moduleLabel(module), feature);
 
   // When role detail loads, sync permission selection
   React.useEffect(() => {
@@ -446,6 +453,16 @@ export default function RolesPage() {
     return (
       <div className="space-y-3">
         {/* Controls */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={permissionSearch}
+            onChange={(e) => setPermissionSearch(e.target.value)}
+            placeholder={t('search')}
+            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          />
+        </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
@@ -491,7 +508,10 @@ export default function RolesPage() {
               {moduleList.map((module) => {
                 const features = permissionTree[module];
                 const featureKeys = Object.keys(features).sort();
-                const isExpanded = expandedModules.has(module);
+                // While searching, show only matching features and keep their module open
+                const visibleFeatureKeys = featureKeys.filter((f) => featureMatches(module, f));
+                if (permissionSearch && visibleFeatureKeys.length === 0) return null;
+                const isExpanded = expandedModules.has(module) || !!permissionSearch.trim();
                 const fullSel = isModuleFullySelected(module);
                 const partSel = isModulePartiallySelected(module);
 
@@ -551,7 +571,7 @@ export default function RolesPage() {
                     </tr>
 
                     {/* Feature rows (expanded) */}
-                    {isExpanded && featureKeys.map((feature) => {
+                    {isExpanded && visibleFeatureKeys.map((feature) => {
                       const perms = features[feature];
                       return (
                         <tr key={`${module}-${feature}`} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">

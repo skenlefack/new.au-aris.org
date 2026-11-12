@@ -5,7 +5,13 @@ import type { StandaloneKafkaProducer } from '@aris/kafka-client';
 import type { KafkaHeaders } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { hash } from 'bcrypt';
+import { searchIds, m } from './text-search';
 import { randomUUID } from 'crypto';
+
+const ONBOARDING_SEARCH_SQL = `
+  SELECT o.id::text AS id FROM governance.country_onboardings o
+  WHERE ${m('o.country_name')} OR ${m('o.country_code')} OR ${m('o.status')}
+     OR ${m('o.contact_full_name')} OR ${m('o.contact_email')}`;
 
 const BCRYPT_ROUNDS = 12;
 
@@ -106,12 +112,10 @@ export class OnboardingService {
     // SUPER_ADMIN and CONTINENTAL_ADMIN see all
 
     if (status) where.status = status;
-    if (search) {
-      where.OR = [
-        { countryName: { contains: search, mode: 'insensitive' } },
-        { contactEmail: { contains: search, mode: 'insensitive' } },
-        { contactFullName: { contains: search, mode: 'insensitive' } },
-      ];
+    if (search?.trim()) {
+      // Every displayed column: country name/code, status, contact name/email;
+      // case- and accent-insensitive, every word must match one of them
+      where.id = { in: await searchIds(this.prisma, ONBOARDING_SEARCH_SQL, search) };
     }
 
     const [data, total] = await Promise.all([

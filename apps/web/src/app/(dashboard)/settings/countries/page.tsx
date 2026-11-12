@@ -9,6 +9,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { Pagination } from '@/components/ui/Pagination';
 import { Plus, Search, Pencil, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
 export default function CountriesListPage() {
@@ -34,12 +35,17 @@ export default function CountriesListPage() {
   const filtered = React.useMemo(() => {
     let list = allCountries;
     if (search) {
-      const q = search.toLowerCase();
+      // Every displayed column: code, name and capital in all languages, RECs, status
       list = list.filter((c: any) =>
-        (c.name?.en ?? c.code ?? '').toLowerCase().includes(q) ||
-        (c.name?.fr ?? '').toLowerCase().includes(q) ||
-        (c.code ?? '').toLowerCase().includes(q) ||
-        (c.capital?.en ?? '').toLowerCase().includes(q)
+        matchesSearch(
+          search,
+          c.code,
+          c.name,
+          c.capital,
+          (c.recs ?? []).map((cr: any) => [cr.rec?.code ?? cr.recCode, cr.rec?.name]),
+          c.isActive ? t('active') : t('inactive'),
+          c.isOperational ? t('operational') : t('pending'),
+        )
       );
     }
     if (recFilter) {
@@ -58,7 +64,7 @@ export default function CountriesListPage() {
       );
     }
     return list;
-  }, [allCountries, search, recFilter, statusFilter, operationalFilter]);
+  }, [allCountries, search, recFilter, statusFilter, operationalFilter, t]);
 
   // Client-side pagination
   const total = filtered.length;

@@ -6,6 +6,7 @@ import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { ConfigField } from '@/components/settings/ConfigField';
 import { SaveBar } from '@/components/settings/SaveBar';
 import { useTranslations } from '@/lib/i18n/translations';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { Loader2, Globe, ArrowRightLeft, Calendar, Check, Hash, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
@@ -402,18 +403,13 @@ export default function I18nSettingsPage() {
               {t('defaultCurrencyDesc')}
             </p>
           </div>
-          <select
+          <SearchableSelect
             value={defaultCurrency}
-            onChange={(e) => handleChange('i18n.defaultCurrency', e.target.value)}
+            onChange={(v) => handleChange('i18n.defaultCurrency', v)}
+            options={CURRENCIES.map((c) => ({ value: c.code, label: `${c.code} — ${c.name} (${c.symbol})` }))}
             disabled={!canEdit}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.code} — {c.name} ({c.symbol})
-              </option>
-            ))}
-          </select>
+            clearable={false}
+          />
           {/* Currency format preview */}
           <div className="mt-3 rounded-lg border border-dashed border-gray-200 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-800/30">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">

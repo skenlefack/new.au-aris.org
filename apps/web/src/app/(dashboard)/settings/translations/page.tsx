@@ -23,6 +23,8 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { useQueryClient } from '@tanstack/react-query';
@@ -391,14 +393,9 @@ function ReferencesTab() {
     }
 
     if (search) {
-      const q = search.toLowerCase();
-      keys = keys.filter((k) => {
-        if (k.toLowerCase().includes(q)) return true;
-        for (const lang of Object.keys(flatMaps)) {
-          if (getCellValue(k, lang).toLowerCase().includes(q)) return true;
-        }
-        return false;
-      });
+      // Key + value in every language (accent/case-insensitive, all words must match)
+      const langs = Object.keys(flatMaps);
+      keys = keys.filter((k) => matchesSearch(search, k, langs.map((lang) => getCellValue(k, lang))));
     }
 
     if (filterStatus === 'missing') {
@@ -603,16 +600,13 @@ function ReferencesTab() {
           />
         </div>
 
-        <select
+        <SearchableSelect
           value={filterNamespace}
-          onChange={(e) => setFilterNamespace(e.target.value)}
-          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-        >
-          <option value="">{t('allNamespaces')}</option>
-          {namespaces.map((ns) => (
-            <option key={ns} value={ns}>{ns}</option>
-          ))}
-        </select>
+          onChange={setFilterNamespace}
+          options={namespaces.map((ns) => ({ value: ns, label: ns }))}
+          placeholder={t('allNamespaces')}
+          className="w-56"
+        />
 
         <div className="flex gap-1">
           {(['', 'complete', 'missing'] as const).map((status) => (

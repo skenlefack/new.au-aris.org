@@ -35,6 +35,7 @@ export async function registerContractRoutes(app: FastifyInstance): Promise<void
       domain: query.domain,
       status: query.status,
       owner: query.owner,
+      search: query.search,
     });
   });
 

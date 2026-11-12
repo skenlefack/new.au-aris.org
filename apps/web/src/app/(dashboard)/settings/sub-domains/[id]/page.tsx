@@ -14,6 +14,7 @@ import {
 } from '@/lib/api/sub-domain-hooks';
 import type { SubDomainType } from '@/lib/stores/domain-store';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { IconPicker, ICON_MAP } from '@/components/ui/IconPicker';
 import { useTranslations } from '@/lib/i18n/translations';
 import {
@@ -248,11 +249,13 @@ function SubDomainDetail() {
               </div>
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelValueChainCode')}</label>
-                <select value={valueChainCode} onChange={(e) => setValueChainCode(e.target.value)} disabled={typeEnum !== 'VALUE_CHAIN'}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-                  <option value="">{t('noValueChain')}</option>
-                  {valueChainCodes.map((vc) => <option key={vc.code} value={vc.code}>{vc.labelFr || vc.labelEn} ({vc.code})</option>)}
-                </select>
+                <SearchableSelect
+                  value={valueChainCode}
+                  onChange={setValueChainCode}
+                  options={valueChainCodes.map((vc) => ({ value: vc.code, label: `${vc.labelFr || vc.labelEn} (${vc.code})` }))}
+                  placeholder={t('noValueChain')}
+                  disabled={typeEnum !== 'VALUE_CHAIN'}
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelDisplayOrderField')}</label>

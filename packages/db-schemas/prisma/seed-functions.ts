@@ -163,6 +163,90 @@ const NATIONAL_TEMPLATES: FunctionTemplate[] = [
     description: { en: 'Agricultural extension and community outreach', fr: 'Vulgarisation agricole et sensibilisation communautaire', pt: 'Extensão agrícola e divulgação comunitária', ar: 'الإرشاد الزراعي والتواصل المجتمعي' } },
 ];
 
+// ── Tenant display names appended to regional/national function names ("Chief Veterinary Officer (Kenya)") ──
+type LocalizedName = { en: string; fr: string; pt: string; ar: string };
+
+const COUNTRY_NAMES: Record<string, LocalizedName> = {
+  AO: { en: 'Angola', fr: 'Angola', pt: 'Angola', ar: 'أنغولا' },
+  BF: { en: 'Burkina Faso', fr: 'Burkina Faso', pt: 'Burquina Faso', ar: 'بوركينا فاسو' },
+  BI: { en: 'Burundi', fr: 'Burundi', pt: 'Burundi', ar: 'بوروندي' },
+  BJ: { en: 'Benin', fr: 'Bénin', pt: 'Benim', ar: 'بنين' },
+  BW: { en: 'Botswana', fr: 'Botswana', pt: 'Botsuana', ar: 'بوتسوانا' },
+  CD: { en: 'DR Congo', fr: 'RD Congo', pt: 'RD Congo', ar: 'جمهورية الكونغو الديمقراطية' },
+  CF: { en: 'Central African Republic', fr: 'République centrafricaine', pt: 'República Centro-Africana', ar: 'جمهورية أفريقيا الوسطى' },
+  CG: { en: 'Congo', fr: 'Congo', pt: 'Congo', ar: 'جمهورية الكونغو' },
+  CI: { en: "Côte d'Ivoire", fr: "Côte d'Ivoire", pt: 'Costa do Marfim', ar: 'كوت ديفوار' },
+  CM: { en: 'Cameroon', fr: 'Cameroun', pt: 'Camarões', ar: 'الكاميرون' },
+  CV: { en: 'Cabo Verde', fr: 'Cap-Vert', pt: 'Cabo Verde', ar: 'الرأس الأخضر' },
+  DJ: { en: 'Djibouti', fr: 'Djibouti', pt: 'Djibuti', ar: 'جيبوتي' },
+  DZ: { en: 'Algeria', fr: 'Algérie', pt: 'Argélia', ar: 'الجزائر' },
+  EG: { en: 'Egypt', fr: 'Égypte', pt: 'Egito', ar: 'مصر' },
+  EH: { en: 'Sahrawi Republic', fr: 'République sahraouie', pt: 'República Saarauí', ar: 'الجمهورية العربية الصحراوية الديمقراطية' },
+  ER: { en: 'Eritrea', fr: 'Érythrée', pt: 'Eritreia', ar: 'إريتريا' },
+  ET: { en: 'Ethiopia', fr: 'Éthiopie', pt: 'Etiópia', ar: 'إثيوبيا' },
+  GA: { en: 'Gabon', fr: 'Gabon', pt: 'Gabão', ar: 'الغابون' },
+  GH: { en: 'Ghana', fr: 'Ghana', pt: 'Gana', ar: 'غانا' },
+  GM: { en: 'Gambia', fr: 'Gambie', pt: 'Gâmbia', ar: 'غامبيا' },
+  GN: { en: 'Guinea', fr: 'Guinée', pt: 'Guiné', ar: 'غينيا' },
+  GQ: { en: 'Equatorial Guinea', fr: 'Guinée équatoriale', pt: 'Guiné Equatorial', ar: 'غينيا الاستوائية' },
+  GW: { en: 'Guinea-Bissau', fr: 'Guinée-Bissau', pt: 'Guiné-Bissau', ar: 'غينيا بيساو' },
+  KE: { en: 'Kenya', fr: 'Kenya', pt: 'Quénia', ar: 'كينيا' },
+  KM: { en: 'Comoros', fr: 'Comores', pt: 'Comores', ar: 'جزر القمر' },
+  LR: { en: 'Liberia', fr: 'Libéria', pt: 'Libéria', ar: 'ليبيريا' },
+  LS: { en: 'Lesotho', fr: 'Lesotho', pt: 'Lesoto', ar: 'ليسوتو' },
+  LY: { en: 'Libya', fr: 'Libye', pt: 'Líbia', ar: 'ليبيا' },
+  MA: { en: 'Morocco', fr: 'Maroc', pt: 'Marrocos', ar: 'المغرب' },
+  MG: { en: 'Madagascar', fr: 'Madagascar', pt: 'Madagáscar', ar: 'مدغشقر' },
+  ML: { en: 'Mali', fr: 'Mali', pt: 'Mali', ar: 'مالي' },
+  MR: { en: 'Mauritania', fr: 'Mauritanie', pt: 'Mauritânia', ar: 'موريتانيا' },
+  MU: { en: 'Mauritius', fr: 'Maurice', pt: 'Maurícia', ar: 'موريشيوس' },
+  MW: { en: 'Malawi', fr: 'Malawi', pt: 'Maláui', ar: 'ملاوي' },
+  MZ: { en: 'Mozambique', fr: 'Mozambique', pt: 'Moçambique', ar: 'موزمبيق' },
+  NA: { en: 'Namibia', fr: 'Namibie', pt: 'Namíbia', ar: 'ناميبيا' },
+  NE: { en: 'Niger', fr: 'Niger', pt: 'Níger', ar: 'النيجر' },
+  NG: { en: 'Nigeria', fr: 'Nigéria', pt: 'Nigéria', ar: 'نيجيريا' },
+  RW: { en: 'Rwanda', fr: 'Rwanda', pt: 'Ruanda', ar: 'رواندا' },
+  SC: { en: 'Seychelles', fr: 'Seychelles', pt: 'Seicheles', ar: 'سيشل' },
+  SD: { en: 'Sudan', fr: 'Soudan', pt: 'Sudão', ar: 'السودان' },
+  SL: { en: 'Sierra Leone', fr: 'Sierra Leone', pt: 'Serra Leoa', ar: 'سيراليون' },
+  SN: { en: 'Senegal', fr: 'Sénégal', pt: 'Senegal', ar: 'السنغال' },
+  SO: { en: 'Somalia', fr: 'Somalie', pt: 'Somália', ar: 'الصومال' },
+  SS: { en: 'South Sudan', fr: 'Soudan du Sud', pt: 'Sudão do Sul', ar: 'جنوب السودان' },
+  ST: { en: 'São Tomé and Príncipe', fr: 'Sao Tomé-et-Príncipe', pt: 'São Tomé e Príncipe', ar: 'ساو تومي وبرينسيب' },
+  SZ: { en: 'Eswatini', fr: 'Eswatini', pt: 'Essuatíni', ar: 'إسواتيني' },
+  TD: { en: 'Chad', fr: 'Tchad', pt: 'Chade', ar: 'تشاد' },
+  TG: { en: 'Togo', fr: 'Togo', pt: 'Togo', ar: 'توغو' },
+  TN: { en: 'Tunisia', fr: 'Tunisie', pt: 'Tunísia', ar: 'تونس' },
+  TZ: { en: 'Tanzania', fr: 'Tanzanie', pt: 'Tanzânia', ar: 'تنزانيا' },
+  UG: { en: 'Uganda', fr: 'Ouganda', pt: 'Uganda', ar: 'أوغندا' },
+  ZA: { en: 'South Africa', fr: 'Afrique du Sud', pt: 'África do Sul', ar: 'جنوب أفريقيا' },
+  ZM: { en: 'Zambia', fr: 'Zambie', pt: 'Zâmbia', ar: 'زامبيا' },
+  ZW: { en: 'Zimbabwe', fr: 'Zimbabwe', pt: 'Zimbábue', ar: 'زيمبابوي' },
+};
+
+const REC_NAMES: Record<string, LocalizedName> = {
+  CENSAD: { en: 'CEN-SAD', fr: 'CEN-SAD', pt: 'CEN-SAD', ar: 'تجمع الساحل والصحراء' },
+  COMESA: { en: 'COMESA', fr: 'COMESA', pt: 'COMESA', ar: 'الكوميسا' },
+  EAC: { en: 'EAC', fr: 'CAE', pt: 'CAO', ar: 'مجموعة شرق أفريقيا' },
+  ECCAS: { en: 'ECCAS', fr: 'CEEAC', pt: 'CEEAC', ar: 'الإيكاس' },
+  ECOWAS: { en: 'ECOWAS', fr: 'CEDEAO', pt: 'CEDEAO', ar: 'الإيكواس' },
+  IGAD: { en: 'IGAD', fr: 'IGAD', pt: 'IGAD', ar: 'إيغاد' },
+  SADC: { en: 'SADC', fr: 'SADC', pt: 'SADC', ar: 'سادك' },
+  UMA: { en: 'UMA', fr: 'UMA', pt: 'UMA', ar: 'اتحاد المغرب العربي' },
+};
+
+// Same template for every REC/country → suffix the tenant name so the functions stay distinguishable
+function withTenantSuffix(template: FunctionTemplate, tenantName: LocalizedName | undefined): FunctionTemplate {
+  if (!tenantName) return template;
+  const name = {
+    en: `${template.name.en} (${tenantName.en})`,
+    fr: `${template.name.fr} (${tenantName.fr})`,
+    pt: `${template.name.pt} (${tenantName.pt})`,
+    ar: `${template.name.ar} (${tenantName.ar})`,
+  };
+  return { ...template, name };
+}
+
 async function upsertFunction(tenantId: string, template: FunctionTemplate, fixedId?: string): Promise<string> {
   const fn = await (prisma as any).function.upsert({
     where: {
@@ -212,12 +296,12 @@ async function main(): Promise<void> {
   // ── 2. Regional functions → one copy per REC ──
   const recs = await (prisma as any).tenant.findMany({
     where: { level: 'REC' },
-    select: { id: true, name: true },
+    select: { id: true, name: true, code: true },
   });
   let regionalCount = 0;
   for (const rec of recs) {
     for (const tpl of REGIONAL_TEMPLATES) {
-      await upsertFunction(rec.id, tpl);
+      await upsertFunction(rec.id, withTenantSuffix(tpl, REC_NAMES[rec.code]));
     }
     regionalCount += REGIONAL_TEMPLATES.length;
   }
@@ -226,12 +310,12 @@ async function main(): Promise<void> {
   // ── 3. National functions → one copy per MEMBER_STATE ──
   const countries = await (prisma as any).tenant.findMany({
     where: { level: 'MEMBER_STATE' },
-    select: { id: true, name: true },
+    select: { id: true, name: true, countryCode: true },
   });
   let nationalCount = 0;
   for (const country of countries) {
     for (const tpl of NATIONAL_TEMPLATES) {
-      await upsertFunction(country.id, tpl);
+      await upsertFunction(country.id, withTenantSuffix(tpl, COUNTRY_NAMES[country.countryCode]));
     }
     nationalCount += NATIONAL_TEMPLATES.length;
   }

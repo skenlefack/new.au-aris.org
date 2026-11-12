@@ -2066,11 +2066,13 @@ export function useDataContracts(params?: {
   page?: number;
   limit?: number;
   status?: string;
+  search?: string;
 }) {
   const searchParams: Record<string, string> = {};
   if (params?.page) searchParams.page = String(params.page);
   if (params?.limit) searchParams.limit = String(params.limit);
   if (params?.status) searchParams.status = params.status;
+  if (params?.search) searchParams.search = params.search;
 
   return useQuery({
     queryKey: ['settings', 'data-contracts', params],

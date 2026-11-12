@@ -21,6 +21,7 @@ import { useSettingsDomains } from '@/lib/api/settings-hooks';
 import { useAdminSubDomains } from '@/lib/api/sub-domain-hooks';
 import { Pagination } from '@/components/ui/Pagination';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useTranslations } from '@/lib/i18n/translations';
 import {
   Loader2,
@@ -197,13 +198,6 @@ function IndicatorDetail() {
         : 'border-gray-200 focus:border-[#1F4E79] focus:ring-[#1F4E79] dark:border-gray-700'
     }`;
 
-  const selectCls = (field: string) =>
-    `w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 dark:bg-gray-900 dark:text-white ${
-      errors[field]
-        ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-        : 'border-gray-200 focus:border-[#1F4E79] focus:ring-[#1F4E79] dark:border-gray-700'
-    }`;
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -275,10 +269,14 @@ function IndicatorDetail() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('indicatorType')} <span className="text-red-500">*</span>
               </label>
-              <select value={typeCode} onChange={(e) => setTypeCode(e.target.value)} disabled={!editing} className={selectCls('typeCode')}>
-                <option value="">{t('selectType')}</option>
-                {types.map((tp) => <option key={tp.code} value={tp.code}>{tp.labelEn} ({tp.code})</option>)}
-              </select>
+              <SearchableSelect
+                value={typeCode}
+                onChange={setTypeCode}
+                options={types.map((tp) => ({ value: tp.code, label: `${tp.labelEn} (${tp.code})` }))}
+                placeholder={t('selectType')}
+                disabled={!editing}
+                className={errors.typeCode ? 'rounded-lg ring-1 ring-red-300' : undefined}
+              />
               {errors.typeCode && <p className="text-xs text-red-600">{errors.typeCode}</p>}
             </div>
           </div>
@@ -321,19 +319,23 @@ function IndicatorDetail() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('domain')}</label>
-              <select value={domainId} onChange={(e) => handleDomainChange(e.target.value)} disabled={!editing} className={selectCls('domainId')}>
-                <option value="">{t('noSpecificDomain')}</option>
-                {domains.map((d: any) => <option key={d.id} value={d.id}>{d.name?.en ?? d.code}</option>)}
-              </select>
+              <SearchableSelect
+                value={domainId}
+                onChange={handleDomainChange}
+                options={domains.map((d: any) => ({ value: d.id, label: d.name?.en ?? d.code }))}
+                placeholder={t('noSpecificDomain')}
+                disabled={!editing}
+              />
             </div>
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('labelSubDomain')}</label>
-              <select value={subDomainId} onChange={(e) => setSubDomainId(e.target.value)}
+              <SearchableSelect
+                value={subDomainId}
+                onChange={setSubDomainId}
+                options={subDomains.map((sd: any) => ({ value: sd.id, label: `${sd.labelEn || sd.labelFr} (${sd.code})` }))}
+                placeholder={t('noSubDomain2')}
                 disabled={!editing || !domainId}
-                className={`${selectCls('subDomainId')} ${!domainId ? 'cursor-not-allowed opacity-50' : ''}`}>
-                <option value="">{t('noSubDomain2')}</option>
-                {subDomains.map((sd: any) => <option key={sd.id} value={sd.id}>{sd.labelEn || sd.labelFr} ({sd.code})</option>)}
-              </select>
+              />
             </div>
           </div>
 

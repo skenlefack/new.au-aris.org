@@ -34,6 +34,8 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useTranslations } from '@/lib/i18n/translations';
 import { DomainBadge } from '@/components/domain/DomainBadge';
 import {
@@ -303,9 +305,6 @@ function AdminDivisionSelector({
 
   if (!isMemberState || !countryCode) return null;
 
-  const inputClass =
-    'w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all';
-
   const levelLabels = { admin1: t('admin1Label'), admin2: t('admin2Label'), admin3: t('admin3Label') };
 
   return (
@@ -332,48 +331,36 @@ function AdminDivisionSelector({
           {/* Admin1 */}
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{levelLabels.admin1}</label>
-            <select
+            <SearchableSelect
               value={selectedAdmin1}
-              onChange={(e) => { setSelectedAdmin1(e.target.value); setSelectedAdmin2(''); setSelectedAdmin3(''); }}
-              className={inputClass}
-            >
-              <option value="">{t('select')}</option>
-              {admin1Options.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+              onChange={(v) => { setSelectedAdmin1(v); setSelectedAdmin2(''); setSelectedAdmin3(''); }}
+              options={admin1Options}
+              placeholder={t('select')}
+            />
           </div>
 
           {/* Admin2 */}
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{levelLabels.admin2}</label>
-            <select
+            <SearchableSelect
               value={selectedAdmin2}
-              onChange={(e) => { setSelectedAdmin2(e.target.value); setSelectedAdmin3(''); }}
+              onChange={(v) => { setSelectedAdmin2(v); setSelectedAdmin3(''); }}
+              options={admin2Options}
               disabled={!selectedAdmin1}
-              className={cn(inputClass, !selectedAdmin1 && 'opacity-50 cursor-not-allowed')}
-            >
-              <option value="">{!selectedAdmin1 ? t('selectParentFirst') : t('select')}</option>
-              {admin2Options.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+              placeholder={!selectedAdmin1 ? t('selectParentFirst') : t('select')}
+            />
           </div>
 
           {/* Admin3 */}
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{levelLabels.admin3}</label>
-            <select
+            <SearchableSelect
               value={selectedAdmin3}
-              onChange={(e) => setSelectedAdmin3(e.target.value)}
+              onChange={(v) => setSelectedAdmin3(v)}
+              options={admin3Options}
               disabled={!selectedAdmin2 || admin3Options.length === 0}
-              className={cn(inputClass, (!selectedAdmin2 || admin3Options.length === 0) && 'opacity-50 cursor-not-allowed')}
-            >
-              <option value="">{!selectedAdmin2 ? t('selectParentFirst') : t('select')}</option>
-              {admin3Options.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+              placeholder={!selectedAdmin2 ? t('selectParentFirst') : t('select')}
+            />
           </div>
         </div>
 
@@ -512,6 +499,7 @@ function UserForm({
   const setAllDomains = useDomainStore((s) => s.setAllDomains);
   const locale = useLocaleStore((s) => s.locale);
   const t = useTranslations('userMgmt');
+  const ts = useTranslations('settings');
   const tenantTree = useTenantStore((s) => s.tenantTree);
 
   // Fetch domains directly as fallback if store is empty
@@ -567,9 +555,8 @@ function UserForm({
 
   const filteredTenants = useMemo(() => {
     if (!tenantSearch.trim()) return assignableTenants;
-    const q = tenantSearch.toLowerCase();
     return assignableTenants.filter(
-      (t) => t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q) || (t.recName ?? '').toLowerCase().includes(q),
+      (t) => matchesSearch(tenantSearch, t.name, t.code, t.recName, t.level),
     );
   }, [assignableTenants, tenantSearch]);
 
@@ -584,6 +571,21 @@ function UserForm({
 
   const { data: functionsData } = useSettingsFunctions({ limit: 100, status: 'active' });
   const allFunctions: FunctionItem[] = useMemo(() => (functionsData as any)?.data ?? [], [functionsData]);
+
+  // Search within the function and role pickers (every displayed field)
+  const [functionSearch, setFunctionSearch] = useState('');
+  const [roleSearch, setRoleSearch] = useState('');
+  const visibleFunctions = useMemo(
+    () => allFunctions.filter((fn: any) => matchesSearch(
+      functionSearch, fn.code, fn.name, fn.level,
+      (fn.roles ?? []).map((fr: any) => [fr.role?.code, fr.role?.name]),
+    )),
+    [allFunctions, functionSearch],
+  );
+  const visibleRoles = useMemo(
+    () => allRoles.filter((r) => matchesSearch(roleSearch, r.code, r.name, r.level)),
+    [allRoles, roleSearch],
+  );
 
   const [form, setForm] = useState<UserFormState>(() => {
     if (editingUser) {
@@ -1211,8 +1213,19 @@ function UserForm({
           </div>
           <div className="px-6 py-5">
             {allFunctions.length > 0 ? (
+              <>
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={functionSearch}
+                onChange={(e) => setFunctionSearch(e.target.value)}
+                placeholder={ts('searchFunctions')}
+                className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              />
+            </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {allFunctions.map((fn) => {
+                {visibleFunctions.map((fn) => {
                   const selected = form.functionIds.includes(fn.id);
                   const fnRoles = (fn as any).roles ?? [];
                   return (
@@ -1261,6 +1274,7 @@ function UserForm({
                   );
                 })}
               </div>
+              </>
             ) : (
               <p className="text-xs text-gray-400 italic">{t('noFunctionsAvailable')}</p>
             )}
@@ -1285,8 +1299,19 @@ function UserForm({
           </div>
           <div className="px-6 py-5">
             {allRoles.length > 0 ? (
+              <>
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={roleSearch}
+                onChange={(e) => setRoleSearch(e.target.value)}
+                placeholder={ts('searchRoles')}
+                className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              />
+            </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {allRoles.map((role) => {
+                {visibleRoles.map((role) => {
                   const isDerived = derivedRoleIds.has(role.id);
                   const isDirect = form.directRoleIds.includes(role.id);
                   const isSelected = isDerived || isDirect;
@@ -1345,6 +1370,7 @@ function UserForm({
                   );
                 })}
               </div>
+              </>
             ) : (
               <p className="text-xs text-gray-400 italic">{t('loadingRoles')}</p>
             )}

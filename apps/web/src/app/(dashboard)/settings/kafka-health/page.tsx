@@ -6,6 +6,7 @@ import {
   Plus, X, AlertTriangle, CheckCircle2, XCircle, Search, Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
@@ -400,7 +401,7 @@ export default function KafkaHealthPage() {
   const consumers = data?.consumers ?? [];
 
   const filtered = useMemo(() => consumers.filter((c) => {
-    if (search && !c.groupId.toLowerCase().includes(search.toLowerCase())) return false;
+    if (!matchesSearch(search, c.groupId, c.serviceName, c.state, c.healthStatus, c.members, c.totalLag, c.partitions.map((p) => p.topic))) return false;
     if (statusFilter && c.healthStatus !== statusFilter) return false;
     return true;
   }), [consumers, search, statusFilter]);
@@ -462,7 +463,7 @@ export default function KafkaHealthPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search consumer group..."
+            placeholder="Search consumer group, service, topic..."
             className="w-full pl-10 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-aris-primary-500 focus:border-transparent"
           />
         </div>

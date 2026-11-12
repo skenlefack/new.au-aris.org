@@ -20,6 +20,7 @@ import {
   type CampaignScopes,
   type VisibilityInput,
 } from '@aris/access-control';
+import { searchIds, VALIDATION_CHAIN_SEARCH_SQL } from './text-search';
 
 const SERVICE_NAME = 'collecte-service';
 
@@ -240,7 +241,7 @@ export class ValidationChainService {
 
   async findAll(
     user: AuthenticatedUser,
-    query: { page?: number; limit?: number; userId?: string; validatorId?: string },
+    query: { page?: number; limit?: number; userId?: string; validatorId?: string; levelType?: string; search?: string },
   ): Promise<PaginatedResponse<unknown>> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -249,6 +250,11 @@ export class ValidationChainService {
     const where: Record<string, unknown> = { isActive: true };
     if (query.userId) where['userId'] = query.userId;
     if (query.validatorId) where['validatorId'] = query.validatorId;
+    if (query.levelType) where['levelType'] = query.levelType;
+    // Accent-insensitive, multi-word search over submitter/validator/backup name + email and level
+    if (query.search?.trim()) {
+      where['id'] = { in: await searchIds(this.prisma, VALIDATION_CHAIN_SEARCH_SQL, query.search) };
+    }
 
     const [data, total] = await Promise.all([
       (this.prisma as any).collecteValidationChain.findMany({

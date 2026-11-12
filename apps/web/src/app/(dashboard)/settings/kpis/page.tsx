@@ -10,6 +10,8 @@ import {
 } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { useTranslations } from '@/lib/i18n/translations';
+import { matchesSearch } from '@/lib/search';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { ColorPicker } from '@/components/settings/ColorPicker';
 import {
@@ -22,6 +24,7 @@ import {
   Check,
   AlertTriangle,
   Star,
+  Search,
 } from 'lucide-react';
 import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 
@@ -74,6 +77,7 @@ export default function KpisPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<KpiForm>(EMPTY_FORM);
+  const [search, setSearch] = useState('');
 
   const openAdd = () => {
     setEditingId(null);
@@ -163,6 +167,14 @@ export default function KpisPage() {
   }
 
   const deletingKpi = kpis.find((k: any) => k.id === deletingId);
+  const visibleKpis = kpis.filter((kpi: any) => {
+    if (kpi.id === editingId) return true;
+    const domain = domains.find((d: any) => d.code === kpi.domainCode);
+    return matchesSearch(
+      search, kpi.code, kpi.name, kpi.description, kpi.domainCode, domain?.name,
+      kpi.unit, kpi.targetValue, kpi.isActive ? t('active') : t('inactive'), kpi.isPreset ? t('preset') : '',
+    );
+  });
 
   return (
     <div className="space-y-8 pb-20">
@@ -210,9 +222,21 @@ export default function KpisPage() {
         />
       )}
 
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={`${t('search')}...`}
+          className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+        />
+      </div>
+
       {/* KPIs List */}
       <div className="space-y-3">
-        {kpis.map((kpi: any) => {
+        {visibleKpis.map((kpi: any) => {
           if (editingId === kpi.id) {
             return (
               <KpiFormPanel
@@ -398,16 +422,12 @@ function KpiFormPanel({
 
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('domain')}</label>
-          <select
+          <SearchableSelect
             value={form.domainCode}
-            onChange={(e) => setForm((f) => ({ ...f, domainCode: e.target.value }))}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-          >
-            <option value="">{t('generalAllDomains')}</option>
-            {domains.map((d: any) => (
-              <option key={d.code} value={d.code}>{d.name?.en ?? d.code}</option>
-            ))}
-          </select>
+            onChange={(v) => setForm((f) => ({ ...f, domainCode: v }))}
+            options={domains.map((d: any) => ({ value: d.code, label: d.name?.en ?? d.code }))}
+            placeholder={t('generalAllDomains')}
+          />
         </div>
 
         <div className="space-y-1.5">

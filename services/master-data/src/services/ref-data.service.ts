@@ -76,6 +76,26 @@ const MODEL_MAP: Record<string, string> = {
   'fish-families': 'refFishFamily',
 };
 
+// Table of each type (fixed whitelist, the only identifiers put into search SQL).
+// Every one lives in animal_health with `code` and a multilingual JSON `name`.
+const REF_TABLES: Record<string, string> = Object.fromEntries(
+  Object.keys(MODEL_MAP).filter((t) => t !== 'disease-species').map((t) => [t, `ref_${t.replace(/-/g, '_')}`]),
+);
+
+// translate() keeps the search free of the unaccent extension, which PROD does not have
+const ACCENTED = 'àáâãäåāèéêëēìíîïīòóôõöōùúûüūçñýÿ';
+const PLAIN = 'aaaaaaaeeeeeiiiiioooooouuuuucnyy';
+
+/** `col` folded (lower case, no accents, "_" as space) compared with the `$1` LIKE pattern. */
+function fold(col: string): string {
+  return `translate(replace(lower(${col}::text), '_', ' '), '${ACCENTED}', '${PLAIN}') LIKE $1`;
+}
+
+/** Same as `fold` on the values of a multilingual JSON column ({ en, fr, pt, ar }), never on its keys. */
+function foldJson(col: string): string {
+  return fold(`(SELECT string_agg(v.value, ' ') FROM jsonb_each_text(CASE WHEN jsonb_typeof(${col}) = 'object' THEN ${col} ELSE '{}'::jsonb END) v)`);
+}
+
 // Models with parent relationships (for filtered queries)
 const PARENT_FILTERS: Record<string, string> = {
   'species': 'groupId',
@@ -112,6 +132,20 @@ export class RefDataService {
     private readonly kafka: StandaloneKafkaProducer,
     private readonly audit: AuditService,
   ) {}
+
+  /** Ids returned by `sql` for every word of `search` (max 5, one query per word, intersected). */
+  private async searchIds(sql: string, search: string): Promise<string[]> {
+    const words = search.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/_/g, ' ')
+      .toLowerCase().trim().split(/\s+/).filter(Boolean).slice(0, 5);
+    let ids: string[] | null = null;
+    for (const word of words) {
+      const rows = await this.prisma.$queryRawUnsafe<{ id: string }[]>(sql, `%${word.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
+      const found = new Set(rows.map((r) => String(r.id)));
+      ids = ids === null ? [...found] : ids.filter((id) => found.has(id));
+      if (ids.length === 0) break;
+    }
+    return ids ?? [];
+  }
 
   /**
    * Build visibility filter based on user's scope.
@@ -224,19 +258,15 @@ export class RefDataService {
       where['isZoonotic'] = query.isZoonotic === 'true';
     }
 
-    // Search filter (across code + name)
-    if (query.search) {
-      const searchTerm = query.search;
-      // Search in code and in name JSON fields
-      where['AND'] = [
-        {
-          OR: [
-            { code: { contains: searchTerm, mode: 'insensitive' } },
-            { name: { path: ['en'], string_contains: searchTerm } },
-            { name: { path: ['fr'], string_contains: searchTerm } },
-          ],
-        },
-      ];
+    // Search filter: case- and accent-insensitive, every word must match a column
+    if (query.search?.trim() && type !== 'disease-species') {
+      // Every column of the settings table: code, name in all languages (JSON
+      // values only, never keys); infrastructures also category and sub-type
+      const table = REF_TABLES[type];
+      const extra = type === 'infrastructures' ? ` OR ${fold('r.category')} OR ${fold('r.sub_type')}` : '';
+      const sql = `SELECT r.id::text AS id FROM animal_health.${table} r
+         WHERE ${fold('r.code')} OR ${foldJson('r.name')}${extra}`;
+      where['AND'] = [{ id: { in: await this.searchIds(sql, query.search) } }];
     }
 
     // For disease-species queries via speciesId on diseases type

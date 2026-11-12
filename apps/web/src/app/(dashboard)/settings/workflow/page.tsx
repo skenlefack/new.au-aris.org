@@ -23,6 +23,7 @@ const WorkflowDesigner = dynamic(
 );
 import { Pagination } from '@/components/ui/Pagination';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTenantStore, deriveCountryCodeFromEmail } from '@/lib/stores/tenant-store';
@@ -90,9 +91,16 @@ export default function WorkflowConfigPage() {
     : (allWfRes?.data ?? []);
   const filtered = search
     ? allWorkflows.filter((wf: any) => {
-        const q = search.toLowerCase();
-        return i18n(wf.name).toLowerCase().includes(q)
-          || i18n(wf.country?.name).toLowerCase().includes(q);
+        // Every displayed field: name and country in all languages, level range
+        return matchesSearch(
+          search,
+          wf.name,
+          wf.country?.name,
+          wf.country?.code ?? wf.countryCode,
+          wf.startLevel,
+          wf.endLevel,
+          wf.autoTransmitEnabled ? t('autoTransmit') : '',
+        );
       })
     : allWorkflows;
   const totalFiltered = filtered.length;

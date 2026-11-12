@@ -19,6 +19,8 @@ import {
 } from '@/lib/api/settings-hooks';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { matchesSearch, type Searchable } from '@/lib/search';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { useRealtimeStore } from '@/lib/realtime/realtime-store';
@@ -100,6 +102,7 @@ export default function AccessLevelsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [treeSearch, setTreeSearch] = useState('');
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copySource, setCopySource] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
@@ -113,32 +116,48 @@ export default function AccessLevelsPage() {
 
   // Build tree nodes
   const treeNodes = useMemo(() => {
-    const nodes: { nodeCode: string; label: string; type: 'domain' | 'subdomain'; domainCode: string; count: number }[] = [];
+    const nodes: { nodeCode: string; label: string; type: 'domain' | 'subdomain'; domainCode: string; count: number; searchValues: Searchable[] }[] = [];
+    const searching = !!treeSearch.trim();
     for (const d of domains.filter((dd) => dd.isActive)) {
       const domainNodeCode = d.code;
       const domainCount = allLevels.filter((l) => l.nodeCode === domainNodeCode).length;
-      nodes.push({ nodeCode: domainNodeCode, label: (d.name[locale] ?? d.name['en'] ?? d.code), type: 'domain', domainCode: d.code, count: domainCount });
-      if (expandedDomains.has(d.code)) {
+      nodes.push({ nodeCode: domainNodeCode, label: (d.name[locale] ?? d.name['en'] ?? d.code), type: 'domain', domainCode: d.code, count: domainCount, searchValues: [d.code, d.name] });
+      // While searching, sub-domains of every domain are candidates
+      if (expandedDomains.has(d.code) || searching) {
         const domSubs = subDomains.filter((s) => s.domainCode === d.code && s.active);
         for (const sd of domSubs.sort((a, b) => a.displayOrder - b.displayOrder)) {
           const subNodeCode = `${d.code}.${sd.code}`;
           const subCount = allLevels.filter((l) => l.nodeCode === subNodeCode).length;
           const key = `label${locale.charAt(0).toUpperCase()}${locale.slice(1)}` as keyof SubDomainInfo;
-          nodes.push({ nodeCode: subNodeCode, label: (sd[key] as string) ?? sd.labelEn ?? sd.code, type: 'subdomain', domainCode: d.code, count: subCount });
+          nodes.push({
+            nodeCode: subNodeCode, label: (sd[key] as string) ?? sd.labelEn ?? sd.code, type: 'subdomain', domainCode: d.code, count: subCount,
+            searchValues: [sd.code, sd.labelEn, sd.labelFr, sd.labelPt, sd.labelAr, d.code, d.name],
+          });
         }
       }
     }
     return nodes;
-  }, [domains, subDomains, expandedDomains, allLevels, locale]);
+  }, [domains, subDomains, expandedDomains, allLevels, locale, treeSearch]);
+
+  // Tree search: matching nodes, plus the parent domain of any matching sub-domain
+  const visibleTreeNodes = useMemo(() => {
+    if (!treeSearch.trim()) return treeNodes;
+    const matching = new Set(treeNodes.filter((n) => matchesSearch(treeSearch, ...n.searchValues)).map((n) => n.nodeCode));
+    return treeNodes.filter((n) => matching.has(n.nodeCode)
+      || (n.type === 'domain' && treeNodes.some((s) => s.type === 'subdomain' && s.domainCode === n.domainCode && matching.has(s.nodeCode))));
+  }, [treeNodes, treeSearch]);
 
   // Levels for selected node
   const nodeLevels = useMemo(() => {
     if (!selectedNode) return [];
     return allLevels
       .filter((l) => l.nodeCode === selectedNode)
-      .filter((l) => !searchQuery || levelLabel(l, locale).toLowerCase().includes(searchQuery.toLowerCase()) || l.code.toLowerCase().includes(searchQuery.toLowerCase()))
+      // Every displayed field: code, label and description in all languages
+      .filter((l) => matchesSearch(searchQuery, l.code, l.labels, l.description))
       .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [allLevels, selectedNode, searchQuery, locale]);
+  }, [allLevels, selectedNode, searchQuery]);
+  // Unfiltered count, so the search box does not disappear while typing
+  const nodeLevelCount = selectedNode ? allLevels.filter((l) => l.nodeCode === selectedNode).length : 0;
 
   const toggleDomain = (code: string) => {
     setExpandedDomains((prev) => {
@@ -256,8 +275,18 @@ export default function AccessLevelsPage() {
           <div className="lg:col-span-4">
             <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
               <h2 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Domains & Sub-domains</h2>
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search domains..."
+                  value={treeSearch}
+                  onChange={(e) => setTreeSearch(e.target.value)}
+                  className="w-full rounded-md border-0 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-700 placeholder:text-gray-400 focus:ring-1 focus:ring-amber-500 dark:bg-gray-800 dark:text-gray-200"
+                />
+              </div>
               <div className="space-y-0.5">
-                {treeNodes.map((node) => (
+                {visibleTreeNodes.map((node) => (
                   <button
                     key={node.nodeCode}
                     onClick={() => {
@@ -325,7 +354,7 @@ export default function AccessLevelsPage() {
                 </div>
 
                 {/* Search */}
-                {nodeLevels.length > 3 && (
+                {nodeLevelCount > 3 && (
                   <div className="border-b border-gray-100 px-5 py-2 dark:border-gray-800">
                     <div className="relative">
                       <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
@@ -440,16 +469,13 @@ export default function AccessLevelsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <h3 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Copy levels from another node</h3>
-            <select
+            <SearchableSelect
               value={copySource}
-              onChange={(e) => setCopySource(e.target.value)}
-              className="mb-4 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-            >
-              <option value="">Select source node...</option>
-              {copySourceNodes.map((n) => (
-                <option key={n.nodeCode} value={n.nodeCode}>{n.label} ({n.count})</option>
-              ))}
-            </select>
+              onChange={setCopySource}
+              options={copySourceNodes.map((n) => ({ value: n.nodeCode, label: `${n.label} (${n.count})` }))}
+              placeholder="Select source node..."
+              className="mb-4"
+            />
             <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
               Levels that already exist on the target node (same code) will be skipped. Copies are independent.
             </p>
