@@ -57,6 +57,8 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { useTranslations } from '@/lib/i18n/translations';
+import { ConsistencyPanel, ConsistencyBadge } from '@/components/collecte/ConsistencyPanel';
+import { useSubmissionConsistency, useConsistencySummary } from '@/lib/api/consistency-hooks';
 
 /* ── Constants ────────────────────────────────────────────────────────────── */
 
@@ -452,7 +454,10 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
   isMine: boolean;
   t: (key: string) => string;
 }) {
-  const [activeTab, setActiveTab] = useState<'data' | 'actions' | 'timeline'>('data');
+  const [activeTab, setActiveTab] = useState<'data' | 'checks' | 'actions' | 'timeline'>('data');
+  const tc = useTranslations('consistency');
+  const { data: consistency } = useSubmissionConsistency(item.id);
+  const checkCount = consistency ? consistency.summary.error + consistency.summary.warning : 0;
   const [actionType, setActionType] = useState<'validate' | 'reject' | 'return' | null>(null);
   const [actionText, setActionText] = useState('');
   const [shakeModal, setShakeModal] = useState(false);
@@ -552,6 +557,11 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
             className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'data' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
             <Eye className="inline h-4 w-4 mr-1.5" />{t('dataTab')}
           </button>
+          <button onClick={() => setActiveTab('checks')}
+            className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'checks' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
+            <AlertTriangle className="inline h-4 w-4 mr-1.5" />{tc('tab')}
+            {checkCount > 0 && <span className={cn('ml-1 inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-semibold', consistency && consistency.summary.error > 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300')}>{checkCount}</span>}
+          </button>
           <button onClick={() => setActiveTab('actions')}
             className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'actions' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
             <CheckCircle className="inline h-4 w-4 mr-1.5" />{t('actions')}
@@ -602,6 +612,8 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                 {sections.map((sec) => <DataSection key={sec.title} {...sec} defaultOpen={sec.open} />)}
               </div>
             </>
+          ) : activeTab === 'checks' ? (
+            <ConsistencyPanel submissionId={item.id} data={item.data as Record<string, unknown>} submittedBy={item.submittedBy} />
           ) : activeTab === 'actions' ? (
             /* ── Actions & Comments Tab ── */
             <div className="px-6 py-4 space-y-4">
@@ -1336,6 +1348,7 @@ function SubmissionsTable({ items, total, page, totalPages, pageSize, setPage, o
   selectedIds: Set<string>; setSelectedIds: (ids: Set<string>) => void;
 }) {
   const allOnPage = items.map((i) => i.id);
+  const { data: checkSummaries } = useConsistencySummary(allOnPage);
   const allSelected = allOnPage.length > 0 && allOnPage.every((id) => selectedIds.has(id));
   const toggleAll = () => {
     if (allSelected) {
@@ -1383,7 +1396,7 @@ function SubmissionsTable({ items, total, page, totalPages, pageSize, setPage, o
                     )}
                   </td>
                   <td className="px-4 py-3">{domain ? <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', DOMAIN_COLORS[domain] ?? 'bg-gray-100 text-gray-600')}>{DOMAIN_LABELS[domain] ?? domain}</span> : <span className="text-gray-400 text-xs">--</span>}</td>
-                  <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
+                  <td className="px-4 py-3"><div className="flex flex-wrap items-center gap-1.5"><StatusBadge status={item.status} /><ConsistencyBadge summary={checkSummaries?.[item.id]} /></div></td>
                   <td className="px-4 py-3">
                     <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">{(item as any).submittedByName || item.submittedBy?.slice(0, 8) || '--'}</span>
                   </td>

@@ -44,8 +44,19 @@ export class HttpError extends Error {
   }
 }
 
+export type SubmissionAuditor = (
+  action: string, entityId: string, user: AuthenticatedUser, reason: string | null,
+  previous: object | null, next: object | null, classification?: string,
+) => Promise<void>;
+
 export class SubmissionService {
   private readonly ajv: Ajv;
+  private auditor: SubmissionAuditor | null = null;
+
+  /** Optional audit-trail writer (review history of status changes and resubmissions). */
+  setAuditor(fn: SubmissionAuditor): void {
+    this.auditor = fn;
+  }
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -259,6 +270,9 @@ export class SubmissionService {
       `[SubmissionService] Submission ${id} status updated to ${dto.status} by ${user.email}${dto.reason ? ` (reason: ${dto.reason})` : ''}`,
     );
 
+    const auditAction = dto.status === 'VALIDATED' ? 'VALIDATE' : dto.status === 'REJECTED' ? 'REJECT' : dto.status === 'RETURNED' ? 'RETURN' : 'UPDATE';
+    await this.auditor?.(auditAction, id, user, dto.reason ?? null, { status: submission.status }, { status: dto.status }, submission.dataClassification);
+
     return { data: updated as unknown as SubmissionEntity };
   }
 
@@ -313,6 +327,20 @@ export class SubmissionService {
         version: { increment: 1 },
       },
     });
+
+    // Audit: which fields the collector changed, so validators see what was fixed
+    {
+      const before = (submission.data ?? {}) as Record<string, unknown>;
+      const prev: Record<string, unknown> = {};
+      const next: Record<string, unknown> = {};
+      for (const k of new Set([...Object.keys(before), ...Object.keys(data)])) {
+        if (JSON.stringify(before[k] ?? null) !== JSON.stringify((data as Record<string, unknown>)[k] ?? null)) {
+          prev[k] = before[k] ?? null;
+          next[k] = (data as Record<string, unknown>)[k] ?? null;
+        }
+      }
+      await this.auditor?.('RESUBMIT', id, user, null, { ...prev, status: submission.status }, { ...next, status: 'SUBMITTED', version: updated.version }, submission.dataClassification);
+    }
 
     // 4. Re-trigger quality validation via Kafka event
     // Resolve campaign domain

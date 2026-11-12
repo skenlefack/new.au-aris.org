@@ -46,6 +46,7 @@ import { useLocaleStore } from '@/lib/stores/locale-store';
 import { COUNTRIES } from '@/data/countries-config';
 import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
 import type { FormSchema } from '@/components/form-builder/utils/form-schema';
+import { ConsistencyPanel } from '@/components/collecte/ConsistencyPanel';
 
 /* ── Reference Data Maps ───────────────────────────────────────────────── */
 
@@ -990,6 +991,11 @@ export default function SubmissionReviewPage() {
               </div>
             </div>
           )}
+
+          {/* ── Consistency checks: suggested inconsistencies, correct or send back ── */}
+          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+            <ConsistencyPanel submissionId={submission.id} data={formData as Record<string, unknown>} submittedBy={submission.submittedBy} />
+          </div>
 
           {/* ── Quality Report ── */}
           {(submission.qualityGates ?? []).length > 0 && (

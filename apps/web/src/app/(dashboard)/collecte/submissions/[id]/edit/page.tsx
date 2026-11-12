@@ -12,6 +12,7 @@ import { useFormBuilderTemplate } from '@/lib/api/form-builder-hooks';
 import { FormRenderer } from '@/components/form-builder/renderer/FormRenderer';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import type { FormSchema } from '@/components/form-builder/utils/form-schema';
+import { useReviewHistory } from '@/lib/api/consistency-hooks';
 
 function extractSchema(tpl: any): FormSchema | null {
   const schema = tpl?.schema;
@@ -37,6 +38,16 @@ export default function SubmissionEditPage() {
   const schema = extractSchema(template);
 
   const updateMutation = useUpdateSubmissionData();
+  const tc = useTranslations('consistency');
+  const { data: reviewHistory } = useReviewHistory(id);
+  // Latest correction request that the collector has not answered yet
+  const pendingRequest = useMemo(() => {
+    for (const e of reviewHistory ?? []) {
+      if (e.action === 'RESUBMIT') return null;
+      if (e.action === 'REQUEST_CORRECTION') return e;
+    }
+    return null;
+  }, [reviewHistory]);
 
   const [banner, setBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -144,6 +155,28 @@ export default function SubmissionEditPage() {
           </span>
         </div>
       </div>
+
+      {/* Correction requested by a validator */}
+      {status === 'RETURNED' && pendingRequest && (
+        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20">
+          <div className="flex items-center gap-2 text-orange-800 dark:text-orange-300">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <p className="text-sm font-medium">{tc('returnedBanner')}</p>
+          </div>
+          {pendingRequest.reason && <p className="mt-2 text-sm text-orange-900 dark:text-orange-200">{pendingRequest.reason}</p>}
+          {Array.isArray((pendingRequest.next as any)?.items) && (pendingRequest.next as any).items.length > 0 && (
+            <>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-400">{tc('pointsToFix')}</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-orange-900 dark:text-orange-200">
+                {((pendingRequest.next as any).items as { message: string }[]).map((it, i) => <li key={i}>{it.message}</li>)}
+              </ul>
+            </>
+          )}
+          <p className="mt-2 text-xs text-orange-700/80 dark:text-orange-400/80">
+            {tc('action.REQUEST_CORRECTION')}{pendingRequest.actor?.name ? ` ${tc('by')} ${pendingRequest.actor.name}` : ''} · {new Date(pendingRequest.at).toLocaleString()}
+          </p>
+        </div>
+      )}
 
       {/* Banner */}
       {banner && (

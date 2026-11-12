@@ -3,6 +3,7 @@ import { rolesHook, tenantHook } from '@aris/auth-middleware';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { UserRole } from '@aris/shared-types';
 import { SubmissionService } from '../services/submission.service';
+import { ConsistencyService, REVIEWER_ROLES, type CorrectionItem } from '../services/consistency/consistency.service';
 import {
   CreateSubmissionSchema,
   ListSubmissionsQuerySchema,
@@ -22,6 +23,8 @@ import type {
 
 export default async function submissionRoutes(app: FastifyInstance): Promise<void> {
   const service = new SubmissionService(app.prisma, app.kafka.producer, app.kafka);
+  const consistency = new ConsistencyService(app.prisma);
+  service.setAuditor((action, id, user, reason, prev, next, cls) => consistency.audit(action, id, user, reason, prev, next, cls));
 
   const auth = app.authHookFn;
   const tenant = tenantHook();
@@ -77,6 +80,51 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
     const user = request.user as AuthenticatedUser;
     return service.findConflicts(user, request.query);
   });
+
+  // ── Consistency review ──
+  const idParams = { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } } as const;
+
+  // POST /api/v1/collecte/submissions/consistency/summary — issue counts for a page of submissions
+  app.post<{ Body: { ids: string[] } }>('/api/v1/collecte/submissions/consistency/summary', {
+    schema: { body: { type: 'object', required: ['ids'], properties: { ids: { type: 'array', maxItems: 200, items: { type: 'string', format: 'uuid' } } } } },
+    preHandler: [auth, tenant],
+  }, async (request) => consistency.summaries(request.body.ids, request.user as AuthenticatedUser));
+
+  // GET /api/v1/collecte/submissions/:id/consistency — suggested inconsistencies
+  app.get<{ Params: IdParam }>('/api/v1/collecte/submissions/:id/consistency', {
+    schema: { params: idParams },
+    preHandler: [auth, tenant],
+  }, async (request) => consistency.check(request.params.id, request.user as AuthenticatedUser));
+
+  // GET /api/v1/collecte/submissions/:id/review-history — correction requests, corrections, resubmissions
+  app.get<{ Params: IdParam }>('/api/v1/collecte/submissions/:id/review-history', {
+    schema: { params: idParams },
+    preHandler: [auth, tenant],
+  }, async (request) => consistency.history(request.params.id, request.user as AuthenticatedUser));
+
+  // PATCH /api/v1/collecte/submissions/:id/corrections — validator fixes fields directly (audited)
+  app.patch<{ Params: IdParam; Body: { changes: Record<string, unknown>; reason: string } }>('/api/v1/collecte/submissions/:id/corrections', {
+    schema: {
+      params: idParams,
+      body: { type: 'object', required: ['changes', 'reason'], properties: { changes: { type: 'object' }, reason: { type: 'string', minLength: 1, maxLength: 2000 } } },
+    },
+    preHandler: [auth, tenant, rolesHook(...(REVIEWER_ROLES as UserRole[]))],
+  }, async (request) => consistency.correct(request.params.id, request.body.changes, request.body.reason, request.user as AuthenticatedUser));
+
+  // POST /api/v1/collecte/submissions/:id/request-correction — send back to the collector with points to fix
+  app.post<{ Params: IdParam; Body: { message?: string; items?: CorrectionItem[] } }>('/api/v1/collecte/submissions/:id/request-correction', {
+    schema: {
+      params: idParams,
+      body: {
+        type: 'object',
+        properties: {
+          message: { type: 'string', maxLength: 4000 },
+          items: { type: 'array', maxItems: 50, items: { type: 'object', required: ['message'], properties: { field: { type: 'string' }, code: { type: 'string' }, message: { type: 'string', maxLength: 1000 } } } },
+        },
+      },
+    },
+    preHandler: [auth, tenant, rolesHook(...(REVIEWER_ROLES as UserRole[]))],
+  }, async (request) => consistency.requestCorrection(request.params.id, request.body.message ?? '', request.body.items ?? [], request.user as AuthenticatedUser));
 
   // GET /api/v1/collecte/submissions/:id
   app.get<{ Params: IdParam }>('/api/v1/collecte/submissions/:id', {
