@@ -172,6 +172,8 @@ export const ListInstancesQuerySchema = Type.Object({
   status: Type.Optional(Type.String()),
   assignee: Type.Optional(Type.String({ format: 'uuid' })),
   priority: Type.Optional(Type.String()),
+  entityId: Type.Optional(Type.String({ format: 'uuid' })),
+  campaignId: Type.Optional(Type.String({ format: 'uuid' })),
 });
 export type ListInstancesQuery = Static<typeof ListInstancesQuerySchema>;
 

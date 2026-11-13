@@ -37,7 +37,7 @@ export default function CampaignQualityDashboard({ campaignId }: CampaignQuality
   const campaign = (campaignRes as any)?.data as any | undefined;
 
   // Fetch workflow instances linked to this campaign's submissions
-  const { data: wfRes } = useWorkflowInstances({ limit: 1000, entityId: campaignId });
+  const { data: wfRes } = useWorkflowInstances({ limit: 1000, campaignId });
   const wfInstances: any[] = wfRes?.data ?? [];
 
   // KPI data from campaign progress

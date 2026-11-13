@@ -453,7 +453,7 @@ export class WorkflowInstanceService {
   /** List workflow instances */
   async findAll(
     user: AuthenticatedUser,
-    query: { page?: number; limit?: number; status?: string; assignee?: string; priority?: string },
+    query: { page?: number; limit?: number; status?: string; assignee?: string; priority?: string; entityId?: string; campaignId?: string },
   ): Promise<PaginatedResponse<unknown>> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -463,6 +463,8 @@ export class WorkflowInstanceService {
     if (query.status) where['status'] = query.status.toUpperCase();
     if (query.assignee) where['currentAssigneeId'] = query.assignee;
     if (query.priority) where['priority'] = query.priority.toUpperCase();
+    if (query.entityId) where['submissionId'] = query.entityId;
+    if (query.campaignId) where['submission'] = { campaignId: query.campaignId };
 
     const [data, total] = await Promise.all([
       (this.prisma as any).collecteInstance.findMany({

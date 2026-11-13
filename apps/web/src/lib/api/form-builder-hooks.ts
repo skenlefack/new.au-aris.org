@@ -2,6 +2,7 @@
 
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from './client';
+import { API_MAX_PAGE_SIZE, fetchAllPages } from './paginate';
 import { createOfflineSubmission, markSubmissionPending } from '@/lib/offline/submission-store';
 import { enqueueSync } from '@/lib/offline/sync-queue';
 import { withOfflineCache } from '@/lib/offline/query-offline';
@@ -325,10 +326,19 @@ export function useFormSubmissions(templateId: string | undefined, params?: {
 
   return useQuery({
     queryKey: ['form-builder', 'submissions', templateId, params],
-    queryFn: () => fb.get<PaginatedResponse<FormSubmissionListItem>>(
-      `/templates/${templateId}/submissions`,
-      queryParams,
-    ),
+    queryFn: () => {
+      // The API returns at most 100 rows per page: larger requests are paged.
+      if (params?.limit && params.limit > API_MAX_PAGE_SIZE) {
+        return fetchAllPages((page, limit) => fb.get<PaginatedResponse<FormSubmissionListItem>>(
+          `/templates/${templateId}/submissions`,
+          { ...queryParams, page: String(page), limit: String(limit) },
+        ) as any, params.limit) as unknown as Promise<PaginatedResponse<FormSubmissionListItem>>;
+      }
+      return fb.get<PaginatedResponse<FormSubmissionListItem>>(
+        `/templates/${templateId}/submissions`,
+        queryParams,
+      );
+    },
     enabled: !!templateId,
     staleTime: 10_000,
   });

@@ -66,7 +66,7 @@ export function CampaignDataDashboard({ domain, showMap, showStats, showCurve }:
   const activeCampaign = sorted.find((c) => c.id === activeCampaignId);
 
   // Fetch submissions for the selected campaign
-  const subsQuery = useCampaignSubmissions(activeCampaignId, { limit: 100 });
+  const subsQuery = useCampaignSubmissions(activeCampaignId, { limit: 10000 });
   const submissions: any[] = Array.isArray(subsQuery.data?.data) ? subsQuery.data.data : [];
 
   // Analyse form template schema to understand field types

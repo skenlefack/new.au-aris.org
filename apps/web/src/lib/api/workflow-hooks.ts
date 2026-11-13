@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { withOfflineCache } from '@/lib/offline/query-offline';
 import { cacheCampaigns, getCachedCampaigns } from '@/lib/offline/ref-data-cache';
+import { API_MAX_PAGE_SIZE, fetchAllPages } from './paginate';
 
 const API_BASE = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? '/api/v1';
 const COLLECTE_BASE = process.env['NEXT_PUBLIC_COLLECTE_URL'] ?? '';
@@ -263,17 +264,24 @@ export function useStartWorkflow() {
   });
 }
 
-export function useWorkflowInstances(query?: { page?: number; limit?: number; status?: string; assignee?: string; entityId?: string }) {
+/** `entityId` is a submission id; `campaignId` returns the instances of that campaign's submissions. */
+export function useWorkflowInstances(query?: { page?: number; limit?: number; status?: string; assignee?: string; entityId?: string; campaignId?: string }) {
   return useQuery({
     queryKey: ['workflow-instances', query],
     queryFn: () => {
-      const params = new URLSearchParams();
-      if (query?.page) params.set('page', String(query.page));
-      if (query?.limit) params.set('limit', String(query.limit));
-      if (query?.status) params.set('status', query.status);
-      if (query?.assignee) params.set('assignee', query.assignee);
-      if (query?.entityId) params.set('entityId', query.entityId);
-      return wfFetch<any>(`/api/v1/workflow/instances?${params}`);
+      const fetchPage = (page: number | undefined, limit: number | undefined) => {
+        const params = new URLSearchParams();
+        if (page) params.set('page', String(page));
+        if (limit) params.set('limit', String(limit));
+        if (query?.status) params.set('status', query.status);
+        if (query?.assignee) params.set('assignee', query.assignee);
+        if (query?.entityId) params.set('entityId', query.entityId);
+        if (query?.campaignId) params.set('campaignId', query.campaignId);
+        return wfFetch<any>(`/api/v1/workflow/instances?${params}`);
+      };
+      // The API returns at most 100 rows per page: larger requests are paged.
+      if (query?.limit && query.limit > API_MAX_PAGE_SIZE) return fetchAllPages(fetchPage, query.limit);
+      return fetchPage(query?.page, query?.limit);
     },
   });
 }
@@ -494,12 +502,17 @@ export function useCampaignSubmissions(campaignId: string | undefined, params?: 
   return useQuery({
     queryKey: ['campaign-submissions', campaignId, params],
     queryFn: () => {
-      const qs = new URLSearchParams();
-      if (campaignId) qs.set('campaign', campaignId);
-      if (params?.page) qs.set('page', String(params.page));
-      if (params?.limit) qs.set('limit', String(params.limit));
-      if (params?.status) qs.set('status', params.status);
-      return wfFetch<any>(`/api/v1/collecte/submissions?${qs}`);
+      const fetchPage = (page: number | undefined, limit: number | undefined) => {
+        const qs = new URLSearchParams();
+        if (campaignId) qs.set('campaign', campaignId);
+        if (page) qs.set('page', String(page));
+        if (limit) qs.set('limit', String(limit));
+        if (params?.status) qs.set('status', params.status);
+        return wfFetch<any>(`/api/v1/collecte/submissions?${qs}`);
+      };
+      // The API returns at most 100 rows per page: larger requests are paged.
+      if (params?.limit && params.limit > API_MAX_PAGE_SIZE) return fetchAllPages(fetchPage, params.limit);
+      return fetchPage(params?.page, params?.limit);
     },
     enabled: !!campaignId,
     staleTime: 60_000,

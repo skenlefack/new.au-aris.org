@@ -151,7 +151,7 @@ export default function SeroSurveillanceDashboard({ campaignId }: { campaignId: 
   const t = useTranslations('collecte');
   const locale = useLocaleStore((s) => s.locale);
   // Fetch all submissions (multi-form campaign — forms A/B/C/D)
-  const sQ = useCampaignSubmissions(campaignId, { limit: 2000 });
+  const sQ = useCampaignSubmissions(campaignId, { limit: 10000 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
 

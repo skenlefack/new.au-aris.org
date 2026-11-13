@@ -153,7 +153,7 @@ function DonutChart({ entries, colors, size = 160, centerLabel }: {
 export default function DigitalToolsDashboard({ campaignId }: { campaignId: string }) {
   const t = useTranslations('collecte');
   const locale = useLocaleStore((s) => s.locale);
-  const sQ = useCampaignSubmissions(campaignId, { limit: 100 });
+  const sQ = useCampaignSubmissions(campaignId, { limit: 10000 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
   const error = sQ.error as Error | null;
