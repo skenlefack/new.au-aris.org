@@ -20,6 +20,10 @@ import { parseDeviceInfo, computeFingerprint } from '../utils/device.utils.js';
 const SERVICE_NAME = 'credential-service';
 const BCRYPT_ROUNDS = 10;
 
+/** Roles that see every domain. Their data stays scoped to their tenant (country, REC or AU). */
+const ALL_DOMAINS_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN']);
+const hasAllDomainsRole = (roles: string[]): boolean => roles.some((r) => ALL_DOMAINS_ROLES.has(r));
+
 // ─────────────────────────────────────────────────────────────────────────────
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
@@ -239,6 +243,10 @@ export class AuthService {
 
     // Compute effective roles from UserRoleAssignment table
     const effectiveRoles = await this.computeEffectiveRoles(user.id, user.role);
+    // Admins (down to National Admin) see every domain of their tenant
+    if (hasAllDomainsRole(effectiveRoles)) {
+      effectiveDomainPerms = await this.allDomainsWildcard(effectiveDomainPerms);
+    }
     // Compute permissions for frontend
     const permissions = await this.computePermissions(effectiveRoles);
 
@@ -324,11 +332,25 @@ export class AuthService {
 
     // Refresh effective roles
     const effectiveRoles = await this.computeEffectiveRoles(user.id, user.role);
+    if (hasAllDomainsRole(effectiveRoles)) {
+      domainPerms = await this.allDomainsWildcard(domainPerms);
+    }
 
     const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainPerms, effectiveRoles);
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, sessionData.role, sessionData.tenantId, sessionData.tenantLevel);
 
     return { data: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expiresIn: 900 } };
+  }
+
+  /** Every active domain with a wildcard; falls back to `current` if the lookup fails. */
+  private async allDomainsWildcard(current: Record<string, string[]>): Promise<Record<string, string[]>> {
+    try {
+      const domains = await (this.prisma as any).domain.findMany({ where: { isActive: true }, select: { code: true } });
+      if (domains.length === 0) return current;
+      return Object.fromEntries(domains.map((d: { code: string }) => [d.code, ['*']]));
+    } catch {
+      return current;
+    }
   }
 
   async logout(userId: string, accessToken?: string): Promise<{ data: { message: string } }> {

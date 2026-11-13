@@ -55,8 +55,14 @@ export interface VisibilityInput {
   options: VisibilityOptions;
 }
 
-/** Admin roles that bypass access-level filtering */
+/**
+ * Admin roles that bypass access-level filtering.
+ * REC and National Admins see all the data of their own tenant; the tenant
+ * filter of each service still limits them to their REC or country.
+ */
 export const ADMIN_BYPASS_ROLES: readonly UserRole[] = [
   'SUPER_ADMIN' as UserRole,
   'CONTINENTAL_ADMIN' as UserRole,
+  'REC_ADMIN' as UserRole,
+  'NATIONAL_ADMIN' as UserRole,
 ] as const;

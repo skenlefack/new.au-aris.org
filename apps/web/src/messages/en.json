@@ -4373,7 +4373,8 @@
     "addRecs": "Add RECs",
     "activeTargets": "Active targets",
     "excludedTargets": "Excluded targets",
-    "noTargetsExcluded": "No excluded targets"
+    "noTargetsExcluded": "No excluded targets",
+    "tenantColumn": "Tenant"
   },
   "masterData": {
     "title": "Master Data",
@@ -5897,6 +5898,7 @@
     "functionsDesc": "Select user functions (job titles). Each function brings its associated roles automatically.",
     "selected": "selected",
     "noFunctionsAvailable": "No functions available. Create functions in Settings > Functions first.",
+    "outOfScopeAssignments": "These functions or roles belong to another organisation and will be refused. Click to remove them:",
     "roles": "Roles",
     "rolesDesc": "Roles inherited from functions are locked. You can assign additional direct roles.",
     "effectiveRole": "effective role",

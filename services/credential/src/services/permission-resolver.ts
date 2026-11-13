@@ -15,7 +15,7 @@ import type { PrismaClient } from '@prisma/client';
  * 2. Explicit list = only those codes AND that are active
  * 3. Inactive sub-domains are NEVER returned
  * 4. Missing domain = no access
- * 5. SUPER_ADMIN / CONTINENTAL_ADMIN = access to everything
+ * 5. SUPER_ADMIN / CONTINENTAL_ADMIN / REC_ADMIN / NATIONAL_ADMIN = every domain (data still tenant-scoped)
  */
 
 export interface SubDomainAccess {
@@ -44,7 +44,9 @@ export interface UserAccess {
   valueChainCodes: ValueChainAccess[];
 }
 
-const ADMIN_ROLES = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN'];
+// Roles that see every domain. REC and National Admins see all the data of
+// their own tenant (row-level tenant filtering still applies in each service).
+const ADMIN_ROLES = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'];
 
 export class PermissionResolver {
   constructor(private readonly prisma: PrismaClient) {}

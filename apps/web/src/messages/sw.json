@@ -4248,7 +4248,8 @@
     "addRecs": "Ongeza CER",
     "activeTargets": "Malengo hai",
     "excludedTargets": "Malengo yaliyoondolewa",
-    "noTargetsExcluded": "Hakuna malengo yaliyoondolewa"
+    "noTargetsExcluded": "Hakuna malengo yaliyoondolewa",
+    "tenantColumn": "Tenant"
   },
   "masterData": {
     "title": "Data Kuu",
@@ -5772,6 +5773,7 @@
     "functionsDesc": "Chagua kazi za mtumiaji (vyeo vya kazi). Kila kazi huleta majukumu yake yanayohusiana otomatiki.",
     "selected": "Imechaguliwa",
     "noFunctionsAvailable": "Hakuna kazi zinazopatikana. Unda kazi katika Mipangilio > Kazi kwanza.",
+    "outOfScopeAssignments": "Kazi au majukumu haya ni ya shirika lingine na yatakataliwa. Bofya ili kuyaondoa:",
     "roles": "Majukumu",
     "rolesDesc": "Majukumu yaliyorithiwa kutoka kwa kazi yamefungwa. Unaweza kugawia majukumu ya ziada ya moja kwa moja.",
     "effectiveRole": "jukumu halisi",

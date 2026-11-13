@@ -295,11 +295,8 @@ export class SubmissionService {
       throw new HttpError(404, `Submission ${id} not found`);
     }
 
-    // Tenant isolation
-    if (
-      user.tenantLevel !== TenantLevel.CONTINENTAL &&
-      submission.tenantId !== user.tenantId
-    ) {
+    // Tenant isolation (a REC also sees its member countries)
+    if (!(await this.canSeeTenant(user, submission.tenantId))) {
       throw new HttpError(404, `Submission ${id} not found`);
     }
 
@@ -437,13 +434,32 @@ export class SubmissionService {
       }
     }
 
+    // Enrich with the tenant (country or REC) where the data was collected
+    const tenantIds = [...new Set(data.map((s: any) => s.tenantId).filter(Boolean))] as string[];
+    const tenantMap: Record<string, { name: string; code: string | null; level: string }> = {};
+    if (tenantIds.length > 0) {
+      try {
+        const tenants = await (this.prisma as any).tenant.findMany({
+          where: { id: { in: tenantIds } },
+          select: { id: true, name: true, code: true, level: true },
+        });
+        for (const t of tenants) tenantMap[t.id] = { name: t.name, code: t.code ?? null, level: String(t.level) };
+      } catch {
+        // Tenant table unavailable — return without tenant names
+      }
+    }
+
     const enriched = data.map((s: any) => {
       const campaign = campaignMap[s.campaignId];
+      const tenant = tenantMap[s.tenantId];
       return {
         ...s,
         campaignName: campaign?.name ?? null,
         domain: campaign?.domain ?? null,
         submittedByName: submitterMap[s.submittedBy] ?? null,
+        tenantName: tenant?.name ?? null,
+        tenantCode: tenant?.code ?? null,
+        tenantLevel: tenant?.level ?? null,
       };
     });
 
@@ -465,11 +481,8 @@ export class SubmissionService {
       throw new HttpError(404, `Submission ${id} not found`);
     }
 
-    // Tenant isolation
-    if (
-      user.tenantLevel !== TenantLevel.CONTINENTAL &&
-      submission.tenantId !== user.tenantId
-    ) {
+    // Tenant isolation (a REC also sees its member countries)
+    if (!(await this.canSeeTenant(user, submission.tenantId))) {
       throw new HttpError(404, `Submission ${id} not found`);
     }
 
@@ -775,11 +788,8 @@ export class SubmissionService {
       throw new HttpError(404, `Submission ${id} not found`);
     }
 
-    // Tenant isolation
-    if (
-      user.tenantLevel !== TenantLevel.CONTINENTAL &&
-      submission.tenantId !== user.tenantId
-    ) {
+    // Tenant isolation (a REC also sees its member countries)
+    if (!(await this.canSeeTenant(user, submission.tenantId))) {
       throw new HttpError(404, `Submission ${id} not found`);
     }
 
@@ -880,14 +890,46 @@ export class SubmissionService {
     return false;
   }
 
+  /** Roles that see every submission of their tenant (a REC also sees its member countries). */
+  private hasTenantWideRole(user: AuthenticatedUser): boolean {
+    const roles = new Set([user.role as string, ...(user.roles ?? [])]);
+    return ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'].some((r) => roles.has(r));
+  }
+
+  /**
+   * Tenants whose submissions the user may see: null = all (continental),
+   * a REC = itself + its member countries, a country = itself.
+   */
+  private async tenantScopeIds(user: AuthenticatedUser): Promise<string[] | null> {
+    if (user.tenantLevel === TenantLevel.CONTINENTAL) return null;
+    if (user.tenantLevel === TenantLevel.REC) {
+      try {
+        const children = await (this.prisma as any).tenant.findMany({
+          where: { parentId: user.tenantId },
+          select: { id: true },
+        });
+        return [user.tenantId, ...children.map((c: { id: string }) => c.id)];
+      } catch {
+        return [user.tenantId];
+      }
+    }
+    return [user.tenantId];
+  }
+
+  private async canSeeTenant(user: AuthenticatedUser, tenantId: string): Promise<boolean> {
+    const ids = await this.tenantScopeIds(user);
+    return ids === null || ids.includes(tenantId);
+  }
+
   private async buildFilter(
     user: AuthenticatedUser,
     query: { campaignId?: string; domain?: string; status?: string; agent?: string; scope?: string },
   ): Promise<Record<string, unknown>> {
     const where: Record<string, unknown> = {};
 
-    if (user.tenantLevel !== TenantLevel.CONTINENTAL) {
-      where['tenantId'] = user.tenantId;
+    const scopeIds = await this.tenantScopeIds(user);
+    if (scopeIds) {
+      where['tenantId'] = scopeIds.length === 1 ? scopeIds[0] : { in: scopeIds };
     }
 
     if (query.campaignId) {
@@ -916,7 +958,10 @@ export class SubmissionService {
     //   scope=toReview → only submissions from users assigned to this agent for validation
     //   scope=mine     → only the agent's own submissions
     //   scope=all (default) → both own + assigned users' submissions
-    if (query.agent) {
+    const seesWholeTenant = query.agent === user.userId
+      && (query.scope ?? 'all') === 'all'
+      && this.hasTenantWideRole(user);
+    if (query.agent && !seesWholeTenant) {
       let assignedUserIds: string[] = [];
       try {
         const chains = await (this.prisma as any).collecteValidationChain.findMany({

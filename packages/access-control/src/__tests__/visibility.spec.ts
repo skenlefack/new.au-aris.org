@@ -50,11 +50,22 @@ describe('canViewCampaign', () => {
     expect(canViewCampaign(input)).toBe(true);
   });
 
-  it('REC_ADMIN does NOT bypass (R6 - only SUPER/CONTINENTAL)', () => {
+  it('REC_ADMIN and NATIONAL_ADMIN bypass (R6 - they see all data of their tenant)', () => {
+    for (const role of ['REC_ADMIN', 'NATIONAL_ADMIN']) {
+      const input = makeInput({
+        userNodeCodes: [],
+        campaignScopes: { 'animal-health': ['LEVEL_A'] },
+        options: { userRole: role as UserRole, isAssignedAgent: false, featureEnabled: true },
+      });
+      expect(canViewCampaign(input)).toBe(true);
+    }
+  });
+
+  it('DATA_STEWARD does NOT bypass (R6)', () => {
     const input = makeInput({
       userNodeCodes: [],
       campaignScopes: { 'animal-health': ['LEVEL_A'] },
-      options: { userRole: 'REC_ADMIN' as UserRole, isAssignedAgent: false, featureEnabled: true },
+      options: { userRole: 'DATA_STEWARD' as UserRole, isAssignedAgent: false, featureEnabled: true },
     });
     expect(canViewCampaign(input)).toBe(false);
   });

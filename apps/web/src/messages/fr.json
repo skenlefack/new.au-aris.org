@@ -4373,7 +4373,8 @@
     "addRecs": "Ajouter des CER",
     "activeTargets": "Cibles actives",
     "excludedTargets": "Cibles exclues",
-    "noTargetsExcluded": "Aucune cible exclue"
+    "noTargetsExcluded": "Aucune cible exclue",
+    "tenantColumn": "Tenant"
   },
   "masterData": {
     "title": "Données de référence",
@@ -5897,6 +5898,7 @@
     "functionsDesc": "Sélectionnez les fonctions de l'utilisateur (intitulés de poste). Chaque fonction apporte ses rôles associés automatiquement.",
     "selected": "sélectionné(s)",
     "noFunctionsAvailable": "Aucune fonction disponible. Créez d'abord des fonctions dans Paramètres > Fonctions.",
+    "outOfScopeAssignments": "Ces fonctions ou rôles appartiennent à une autre organisation et seront refusés. Cliquez pour les retirer :",
     "roles": "Rôles",
     "rolesDesc": "Les rôles hérités des fonctions sont verrouillés. Vous pouvez attribuer des rôles directs supplémentaires.",
     "effectiveRole": "rôle effectif",

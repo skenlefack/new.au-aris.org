@@ -4249,7 +4249,8 @@
     "addRecs": "Adicionar CER",
     "activeTargets": "Alvos ativos",
     "excludedTargets": "Alvos excluídos",
-    "noTargetsExcluded": "Sem alvos excluídos"
+    "noTargetsExcluded": "Sem alvos excluídos",
+    "tenantColumn": "Tenant"
   },
   "masterData": {
     "title": "Dados Mestres",
@@ -5773,6 +5774,7 @@
     "functionsDesc": "Selecione as funções do utilizador (cargos). Cada função traz os seus papéis associados automaticamente.",
     "selected": "selecionado(s)",
     "noFunctionsAvailable": "Nenhuma função disponível. Crie funções em Definições > Funções primeiro.",
+    "outOfScopeAssignments": "Estas funções ou papéis pertencem a outra organização e serão recusados. Clique para removê-los:",
     "roles": "Papéis",
     "rolesDesc": "Os papéis herdados das funções estão bloqueados. Pode atribuir papéis diretos adicionais.",
     "effectiveRole": "papel efetivo",

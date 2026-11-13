@@ -325,6 +325,8 @@ function filterGroupsByRole(
           // Domain items: role must allow domain access + user must be assigned
           const roleAllowed = ALL_DOMAIN_ROLES.has(role) || role === 'FIELD_AGENT';
           if (!roleAllowed) return false;
+          // REC and National Admins see every domain of their tenant
+          if (role === 'REC_ADMIN' || role === 'NATIONAL_ADMIN') return true;
           // Strict check: user must have this domain assigned
           if (item.domainCode) return hasAccess(item.domainCode);
           return true;

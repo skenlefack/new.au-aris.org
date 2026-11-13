@@ -4249,7 +4249,8 @@
     "addRecs": "Agregar CER",
     "activeTargets": "Objetivos activos",
     "excludedTargets": "Objetivos excluidos",
-    "noTargetsExcluded": "Sin objetivos excluidos"
+    "noTargetsExcluded": "Sin objetivos excluidos",
+    "tenantColumn": "Tenant"
   },
   "masterData": {
     "title": "Datos Maestros",
@@ -5773,6 +5774,7 @@
     "functionsDesc": "Seleccione las funciones del usuario (cargos). Cada función trae sus roles asociados automáticamente.",
     "selected": "seleccionado(s)",
     "noFunctionsAvailable": "No hay funciones disponibles. Cree funciones en Configuración > Funciones primero.",
+    "outOfScopeAssignments": "Estas funciones o roles pertenecen a otra organización y serán rechazados. Haga clic para quitarlos:",
     "roles": "Roles",
     "rolesDesc": "Los roles heredados de funciones están bloqueados. Puede asignar roles directos adicionales.",
     "effectiveRole": "rol efectivo",

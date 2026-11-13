@@ -238,6 +238,23 @@ function ConflictResolutionDialog({ submission, onClose, onResolved }: ConflictD
 
 /* ── Main component ──────────────────────────────────────────────────────── */
 
+/** Country or REC where the submission was collected. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function TenantCell({ sub }: { sub: any }) {
+  if (!sub.tenantName) return <span className="text-xs text-gray-400">--</span>;
+  const tag = sub.tenantLevel === 'REC' ? 'REC' : sub.tenantLevel === 'CONTINENTAL' ? 'AU' : null;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-gray-200">
+      {sub.tenantName}
+      {tag && (
+        <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+          {tag}
+        </span>
+      )}
+    </span>
+  );
+}
+
 interface CampaignSubmissionsTabProps {
   campaignId: string;
 }
@@ -283,6 +300,7 @@ export default function CampaignSubmissionsTab({ campaignId }: CampaignSubmissio
     const columns: CsvColumn<any>[] = [
       { key: (r) => r.id ?? '', header: 'ID' },
       { key: (r) => r.status ?? '', header: 'Status' },
+      { key: (r) => r.tenantName ?? '', header: 'Tenant' },
       { key: (r) => (r.submittedBy ?? r.userId ?? ''), header: 'Submitted By' },
       { key: (r) => r.submittedAt ?? r.createdAt ?? '', header: 'Date' },
       { key: (r) => r.campaignId ?? '', header: 'Campaign ID' },
@@ -312,6 +330,8 @@ export default function CampaignSubmissionsTab({ campaignId }: CampaignSubmissio
         const q = search.toLowerCase();
         return (
           s.id?.toLowerCase().includes(q) ||
+          s.tenantName?.toLowerCase().includes(q) ||
+          s.submittedByName?.toLowerCase().includes(q) ||
           s.submittedBy?.toLowerCase().includes(q) ||
           s.userId?.toLowerCase().includes(q)
         );
@@ -319,7 +339,7 @@ export default function CampaignSubmissionsTab({ campaignId }: CampaignSubmissio
     : submissions;
 
   if (isLoading) {
-    return <TableSkeleton rows={5} cols={6} />;
+    return <TableSkeleton rows={5} cols={7} />;
   }
 
   return (
@@ -378,6 +398,7 @@ export default function CampaignSubmissionsTab({ campaignId }: CampaignSubmissio
                 <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
                   <th className="px-4 py-3">{t('submissionId')}</th>
                   <th className="px-4 py-3">{t('status')}</th>
+                  <th className="px-4 py-3">{t('tenantColumn')}</th>
                   <th className="px-4 py-3">{t('submittedBy')}</th>
                   <th className="px-4 py-3">{t('submittedDate')}</th>
                   <th className="px-4 py-3">{t('qualityStatus')}</th>
@@ -399,6 +420,9 @@ export default function CampaignSubmissionsTab({ campaignId }: CampaignSubmissio
                           <span title={t('pendingConflict')}><AlertTriangle className="h-4 w-4 text-orange-500" /></span>
                         )}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <TenantCell sub={sub} />
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">

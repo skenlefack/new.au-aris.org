@@ -334,10 +334,12 @@ export class CampaignService {
     const where: Record<string, unknown> = {};
 
     // Domain-based filtering: enforce strict domain isolation.
-    // Admins (SUPER_ADMIN, CONTINENTAL_ADMIN) see all campaigns.
+    // Admins (SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN) see all domains.
     // Other roles only see campaigns matching their assigned domains.
     // Users with 0 domains assigned see NO campaigns.
-    const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'CONTINENTAL_ADMIN';
+    // REC and National Admins see every domain; the tenant filter below still limits them.
+    const roles = new Set([user.role as string, ...(user.roles ?? [])]);
+    const isAdmin = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'].some((r) => roles.has(r));
     const userDomainCodes = Object.keys(user.domains ?? {});
     if (!isAdmin) {
       if (userDomainCodes.length === 0) {
