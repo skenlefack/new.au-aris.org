@@ -46,6 +46,8 @@ export const RoleQuerySchema = Type.Object({
   status: Type.Optional(Type.String()),
   page: Type.Optional(Type.Integer({ minimum: 1 })),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+  /** Only roles assignable to a user of this tenant (system roles + its own, its REC's, continental). */
+  forTenantId: Type.Optional(Type.String({ format: 'uuid' })),
 });
 export type RoleQueryInput = Static<typeof RoleQuerySchema>;
 

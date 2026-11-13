@@ -77,17 +77,24 @@ type UserRole =
   | 'ANALYST'
   | 'FIELD_AGENT';
 
-const ROLE_PRIORITY: Record<string, number> = {
-  SUPER_ADMIN: 1,
-  CONTINENTAL_ADMIN: 2,
-  REC_ADMIN: 3,
-  NATIONAL_ADMIN: 4,
-  DATA_STEWARD: 5,
-  WAHIS_FOCAL_POINT: 6,
-  ANALYST: 7,
-  DECISION_MAKER: 8,
-  FIELD_AGENT: 9,
+// Same order as services/tenant/src/services/user-roles.ts. The server sets
+// the primary role; this is only the preview shown before saving.
+const PRIMARY_ROLE_ORDER = [
+  'SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'PAID_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN',
+  'DATA_STEWARD', 'WAHIS_FOCAL_POINT', 'CONTINENTAL_LABORATORY', 'REGIONAL_LABORATORY',
+  'NATIONAL_LABORATORY', 'KNOWLEDGE_MANAGER', 'ANALYST', 'DECISION_MAKER', 'FIELD_AGENT',
+];
+const ROLE_ALIASES: Record<string, string> = {
+  DATA_STEWARD_NATIONAL: 'DATA_STEWARD',
+  DATA_STEWARD_REGIONAL: 'DATA_STEWARD',
+  DATA_STEWARD_CONTINENTAL: 'DATA_STEWARD',
+  DATA_COLLECTOR_NATIONAL: 'FIELD_AGENT',
+  DATA_COLLECTOR_REGIONAL: 'FIELD_AGENT',
+  DATA_COLLECTOR_CONTINENTAL: 'FIELD_AGENT',
 };
+const ROLE_PRIORITY: Record<string, number> = Object.fromEntries(
+  PRIMARY_ROLE_ORDER.map((code, i) => [code, i + 1]),
+);
 
 const ITEMS_PER_PAGE = 20;
 
@@ -140,10 +147,11 @@ function computePrimaryRole(allRoles: RoleItem[], selectedRoleIds: Set<string>):
   let bestPrio = 999;
   for (const role of allRoles) {
     if (!selectedRoleIds.has(role.id)) continue;
-    const prio = ROLE_PRIORITY[role.code] ?? 999;
+    const code = ROLE_ALIASES[role.code] ?? role.code;
+    const prio = ROLE_PRIORITY[code] ?? 999;
     if (prio < bestPrio) {
       bestPrio = prio;
-      best = role.code as UserRole;
+      best = code as UserRole;
     }
   }
   return best;
@@ -565,28 +573,6 @@ function UserForm({
   const [showPassword, setShowPassword] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Load all roles and functions from the database
-  const { data: rolesData } = useSettingsRoles({ limit: 100 });
-  const allRoles: RoleItem[] = useMemo(() => (rolesData?.data ?? []).filter((r) => r.isActive), [rolesData]);
-
-  const { data: functionsData } = useSettingsFunctions({ limit: 100, status: 'active' });
-  const allFunctions: FunctionItem[] = useMemo(() => (functionsData as any)?.data ?? [], [functionsData]);
-
-  // Search within the function and role pickers (every displayed field)
-  const [functionSearch, setFunctionSearch] = useState('');
-  const [roleSearch, setRoleSearch] = useState('');
-  const visibleFunctions = useMemo(
-    () => allFunctions.filter((fn: any) => matchesSearch(
-      functionSearch, fn.code, fn.name, fn.level,
-      (fn.roles ?? []).map((fr: any) => [fr.role?.code, fr.role?.name]),
-    )),
-    [allFunctions, functionSearch],
-  );
-  const visibleRoles = useMemo(
-    () => allRoles.filter((r) => matchesSearch(roleSearch, r.code, r.name, r.level)),
-    [allRoles, roleSearch],
-  );
-
   const [form, setForm] = useState<UserFormState>(() => {
     if (editingUser) {
       // Extract function IDs from user's functions
@@ -615,6 +601,51 @@ function UserForm({
     }
     return { ...EMPTY_FORM, tenantId: currentUser?.tenantId ?? '' };
   });
+
+  // Roles and functions that can be given to a user of the selected
+  // organisation: its own, its REC's and continental ones (+ system roles).
+  const scopeTenantId = form.tenantId || currentUser?.tenantId || '';
+  const { data: rolesData } = useSettingsRoles({ forTenantId: scopeTenantId, all: true, enabled: !!scopeTenantId });
+  const allRoles: RoleItem[] = useMemo(() => (rolesData?.data ?? []).filter((r) => r.isActive), [rolesData]);
+
+  const { data: functionsData } = useSettingsFunctions({
+    status: 'active', forTenantId: scopeTenantId, all: true, enabled: !!scopeTenantId,
+  });
+  const allFunctions: FunctionItem[] = useMemo(() => (functionsData as any)?.data ?? [], [functionsData]);
+
+  // Selected items that belong to another organisation: the server refuses
+  // them, so they are listed for removal.
+  const outOfScope = useMemo(() => {
+    if (!rolesData || !functionsData) return [];
+    const items: { kind: 'function' | 'role'; id: string; label: string }[] = [];
+    for (const id of form.functionIds) {
+      if (allFunctions.some((f) => f.id === id)) continue;
+      const fn = editingUser?.functions?.find((uf) => uf.function?.id === id)?.function as any;
+      items.push({ kind: 'function', id, label: fn?.name?.en ?? fn?.code ?? id });
+    }
+    for (const id of form.directRoleIds) {
+      if (allRoles.some((r) => r.id === id)) continue;
+      const role = editingUser?.roleAssignments?.find((ra) => ra.role.id === id)?.role as any;
+      const owner = role?.tenant?.name ? ` — ${role.tenant.name}` : '';
+      items.push({ kind: 'role', id, label: `${role?.name?.en ?? role?.code ?? id}${owner}` });
+    }
+    return items;
+  }, [rolesData, functionsData, form.functionIds, form.directRoleIds, allFunctions, allRoles, editingUser]);
+
+  // Search within the function and role pickers (every displayed field)
+  const [functionSearch, setFunctionSearch] = useState('');
+  const [roleSearch, setRoleSearch] = useState('');
+  const visibleFunctions = useMemo(
+    () => allFunctions.filter((fn: any) => matchesSearch(
+      functionSearch, fn.code, fn.name, fn.level,
+      (fn.roles ?? []).map((fr: any) => [fr.role?.code, fr.role?.name]),
+    )),
+    [allFunctions, functionSearch],
+  );
+  const visibleRoles = useMemo(
+    () => allRoles.filter((r) => matchesSearch(roleSearch, r.code, r.name, r.level)),
+    [allRoles, roleSearch],
+  );
 
   // ── Access Levels state ──
   const [userScopes, setUserScopes] = useState<Record<string, string[]>>({});
@@ -1280,6 +1311,26 @@ function UserForm({
             )}
           </div>
         </div>
+
+        {/* ---- Functions / roles from another organisation ---- */}
+        {outOfScope.length > 0 && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-4 dark:border-red-900/50 dark:bg-red-900/10">
+            <p className="text-xs font-medium text-red-700 dark:text-red-400">{t('outOfScopeAssignments')}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {outOfScope.map((item) => (
+                <button
+                  key={`${item.kind}-${item.id}`}
+                  type="button"
+                  onClick={() => (item.kind === 'function' ? toggleFunction(item.id) : toggleDirectRole(item.id))}
+                  className="inline-flex items-center gap-1 rounded-full border border-red-300 bg-white px-2.5 py-1 text-[10px] font-medium text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-gray-900 dark:text-red-400"
+                >
+                  {item.label}
+                  <X className="h-3 w-3" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ---- Section: Roles ---- */}
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">

@@ -233,6 +233,8 @@ export const FunctionQuerySchema = Type.Object({
   ])),
   category: Type.Optional(Type.String()),
   status: Type.Optional(Type.String()),
+  /** Only functions assignable to a user of this tenant (its own, its REC's, continental). */
+  forTenantId: Type.Optional(Type.String({ format: 'uuid' })),
 });
 export type FunctionQueryInput = Static<typeof FunctionQuerySchema>;
 

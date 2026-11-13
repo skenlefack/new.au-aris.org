@@ -105,9 +105,24 @@ export class RoleService {
 
   // ───────────────────── Roles CRUD ─────────────────────
 
+  /** The tenant and its ancestors: country → REC → continental. */
+  private async tenantLineage(tenantId: string): Promise<string[]> {
+    const ids: string[] = [];
+    let current: string | null = tenantId;
+    while (current && ids.length < 4 && !ids.includes(current)) {
+      ids.push(current);
+      const t: { parentId: string | null } | null = await (this.prisma as any).tenant.findUnique({
+        where: { id: current },
+        select: { parentId: true },
+      });
+      current = t?.parentId ?? null;
+    }
+    return ids;
+  }
+
   async listRoles(query: {
     search?: string; level?: string; status?: string;
-    page?: number; limit?: number;
+    page?: number; limit?: number; forTenantId?: string;
   }, caller: AuthenticatedUser) {
     const page = query.page ?? 1;
     const limit = Math.min(query.limit ?? 50, 100);
@@ -146,6 +161,11 @@ export class RoleService {
       });
     }
 
+    if (query.forTenantId) {
+      andConditions.push({
+        OR: [{ tenantId: null }, { tenantId: { in: await this.tenantLineage(query.forTenantId) } }],
+      });
+    }
     if (query.search?.trim()) {
       andConditions.push({ id: { in: await searchIds(this.prisma, ROLE_SEARCH_SQL, query.search) } });
     }

@@ -17,6 +17,7 @@ import {
 import { trackedSend } from './kafka-publish-tracker';
 import { randomUUID } from 'crypto';
 import { searchIds, FUNCTION_SEARCH_SQL, USER_SEARCH_SQL, REC_SEARCH_SQL, COUNTRY_SEARCH_SQL } from './text-search';
+import { resolvePrimaryRole, roleRank } from './user-roles';
 import { hash } from 'bcrypt';
 import type { PrismaClient, Prisma } from '@prisma/client';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
@@ -1642,11 +1643,24 @@ export class SettingsService {
     throw new HttpError(403, 'Access denied');
   }
 
+  /** Only a Super Admin may link a function to a role above their own. */
+  private async assertCanLinkRoles(roleIds: string[], caller: AuthenticatedUser): Promise<void> {
+    if (caller.role === 'SUPER_ADMIN' || roleIds.length === 0) return;
+    const roles = await (this.prisma as any).role.findMany({
+      where: { id: { in: roleIds } },
+      select: { code: true },
+    });
+    const above = roles.filter((r: any) => roleRank(r.code) < roleRank(caller.role));
+    if (above.length) {
+      throw new HttpError(403, `You cannot link role(s) above yours: ${above.map((r: any) => r.code).join(', ')}`);
+    }
+  }
+
   private readonly functionTenantSelect = { id: true, name: true, level: true, countryCode: true };
 
   async listFunctions(query: {
     page?: number; limit?: number; sort?: string; order?: string;
-    search?: string; level?: string; category?: string; status?: string;
+    search?: string; level?: string; category?: string; status?: string; forTenantId?: string;
   }, user: AuthenticatedUser) {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -1656,6 +1670,9 @@ export class SettingsService {
       : [{ level: 'asc' as const }, { sortOrder: 'asc' as const }];
 
     const where: Record<string, unknown> = { ...(await this.buildFunctionTenantFilter(user)) };
+    if (query.forTenantId) {
+      where.AND = [{ tenantId: { in: await this.tenantLineage(query.forTenantId) } }];
+    }
     if (query.search?.trim()) {
       where.id = { in: await searchIds(this.prisma, FUNCTION_SEARCH_SQL, query.search) };
     }
@@ -1758,6 +1775,7 @@ export class SettingsService {
     // Assign roles if provided
     if (Array.isArray(dto.roleIds) && (dto.roleIds as string[]).length > 0) {
       const roleIds = dto.roleIds as string[];
+      await this.assertCanLinkRoles(roleIds, user);
       await (this.prisma as any).functionRole.createMany({
         data: roleIds.map((roleId: string) => ({ functionId: fn.id, roleId })),
         skipDuplicates: true,
@@ -1802,6 +1820,7 @@ export class SettingsService {
     // Handle roleIds update: replace all FunctionRole records
     if (Array.isArray(dto.roleIds)) {
       const roleIds = dto.roleIds as string[];
+      await this.assertCanLinkRoles(roleIds, user);
       await (this.prisma as any).functionRole.deleteMany({ where: { functionId: id } });
       if (roleIds.length > 0) {
         await (this.prisma as any).functionRole.createMany({
@@ -1820,8 +1839,20 @@ export class SettingsService {
           roles: { include: { role: { select: { id: true, code: true, name: true, color: true, icon: true } } } },
         },
       });
+      // Users holding this function follow its new roles
+      if (Array.isArray(dto.roleIds) || dto.isActive !== undefined) {
+        const holders = await (this.prisma as any).userFunction.findMany({
+          where: { functionId: id },
+          select: { userId: true },
+        });
+        for (const h of holders) await this.syncUserRoles(h.userId, user.userId);
+        if (holders.length) await this.invalidateUserCache();
+      }
       await this.publishEvent(TOPIC_SETTINGS_FUNCTION_UPDATED, { ...fn, action: 'updated' }, user);
-      await this.writeAudit('function', id, 'UPDATE', user, { newVersion: updateData, classification: 'PUBLIC' });
+      await this.writeAudit('function', id, 'UPDATE', user, {
+        newVersion: { ...updateData, ...(Array.isArray(dto.roleIds) ? { roleIds: dto.roleIds } : {}) },
+        classification: 'PUBLIC',
+      });
       await this.invalidateFunctionCache();
       return { data: fn };
     } catch (err: any) {
@@ -1859,6 +1890,14 @@ export class SettingsService {
     const fn = await (this.prisma as any).function.findUnique({ where: { id: functionId } });
     if (!fn) throw new HttpError(404, `Function ${functionId} not found`);
 
+    await this.assertUserAccess(user, targetUser.tenantId);
+    await this.assertAssignableToTenant(targetUser.tenantId, [functionId], undefined);
+    const current = await this.currentUserAssignments(userId);
+    const nextRole = await this.computePrimaryRole(
+      Array.from(new Set([...current.functionIds, functionId])), current.directRoleIds, targetUser.role,
+    );
+    this.assertCanGrantRole(user, targetUser.role, nextRole);
+
     // If setting as primary, remove primary from other assignments
     if (isPrimary) {
       await (this.prisma as any).userFunction.updateMany({
@@ -1876,6 +1915,8 @@ export class SettingsService {
       },
     });
 
+    await this.syncUserRoles(userId, user.userId);
+
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, {
       userId,
       functionId,
@@ -1891,9 +1932,20 @@ export class SettingsService {
     });
     if (!existing) throw new HttpError(404, 'User-function assignment not found');
 
+    const targetUser = await (this.prisma as any).user.findUnique({ where: { id: userId } });
+    if (targetUser) {
+      await this.assertUserAccess(user, targetUser.tenantId);
+      const current = await this.currentUserAssignments(userId);
+      const nextRole = await this.computePrimaryRole(
+        current.functionIds.filter((f) => f !== functionId), current.directRoleIds, targetUser.role,
+      );
+      this.assertCanGrantRole(user, targetUser.role, nextRole);
+    }
+
     await (this.prisma as any).userFunction.delete({
       where: { userId_functionId: { userId, functionId } },
     });
+    await this.syncUserRoles(userId, user.userId);
 
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, {
       userId,
@@ -1932,6 +1984,158 @@ export class SettingsService {
       if (target?.parentId === caller.tenantId) return;
     }
     throw new HttpError(403, 'Access denied: user is outside your scope');
+  }
+
+  /** The tenant and its ancestors: country → REC → continental. */
+  async tenantLineage(tenantId: string): Promise<string[]> {
+    const ids: string[] = [];
+    let current: string | null = tenantId;
+    while (current && ids.length < 4 && !ids.includes(current)) {
+      ids.push(current);
+      const t: { parentId: string | null } | null = await (this.prisma as any).tenant.findUnique({
+        where: { id: current },
+        select: { parentId: true },
+      });
+      current = t?.parentId ?? null;
+    }
+    return ids;
+  }
+
+  /**
+   * Functions and roles given to a user must belong to the user's country,
+   * its REC or the continental level (or be a global system role).
+   */
+  private async assertAssignableToTenant(
+    targetTenantId: string,
+    functionIds: string[] | undefined,
+    directRoleIds: string[] | undefined,
+  ): Promise<void> {
+    const lineage = await this.tenantLineage(targetTenantId);
+    if (functionIds?.length) {
+      const fns = await (this.prisma as any).function.findMany({
+        where: { id: { in: functionIds } },
+        select: { id: true, code: true, tenantId: true, tenant: { select: { name: true } } },
+      });
+      const missing = functionIds.filter((id) => !fns.some((f: any) => f.id === id));
+      if (missing.length) throw new HttpError(400, `Unknown function(s): ${missing.join(', ')}`);
+      const foreign = fns.filter((f: any) => f.tenantId && !lineage.includes(f.tenantId));
+      if (foreign.length) {
+        throw new HttpError(400, `Function(s) from another organisation cannot be assigned to this user: ${
+          foreign.map((f: any) => `${f.code} (${f.tenant?.name ?? f.tenantId})`).join(', ')}`);
+      }
+    }
+    if (directRoleIds?.length) {
+      const roles = await (this.prisma as any).role.findMany({
+        where: { id: { in: directRoleIds } },
+        select: { id: true, code: true, tenantId: true, tenant: { select: { name: true } } },
+      });
+      const missing = directRoleIds.filter((id) => !roles.some((r: any) => r.id === id));
+      if (missing.length) throw new HttpError(400, `Unknown role(s): ${missing.join(', ')}`);
+      const foreign = roles.filter((r: any) => r.tenantId && !lineage.includes(r.tenantId));
+      if (foreign.length) {
+        throw new HttpError(400, `Role(s) from another organisation cannot be assigned to this user: ${
+          foreign.map((r: any) => `${r.code} (${r.tenant?.name ?? r.tenantId})`).join(', ')}`);
+      }
+    }
+  }
+
+  /** Role codes a user gets from the given functions and direct roles. */
+  private async collectRoleCodes(functionIds: string[], directRoleIds: string[]): Promise<string[]> {
+    const codes = new Set<string>();
+    if (directRoleIds.length) {
+      const roles = await (this.prisma as any).role.findMany({
+        where: { id: { in: directRoleIds }, isActive: true },
+        select: { code: true },
+      });
+      for (const r of roles) codes.add(r.code);
+    }
+    if (functionIds.length) {
+      const links = await (this.prisma as any).functionRole.findMany({
+        where: { functionId: { in: functionIds }, function: { isActive: true }, role: { isActive: true } },
+        select: { role: { select: { code: true } } },
+      });
+      for (const l of links) codes.add(l.role.code);
+    }
+    return Array.from(codes);
+  }
+
+  /** Current function ids (not ended) and direct role ids of a user. */
+  private async currentUserAssignments(userId: string): Promise<{ functionIds: string[]; directRoleIds: string[] }> {
+    const now = new Date();
+    const [fns, roles] = await Promise.all([
+      (this.prisma as any).userFunction.findMany({
+        where: { userId, OR: [{ endDate: null }, { endDate: { gt: now } }] },
+        select: { functionId: true },
+      }),
+      (this.prisma as any).userRoleAssignment.findMany({
+        where: { userId, source: 'direct' },
+        select: { roleId: true },
+      }),
+    ]);
+    return {
+      functionIds: fns.map((f: any) => f.functionId),
+      directRoleIds: roles.map((r: any) => r.roleId),
+    };
+  }
+
+  /**
+   * Primary role for a user with these functions and direct roles.
+   * A user with no function and no direct role keeps `fallback`; a user whose
+   * roles map to no system role gets FIELD_AGENT, the least privileged.
+   */
+  private async computePrimaryRole(functionIds: string[], directRoleIds: string[], fallback: string): Promise<string> {
+    if (functionIds.length === 0 && directRoleIds.length === 0) return fallback;
+    return resolvePrimaryRole(await this.collectRoleCodes(functionIds, directRoleIds)) ?? 'FIELD_AGENT';
+  }
+
+  /** Only a Super Admin may give or edit a role above their own. */
+  private assertCanGrantRole(caller: AuthenticatedUser, previousRole: string | null, nextRole: string): void {
+    if (caller.role === 'SUPER_ADMIN') return;
+    const own = roleRank(caller.role);
+    if (previousRole && roleRank(previousRole) < own) {
+      throw new HttpError(403, `You cannot modify a user whose role (${previousRole}) is above yours`);
+    }
+    if (nextRole !== previousRole && roleRank(nextRole) < own) {
+      throw new HttpError(403, `You cannot give the role ${nextRole}, which is above yours`);
+    }
+  }
+
+  /**
+   * Store the roles a user gets from functions (source "function") so they
+   * count at login, and update the primary role. Returns the primary role.
+   */
+  async syncUserRoles(userId: string, assignedBy: string | null): Promise<string | null> {
+    const user = await (this.prisma as any).user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!user) return null;
+    const { functionIds, directRoleIds } = await this.currentUserAssignments(userId);
+
+    const links = functionIds.length
+      ? await (this.prisma as any).functionRole.findMany({
+        where: { functionId: { in: functionIds }, function: { isActive: true } },
+        select: { roleId: true },
+      })
+      : [];
+    const fromFunctions = Array.from(new Set<string>(links.map((l: any) => l.roleId)))
+      .filter((id) => !directRoleIds.includes(id));
+
+    await (this.prisma as any).userRoleAssignment.deleteMany({ where: { userId, source: 'function' } });
+    if (fromFunctions.length) {
+      await (this.prisma as any).userRoleAssignment.createMany({
+        data: fromFunctions.map((roleId) => ({ userId, roleId, source: 'function', assignedBy })),
+        skipDuplicates: true,
+      });
+    }
+
+    const primary = await this.computePrimaryRole(functionIds, directRoleIds, user.role);
+    if (primary !== user.role) {
+      await (this.prisma as any).user.update({ where: { id: userId }, data: { role: primary } });
+    }
+
+    if (this.redis) {
+      try { await this.redis.del(`aris:permissions:${userId}`); } catch { /* non-blocking */ }
+      try { await this.redis.del(`aris:credential:user:${userId}`); } catch { /* non-blocking */ }
+    }
+    return primary;
   }
 
   private buildUserTenantFilter(caller: AuthenticatedUser): Record<string, unknown> {
@@ -2012,7 +2216,7 @@ export class SettingsService {
             orderBy: { domain: { sortOrder: 'asc' as const } },
           },
           roleAssignments: {
-            include: { role: { select: { id: true, code: true, name: true, color: true } } },
+            include: { role: { select: { id: true, code: true, name: true, color: true, tenant: { select: { name: true } } } } },
           },
         },
       }),
@@ -2054,7 +2258,7 @@ export class SettingsService {
           orderBy: { domain: { sortOrder: 'asc' as const } },
         },
         roleAssignments: {
-          include: { role: { select: { id: true, code: true, name: true, color: true } } },
+          include: { role: { select: { id: true, code: true, name: true, color: true, tenant: { select: { name: true } } } } },
         },
       },
     });
@@ -2074,6 +2278,16 @@ export class SettingsService {
     const existing = await (this.prisma as any).user.findUnique({ where: { email } });
     if (existing) throw new HttpError(409, `User with email "${email}" already exists`);
 
+    // Functions and roles must belong to the user's organisation; the primary
+    // role is derived from them on the server.
+    const newFunctionIds = (dto.functionIds as string[] | undefined) ?? [];
+    const newDirectRoleIds = (dto.directRoleIds as string[] | undefined) ?? [];
+    await this.assertAssignableToTenant(dto.tenantId as string, newFunctionIds, newDirectRoleIds);
+    const primaryRole = await this.computePrimaryRole(
+      newFunctionIds, newDirectRoleIds, (dto.role as string | undefined) ?? 'FIELD_AGENT',
+    );
+    this.assertCanGrantRole(caller, null, primaryRole);
+
     const plainPassword = dto.password as string;
     const passwordHash = await hash(plainPassword, BCRYPT_ROUNDS);
 
@@ -2084,7 +2298,7 @@ export class SettingsService {
         firstName: dto.firstName as string,
         lastName: dto.lastName as string,
         phone: (dto.phone as string) ?? null,
-        role: dto.role as string,
+        role: primaryRole,
         tenantId: dto.tenantId as string,
         locale: (dto.locale as string) ?? 'en',
         // Admin-created users receive a temporary password; ForcePasswordChangeModal
@@ -2143,6 +2357,8 @@ export class SettingsService {
         skipDuplicates: true,
       });
     }
+
+    await this.syncUserRoles(user.id, caller.userId);
 
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, { ...user, action: 'created' }, caller);
     await this.writeAudit('user', user.id, 'CREATE', caller, { newVersion: user, classification: 'RESTRICTED' });
@@ -2272,17 +2488,32 @@ export class SettingsService {
     // Enforce tenant scope
     await this.assertUserAccess(caller, existing.tenantId);
 
-    // Only SUPER_ADMIN can change system role
-    if (dto.role !== undefined && dto.role !== existing.role) {
-      if (caller.role !== 'SUPER_ADMIN') throw new HttpError(403, 'Only SUPER_ADMIN can change user roles');
+    // The primary role is derived on the server from functions and direct roles.
+    // `dto.role` is only used when none of them maps to a system role.
+    const rolesTouched = dto.functionIds !== undefined || dto.directRoleIds !== undefined || dto.role !== undefined;
+    let nextRole: string = existing.role;
+    if (rolesTouched) {
+      const targetTenantId = (dto.tenantId as string | undefined) ?? existing.tenantId;
+      await this.assertAssignableToTenant(
+        targetTenantId,
+        dto.functionIds as string[] | undefined,
+        dto.directRoleIds as string[] | undefined,
+      );
+      const current = await this.currentUserAssignments(id);
+      nextRole = await this.computePrimaryRole(
+        (dto.functionIds as string[] | undefined) ?? current.functionIds,
+        (dto.directRoleIds as string[] | undefined) ?? current.directRoleIds,
+        (dto.role as string | undefined) ?? existing.role,
+      );
     }
+    this.assertCanGrantRole(caller, existing.role, nextRole);
 
     const updateData: Record<string, unknown> = {};
     if (dto.email !== undefined) updateData.email = dto.email;
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
     if (dto.phone !== undefined) updateData.phone = dto.phone;
-    if (dto.role !== undefined) updateData.role = dto.role;
+    if (nextRole !== existing.role) updateData.role = nextRole;
     if (dto.locale !== undefined) updateData.locale = dto.locale;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
     // Allow changing user's tenant/organization (SUPER_ADMIN or CONTINENTAL_ADMIN only)
@@ -2374,8 +2605,12 @@ export class SettingsService {
       }
     }
 
-    // Invalidate permission cache for this user
-    if (this.redis) {
+    // Store function-derived roles, settle the primary role and clear the
+    // user's permission cache.
+    if (rolesTouched) {
+      const role = await this.syncUserRoles(id, caller.userId);
+      if (role) user.role = role;
+    } else if (this.redis) {
       try { await this.redis.del(`aris:permissions:${id}`); } catch { /* non-blocking */ }
       try { await this.redis.del(`aris:credential:user:${id}`); } catch { /* non-blocking */ }
     }

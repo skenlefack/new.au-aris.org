@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError, apiClient } from './client';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { fetchAllPages } from './paginate';
 
 const TENANT_API = process.env['NEXT_PUBLIC_TENANT_API_URL'] ?? '';
 
@@ -556,21 +557,38 @@ export interface FunctionItem {
   }>;
 }
 
-export function useSettingsFunctions(params?: { search?: string; level?: string; category?: string; status?: string; page?: number; limit?: number }) {
-  const qs = new URLSearchParams();
-  qs.set('page', String(params?.page ?? 1));
-  qs.set('limit', String(params?.limit ?? 50));
-  if (params?.search) qs.set('search', params.search);
-  if (params?.level) qs.set('level', params.level);
-  if (params?.category) qs.set('category', params.category);
-  if (params?.status) qs.set('status', params.status);
-  const query = `?${qs.toString()}`;
+type ListPage<T> = { data: T[]; meta: { total: number; page: number; limit: number } };
+
+/**
+ * @param params.forTenantId only items assignable to a user of this tenant
+ * @param params.all load every page instead of one
+ */
+export function useSettingsFunctions(params?: {
+  search?: string; level?: string; category?: string; status?: string; page?: number; limit?: number;
+  forTenantId?: string; all?: boolean; enabled?: boolean;
+}) {
+  const build = (page: number, limit: number) => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(page));
+    qs.set('limit', String(limit));
+    if (params?.search) qs.set('search', params.search);
+    if (params?.level) qs.set('level', params.level);
+    if (params?.category) qs.set('category', params.category);
+    if (params?.status) qs.set('status', params.status);
+    if (params?.forTenantId) qs.set('forTenantId', params.forTenantId);
+    return `/api/v1/settings/functions?${qs.toString()}`;
+  };
+  const fetchPage = (page: number, limit: number) => tenantFetch<ListPage<FunctionItem>>(build(page, limit));
 
   const tid = getCurrentUserTenantId();
+  const { enabled, ...keyParams } = params ?? {};
   return useQuery({
-    queryKey: ['settings', 'functions', tid, params],
-    queryFn: () => tenantFetch<{ data: FunctionItem[]; meta: { total: number; page: number; limit: number } }>(`/api/v1/settings/functions${query}`),
+    queryKey: ['settings', 'functions', tid, keyParams],
+    queryFn: () => (params?.all
+      ? fetchAllPages(fetchPage, Number.MAX_SAFE_INTEGER) as Promise<ListPage<FunctionItem>>
+      : fetchPage(params?.page ?? 1, params?.limit ?? 50)),
     staleTime: 10 * 60_000,
+    enabled: enabled ?? true,
   });
 }
 
@@ -1007,20 +1025,35 @@ export interface PermissionItem {
   isActive: boolean;
 }
 
-export function useSettingsRoles(params?: { search?: string; level?: string; status?: string; page?: number; limit?: number }) {
-  const qs = new URLSearchParams();
-  qs.set('page', String(params?.page ?? 1));
-  qs.set('limit', String(params?.limit ?? 50));
-  if (params?.search) qs.set('search', params.search);
-  if (params?.level) qs.set('level', params.level);
-  if (params?.status) qs.set('status', params.status);
-  const query = `?${qs.toString()}`;
+/**
+ * @param params.forTenantId only roles assignable to a user of this tenant
+ * @param params.all load every page instead of one
+ */
+export function useSettingsRoles(params?: {
+  search?: string; level?: string; status?: string; page?: number; limit?: number;
+  forTenantId?: string; all?: boolean; enabled?: boolean;
+}) {
+  const build = (page: number, limit: number) => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(page));
+    qs.set('limit', String(limit));
+    if (params?.search) qs.set('search', params.search);
+    if (params?.level) qs.set('level', params.level);
+    if (params?.status) qs.set('status', params.status);
+    if (params?.forTenantId) qs.set('forTenantId', params.forTenantId);
+    return `/api/v1/settings/roles?${qs.toString()}`;
+  };
+  const fetchPage = (page: number, limit: number) => tenantFetch<ListPage<RoleItem>>(build(page, limit));
 
   const tid = getCurrentUserTenantId();
+  const { enabled, ...keyParams } = params ?? {};
   return useQuery({
-    queryKey: ['settings', 'roles', tid, params],
-    queryFn: () => tenantFetch<{ data: RoleItem[]; meta: { total: number; page: number; limit: number } }>(`/api/v1/settings/roles${query}`),
+    queryKey: ['settings', 'roles', tid, keyParams],
+    queryFn: () => (params?.all
+      ? fetchAllPages(fetchPage, Number.MAX_SAFE_INTEGER) as Promise<ListPage<RoleItem>>
+      : fetchPage(params?.page ?? 1, params?.limit ?? 50)),
     staleTime: 10 * 60_000,
+    enabled: enabled ?? true,
   });
 }
 
