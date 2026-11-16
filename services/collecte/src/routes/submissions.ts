@@ -1,3 +1,4 @@
+import { gzipSync } from 'zlib';
 import type { FastifyInstance } from 'fastify';
 import { rolesHook, tenantHook } from '@aris/auth-middleware';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
@@ -69,6 +70,22 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
       campaignId: request.query.campaign,
       domain: request.query.domain,
     });
+  });
+
+  // GET /api/v1/collecte/campaigns/:id/dataset — every visible submission of a campaign, for dashboards.
+  // The body is gzipped here because nothing in front of the service compresses responses.
+  app.get<{ Params: IdParam }>('/api/v1/collecte/campaigns/:id/dataset', {
+    schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } } },
+    preHandler: [auth, tenant],
+  }, async (request, reply) => {
+    const result = await service.campaignDataset(request.user as AuthenticatedUser, request.params.id);
+    const json = JSON.stringify(result);
+    reply.header('Cache-Control', 'private, max-age=60').header('Vary', 'Accept-Encoding, Authorization');
+    reply.type('application/json; charset=utf-8');
+    if (/\bgzip\b/.test(String(request.headers['accept-encoding'] ?? ''))) {
+      return reply.header('Content-Encoding', 'gzip').send(gzipSync(json));
+    }
+    return reply.send(json);
   });
 
   // GET /api/v1/collecte/submissions/conflicts — List submissions with pending conflicts

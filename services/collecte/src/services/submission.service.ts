@@ -36,6 +36,61 @@ import type { SubmissionEntity } from '../submission/entities/submission.entity'
 
 const SERVICE_NAME = 'collecte-service';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type LocalizedText = Record<string, string>;
+
+export interface CampaignDatasetRow {
+  id: string;
+  tenantId: string;
+  submittedBy: string;
+  submittedAt: string;
+  status: string;
+  data: Record<string, unknown>;
+}
+
+export interface CampaignDataset {
+  rows: CampaignDatasetRow[];
+  geo: Record<string, { en: string; fr: string; level: string; parentId: string | null; countryCode: string }>;
+  agents: Record<string, string>;
+  tenants: Record<string, { name: string; code: string | null; level: string }>;
+  /** Form fields by code: label, type and option labels (repeater sub-fields included). */
+  fields: Record<string, { label: LocalizedText; type: string; options?: Record<string, LocalizedText> }>;
+  generatedAt: string;
+}
+
+function toLocalized(v: unknown): LocalizedText {
+  if (typeof v === 'string') return { en: v };
+  if (v && typeof v === 'object') return v as LocalizedText;
+  return {};
+}
+
+/** Walks a form template schema and records each field's label and option labels. */
+export function collectFieldDictionary(schema: unknown, out: CampaignDataset['fields']): void {
+  const visit = (list: unknown): void => {
+    if (!Array.isArray(list)) return;
+    for (const f of list as any[]) {
+      if (!f || typeof f !== 'object') continue;
+      const code = f.code || f.id;
+      if (code && !out[code]) {
+        const rawOptions = f.properties?.options ?? f.options ?? f.validation?.options;
+        const options: Record<string, LocalizedText> = {};
+        if (Array.isArray(rawOptions)) {
+          for (const o of rawOptions) {
+            if (o && o.value != null) options[String(o.value)] = toLocalized(o.label ?? o.value);
+          }
+        }
+        out[code] = { label: toLocalized(f.label ?? code), type: String(f.type ?? 'text'), ...(Object.keys(options).length ? { options } : {}) };
+      }
+      visit(f.properties?.fields);
+      visit(f.fields);
+    }
+  };
+  const sections = (schema as any)?.sections;
+  if (Array.isArray(sections)) for (const s of sections) visit(s?.fields);
+  visit((schema as any)?.fields);
+}
+
 /** Lightweight HTTP error for Fastify error handler */
 export class HttpError extends Error {
   constructor(public readonly statusCode: number, message: string) {
@@ -466,6 +521,81 @@ export class SubmissionService {
     return {
       data: enriched as unknown as SubmissionEntity[],
       meta: { total, page, limit },
+    };
+  }
+
+  /**
+   * Every visible submission of a campaign in one call, for dashboards.
+   * Same visibility rules as findAll; names of places, agents, tenants and
+   * form options are returned once in lookup tables instead of per row.
+   */
+  async campaignDataset(user: AuthenticatedUser, campaignId: string): Promise<ApiResponse<CampaignDataset>> {
+    const where = await this.buildFilter(user, { campaignId });
+    const subs: Array<{ id: string; tenantId: string; templateId: string; submittedBy: string; submittedAt: Date; status: string; data: unknown }> =
+      await (this.prisma as any).submission.findMany({
+        where,
+        select: { id: true, tenantId: true, templateId: true, submittedBy: true, submittedAt: true, status: true, data: true },
+        orderBy: { submittedAt: 'asc' },
+      });
+
+    const rows: CampaignDatasetRow[] = subs.map((s) => ({
+      id: s.id,
+      tenantId: s.tenantId,
+      submittedBy: s.submittedBy,
+      submittedAt: s.submittedAt.toISOString(),
+      status: String(s.status),
+      data: (s.data && typeof s.data === 'object' ? s.data : {}) as Record<string, unknown>,
+    }));
+
+    // Geo IDs referenced by admin-location values ({ level_0: 'RW', level_1: uuid, ... })
+    const geoIds = new Set<string>();
+    for (const r of rows) {
+      for (const v of Object.values(r.data)) {
+        if (!v || typeof v !== 'object' || Array.isArray(v) || !('level_1' in v)) continue;
+        for (const id of Object.values(v as Record<string, unknown>)) {
+          if (typeof id === 'string' && UUID_RE.test(id)) geoIds.add(id);
+        }
+      }
+    }
+
+    const geo: CampaignDataset['geo'] = {};
+    const agents: Record<string, string> = {};
+    const tenants: CampaignDataset['tenants'] = {};
+    const fields: CampaignDataset['fields'] = {};
+
+    const userIds = [...new Set(rows.map((r) => r.submittedBy))];
+    const tenantIds = [...new Set(rows.map((r) => r.tenantId))];
+    const templateIds = [...new Set(subs.map((s) => s.templateId))];
+
+    await Promise.all([
+      geoIds.size === 0 ? null : (this.prisma as any).$queryRawUnsafe(
+        `SELECT id, name_en, name_fr, level::text AS level, parent_id, country_code FROM public.geo_entities WHERE id = ANY($1::uuid[])`,
+        [...geoIds],
+      ).then((list: any[]) => {
+        for (const g of list) {
+          geo[g.id] = { en: g.name_en, fr: g.name_fr || g.name_en, level: g.level, parentId: g.parent_id, countryCode: g.country_code };
+        }
+      }).catch(() => undefined),
+      userIds.length === 0 ? null : (this.prisma as any).$queryRawUnsafe(
+        `SELECT id, first_name || ' ' || last_name AS display_name FROM public.users WHERE id = ANY($1::uuid[])`,
+        userIds,
+      ).then((list: any[]) => { for (const u of list) agents[u.id] = u.display_name; }).catch(() => undefined),
+      tenantIds.length === 0 ? null : (this.prisma as any).tenant.findMany({
+        where: { id: { in: tenantIds } },
+        select: { id: true, name: true, code: true, level: true },
+      }).then((list: any[]) => {
+        for (const t of list) tenants[t.id] = { name: t.name, code: t.code ?? null, level: String(t.level) };
+      }).catch(() => undefined),
+      templateIds.length === 0 ? null : (this.prisma as any).formTemplate.findMany({
+        where: { id: { in: templateIds } },
+        select: { schema: true },
+      }).then((list: any[]) => {
+        for (const t of list) collectFieldDictionary(t.schema, fields);
+      }).catch(() => undefined),
+    ]);
+
+    return {
+      data: { rows, geo, agents, tenants, fields, generatedAt: new Date().toISOString() },
     };
   }
 

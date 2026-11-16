@@ -81,6 +81,11 @@ const SeroSurveillanceDashboard = dynamic(
   () => import('@/components/collecte/SeroSurveillanceDashboard'),
   { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
 );
+
+const DiseaseMappingDashboard = dynamic(
+  () => import('@/components/collecte/disease-mapping/DiseaseMappingDashboard'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
 import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore, type AuthUser } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
@@ -1210,6 +1215,10 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
 
   const renderCampaignDashboard = (cId: string, cName: string) => {
     const nameLower = cName.toLowerCase();
+    // Disease Mapping & Risk Profiling (PPR) → dedicated herd-level risk dashboard
+    if (nameLower.includes('disease mapping') || nameLower.includes('cartographie des maladies') || nameLower.includes('risk profiling')) {
+      return <DiseaseMappingDashboard campaignId={cId} campaignName={cName} />;
+    }
     // Historical animal health → dedicated server-side aggregated dashboard
     if (nameLower.includes('historique') || nameLower.includes('historical')) {
       return <HistoricalHealthDashboard campaignId={cId} />;

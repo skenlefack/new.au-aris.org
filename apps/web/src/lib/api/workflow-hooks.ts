@@ -519,6 +519,34 @@ export function useCampaignSubmissions(campaignId: string | undefined, params?: 
   });
 }
 
+export interface CampaignDatasetRow {
+  id: string;
+  tenantId: string;
+  submittedBy: string;
+  submittedAt: string;
+  status: string;
+  data: Record<string, unknown>;
+}
+
+export interface CampaignDataset {
+  rows: CampaignDatasetRow[];
+  geo: Record<string, { en: string; fr: string; level: string; parentId: string | null; countryCode: string }>;
+  agents: Record<string, string>;
+  tenants: Record<string, { name: string; code: string | null; level: string }>;
+  fields: Record<string, { label: Record<string, string>; type: string; options?: Record<string, Record<string, string>> }>;
+  generatedAt: string;
+}
+
+/** Every visible submission of a campaign in one compressed call, with lookup tables (for dashboards). */
+export function useCampaignDataset(campaignId: string | undefined) {
+  return useQuery({
+    queryKey: ['campaign-dataset', campaignId],
+    queryFn: () => wfFetch<{ data: CampaignDataset }>(`/api/v1/collecte/campaigns/${campaignId}/dataset`).then((r) => r.data),
+    enabled: !!campaignId,
+    staleTime: 2 * 60_000,
+  });
+}
+
 // ═══════════════════════════════════════════════════════
 // DOMAIN-LEVEL SUBMISSIONS (all campaigns for a domain)
 // ═══════════════════════════════════════════════════════
