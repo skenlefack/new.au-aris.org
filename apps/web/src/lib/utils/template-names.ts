@@ -21,6 +21,10 @@ const TEMPLATE_NAMES: Record<string, Record<string, string>> = {
   // ── Animal Health ──
   'Animal Health Event Alert': { fr: 'Alerte événement santé animale', pt: 'Alerta de evento de saúde animal', ar: 'تنبيه أحداث الصحة الحيوانية' },
   'Aquatic Animal Health Event Report': { fr: 'Rapport d\'événement santé animale aquatique', pt: 'Relatório de evento de saúde animal aquática', ar: 'تقرير أحداث الصحة الحيوانية المائية' },
+  'PPR Kit Request to PANVAC': {
+    fr: 'Demande de kits PPR au PANVAC', pt: 'Pedido de kits PPR ao PANVAC', ar: 'طلب مجموعات طاعون المجترات الصغيرة إلى PANVAC',
+    es: 'Solicitud de kits PPR al PANVAC', sw: 'Ombi la vifaa vya PPR kwa PANVAC',
+  },
 };
 
 /**

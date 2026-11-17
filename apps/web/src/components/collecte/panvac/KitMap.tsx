@@ -11,6 +11,7 @@ import type L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { feature } from 'topojson-client';
 import { AFRICA_ISO2_SET, NUMERIC_TO_ISO2 } from '@/components/dashboard/maps/africa-geo-data';
+import { cartoTileUrl } from '@/lib/map-tiles';
 
 export interface KitMapDatum {
   code: string;
@@ -88,9 +89,7 @@ export default function KitMap({ data, labels }: {
   }, [data, labels]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
-  const tiles = dark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+  const tiles = cartoTileUrl(dark ? 'dark_nolabels' : 'light_nolabels');
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-b-xl">
