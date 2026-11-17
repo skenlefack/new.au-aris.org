@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { resolveTemplateName } from '@/lib/utils/template-names';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -28,6 +28,7 @@ import {
   ChevronDown,
   MapPin,
   CopyCheck,
+  PackageSearch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -84,6 +85,14 @@ const SeroSurveillanceDashboard = dynamic(
   { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
 );
 
+const KitRequestsTab = dynamic(
+  () => import('@/components/collecte/panvac/KitRequestsTab'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
+const PanvacKitsDashboard = dynamic(
+  () => import('@/components/collecte/panvac/PanvacKitsDashboard'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
 const DiseaseMappingDashboard = dynamic(
   () => import('@/components/collecte/disease-mapping/DiseaseMappingDashboard'),
   { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
@@ -176,6 +185,7 @@ export default function CampaignDetailPage() {
   const router = useRouter();
   const t = useTranslations('collecte');
   const tDup = useTranslations('duplicates');
+  const tKits = useTranslations('panvacKits');
   const locale = useLocaleStore((s) => s.locale);
   const campaignId = params.id as string;
 
@@ -213,7 +223,19 @@ export default function CampaignDetailPage() {
   const editable = canEditCampaign(user, campaign);
   const readOnlyRole = user?.role === 'DECISION_MAKER' || user?.role === 'ANALYST';
 
-  const [activeTab, setActiveTab] = useState<'details' | 'submissions' | 'duplicates' | 'lab-results' | 'dashboards'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'submissions' | 'duplicates' | 'lab-results' | 'dashboards' | 'kits'>('details');
+  // PANVAC kit campaign: request tracking tab, opened by default and from notifications (?tab=kits&request=<id>)
+  const isKitCampaign = (campaign as any)?.metadata?.module === 'panvac_kits';
+  const [focusRequestId, setFocusRequestId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!campaign) return;
+    const sp = new URLSearchParams(window.location.search);
+    const tab = sp.get('tab');
+    if (tab === 'kits' && isKitCampaign) setActiveTab('kits');
+    else if (tab === 'dashboards' || tab === 'submissions' || tab === 'duplicates') setActiveTab(tab);
+    else if (isKitCampaign) setActiveTab('kits');
+    setFocusRequestId(sp.get('request'));
+  }, [campaign?.id, isKitCampaign]); // eslint-disable-line react-hooks/exhaustive-deps
   const [editingTarget, setEditingTarget] = useState(false);
   const [targetDraft, setTargetDraft] = useState<string>('');
   const savingTargetRef = React.useRef(false);
@@ -579,6 +601,20 @@ export default function CampaignDetailPage() {
             </span>
           )}
         </button>
+        {isKitCampaign && (
+          <button
+            onClick={() => setActiveTab('kits')}
+            className={cn(
+              'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5',
+              activeTab === 'kits'
+                ? 'border-orange-600 text-orange-700 dark:border-orange-400 dark:text-orange-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+            )}
+          >
+            <PackageSearch className="h-4 w-4" />
+            {tKits('tab')}
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('duplicates')}
           className={cn(
@@ -625,6 +661,11 @@ export default function CampaignDetailPage() {
           <CampaignQualityDashboard campaignId={campaignId} />
           <CampaignSubmissionsTab campaignId={campaignId} />
         </div>
+      )}
+
+      {/* PANVAC kit requests Tab */}
+      {activeTab === 'kits' && isKitCampaign && (
+        <KitRequestsTab campaignId={campaignId} requestTemplateId={campaignTplIds[0] ?? null} focusRequestId={focusRequestId} />
       )}
 
       {/* Duplicates Tab */}
@@ -1233,6 +1274,10 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
 
   const renderCampaignDashboard = (cId: string, cName: string) => {
     const nameLower = cName.toLowerCase();
+    // PANVAC kit requests & allocation → request/allocation performance dashboard
+    if (nameLower.includes('panvac')) {
+      return <PanvacKitsDashboard campaignId={cId} />;
+    }
     // Disease Mapping & Risk Profiling (PPR) → dedicated herd-level risk dashboard
     if (nameLower.includes('disease mapping') || nameLower.includes('cartographie des maladies') || nameLower.includes('risk profiling')) {
       return <DiseaseMappingDashboard campaignId={cId} campaignName={cName} />;

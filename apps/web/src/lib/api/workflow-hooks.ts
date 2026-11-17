@@ -1071,3 +1071,145 @@ export function useSetCampaignScopes() {
     },
   });
 }
+
+// ═══════════════════════════════════════════════════════
+// PANVAC KIT REQUESTS (request → decision → shipments → reception)
+// ═══════════════════════════════════════════════════════
+
+export type KitDecisionStatus = 'SUBMITTED' | 'APPROVED' | 'PARTIAL' | 'REJECTED' | 'CANCELLED';
+export type KitStage =
+  | 'PENDING_DECISION' | 'AWAITING_SHIPMENT' | 'PARTIALLY_SHIPPED' | 'IN_TRANSIT' | 'RECEIVED'
+  | 'REJECTED' | 'CANCELLED' | 'HISTORICAL';
+
+export interface KitShipment {
+  id: string;
+  requestId: string | null;
+  countryCode: string;
+  shippedAt: string;
+  quantity: number;
+  kitFormat: string | null;
+  numSamples: number | null;
+  receivedAt: string | null;
+  quantityReceived: number | null;
+  condition: 'GOOD' | 'DAMAGED' | 'INCOMPLETE' | null;
+  isHistorical: boolean;
+  lotNumber: string | null;
+  expiryDate: string | null;
+  waybill: string | null;
+  carrier: string | null;
+  comment: string | null;
+  receptionComment: string | null;
+  shippedByName: string | null;
+  receivedByName: string | null;
+}
+
+export interface KitRequestMetrics {
+  stage: KitStage;
+  quantityShipped: number;
+  quantityReceived: number;
+  shipmentsPending: number;
+  decisionDays: number | null;
+  decisionWithinSla: boolean | null;
+  waitingDays: number | null;
+  shipmentDays: number | null;
+  deliveryDays: number | null;
+  totalDays: number | null;
+  shippedOnTime: boolean | null;
+  gapRequestedApproved: number | null;
+  gapApprovedShipped: number | null;
+  gapShippedReceived: number;
+}
+
+export interface KitRequest {
+  id: string;
+  submissionId: string | null;
+  tenantId: string | null;
+  countryCode: string;
+  product: string | null;
+  kitFormat: string | null;
+  quantityRequested: number | null;
+  desiredDate: string | null;
+  requestedAt: string;
+  requestedBy: string | null;
+  requestedByName: string | null;
+  recipientId: string | null;
+  recipientName: string | null;
+  status: KitDecisionStatus;
+  quantityApproved: number | null;
+  availableFrom: string | null;
+  availableTo: string | null;
+  decisionComment: string | null;
+  decidedBy: string | null;
+  decidedByName: string | null;
+  decidedAt: string | null;
+  isHistorical: boolean;
+  shipments: KitShipment[];
+  events: { action: string; at: string; actorName: string | null; payload: Record<string, unknown> }[];
+  metrics: KitRequestMetrics;
+  can: { decide: boolean; ship: boolean; confirm: boolean; cancel: boolean };
+}
+
+export interface KitRequestsData {
+  requests: KitRequest[];
+  orphanShipments: KitShipment[];
+  viewer: { userId: string; isPanvac: boolean; slaDays: number };
+  generatedAt: string;
+}
+
+export function useKitRequests(campaignId: string | undefined) {
+  return useQuery({
+    queryKey: ['kit-requests', campaignId],
+    queryFn: () => wfFetch<{ data: KitRequestsData }>(`/api/v1/collecte/campaigns/${campaignId}/kit-requests`).then((r) => r.data),
+    enabled: !!campaignId,
+    staleTime: 30_000,
+  });
+}
+
+function useKitMutation<V>(campaignId: string | undefined, call: (v: V) => Promise<unknown>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: call,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['kit-requests', campaignId] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useKitDecision(campaignId: string | undefined) {
+  return useKitMutation(campaignId, (v: {
+    id: string; decision: 'APPROVE' | 'REJECT'; quantityApproved?: number; availableFrom?: string; availableTo?: string; comment?: string;
+  }) => {
+    const { id, ...body } = v;
+    return wfFetch(`/api/v1/collecte/kit-requests/${id}/decision`, { method: 'POST', body: JSON.stringify(body) });
+  });
+}
+
+export function useKitShipment(campaignId: string | undefined) {
+  return useKitMutation(campaignId, (v: {
+    requestId: string; shippedAt: string; quantity: number; kitFormat?: string; numSamples?: number; lotNumber?: string;
+    expiryDate?: string; waybill?: string; carrier?: string; comment?: string;
+  }) => {
+    const { requestId, ...body } = v;
+    return wfFetch(`/api/v1/collecte/kit-requests/${requestId}/shipments`, { method: 'POST', body: JSON.stringify(body) });
+  });
+}
+
+export function useKitDeleteShipment(campaignId: string | undefined) {
+  return useKitMutation(campaignId, (shipmentId: string) =>
+    wfFetch(`/api/v1/collecte/kit-shipments/${shipmentId}`, { method: 'DELETE' }));
+}
+
+export function useKitReception(campaignId: string | undefined) {
+  return useKitMutation(campaignId, (v: {
+    shipmentId: string; receivedAt: string; quantityReceived: number; condition: 'GOOD' | 'DAMAGED' | 'INCOMPLETE'; comment?: string;
+  }) => {
+    const { shipmentId, ...body } = v;
+    return wfFetch(`/api/v1/collecte/kit-shipments/${shipmentId}/reception`, { method: 'POST', body: JSON.stringify(body) });
+  });
+}
+
+export function useKitCancel(campaignId: string | undefined) {
+  return useKitMutation(campaignId, (v: { id: string; reason?: string }) =>
+    wfFetch(`/api/v1/collecte/kit-requests/${v.id}/cancel`, { method: 'POST', body: JSON.stringify(v.reason ? { reason: v.reason } : {}) }));
+}

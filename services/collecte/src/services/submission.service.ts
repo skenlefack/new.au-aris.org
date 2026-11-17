@@ -115,6 +115,13 @@ export class SubmissionService {
     return this.duplicatesSvc;
   }
 
+  private kitIngest?: (campaignId: string, submissionId: string) => Promise<void>;
+
+  /** Creates the PANVAC kit request of a fiche sent to a kit campaign (set by the routes, avoids an import cycle). */
+  setKitIngest(fn: (campaignId: string, submissionId: string) => Promise<void>): void {
+    this.kitIngest = fn;
+  }
+
   /** Optional audit-trail writer (review history of status changes and resubmissions). */
   setAuditor(fn: SubmissionAuditor): void {
     this.auditor = fn;
@@ -317,6 +324,12 @@ export class SubmissionService {
 
     // 6. Send notification to kit_recipient (if present in form data)
     await this.sendRecipientNotification(submission, dto.data, user);
+
+    // 7. PANVAC kit campaign: the fiche becomes a kit request (PANVAC is notified). Never blocks the submission.
+    if (this.kitIngest && (campaign as any).metadata?.module === 'panvac_kits') {
+      await this.kitIngest(dto.campaignId, submission.id).catch((e) =>
+        console.warn(`[SubmissionService] kit request not created: ${e instanceof Error ? e.message : String(e)}`));
+    }
 
     console.log(
       `[SubmissionService] Submission created: ${submission.id} for campaign ${dto.campaignId}`,
@@ -1385,8 +1398,8 @@ export class SubmissionService {
 
       // Create in-app notification via direct DB insert (message service may not be reachable)
       await (this.prisma as any).$executeRawUnsafe(
-        `INSERT INTO message.notifications (id, tenant_id, user_id, channel, subject, body, status, metadata, created_at, updated_at)
-         VALUES (gen_random_uuid(), $1, $2, 'inApp', $3, $4, 'SENT', $5::jsonb, NOW(), NOW())
+        `INSERT INTO public.notifications (id, tenant_id, user_id, channel, subject, body, status, metadata, sent_at, created_at, updated_at)
+         VALUES (gen_random_uuid(), COALESCE((SELECT tenant_id FROM public.users WHERE id = $2::uuid), $1::uuid), $2::uuid, 'IN_APP', $3, $4, 'SENT', $5::jsonb, NOW(), NOW(), NOW())
          ON CONFLICT DO NOTHING`,
         submitter.tenantId,
         recipientUserId,

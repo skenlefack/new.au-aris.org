@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { X, Bell, Check, CheckCheck, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '@/lib/api/hooks';
@@ -60,6 +61,15 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
   const { data, isLoading } = useNotifications({ limit: 50 });
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
+  const router = useRouter();
+  // Notifications may carry an in-app link (e.g. a PANVAC kit request): open it and mark the notification read.
+  const openLink = (n: { id: string; readAt: string | null; metadata?: Record<string, unknown> }) => {
+    const link = typeof n.metadata?.link === 'string' ? n.metadata.link : null;
+    if (!link || !link.startsWith('/')) return;
+    if (!n.readAt) markRead.mutate(n.id);
+    onClose();
+    router.push(link);
+  };
 
   const notifications = data?.data ?? [];
 
@@ -169,14 +179,18 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
                         >
                           {config.icon}
                         </div>
-                        <div className="min-w-0 flex-1">
+                        <div
+                          className={cn('min-w-0 flex-1', typeof n.metadata?.link === 'string' && 'cursor-pointer')}
+                          onClick={() => openLink(n)}
+                        >
                           <p
                             className={cn(
                               'text-sm',
                               !n.readAt ? 'font-medium text-gray-900' : 'text-gray-700',
+                              typeof n.metadata?.link === 'string' && 'hover:text-blue-700 hover:underline',
                             )}
                           >
-                            {n.title}
+                            {n.title ?? (n as { subject?: string }).subject}
                           </p>
                           <p className="mt-0.5 text-xs text-gray-500 line-clamp-2">
                             {n.body}

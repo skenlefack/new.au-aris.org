@@ -5,6 +5,7 @@ import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { UserRole } from '@aris/shared-types';
 import { SubmissionService } from '../services/submission.service';
 import { ConsistencyService, REVIEWER_ROLES, type CorrectionItem } from '../services/consistency/consistency.service';
+import { KitService } from '../services/kits/kit.service';
 import {
   CreateSubmissionSchema,
   ListSubmissionsQuerySchema,
@@ -26,6 +27,8 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
   const service = new SubmissionService(app.prisma, app.kafka.producer, app.kafka);
   const consistency = new ConsistencyService(app.prisma);
   service.setAuditor((action, id, user, reason, prev, next, cls) => consistency.audit(action, id, user, reason, prev, next, cls));
+  const kits = new KitService(app.prisma);
+  service.setKitIngest((campaignId, submissionId) => kits.ingest(campaignId, submissionId));
 
   const auth = app.authHookFn;
   const tenant = tenantHook();

@@ -10,6 +10,7 @@ import campaignRoutes from './routes/campaigns';
 import submissionRoutes from './routes/submissions';
 import syncRoutes from './routes/sync';
 import workflowRoutes from './routes/workflow';
+import kitRoutes from './routes/kits';
 import { WorkflowCronService } from './services/workflow-cron.service';
 
 declare module 'fastify' {
@@ -87,6 +88,7 @@ export async function buildApp() {
   await app.register(submissionRoutes);
   await app.register(syncRoutes);
   await app.register(workflowRoutes);
+  await app.register(kitRoutes);
 
   // Start workflow cron jobs after server is ready
   app.addHook('onReady', async () => {
