@@ -88,6 +88,24 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
     return reply.send(json);
   });
 
+  // GET /api/v1/collecte/campaigns/:id/duplicates — read-only duplicate review of a campaign
+  app.get<{ Params: IdParam }>('/api/v1/collecte/campaigns/:id/duplicates', {
+    schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } } },
+    preHandler: [auth, tenant],
+  }, async (request) => service.campaignDuplicates(request.user as AuthenticatedUser, request.params.id));
+
+  // PATCH /api/v1/collecte/submissions/:id/duplicate-review — reviewer confirms the fiche is not a duplicate
+  app.patch<{ Params: IdParam; Body: { decision: 'DISTINCT'; reason?: string } }>('/api/v1/collecte/submissions/:id/duplicate-review', {
+    schema: {
+      params: IdParamSchema,
+      body: {
+        type: 'object', required: ['decision'],
+        properties: { decision: { type: 'string', enum: ['DISTINCT'] }, reason: { type: 'string', maxLength: 500 } },
+      },
+    },
+    preHandler: [auth, tenant, rolesHook(...(REVIEWER_ROLES as UserRole[]))],
+  }, async (request) => service.markNotDuplicate(request.params.id, request.body.reason, request.user as AuthenticatedUser));
+
   // GET /api/v1/collecte/submissions/conflicts — List submissions with pending conflicts
   // (registered before /:id to ensure static path takes priority)
   app.get<{ Querystring: ListSubmissionsQuery }>('/api/v1/collecte/submissions/conflicts', {

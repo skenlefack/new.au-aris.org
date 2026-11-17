@@ -24,6 +24,7 @@ import {
   type AdminSuggestion,
 } from './consistency-rules';
 import { HttpError } from '../submission.service';
+import { DuplicateService } from '../duplicates/duplicate.service';
 
 const SERVICE_NAME = 'collecte-service';
 const CONTEXT_TTL_MS = 10 * 60 * 1000;
@@ -55,7 +56,11 @@ export class ConsistencyService {
   private readonly contexts = new Map<string, CampaignContext>();
   private readonly schemas = new Map<string, { at: number; schema: SchemaLike | null }>();
 
-  constructor(private readonly prisma: PrismaClient) {}
+  private readonly duplicates: DuplicateService;
+
+  constructor(private readonly prisma: PrismaClient) {
+    this.duplicates = new DuplicateService(prisma);
+  }
 
   // ── Read ──
 
@@ -307,6 +312,15 @@ export class ConsistencyService {
       ).catch(() => []);
       duplicateIds = rows.map((r) => r.id);
     }
+    // Probable duplicates under the form rule, unless a reviewer already said this fiche is distinct.
+    let probableDuplicateIds: string[] = [];
+    if (withDuplicates && sub.duplicateStatus !== 'DISTINCT') {
+      const rule = await this.duplicates.ruleFor(sub.templateId).catch(() => null);
+      if (rule) {
+        const found = await this.duplicates.findCandidates(rule, sub.campaignId, sub.submittedBy, data, sub.id).catch(() => []);
+        probableDuplicateIds = found.map((c) => c.id);
+      }
+    }
 
     return checkSubmission({
       data,
@@ -316,6 +330,7 @@ export class ConsistencyService {
       geo,
       stats: ctx.stats,
       duplicateIds,
+      probableDuplicateIds,
       adminSuggestions,
       gps: { lat: sub.gpsLat ?? null, lng: sub.gpsLng ?? null },
     });

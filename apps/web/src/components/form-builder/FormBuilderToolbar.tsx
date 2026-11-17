@@ -14,6 +14,7 @@ import {
   Download,
   Trash2,
   ShieldCheck,
+  CopyCheck,
   Edit3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,9 +27,11 @@ interface FormBuilderToolbarProps {
   onPublish: () => void;
   onPreview: () => void;
   onValidationRules?: () => void;
+  onDuplicateRules?: () => void;
 }
 
-export function FormBuilderToolbar({ onSave, onPublish, onPreview, onValidationRules }: FormBuilderToolbarProps) {
+export function FormBuilderToolbar({ onSave, onPublish, onPreview, onValidationRules, onDuplicateRules }: FormBuilderToolbarProps) {
+  const td = useTranslations('duplicates');
   const router = useRouter();
   const t = useTranslations('collecte');
   const {
@@ -146,6 +149,16 @@ export function FormBuilderToolbar({ onSave, onPublish, onPreview, onValidationR
           >
             <ShieldCheck className="h-3.5 w-3.5" />
             {t('fbValidationRules')}
+          </button>
+        )}
+        {onDuplicateRules && (
+          <button
+            onClick={onDuplicateRules}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            title={td('ruleTitle')}
+          >
+            <CopyCheck className="h-3.5 w-3.5" />
+            {td('toolbarButton')}
           </button>
         )}
         <button

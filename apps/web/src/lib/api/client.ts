@@ -22,6 +22,8 @@ export class ApiClientError extends Error {
     message: string,
     public errors?: Array<{ field: string; message: string }>,
     public code?: string,
+    /** Full JSON error body (e.g. `duplicate` details on a 409). */
+    public body?: unknown,
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -193,6 +195,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
       body?.message ?? `Request failed with status ${response.status}`,
       body?.errors,
       body?.code,
+      body,
     );
   }
   if (response.status === 204 || response.headers.get('content-length') === '0') {

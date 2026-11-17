@@ -10,6 +10,7 @@ import {
 } from '@aris/shared-types';
 import type { KafkaHeaders } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+import { DuplicateService, type DuplicateInfo } from './duplicates/duplicate.service';
 
 import {
   canViewCampaign,
@@ -79,6 +80,12 @@ export interface SyncRequestDto {
 
 export class SyncService {
   private readonly ajv: Ajv;
+  private duplicatesSvc: DuplicateService | null = null;
+
+  private get duplicates(): DuplicateService {
+    if (!this.duplicatesSvc) this.duplicatesSvc = new DuplicateService(this.prisma);
+    return this.duplicatesSvc;
+  }
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -221,9 +228,14 @@ export class SyncService {
 
     // New submission
     const id = payload.id ?? uuidv4();
+    // Offline fiches are never refused for duplication (the agent cannot review them now):
+    // a probable duplicate is saved and marked for the reviewer.
+    const duplicateMark = await this.duplicateMark(payload, campaign.templateId, user);
     await (this.prisma as any).submission.create({
       data: {
         id,
+        duplicateStatus: duplicateMark ? 'SUSPECTED' : null,
+        duplicateInfo: duplicateMark ?? undefined,
         tenantId: user.tenantId,
         campaignId: payload.campaignId,
         templateId: campaign.templateId,
@@ -249,6 +261,17 @@ export class SyncService {
     await this.publishSubmittedEvent(id, payload, campaign.domain, user);
 
     return { status: 'accepted', id };
+  }
+
+  private async duplicateMark(payload: SubmissionPayload, templateId: string | null, user: AuthenticatedUser): Promise<DuplicateInfo | null> {
+    try {
+      const check = await this.duplicates.check(payload.campaignId, templateId, user.userId, payload.data as Record<string, unknown>);
+      const found = check.exact ? [check.exact] : check.candidates;
+      if (!found.length) return null;
+      return { kind: check.exact ? 'exact' : 'rule', candidateIds: found.map((c) => c.id), source: 'sync', checkedAt: new Date().toISOString() };
+    } catch {
+      return null;
+    }
   }
 
   /**

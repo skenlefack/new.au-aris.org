@@ -237,7 +237,7 @@ export default function ImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<ResolvedRow[]>([]);
   const [resolveProgress, setResolveProgress] = useState({ current: 0, total: 0 });
-  const [importResult, setImportResult] = useState<{ success: number; errors: number; total: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ success: number; errors: number; total: number; duplicates?: number } | null>(null);
   const [error, setError] = useState('');
   const [editingCell, setEditingCell] = useState<{ rowIdx: number; code: string } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -591,6 +591,7 @@ export default function ImportPage() {
 
     let success = 0;
     let errors = 0;
+    let duplicates = 0;
 
     for (let i = 0; i < toImport.length; i += 5) {
       const batch = toImport.slice(i, i + 5);
@@ -609,9 +610,12 @@ export default function ImportPage() {
               formTemplateId: templateId,
               data,
               status: 'SUBMITTED',
+              // Import mode: exact copies are skipped, probable duplicates are saved and flagged for review.
+              source: 'import',
             }),
           });
           if (res.ok) success++;
+          else if (res.status === 409) duplicates++;
           else errors++;
         } catch {
           errors++;
@@ -619,7 +623,7 @@ export default function ImportPage() {
       }));
     }
 
-    setImportResult({ success, errors, total: toImport.length });
+    setImportResult({ success, errors, total: toImport.length, duplicates });
     setPhase('done');
   }, [validRows, rows, campaignId, templateId]);
 
@@ -881,6 +885,9 @@ export default function ImportPage() {
           <h2 className="mt-4 text-lg font-bold text-gray-900 dark:text-white">Import Complete</h2>
           <div className="mt-3 flex items-center gap-4">
             <span className="text-sm text-green-600 font-semibold">{importResult.success} imported</span>
+            {!!importResult.duplicates && (
+              <span className="text-sm text-amber-600 font-semibold">{importResult.duplicates} already in the campaign (skipped)</span>
+            )}
             {importResult.errors > 0 && (
               <span className="text-sm text-red-600 font-semibold">{importResult.errors} failed</span>
             )}

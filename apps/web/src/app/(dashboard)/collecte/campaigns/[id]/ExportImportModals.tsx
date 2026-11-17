@@ -667,9 +667,10 @@ interface ImportModalProps {
 
 export function ImportModal({ open, onClose, campaignId, template }: ImportModalProps) {
   const t = useTranslations('collecte');
+  const td = useTranslations('duplicates');
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ success: number; errors: number; total: number } | null>(null);
+  const [result, setResult] = useState<{ success: number; errors: number; total: number; duplicates?: number } | null>(null);
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
 
@@ -1280,6 +1281,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
 
       let success = 0;
       let errors = 0;
+      let duplicates = 0;
       const errorMessages: string[] = [];
       const BATCH_SIZE = 10;
 
@@ -1298,10 +1300,14 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
               formTemplateId: template.id,
               data: rowData,
               status: 'SUBMITTED',
+              // Import mode: exact copies are skipped, probable duplicates are saved and flagged for review.
+              source: 'import',
             }),
           }).then(async (r) => {
             if (r.ok) {
               success++;
+            } else if (r.status === 409) {
+              duplicates++;
             } else {
               errors++;
               try {
@@ -1318,7 +1324,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
         console.warn('[Import] Sample errors:', errorMessages);
       }
 
-      setResult({ success, errors, total: rows.length });
+      setResult({ success, errors, total: rows.length, duplicates });
     } catch (err: any) {
       setError(err?.message || t('importFailed'));
     } finally {
@@ -1433,6 +1439,9 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
                   <p className="text-[10px] text-gray-500 uppercase">{t('errors')}</p>
                 </div>
               </div>
+              {!!result.duplicates && (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">{td('importSkipped', { count: result.duplicates })}</p>
+              )}
             </div>
           )}
 

@@ -33,6 +33,7 @@ import type {
 } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import type { SubmissionEntity } from '../submission/entities/submission.entity';
+import { DuplicateService, type DuplicateCandidate, type DuplicateInfo } from './duplicates/duplicate.service';
 
 const SERVICE_NAME = 'collecte-service';
 
@@ -107,6 +108,12 @@ export type SubmissionAuditor = (
 export class SubmissionService {
   private readonly ajv: Ajv;
   private auditor: SubmissionAuditor | null = null;
+  private duplicatesSvc: DuplicateService | null = null;
+
+  get duplicates(): DuplicateService {
+    if (!this.duplicatesSvc) this.duplicatesSvc = new DuplicateService(this.prisma);
+    return this.duplicatesSvc;
+  }
 
   /** Optional audit-trail writer (review history of status changes and resubmissions). */
   setAuditor(fn: SubmissionAuditor): void {
@@ -132,6 +139,9 @@ export class SubmissionService {
       gpsAccuracy?: number;
       offlineCreatedAt?: string;
       dataClassification?: string;
+      clientKey?: string;
+      duplicateOverride?: { reason: string };
+      source?: 'web' | 'import';
     },
     user: AuthenticatedUser,
   ): Promise<ApiResponse<SubmissionEntity>> {
@@ -204,6 +214,14 @@ export class SubmissionService {
     // Resolve template ID (CollectionCampaign uses formTemplateId, legacy uses templateId)
     const templateId = isCollectionCampaign ? campaign.formTemplateId : campaign.templateId;
 
+    // Same form sent again (double click, lost response, offline replay): return the saved fiche.
+    if (dto.clientKey) {
+      const already = await (this.prisma as any).submission.findFirst({
+        where: { campaignId: dto.campaignId, clientKey: dto.clientKey },
+      });
+      if (already) return { data: already as unknown as SubmissionEntity, meta: { replayed: true } } as any;
+    }
+
     // 2. Validate required fields against form template
     const schemaErrors = await this.validateAgainstTemplate(
       templateId,
@@ -245,28 +263,47 @@ export class SubmissionService {
       }
     }
 
+    // Duplicate control (exact copy, then the form's own rule)
+    const duplicateMark = await this.duplicateGate(dto, templateId, user);
+
     // 3. Persist submission
-    const submission = await (this.prisma as any).submission.create({
-      data: {
-        tenantId: user.tenantId,
-        campaignId: dto.campaignId,
-        templateId,
-        data: dto.data as Prisma.InputJsonValue,
-        submittedBy: user.userId,
-        submittedAt: new Date(),
-        deviceId: dto.deviceId ?? null,
-        gpsLat: dto.gpsLat ?? null,
-        gpsLng: dto.gpsLng ?? null,
-        gpsAccuracy: dto.gpsAccuracy ?? null,
-        offlineCreatedAt: dto.offlineCreatedAt
-          ? new Date(dto.offlineCreatedAt)
-          : null,
-        dataClassification:
-          dto.dataClassification ?? DataClassification.RESTRICTED,
-        status: 'SUBMITTED',
-        geoZoneId: geoZoneId ?? null,
-      },
-    });
+    let submission: any;
+    try {
+      submission = await (this.prisma as any).submission.create({
+        data: {
+          clientKey: dto.clientKey ?? null,
+          duplicateStatus: duplicateMark?.status ?? null,
+          duplicateInfo: (duplicateMark?.info ?? undefined) as Prisma.InputJsonValue | undefined,
+          tenantId: user.tenantId,
+          campaignId: dto.campaignId,
+          templateId,
+          data: dto.data as Prisma.InputJsonValue,
+          submittedBy: user.userId,
+          submittedAt: new Date(),
+          deviceId: dto.deviceId ?? null,
+          gpsLat: dto.gpsLat ?? null,
+          gpsLng: dto.gpsLng ?? null,
+          gpsAccuracy: dto.gpsAccuracy ?? null,
+          offlineCreatedAt: dto.offlineCreatedAt
+            ? new Date(dto.offlineCreatedAt)
+            : null,
+          dataClassification:
+            dto.dataClassification ?? DataClassification.RESTRICTED,
+          status: 'SUBMITTED',
+          geoZoneId: geoZoneId ?? null,
+        },
+      });
+    } catch (e: any) {
+      // Two identical requests raced past the clientKey lookup: the unique index kept one.
+      if (e?.code === 'P2002' && dto.clientKey) {
+        const already = await (this.prisma as any).submission.findFirst({ where: { campaignId: dto.campaignId, clientKey: dto.clientKey } });
+        if (already) return { data: already as unknown as SubmissionEntity, meta: { replayed: true } } as any;
+      }
+      throw e;
+    }
+    if (duplicateMark && this.auditor) {
+      this.auditor('DUPLICATE_OVERRIDE', submission.id, user, duplicateMark.info.reason ?? null, null, duplicateMark.info as any).catch(() => undefined);
+    }
 
     // 4. Request quality validation asynchronously via Kafka event
     await this.requestQualityValidation(
@@ -286,6 +323,48 @@ export class SubmissionService {
     );
 
     return { data: submission as unknown as SubmissionEntity };
+  }
+
+  /**
+   * Refuses or marks duplicates before a fiche is saved.
+   * - Exact copy by the same collector: refused (409 DUPLICATE_EXACT); an import skips the row.
+   * - Probable duplicate under the form rule: 409 DUPLICATE_SUSPECTED so the person can review;
+   *   sending again with a reason saves it as JUSTIFIED. With action 'block' it cannot be overridden.
+   * - Excel import never asks: probable duplicates are saved and marked SUSPECTED for the reviewer.
+   */
+  private async duplicateGate(
+    dto: { campaignId: string; data: Record<string, unknown>; duplicateOverride?: { reason: string }; source?: 'web' | 'import' },
+    templateId: string | null,
+    user: AuthenticatedUser,
+  ): Promise<{ status: 'SUSPECTED' | 'JUSTIFIED'; info: DuplicateInfo } | null> {
+    let check;
+    try {
+      check = await this.duplicates.check(dto.campaignId, templateId, user.userId, dto.data);
+    } catch (err) {
+      // Never block collection because the check itself failed.
+      console.warn(`[SubmissionService] duplicate check skipped: ${err instanceof Error ? err.message : String(err)}`);
+      return null;
+    }
+    const source = dto.source === 'import' ? 'import' : 'web';
+    if (check.exact) {
+      throw duplicateError(409, 'DUPLICATE_EXACT',
+        'This fiche was already submitted with exactly the same answers.', [check.exact], null);
+    }
+    if (!check.rule || check.candidates.length === 0) return null;
+    const info: DuplicateInfo = {
+      kind: 'rule', candidateIds: check.candidates.map((c) => c.id), source, checkedAt: new Date().toISOString(),
+    };
+    if (source === 'import') return { status: 'SUSPECTED', info };
+    if (check.rule.action === 'block') {
+      throw duplicateError(409, 'DUPLICATE_BLOCKED',
+        'A fiche for the same herd/entity already exists in this campaign.', check.candidates, 'block');
+    }
+    const reason = dto.duplicateOverride?.reason?.trim() ?? '';
+    if (reason.length < 5) {
+      throw duplicateError(409, 'DUPLICATE_SUSPECTED',
+        'Similar fiches already exist in this campaign. Check them, or give a reason to submit anyway.', check.candidates, 'warn');
+    }
+    return { status: 'JUSTIFIED', info: { ...info, reason } };
   }
 
   /**
@@ -529,6 +608,52 @@ export class SubmissionService {
    * Same visibility rules as findAll; names of places, agents, tenants and
    * form options are returned once in lookup tables instead of per row.
    */
+  /**
+   * Duplicate review of a campaign (read-only): exact copies by the same collector, clusters of probable
+   * duplicates under the form rule, and the marks already set on fiches. Rejected fiches are left out.
+   */
+  async campaignDuplicates(user: AuthenticatedUser, campaignId: string) {
+    const where = await this.buildFilter(user, { campaignId });
+    const subs: any[] = await (this.prisma as any).submission.findMany({
+      where,
+      select: { id: true, tenantId: true, templateId: true, submittedBy: true, submittedAt: true, status: true, data: true, duplicateStatus: true, duplicateInfo: true },
+      orderBy: { submittedAt: 'asc' },
+    });
+    const live = subs.filter((s) => String(s.status) !== 'REJECTED').map((s) => ({
+      id: s.id, tenantId: s.tenantId, submittedBy: s.submittedBy, submittedAt: s.submittedAt, status: String(s.status),
+      data: (s.data && typeof s.data === 'object' ? s.data : {}) as Record<string, unknown>, duplicateStatus: s.duplicateStatus,
+    }));
+    const rule = await this.duplicates.ruleFor(subs[0]?.templateId);
+    const { exact, probable } = await this.duplicates.campaignGroups(live, rule);
+    const marks: Record<string, { status: string; kind?: string; reason?: string; source?: string; reviewReason?: string }> = {};
+    for (const s of subs) {
+      if (!s.duplicateStatus) continue;
+      const info = (s.duplicateInfo ?? {}) as DuplicateInfo;
+      marks[s.id] = { status: s.duplicateStatus, kind: info.kind, reason: info.reason, source: info.source, reviewReason: info.reviewReason };
+    }
+    return { data: { rule, exact, probable, marks, checked: live.length } };
+  }
+
+  /** Reviewer decision on a flagged fiche: it is a different herd/entity (the duplicate mark is cleared). */
+  async markNotDuplicate(id: string, reason: string | undefined, user: AuthenticatedUser) {
+    const where = await this.buildFilter(user, {});
+    const sub = await (this.prisma as any).submission.findFirst({ where: { ...where, id } });
+    if (!sub) throw new HttpError(404, `Submission ${id} not found`);
+    const prev = (sub.duplicateInfo ?? {}) as DuplicateInfo;
+    const info = { ...prev, reviewedBy: user.userId, reviewedAt: new Date().toISOString(), reviewReason: reason?.trim() || undefined };
+    // Only the duplicate fields change: data, status and validation history stay as they are.
+    const updated = await (this.prisma as any).submission.update({
+      where: { id },
+      data: { duplicateStatus: 'DISTINCT', duplicateInfo: info as Prisma.InputJsonValue },
+      select: { id: true, duplicateStatus: true, duplicateInfo: true },
+    });
+    if (this.auditor) {
+      await this.auditor('DUPLICATE_DISTINCT', id, user, reason ?? null,
+        { duplicateStatus: sub.duplicateStatus }, { duplicateStatus: 'DISTINCT' }, sub.dataClassification).catch(() => undefined);
+    }
+    return { data: updated };
+  }
+
   async campaignDataset(user: AuthenticatedUser, campaignId: string): Promise<ApiResponse<CampaignDataset>> {
     const where = await this.buildFilter(user, { campaignId });
     const subs: Array<{ id: string; tenantId: string; templateId: string; submittedBy: string; submittedAt: Date; status: string; data: unknown }> =
@@ -1283,4 +1408,12 @@ export class SubmissionService {
       );
     }
   }
+}
+
+
+/** 409 carrying the matching fiches so the client can show them. */
+function duplicateError(status: number, code: string, message: string, candidates: DuplicateCandidate[], action: 'warn' | 'block' | null): HttpError {
+  const err = new HttpError(status, message);
+  (err as any).duplicate = { code, action, candidates };
+  return err;
 }

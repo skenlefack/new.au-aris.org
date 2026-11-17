@@ -71,12 +71,14 @@ export async function buildApp() {
   });
 
   // Error handler — maps HttpError.statusCode to HTTP response
-  app.setErrorHandler((error: Error & { statusCode?: number; errors?: unknown[] }, _request, reply) => {
+  app.setErrorHandler((error: Error & { statusCode?: number; errors?: unknown[]; duplicate?: unknown }, _request, reply) => {
     const statusCode = error.statusCode ?? 500;
     reply.code(statusCode).send({
       statusCode,
       message: error.message,
       errors: error.errors,
+      // Duplicate refusals carry the matching fiches (code, action, candidates).
+      ...(error.duplicate ? { duplicate: error.duplicate } : {}),
     });
   });
 

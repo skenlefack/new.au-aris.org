@@ -27,6 +27,7 @@ import {
   RotateCcw,
   ChevronDown,
   MapPin,
+  CopyCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -49,6 +50,7 @@ import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useWorkflowRealtime } from '@/lib/realtime/use-workflow-realtime';
 import LabResultsTab, { detectLabRepeaters } from '@/components/collecte/LabResultsTab';
 import CampaignSubmissionsTab from '@/components/collecte/CampaignSubmissionsTab';
+import { CampaignDuplicatesTab } from '@/components/collecte/CampaignDuplicatesTab';
 import CampaignQualityDashboard from '@/components/collecte/CampaignQualityDashboard';
 import dynamic from 'next/dynamic';
 
@@ -173,6 +175,7 @@ export default function CampaignDetailPage() {
   const params = useParams();
   const router = useRouter();
   const t = useTranslations('collecte');
+  const tDup = useTranslations('duplicates');
   const locale = useLocaleStore((s) => s.locale);
   const campaignId = params.id as string;
 
@@ -210,7 +213,7 @@ export default function CampaignDetailPage() {
   const editable = canEditCampaign(user, campaign);
   const readOnlyRole = user?.role === 'DECISION_MAKER' || user?.role === 'ANALYST';
 
-  const [activeTab, setActiveTab] = useState<'details' | 'submissions' | 'lab-results' | 'dashboards'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'submissions' | 'duplicates' | 'lab-results' | 'dashboards'>('details');
   const [editingTarget, setEditingTarget] = useState(false);
   const [targetDraft, setTargetDraft] = useState<string>('');
   const savingTargetRef = React.useRef(false);
@@ -576,6 +579,18 @@ export default function CampaignDetailPage() {
             </span>
           )}
         </button>
+        <button
+          onClick={() => setActiveTab('duplicates')}
+          className={cn(
+            'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5',
+            activeTab === 'duplicates'
+              ? 'border-amber-600 text-amber-700 dark:border-amber-400 dark:text-amber-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+          )}
+        >
+          <CopyCheck className="h-4 w-4" />
+          {tDup('tab')}
+        </button>
         {hasLabTab && (
           <button
             onClick={() => setActiveTab('lab-results')}
@@ -611,6 +626,9 @@ export default function CampaignDetailPage() {
           <CampaignSubmissionsTab campaignId={campaignId} />
         </div>
       )}
+
+      {/* Duplicates Tab */}
+      {activeTab === 'duplicates' && <CampaignDuplicatesTab campaignId={campaignId} />}
 
       {/* Lab Results Tab */}
       {activeTab === 'lab-results' && hasLabTab && labTemplates.map((lt) => (

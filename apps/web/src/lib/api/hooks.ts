@@ -1030,7 +1030,15 @@ export function useDeleteCampaign() {
 export function useSubmitCampaignForm() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { campaignId: string; templateId?: string; data: Record<string, unknown> }) => {
+    mutationFn: async (body: {
+      campaignId: string;
+      templateId?: string;
+      data: Record<string, unknown>;
+      /** Same key for every resend of one filled form: the server never stores it twice. */
+      clientKey?: string;
+      /** Reason given after reviewing similar fiches (duplicate warning). */
+      duplicateOverride?: { reason: string };
+    }) => {
       // If online, submit normally
       if (typeof navigator === 'undefined' || navigator.onLine) {
         try {

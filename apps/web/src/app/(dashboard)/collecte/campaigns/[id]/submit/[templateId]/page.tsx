@@ -18,6 +18,7 @@ import {
 } from '@/lib/api/form-builder-hooks';
 import { FormRenderer } from '@/components/form-builder/renderer/FormRenderer';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { DuplicateDialog, duplicateConflictOf, newClientKey, type DuplicateConflict } from '@/components/collecte/DuplicateDialog';
 import type { FormSchema } from '@/components/form-builder/utils/form-schema';
 
 // Hardcoded seed IDs used in campaign creation → real template name mapping
@@ -77,6 +78,11 @@ export default function CampaignSubmitPage() {
   });
 
   const [banner, setBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  // One key per filled form: a double click or a resend after a network error never creates a second fiche.
+  const [clientKey] = useState(newClientKey);
+  // Locks the form once saved, until the page leaves (no second send in the meantime).
+  const [sent, setSent] = useState(false);
+  const [duplicate, setDuplicate] = useState<{ conflict: DuplicateConflict; data: Record<string, unknown> } | null>(null);
 
   const rawCampaign = (campaignRes as any)?.data as any | undefined;
   const campaign = rawCampaign ? {
@@ -114,15 +120,28 @@ export default function CampaignSubmitPage() {
   const templateResolved = !!resolvedTemplate || (!directFetching && !allFetching);
   const isLoading = campaignLoading || !templateResolved;
 
-  const handleSubmit = async (formData: Record<string, unknown>) => {
+  const handleSubmit = async (formData: Record<string, unknown>, overrideReason?: string) => {
+    if (sent) return;
     setBanner(null);
     try {
-      await submitMutation.mutateAsync({ campaignId, data: formData });
+      await submitMutation.mutateAsync({
+        campaignId,
+        data: formData,
+        clientKey,
+        ...(overrideReason ? { duplicateOverride: { reason: overrideReason } } : {}),
+      });
+      setSent(true);
+      setDuplicate(null);
       setBanner({ type: 'success', message: t('submissionCreated') });
       setTimeout(() => {
         router.push(`/collecte/campaigns/${campaignId}`);
       }, 1200);
     } catch (err: any) {
+      const conflict = duplicateConflictOf(err);
+      if (conflict) {
+        setDuplicate({ conflict, data: formData });
+        return;
+      }
       // Parse nested JSON error messages from backend
       let msg = err?.message || t('submissionFailedRetry');
       try {
@@ -274,8 +293,8 @@ export default function CampaignSubmitPage() {
           schema={schema}
           formName={templateName}
           preview={previewMode}
-          isSubmitting={submitMutation.isPending}
-          onSubmit={previewMode ? undefined : handleSubmit}
+          isSubmitting={submitMutation.isPending || sent}
+          onSubmit={previewMode ? undefined : (values) => handleSubmit(values)}
           campaignTargetCountries={campaign?.targetCountries}
         />
       ) : (
@@ -297,6 +316,14 @@ export default function CampaignSubmitPage() {
             {t('returnToCampaign')}
           </Link>
         </div>
+      )}
+      {duplicate && (
+        <DuplicateDialog
+          conflict={duplicate.conflict}
+          busy={submitMutation.isPending}
+          onCancel={() => setDuplicate(null)}
+          onConfirm={(reason) => handleSubmit(duplicate.data, reason)}
+        />
       )}
     </div>
   );

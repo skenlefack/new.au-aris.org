@@ -111,10 +111,26 @@ export interface FormSettings {
   autoSaveInterval: number;
   submissionWorkflow: string;
   notifyOnSubmit: string[];
-  duplicateDetection: {
-    enabled: boolean;
-    fields: string[];
-  };
+  duplicateDetection: DuplicateDetectionSettings;
+}
+
+/**
+ * Duplicate rule checked by the collecte service when a fiche is submitted.
+ * Active only when `enabled` is true AND `action` is set (older forms have no action and stay off).
+ */
+export interface DuplicateDetectionSettings {
+  enabled: boolean;
+  /** Field codes that identify the same herd/entity. All must match. */
+  fields: string[];
+  /** warn: the agent sees the similar fiches and may continue with a reason; block: cannot submit. */
+  action?: 'warn' | 'block';
+  /** Allowed difference per field: absolute for numbers, days for dates. */
+  tolerances?: Record<string, number>;
+  /** Only compare with fiches of the same collector. */
+  sameCollectorOnly?: boolean;
+  /** Optional GPS proximity: fiches farther apart than gpsMeters are not duplicates. */
+  gpsField?: string;
+  gpsMeters?: number;
 }
 
 export interface FormSchema {

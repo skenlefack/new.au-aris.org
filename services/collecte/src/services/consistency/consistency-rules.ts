@@ -73,6 +73,8 @@ export interface CheckContext {
   stats?: Map<string, NumericStats>;
   /** Other submissions of the same agent and campaign with identical data. */
   duplicateIds?: string[];
+  /** Probable duplicates under the form's duplicate rule (any collector). */
+  probableDuplicateIds?: string[];
   /** Location guessed from the nearest valid submission, per admin-location field. */
   adminSuggestions?: Map<string, AdminSuggestion | null>;
   /** Fallback GPS from the submission columns. */
@@ -531,6 +533,15 @@ export function checkSubmission(ctx: CheckContext): ConsistencyIssue[] {
       code: 'DUPLICATE', severity: 'warning', fields: [],
       message: `Same answers as ${ctx.duplicateIds.length} other submission${ctx.duplicateIds.length > 1 ? 's' : ''} from the same collector in this campaign.`,
       params: { count: ctx.duplicateIds.length, ids: ctx.duplicateIds.slice(0, 5).join(',') },
+    });
+  }
+
+  const probable = (ctx.probableDuplicateIds ?? []).filter((id) => !(ctx.duplicateIds ?? []).includes(id));
+  if (probable.length) {
+    push({
+      code: 'PROBABLE_DUPLICATE', severity: 'warning', fields: [],
+      message: `Looks like ${probable.length} other submission${probable.length > 1 ? 's' : ''} of this campaign (same key fields of the form's duplicate rule).`,
+      params: { count: probable.length, ids: probable.slice(0, 5).join(',') },
     });
   }
 

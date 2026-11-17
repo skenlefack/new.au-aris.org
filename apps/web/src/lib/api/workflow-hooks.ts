@@ -547,6 +547,65 @@ export function useCampaignDataset(campaignId: string | undefined) {
   });
 }
 
+// ── Duplicate review of a campaign ──
+
+export interface CampaignDuplicateRule {
+  action: 'warn' | 'block';
+  fields: { code: string; kind: string; tolerance: number }[];
+  sameCollectorOnly: boolean;
+  gpsField: string | null;
+  gpsMeters: number | null;
+}
+
+export interface CampaignDuplicates {
+  rule: CampaignDuplicateRule | null;
+  /** Groups of fiches with identical answers from the same collector (oldest first). */
+  exact: string[][];
+  /** Clusters of probable duplicates under the form rule. */
+  probable: string[][];
+  /** Marks set on fiches: SUSPECTED (sync/import), JUSTIFIED (sent with a reason), DISTINCT (reviewer). */
+  marks: Record<string, { status: 'SUSPECTED' | 'JUSTIFIED' | 'DISTINCT'; kind?: string; reason?: string; source?: string; reviewReason?: string }>;
+  checked: number;
+}
+
+export function useCampaignDuplicates(campaignId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['campaign-duplicates', campaignId],
+    queryFn: () => wfFetch<{ data: CampaignDuplicates }>(`/api/v1/collecte/campaigns/${campaignId}/duplicates`).then((r) => r.data),
+    enabled: !!campaignId && enabled,
+    staleTime: 60_000,
+  });
+}
+
+/** Reviewer: "this fiche is a different herd/entity". Rejecting a copy uses the normal status change. */
+export function useMarkNotDuplicate(campaignId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; reason?: string }) =>
+      wfFetch(`/api/v1/collecte/submissions/${v.id}/duplicate-review`, {
+        method: 'PATCH',
+        body: JSON.stringify({ decision: 'DISTINCT', reason: v.reason }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign-duplicates', campaignId] }),
+  });
+}
+
+export function useRejectDuplicate(campaignId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; reason: string }) =>
+      wfFetch(`/api/v1/collecte/submissions/${v.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'REJECTED', reason: v.reason }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaign-duplicates', campaignId] });
+      qc.invalidateQueries({ queryKey: ['campaign-dataset', campaignId] });
+      qc.invalidateQueries({ queryKey: ['collecte'] });
+    },
+  });
+}
+
 // ═══════════════════════════════════════════════════════
 // DOMAIN-LEVEL SUBMISSIONS (all campaigns for a domain)
 // ═══════════════════════════════════════════════════════
