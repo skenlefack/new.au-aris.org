@@ -8,6 +8,7 @@ import { RECS } from '@/data/recs-config';
 import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
 import { useGeoEntities, useGeoChildren, useGeoZones } from '@/lib/api/geo-hooks';
 import { useAdminLevels, type AdminLevel } from '@/lib/api/settings-hooks';
+import { filterLevelsForCountry } from './admin-location-levels';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -166,16 +167,22 @@ export function AdminLocationField({
   const selectedAdmin3 = selections['level_3'] || '';
   const selectedAdmin4 = selections['level_4'] || '';
 
-  const maxLevel = Math.max(...levels);
-
-  // Fetch country-specific admin level labels
-  const countryConfig = selectedCountry ? COUNTRIES[selectedCountry] : undefined;
-  const { data: adminLevelsData } = useAdminLevels(
-    countryConfig?.tenantId ?? selectedCountry,
+  // Fetch the admin levels configured for the country in Settings > Countries (by ISO code)
+  const { data: adminLevelsData, isLoading: adminLevelsLoading } = useAdminLevels(
+    selectedCountry,
     selectedCountry || undefined,
     { enabled: !!selectedCountry },
   );
   const adminLevels: AdminLevel[] = adminLevelsData?.data ?? [];
+
+  // Levels actually displayed: the form's levels, restricted to the active levels configured
+  // for the selected country. GADM fallback levels (no country config) don't restrict anything.
+  const visibleLevels = useMemo(
+    () => filterLevelsForCountry(levels, adminLevels, !!selectedCountry && adminLevelsLoading),
+    [levels, adminLevels, selectedCountry, adminLevelsLoading],
+  );
+
+  const maxLevel = Math.max(...visibleLevels);
 
   // Sorted country list
   const countryOptions = useMemo(
@@ -355,7 +362,7 @@ export function AdminLocationField({
     const textLevels = new Set<number>();
     let forcedText = false;
 
-    for (const level of [...levels].sort((a, b) => a - b)) {
+    for (const level of [...visibleLevels].sort((a, b) => a - b)) {
       if (level === 0) continue; // Country is always a select
 
       if (forcedText) {
@@ -388,7 +395,7 @@ export function AdminLocationField({
       }
     }
     return textLevels;
-  }, [levels, selections, manualModeLevels, levelLoadingMap, optionsMap]);
+  }, [visibleLevels, selections, manualModeLevels, levelLoadingMap, optionsMap]);
 
   // ═══════════════════════════════════════════════════════════════════
   // Event handlers
@@ -449,7 +456,7 @@ export function AdminLocationField({
 
   const isLevelDisabled = (level: number): boolean => {
     if (level === 0 && isCountryLocked) return true;
-    if (level === Math.min(...levels)) return false;
+    if (level === Math.min(...visibleLevels)) return false;
     const parentVal = selections[`level_${level - 1}`];
     return !parentVal;
   };
@@ -504,8 +511,8 @@ export function AdminLocationField({
         </div>
       )}
 
-      <div className={cn('grid grid-cols-1 gap-3', levels.length <= 3 ? 'md:grid-cols-3' : levels.length <= 4 ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 lg:grid-cols-3')}>
-        {levels.map((level) => {
+      <div className={cn('grid grid-cols-1 gap-3', visibleLevels.length <= 3 ? 'md:grid-cols-3' : visibleLevels.length <= 4 ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 lg:grid-cols-3')}>
+        {visibleLevels.map((level) => {
           const isRequired = requiredLevels.includes(level);
           const disabled = isLevelDisabled(level);
           const levelLabel = getLevelLabel(level, locale, selectedCountry || undefined, adminLevels);

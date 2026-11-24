@@ -643,7 +643,18 @@ export class SettingsService {
 
   // ───────────────────── Admin Levels ─────────────────────
 
-  async listAdminLevels(countryId: string) {
+  /** List admin levels of a country, addressed by its UUID or ISO alpha-2 code (used by form renderers). */
+  async listAdminLevels(idOrCode: string) {
+    let countryId = idOrCode;
+    if (!UUID_REGEX.test(idOrCode)) {
+      const country = await (this.prisma as any).country.findUnique({
+        where: { code: idOrCode.toUpperCase() },
+        select: { id: true },
+      });
+      if (!country) return { data: [] };
+      countryId = country.id;
+    }
+
     const cacheKey = `aris:settings:admin-levels:${countryId}`;
     const cached = await this.cacheGet<{ data: any[] }>(cacheKey);
     if (cached) return cached;

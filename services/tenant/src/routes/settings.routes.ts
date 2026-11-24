@@ -278,12 +278,12 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
 
   // ───────────────────── Admin Levels ─────────────────────
 
-  // GET /api/v1/settings/countries/:id/admin-levels — list admin levels for a country
-  app.get<{ Params: UuidParamInput }>('/api/v1/settings/countries/:id/admin-levels', {
-    schema: { params: UuidParamSchema },
+  // GET /api/v1/settings/countries/:idOrCode/admin-levels — list admin levels for a country (UUID or ISO code)
+  app.get<{ Params: IdOrCodeParamInput }>('/api/v1/settings/countries/:idOrCode/admin-levels', {
+    schema: { params: IdOrCodeParamSchema },
     preHandler: authAndTenant,
   }, async (request) => {
-    return app.settingsService.listAdminLevels(request.params.id);
+    return app.settingsService.listAdminLevels(request.params.idOrCode);
   });
 
   // PUT /api/v1/settings/countries/:id/admin-levels — bulk upsert admin levels

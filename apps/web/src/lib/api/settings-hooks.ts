@@ -516,8 +516,9 @@ export function useUpsertAdminLevels() {
   return useMutation({
     mutationFn: ({ countryId, levels }: { countryId: string; levels: AdminLevel[] }) =>
       tenantPut(`/api/v1/settings/countries/${countryId}/admin-levels`, { levels }),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ['settings', 'admin-levels', vars.countryId] });
+    onSuccess: () => {
+      // Forms query admin levels by ISO code, so invalidate every admin-levels entry
+      qc.invalidateQueries({ queryKey: ['settings', 'admin-levels'] });
     },
   });
 }
@@ -527,8 +528,9 @@ export function useDeleteAdminLevel() {
   return useMutation({
     mutationFn: ({ countryId, level }: { countryId: string; level: number }) =>
       tenantDelete(`/api/v1/settings/countries/${countryId}/admin-levels/${level}`),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ['settings', 'admin-levels', vars.countryId] });
+    onSuccess: () => {
+      // Forms query admin levels by ISO code, so invalidate every admin-levels entry
+      qc.invalidateQueries({ queryKey: ['settings', 'admin-levels'] });
     },
   });
 }
