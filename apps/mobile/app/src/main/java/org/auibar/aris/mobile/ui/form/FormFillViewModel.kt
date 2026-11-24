@@ -13,7 +13,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
@@ -28,6 +32,9 @@ import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.FormTemplateRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
+import org.auibar.aris.mobile.ui.form.engine.AdminFieldView
+import org.auibar.aris.mobile.ui.form.engine.AdminLevelConfig
+import org.auibar.aris.mobile.ui.form.engine.AdminLocation
 import org.auibar.aris.mobile.ui.form.engine.FormSchemaParser
 import org.auibar.aris.mobile.ui.form.engine.FormValidator
 import org.auibar.aris.mobile.ui.form.model.FormField
@@ -38,6 +45,8 @@ import java.util.UUID
 import javax.inject.Inject
 
 private const val TAG = "FormFillVM"
+private const val ADMIN_API_TIMEOUT_MS = 6_000L
+private val adminJson = Json { ignoreUnknownKeys = true }
 
 data class FormFillUiState(
     val isLoading: Boolean = true,
@@ -50,8 +59,10 @@ data class FormFillUiState(
     val speciesOptions: List<SelectOption> = emptyList(),
     val diseaseOptions: List<SelectOption> = emptyList(),
     val countryOptions: List<SelectOption> = emptyList(),
-    val admin1Options: List<SelectOption> = emptyList(),
-    val admin2Options: List<SelectOption> = emptyList(),
+    /** Options of each admin-location level, keyed by AdminLocation.key(fieldKey, level) */
+    val adminOptions: Map<String, List<SelectOption>> = emptyMap(),
+    /** Admin levels configured per country ISO code (empty list = no configuration) */
+    val adminLevelsByCountry: Map<String, List<AdminLevelConfig>> = emptyMap(),
     /** Dynamic options loaded from /ref/{type}/for-select, keyed by masterDataType */
     val masterDataOptions: Map<String, List<SelectOption>> = emptyMap(),
     val gpsLat: Double? = null,
@@ -259,25 +270,103 @@ class FormFillViewModel @Inject constructor(
             errors = _uiState.value.errors - key,
         )
 
-        // Cascading admin location
-        if (key == "_country") {
-            newValues.remove("_admin1")
-            newValues.remove("_admin2")
-            _uiState.value = _uiState.value.copy(values = newValues, admin1Options = emptyList(), admin2Options = emptyList())
-            loadAdmin1(value)
-        } else if (key == "_admin1") {
-            newValues.remove("_admin2")
-            _uiState.value = _uiState.value.copy(values = newValues, admin2Options = emptyList())
-            loadAdmin2(value)
+        // Cascading admin location: "<fieldKey>.level_<n>"
+        val (fieldKey, level) = AdminLocation.parseKey(key) ?: return
+        val field = _uiState.value.fields.firstOrNull { it.key == fieldKey && it.type == FormFieldType.ADMIN_CASCADER } ?: return
+        val options = _uiState.value.adminOptions.toMutableMap()
+        field.adminLevels.filter { it > level }.forEach { deeper ->
+            newValues.remove(AdminLocation.key(fieldKey, deeper))
+            options.remove(AdminLocation.key(fieldKey, deeper))
         }
+        _uiState.value = _uiState.value.copy(values = newValues, adminOptions = options)
+        if (value.isBlank()) return
+        viewModelScope.launch {
+            if (level == 0) loadAdminLevels(value)
+            val next = adminFieldView(field).levels.firstOrNull { it > level } ?: return@launch
+            val countryId = countryIdByCode[newValues[AdminLocation.key(fieldKey, 0)].orEmpty()]
+            val parentId = if (level == 0) countryId ?: return@launch else value
+            val children = loadGeoChildren(parentId, next, countryId)
+            _uiState.value = _uiState.value.copy(
+                adminOptions = _uiState.value.adminOptions + (AdminLocation.key(fieldKey, next) to children),
+            )
+        }
+    }
+
+    /** ISO country code -> geo entity id (children are looked up by parent id). */
+    private var countryIdByCode: Map<String, String> = emptyMap()
+
+    /** Levels and labels shown for an admin-location field, given the selected country. */
+    fun adminFieldView(field: FormField, state: FormFillUiState = _uiState.value): AdminFieldView {
+        val country = state.values[AdminLocation.key(field.key, 0)].orEmpty()
+        val configured = state.adminLevelsByCountry[country]
+        val language = tokenManager.language
+        return AdminFieldView(
+            levels = AdminLocation.visibleLevels(field.adminLevels, configured),
+            labels = configured.orEmpty().mapNotNull { c -> c.label(language)?.let { c.level to it } }.toMap(),
+        )
+    }
+
+    /** Admin levels of a country: API (cached to Room), Room when offline. */
+    private suspend fun loadAdminLevels(countryCode: String) {
+        if (_uiState.value.adminLevelsByCountry.containsKey(countryCode)) return
+        val cacheType = "admin-levels:$countryCode"
+        val namesSerializer = MapSerializer(String.serializer(), String.serializer())
+        val remote = withTimeoutOrNull(ADMIN_API_TIMEOUT_MS) { campaignApi.getAdminLevels(countryCode) }
+        val levels = if (remote != null) {
+            refDataCacheDao.deleteByType(cacheType)
+            refDataCacheDao.upsertAll(remote.map { l ->
+                RefDataCacheEntity(
+                    type = cacheType, itemId = l.level.toString(),
+                    label = adminJson.encodeToString(namesSerializer, l.names),
+                    parentId = if (l.isActive) "active" else "inactive", sortOrder = l.level,
+                )
+            })
+            remote
+        } else {
+            refDataCacheDao.getByType(cacheType).mapNotNull { c ->
+                val level = c.itemId.toIntOrNull() ?: return@mapNotNull null
+                val names = try { adminJson.decodeFromString(namesSerializer, c.label) } catch (_: Exception) { emptyMap() }
+                AdminLevelConfig(level, names, isActive = c.parentId != "inactive")
+            }.takeIf { it.isNotEmpty() }
+        }
+        Log.d(TAG, "Admin levels $countryCode: ${levels?.size ?: "unknown"} (remote=${remote != null})")
+        // Unknown (offline and never cached): keep the form's levels; not remembered so it is retried
+        if (levels != null) {
+            _uiState.value = _uiState.value.copy(
+                adminLevelsByCountry = _uiState.value.adminLevelsByCountry + (countryCode to levels),
+            )
+        }
+    }
+
+    /**
+     * Children of a geo unit: API first (fresh, active divisions only) refreshing the Room cache,
+     * Room when offline. For level 2, falls back to all ADMIN2 of the country (broken parentId data).
+     */
+    private suspend fun loadGeoChildren(parentId: String, level: Int, countryId: String?): List<SelectOption> {
+        val remote = withTimeoutOrNull(ADMIN_API_TIMEOUT_MS) { campaignApi.getGeoChildren(parentId) }
+        if (!remote.isNullOrEmpty()) {
+            val now = System.currentTimeMillis()
+            geoDao.upsertAll(remote.map { GeoEntity(it.id, it.displayLabel(), "ADMIN$level", parentId, it.code, now) })
+            geoDao.deleteChildrenNotIn(parentId, remote.map { it.id })
+            return remote.map { SelectOption(it.id, it.displayLabel()) }.sortedBy { it.label }
+        }
+        val cached = geoDao.getChildren(parentId).map { SelectOption(it.id, it.name) }
+        if (cached.isNotEmpty() || remote == null) return cached
+        if (level == 2 && countryId != null) {
+            val all = withTimeoutOrNull(ADMIN_API_TIMEOUT_MS) { campaignApi.getGeoUnits("ADMIN2", countryId) }.orEmpty()
+            return all.map { SelectOption(it.id, it.displayLabel()) }.sortedBy { it.label }
+        }
+        return emptyList()
     }
 
     private suspend fun loadCountries(): List<SelectOption> {
         // Try Room first (offline-first approach — geo data is bulk-synced)
-        val local = geoDao.getByLevel("COUNTRY").map { SelectOption(value = it.id, label = it.name) }
+        // Option value = ISO code (same as web level_0); children are looked up via countryIdByCode
+        val local = geoDao.getByLevel("COUNTRY").filter { !it.isoCode.isNullOrBlank() }
         if (local.isNotEmpty()) {
+            countryIdByCode = local.associate { it.isoCode!!.uppercase() to it.id }
             Log.d(TAG, "Countries from Room: ${local.size}")
-            return local
+            return local.map { SelectOption(value = it.isoCode!!.uppercase(), label = it.name) }
         }
         // Fallback to API if Room is empty (first launch before sync)
         try {
@@ -288,81 +377,15 @@ class FormFillViewModel @Inject constructor(
                     GeoEntity(id = item.id, name = item.displayLabel(), level = "COUNTRY", parentId = null, isoCode = item.code, syncedAt = System.currentTimeMillis())
                 }
                 geoDao.upsertAll(entities)
+                val withCode = items.filter { !it.code.isNullOrBlank() }
+                countryIdByCode = withCode.associate { it.code!!.uppercase() to it.id }
                 Log.d(TAG, "Countries from API: ${items.size} (cached to Room)")
-                return items.map { SelectOption(value = it.id, label = it.displayLabel()) }
+                return withCode.map { SelectOption(value = it.code!!.uppercase(), label = it.displayLabel()) }
             }
         } catch (e: Exception) {
             Log.w(TAG, "Countries API failed: ${e.message}")
         }
         return emptyList()
-    }
-
-    private fun loadAdmin1(countryId: String) {
-        viewModelScope.launch {
-            // Room first (offline-first)
-            val cached = geoDao.getChildren(countryId).map { SelectOption(value = it.id, label = it.name) }
-            if (cached.isNotEmpty()) {
-                _uiState.value = _uiState.value.copy(admin1Options = cached)
-                Log.d(TAG, "Admin1 from Room: ${cached.size}")
-                return@launch
-            }
-            // API fallback + cache results
-            try {
-                val items = campaignApi.getGeoUnits(null, countryId)
-                if (items.isNotEmpty()) {
-                    val entities = items.map { item ->
-                        GeoEntity(id = item.id, name = item.displayLabel(), level = "ADMIN1", parentId = countryId, isoCode = item.code, syncedAt = System.currentTimeMillis())
-                    }
-                    geoDao.upsertAll(entities)
-                    _uiState.value = _uiState.value.copy(admin1Options = items.map { SelectOption(value = it.id, label = it.displayLabel()) })
-                    Log.d(TAG, "Admin1 from API: ${items.size} (cached)")
-                    return@launch
-                }
-            } catch (_: Exception) {}
-            _uiState.value = _uiState.value.copy(admin1Options = emptyList())
-        }
-    }
-
-    private fun loadAdmin2(admin1Id: String) {
-        viewModelScope.launch {
-            // Room first (offline-first)
-            val cached = geoDao.getChildren(admin1Id).map { SelectOption(value = it.id, label = it.name) }
-            if (cached.isNotEmpty()) {
-                _uiState.value = _uiState.value.copy(admin2Options = cached)
-                Log.d(TAG, "Admin2 from Room: ${cached.size}")
-                return@launch
-            }
-            // API fallback + cache
-            try {
-                val items = campaignApi.getGeoUnits(null, admin1Id)
-                if (items.isNotEmpty()) {
-                    val entities = items.map { item ->
-                        GeoEntity(id = item.id, name = item.displayLabel(), level = "ADMIN2", parentId = admin1Id, isoCode = item.code, syncedAt = System.currentTimeMillis())
-                    }
-                    geoDao.upsertAll(entities)
-                    _uiState.value = _uiState.value.copy(admin2Options = items.map { SelectOption(value = it.id, label = it.displayLabel()) })
-                    Log.d(TAG, "Admin2 from API: ${items.size} (cached)")
-                    return@launch
-                }
-                // Fallback: some countries have admin2 parentId pointing to country, not admin1
-                val countryId = _uiState.value.values["_country"]
-                if (!countryId.isNullOrBlank()) {
-                    val admin2All = campaignApi.getGeoUnits("ADMIN2", countryId)
-                    if (admin2All.isNotEmpty()) {
-                        val entities = admin2All.map { item ->
-                            GeoEntity(id = item.id, name = item.displayLabel(), level = "ADMIN2", parentId = countryId, isoCode = item.code, syncedAt = System.currentTimeMillis())
-                        }
-                        geoDao.upsertAll(entities)
-                        _uiState.value = _uiState.value.copy(admin2Options = admin2All.map { SelectOption(value = it.id, label = it.displayLabel()) })
-                        Log.d(TAG, "Admin2 fallback from API (country=$countryId): ${admin2All.size} (cached)")
-                        return@launch
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Admin2 API failed: ${e.message}")
-            }
-            _uiState.value = _uiState.value.copy(admin2Options = emptyList())
-        }
     }
 
     fun onLocationCaptured(lat: Double, lng: Double, accuracy: Float) {
@@ -383,7 +406,7 @@ class FormFillViewModel @Inject constructor(
             submissionRepository.saveDraft(
                 id = state.submissionId, tenantId = tokenManager.tenantId ?: "",
                 campaignId = campaignId, templateId = state.templateId,
-                data = buildDataJson(state.values),
+                data = buildDataJson(state),
                 gpsLat = state.gpsLat, gpsLng = state.gpsLng, gpsAccuracy = state.gpsAccuracy,
             )
             _events.emit(FormEvent.DraftSaved)
@@ -393,7 +416,7 @@ class FormFillViewModel @Inject constructor(
     fun submit() {
         viewModelScope.launch {
             val state = _uiState.value
-            val validationErrors = validator.validate(state.fields, state.values)
+            val validationErrors = validator.validate(state.fields, state.values) { adminFieldView(it, state).levels }
             if (validationErrors.isNotEmpty()) {
                 _uiState.value = state.copy(errors = validationErrors.associate { it.field to it.message })
                 return@launch
@@ -401,15 +424,27 @@ class FormFillViewModel @Inject constructor(
             submissionRepository.submitForm(
                 id = state.submissionId, tenantId = tokenManager.tenantId ?: "",
                 campaignId = campaignId, templateId = state.templateId,
-                data = buildDataJson(state.values),
+                data = buildDataJson(state),
                 gpsLat = state.gpsLat, gpsLng = state.gpsLng, gpsAccuracy = state.gpsAccuracy,
             )
             _events.emit(FormEvent.Submitted)
         }
     }
 
-    private fun buildDataJson(values: Map<String, String>): String {
-        val entries = values.filterKeys { !it.startsWith("_") }.mapValues { (_, v) -> JsonPrimitive(v) }
+    /**
+     * Flat values as strings; each admin-location field as `{ level_0: "BI", level_1: "<uuid>", ... }`
+     * (same shape as the web), limited to the levels shown for the selected country.
+     */
+    private fun buildDataJson(state: FormFillUiState): String {
+        val adminFields = state.fields.filter { it.type == FormFieldType.ADMIN_CASCADER }
+        val adminKeys = adminFields.map { it.key }.toSet()
+        val entries = mutableMapOf<String, JsonElement>()
+        state.values.forEach { (k, v) ->
+            if (!k.startsWith("_") && AdminLocation.parseKey(k)?.first !in adminKeys) entries[k] = JsonPrimitive(v)
+        }
+        adminFields.forEach { f ->
+            AdminLocation.toJson(f.key, state.values, adminFieldView(f, state).levels)?.let { entries[f.key] = it }
+        }
         return JsonObject(entries).toString()
     }
 }

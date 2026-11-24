@@ -12,18 +12,20 @@ import androidx.compose.ui.unit.dp
 import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.ui.form.model.SelectOption
 
+/**
+ * Administrative location cascade: country, then the levels configured for that country
+ * (Settings > Countries on the web), each named as configured there.
+ * A level is shown once its parent is selected.
+ */
 @Composable
 fun AdminCascaderField(
     label: String,
-    countryValue: String,
-    admin1Value: String,
-    admin2Value: String,
-    countryOptions: List<SelectOption>,
-    admin1Options: List<SelectOption>,
-    admin2Options: List<SelectOption>,
-    onCountryChange: (String) -> Unit,
-    onAdmin1Change: (String) -> Unit,
-    onAdmin2Change: (String) -> Unit,
+    levels: List<Int>,
+    levelLabels: Map<Int, String>,
+    values: Map<Int, String>,
+    options: Map<Int, List<SelectOption>>,
+    onLevelChange: (Int, String) -> Unit,
+    requiredLevels: Set<Int>,
     error: String?,
     required: Boolean,
     modifier: Modifier = Modifier,
@@ -34,32 +36,22 @@ fun AdminCascaderField(
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(bottom = 4.dp),
         )
-        FormSelectField(
-            label = stringResource(R.string.select_country),
-            value = countryValue,
-            options = countryOptions,
-            onValueChange = onCountryChange,
-            error = null,
-            required = required,
-        )
-        if (countryValue.isNotBlank()) {
+        val sorted = levels.sorted()
+        sorted.forEachIndexed { idx, level ->
+            val parent = sorted.getOrNull(idx - 1)
+            if (parent != null && values[parent].isNullOrBlank()) return@forEachIndexed
+            val levelLabel = when {
+                level == 0 -> stringResource(R.string.select_country)
+                levelLabels[level] != null -> levelLabels.getValue(level)
+                else -> stringResource(R.string.admin_level_n, level)
+            }
             FormSelectField(
-                label = stringResource(R.string.select_admin1),
-                value = admin1Value,
-                options = admin1Options,
-                onValueChange = onAdmin1Change,
+                label = levelLabel,
+                value = values[level].orEmpty(),
+                options = options[level].orEmpty(),
+                onValueChange = { onLevelChange(level, it) },
                 error = null,
-                required = false,
-            )
-        }
-        if (admin1Value.isNotBlank()) {
-            FormSelectField(
-                label = stringResource(R.string.select_admin2),
-                value = admin2Value,
-                options = admin2Options,
-                onValueChange = onAdmin2Change,
-                error = null,
-                required = false,
+                required = level in requiredLevels,
             )
         }
         if (error != null) {

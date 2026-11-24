@@ -34,6 +34,8 @@ import org.auibar.aris.mobile.ui.form.components.FormTextareaField
 import org.auibar.aris.mobile.ui.form.components.FormToggleField
 import org.auibar.aris.mobile.ui.form.components.PhotoCaptureField
 import org.auibar.aris.mobile.ui.form.components.SpeciesSelectorField
+import org.auibar.aris.mobile.ui.form.engine.AdminFieldView
+import org.auibar.aris.mobile.ui.form.engine.AdminLocation
 import org.auibar.aris.mobile.ui.form.model.FieldCondition
 import org.auibar.aris.mobile.ui.form.model.FormField
 import org.auibar.aris.mobile.ui.form.model.FormFieldType
@@ -47,8 +49,10 @@ fun FormRenderer(
     speciesOptions: List<SelectOption>,
     diseaseOptions: List<SelectOption>,
     countryOptions: List<SelectOption>,
-    admin1Options: List<SelectOption>,
-    admin2Options: List<SelectOption>,
+    /** Options per admin level, keyed by AdminLocation.key(fieldKey, level) */
+    adminOptions: Map<String, List<SelectOption>> = emptyMap(),
+    /** Levels and labels shown for an admin-location field (depends on the selected country) */
+    adminFieldView: (FormField) -> AdminFieldView = { AdminFieldView(it.adminLevels, emptyMap()) },
     masterDataOptions: Map<String, List<SelectOption>> = emptyMap(),
     onValueChange: (String, String) -> Unit,
     onCaptureLocation: () -> Unit,
@@ -203,19 +207,22 @@ fun FormRenderer(
                             error = error, required = field.required,
                         )
                     }
-                    FormFieldType.ADMIN_CASCADER -> AdminCascaderField(
-                        label = field.label,
-                        countryValue = values["_country"].orEmpty(),
-                        admin1Value = values["_admin1"].orEmpty(),
-                        admin2Value = values["_admin2"].orEmpty(),
-                        countryOptions = countryOptions,
-                        admin1Options = admin1Options,
-                        admin2Options = admin2Options,
-                        onCountryChange = { onValueChange("_country", it) },
-                        onAdmin1Change = { onValueChange("_admin1", it) },
-                        onAdmin2Change = { onValueChange("_admin2", it) },
-                        error = error, required = field.required,
-                    )
+                    FormFieldType.ADMIN_CASCADER -> {
+                        val view = adminFieldView(field)
+                        AdminCascaderField(
+                            label = field.label,
+                            levels = view.levels,
+                            levelLabels = view.labels,
+                            values = view.levels.associateWith { values[AdminLocation.key(field.key, it)].orEmpty() },
+                            options = view.levels.associateWith { lvl ->
+                                if (lvl == 0) countryOptions else adminOptions[AdminLocation.key(field.key, lvl)].orEmpty()
+                            },
+                            onLevelChange = { lvl, v -> onValueChange(AdminLocation.key(field.key, lvl), v) },
+                            requiredLevels = if (field.required) (field.adminRequiredLevels + 0).toSet() else emptySet(),
+                            error = error,
+                            required = field.required,
+                        )
+                    }
                     FormFieldType.PHOTO_CAPTURE -> PhotoCaptureField(
                         label = field.label, value = value,
                         onTakePhoto = onTakePhoto,

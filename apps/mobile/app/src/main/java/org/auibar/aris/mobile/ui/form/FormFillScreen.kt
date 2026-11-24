@@ -183,8 +183,8 @@ fun FormFillScreen(
                         speciesOptions = uiState.speciesOptions,
                         diseaseOptions = uiState.diseaseOptions,
                         countryOptions = uiState.countryOptions,
-                        admin1Options = uiState.admin1Options,
-                        admin2Options = uiState.admin2Options,
+                        adminOptions = uiState.adminOptions,
+                        adminFieldView = { viewModel.adminFieldView(it, uiState) },
                         masterDataOptions = uiState.masterDataOptions,
                         onValueChange = viewModel::onValueChange,
                         onCaptureLocation = {

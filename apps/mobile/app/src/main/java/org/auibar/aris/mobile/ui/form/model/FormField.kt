@@ -61,6 +61,10 @@ data class FormField(
 
     // Section description
     val sectionDescription: String? = null,
+
+    // Admin location: levels shown by the form (0 = country) and levels that must be filled
+    val adminLevels: List<Int> = listOf(0, 1, 2),
+    val adminRequiredLevels: List<Int> = listOf(0),
 )
 
 data class SelectOption(

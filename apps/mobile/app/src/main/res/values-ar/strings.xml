@@ -56,6 +56,7 @@
     <string name="select_country">\u0627\u062e\u062a\u0631 \u0627\u0644\u062f\u0648\u0644\u0629</string>
     <string name="select_admin1">\u0627\u062e\u062a\u0631 \u0627\u0644\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u0625\u062f\u0627\u0631\u064a 1</string>
     <string name="select_admin2">\u0627\u062e\u062a\u0631 \u0627\u0644\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u0625\u062f\u0627\u0631\u064a 2</string>
+    <string name="admin_level_n">المستوى الإداري %1$d</string>
     <string name="capture_location">\u0627\u0644\u062a\u0642\u0627\u0637 \u0645\u0648\u0642\u0639 GPS</string>
     <string name="take_photo">\u0627\u0644\u062a\u0642\u0627\u0637 \u0635\u0648\u0631\u0629</string>
     <string name="location_captured">\u062a\u0645 \u0627\u0644\u062a\u0642\u0627\u0637 \u0627\u0644\u0645\u0648\u0642\u0639</string>

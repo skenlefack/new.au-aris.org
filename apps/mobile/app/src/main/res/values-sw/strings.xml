@@ -80,6 +80,7 @@
     <string name="select_country">Select country</string>
     <string name="select_admin1">Select admin level 1</string>
     <string name="select_admin2">Select admin level 2</string>
+    <string name="admin_level_n">Ngazi ya utawala %1$d</string>
     <string name="capture_location">Capture GPS Location</string>
     <string name="take_photo">Take Photo</string>
     <string name="location_captured">Location captured</string>

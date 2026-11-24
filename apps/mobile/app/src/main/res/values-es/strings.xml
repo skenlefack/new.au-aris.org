@@ -80,6 +80,7 @@
     <string name="select_country">Seleccionar país</string>
     <string name="select_admin1">Select admin level 1</string>
     <string name="select_admin2">Select admin level 2</string>
+    <string name="admin_level_n">Nivel administrativo %1$d</string>
     <string name="capture_location">Capture GPS Location</string>
     <string name="take_photo">Tomar foto</string>
     <string name="location_captured">Ubicación capturada</string>

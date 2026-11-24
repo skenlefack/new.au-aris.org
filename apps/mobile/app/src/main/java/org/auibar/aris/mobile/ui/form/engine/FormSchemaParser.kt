@@ -2,6 +2,7 @@ package org.auibar.aris.mobile.ui.form.engine
 
 import android.util.Log
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.booleanOrNull
@@ -128,6 +129,10 @@ class FormSchemaParser {
                     }
                 }
 
+                // Admin location levels (web default: country + 2 levels, country required)
+                val adminLevels = parseIntList(props?.get("levels"))?.sorted() ?: listOf(0, 1, 2)
+                val adminRequiredLevels = parseIntList(props?.get("requiredLevels")) ?: listOf(0)
+
                 fields.add(
                     FormField(
                         key = code,
@@ -164,6 +169,8 @@ class FormSchemaParser {
                         formula = formula,
                         customValidationMessage = customValidationMessage,
                         sectionDescription = sectionDescription,
+                        adminLevels = adminLevels,
+                        adminRequiredLevels = adminRequiredLevels,
                     )
                 )
                 globalOrder++
@@ -216,6 +223,10 @@ class FormSchemaParser {
             else -> FormFieldType.TEXT
         }
     }
+
+    private fun parseIntList(el: JsonElement?): List<Int>? = try {
+        el?.jsonArray?.mapNotNull { it.jsonPrimitive.intOrNull }?.distinct()?.takeIf { it.isNotEmpty() }
+    } catch (_: Exception) { null }
 
     private fun parseConditions(field: JsonObject): List<FieldCondition> {
         val conditionsArray = field["conditions"]?.jsonArray ?: return emptyList()

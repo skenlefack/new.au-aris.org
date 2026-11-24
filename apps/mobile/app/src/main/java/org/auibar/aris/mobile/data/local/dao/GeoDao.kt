@@ -22,4 +22,8 @@ interface GeoDao {
 
     @Query("DELETE FROM geo_units")
     suspend fun deleteAll()
+
+    /** Drop cached children of a parent that the server no longer returns (deactivated or moved divisions). */
+    @Query("DELETE FROM geo_units WHERE parentId = :parentId AND id NOT IN (:keepIds)")
+    suspend fun deleteChildrenNotIn(parentId: String, keepIds: List<String>)
 }

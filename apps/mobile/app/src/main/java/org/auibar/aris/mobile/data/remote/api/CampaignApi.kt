@@ -7,7 +7,10 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -18,6 +21,7 @@ import org.auibar.aris.mobile.data.remote.dto.FormTemplateDto
 import org.auibar.aris.mobile.data.remote.dto.FormTemplateSummaryDto
 import org.auibar.aris.mobile.data.remote.dto.SafeApiResponse
 import org.auibar.aris.mobile.data.remote.dto.TemplateInfoDto
+import org.auibar.aris.mobile.ui.form.engine.AdminLevelConfig
 import javax.inject.Inject
 
 private const val TAG = "CampaignApi"
@@ -354,6 +358,53 @@ class CampaignApi @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Geo API failed: ${e.message}")
             emptyList()
+        }
+    }
+
+    /** Active children of a geo unit; null when the request failed (offline, HTTP error). */
+    suspend fun getGeoChildren(parentId: String): List<RefDataSelectItem>? {
+        return try {
+            val response = client.get("/api/v1/master-data/geo") {
+                parameter("parentId", parentId)
+                parameter("limit", 500)
+            }
+            if (response.status.value !in 200..299) {
+                Log.w(TAG, "Geo children API → HTTP ${response.status.value}")
+                return null
+            }
+            val body: SafeApiResponse<List<RefDataSelectItem>> = response.body()
+            body.data ?: emptyList()
+        } catch (e: Exception) {
+            Log.w(TAG, "Geo children API failed: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Admin levels configured for a country in Settings > Countries (tenant service, by ISO code).
+     * Returns null when the request failed, an empty list when the country has no configuration.
+     */
+    suspend fun getAdminLevels(countryCode: String): List<AdminLevelConfig>? {
+        return try {
+            val response = client.get("/api/v1/settings/countries/$countryCode/admin-levels")
+            if (response.status.value !in 200..299) {
+                Log.w(TAG, "Admin levels API → HTTP ${response.status.value}")
+                return null
+            }
+            val root = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val data = root["data"] as? JsonArray ?: return emptyList()
+            data.mapNotNull { el ->
+                val o = el as? JsonObject ?: return@mapNotNull null
+                val level = o["level"]?.jsonPrimitive?.content?.toIntOrNull() ?: return@mapNotNull null
+                val names = (o["name"] as? JsonObject)
+                    ?.mapNotNull { (lang, v) -> (v as? JsonPrimitive)?.content?.let { lang to it } }
+                    ?.toMap() ?: emptyMap()
+                val isActive = o["isActive"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true
+                AdminLevelConfig(level = level, names = names, isActive = isActive)
+            }.sortedBy { it.level }
+        } catch (e: Exception) {
+            Log.w(TAG, "Admin levels API failed: ${e.message}")
+            null
         }
     }
 

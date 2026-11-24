@@ -56,6 +56,7 @@
     <string name="select_country">S\u00e9lectionnez un pays</string>
     <string name="select_admin1">S\u00e9lectionnez le niveau admin 1</string>
     <string name="select_admin2">S\u00e9lectionnez le niveau admin 2</string>
+    <string name="admin_level_n">Niveau administratif %1$d</string>
     <string name="capture_location">Capturer la position GPS</string>
     <string name="take_photo">Prendre une photo</string>
     <string name="location_captured">Position captur\u00e9e</string>
