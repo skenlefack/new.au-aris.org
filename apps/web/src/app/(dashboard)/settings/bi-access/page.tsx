@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { BarChart3, PieChart, BarChart2, ShieldCheck, Eye, EyeOff, Save, ChevronDown, ChevronUp, Loader2, AlertTriangle, CheckCircle2, Search } from 'lucide-react';
+import { BarChart3, PieChart, ShieldCheck, Eye, EyeOff, Save, ChevronDown, ChevronUp, Loader2, AlertTriangle, CheckCircle2, Search } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
 import { matchesSearch } from '@/lib/search';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -15,13 +15,11 @@ import { SettingsBackButton } from '@/components/settings/SettingsBackButton';
 const ICON_MAP: Record<string, React.ElementType> = {
   superset: BarChart3,
   metabase: PieChart,
-  grafana: BarChart2,
 };
 
 const COLOR_MAP: Record<string, string> = {
   superset: '#1FC2A7',
   metabase: '#509EE3',
-  grafana: '#FF6600',
 };
 
 const SCHEMAS = ['public', 'historical'];
@@ -236,7 +234,6 @@ export default function BiAccessPage() {
             <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-0.5 list-disc ml-4">
               <li><strong>Superset</strong>: {t('biEnforcementSuperset') ?? 'Guest token RLS enforces tenant_id filtering. SQL Lab and dashboard creation are blocked for guest users.'}</li>
               <li><strong>Metabase</strong>: {t('biEnforcementMetabase') ?? 'Signed embedding locks tenant_id filter on dashboards. Users see pre-built dashboards only.'}</li>
-              <li><strong>Grafana</strong>: {t('biEnforcementGrafana') ?? 'Dashboard SQL queries filter by tenant_id variable. Viewers cannot edit queries.'}</li>
             </ul>
             <p className="text-xs text-amber-600 dark:text-amber-400 italic">
               {t('biEnforcementNote') ?? 'Schema/table rules below are advisory — the primary security boundary is tenant-level filtering and role-based tool access.'}

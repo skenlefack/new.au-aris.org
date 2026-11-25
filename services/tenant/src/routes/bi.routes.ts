@@ -97,26 +97,6 @@ export async function registerBiRoutes(app: FastifyInstance): Promise<void> {
     return { data: { embedUrl } };
   });
 
-  // ───────────────────── Grafana Embed URL ─────────────────────
-
-  // GET /api/v1/bi/grafana/embed-url — get Grafana embed URL with tenant variables
-  app.get<{ Querystring: { dashboardUid?: string } }>('/api/v1/bi/grafana/embed-url', {
-    preHandler: auth,
-  }, async (request) => {
-    const user = (request as any).user;
-    const biUser = {
-      userId: user.sub ?? user.userId,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      tenantId: user.tenantId,
-      tenantLevel: user.tenantLevel,
-    };
-    const url = await app.biService.getGrafanaEmbedUrl(biUser, request.query.dashboardUid);
-    return { data: { url } };
-  });
-
   // ───────────────────── Access Rules (admin only for write, auth for read) ─────────────────────
 
   // GET /api/v1/bi/access-rules — list all access rules (optionally filtered by tool)

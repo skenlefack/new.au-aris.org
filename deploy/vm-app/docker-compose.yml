@@ -130,7 +130,7 @@ services:
       - "8025:8025"
 
   # ═══════════════════════════════════════════════════
-  #  MONITORING — Prometheus + Grafana + Jaeger
+  #  MONITORING — Prometheus + Jaeger
   # ═══════════════════════════════════════════════════
   prometheus:
     image: prom/prometheus:v2.51.2
@@ -151,55 +151,6 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
-
-  grafana:
-    image: grafana/grafana:10.4.2
-    container_name: aris-grafana
-    <<: *service-common
-    ports:
-      - "3200:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-Gr4f4na_Pr0d_2024!aS7dF}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_AUTH_PROXY_ENABLED: "true"
-      GF_AUTH_PROXY_HEADER_NAME: "X-WEBAUTH-USER"
-      GF_AUTH_PROXY_HEADER_PROPERTY: "email"
-      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
-      GF_AUTH_PROXY_HEADERS: "Name:X-WEBAUTH-NAME Role:X-WEBAUTH-ROLE"
-      GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_SECURITY_ALLOW_EMBEDDING: "true"
-      # Subdomain: Grafana serves at grafana.au-aris.org
-      GF_SERVER_ROOT_URL: "https://grafana.au-aris.org/"
-    volumes:
-      - /opt/aris/infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - /opt/aris-deploy/vm-app/grafana-datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
-      - /opt/aris/infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - grafana-data:/var/lib/grafana
-    depends_on:
-      - prometheus
-      - jaeger
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.au-aris.org`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.routers.grafana.priority=10"
-      # ForwardAuth: Next.js decodes ARIS JWT → injects X-WEBAUTH-* headers for Grafana auth proxy
-      - "traefik.http.routers.grafana.middlewares=grafana-auth"
-      - "traefik.http.middlewares.grafana-auth.forwardauth.address=http://web:3000/api/bi-proxy/grafana-auth"
-      - "traefik.http.middlewares.grafana-auth.forwardauth.authResponseHeaders=X-WEBAUTH-USER,X-WEBAUTH-NAME,X-WEBAUTH-ROLE"
-      - "traefik.http.middlewares.grafana-auth.forwardauth.trustForwardHeader=true"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-      # Legacy redirect: /grafana → grafana.au-aris.org
-      - "traefik.http.routers.grafana-legacy.rule=PathPrefix(`/grafana`)"
-      - "traefik.http.routers.grafana-legacy.entrypoints=websecure"
-      - "traefik.http.routers.grafana-legacy.tls=true"
-      - "traefik.http.routers.grafana-legacy.priority=5"
-      - "traefik.http.routers.grafana-legacy.middlewares=grafana-redirect"
-      - "traefik.http.middlewares.grafana-redirect.redirectregex.regex=^https://au-aris.org/grafana(.*)"
-      - "traefik.http.middlewares.grafana-redirect.redirectregex.replacement=https://grafana.au-aris.org$${1}"
-      - "traefik.http.middlewares.grafana-redirect.redirectregex.permanent=true"
 
   jaeger:
     image: jaegertracing/all-in-one:1.57
@@ -347,7 +298,6 @@ services:
         NEXT_PUBLIC_API_URL: https://au-aris.org
         NEXT_PUBLIC_WS_URL: wss://au-aris.org
         # BI tool URLs (inlined at build time) — subdomain routing
-        NEXT_PUBLIC_GRAFANA_URL: https://grafana.au-aris.org
         NEXT_PUBLIC_METABASE_URL: https://metabase.au-aris.org
         NEXT_PUBLIC_SUPERSET_URL: https://superset.au-aris.org
     ports:
@@ -357,14 +307,12 @@ services:
       NEXT_PUBLIC_API_URL: https://au-aris.org
       NEXT_PUBLIC_WS_URL: wss://au-aris.org
       # BI tool public URLs — subdomain routing
-      NEXT_PUBLIC_GRAFANA_URL: https://grafana.au-aris.org
       NEXT_PUBLIC_METABASE_URL: https://metabase.au-aris.org
       NEXT_PUBLIC_SUPERSET_URL: https://superset.au-aris.org
       # Internal service URLs (Docker Compose service names)
       INTERNAL_TENANT_URL: http://aris-tenant:3001
       # Server-side env vars for BI proxy API routes (Docker service names, fallback)
       METABASE_INTERNAL_URL: http://metabase:3000
-      GRAFANA_INTERNAL_URL: http://grafana:3000
       SUPERSET_INTERNAL_URL: http://superset:8088
     labels:
       - "traefik.enable=true"
@@ -376,7 +324,7 @@ services:
       - "traefik.http.services.web.loadbalancer.server.port=3000"
 
       # Catch-all for REC / country subdomains (e.g. igad.au-aris.org, ke.au-aris.org).
-      # Lower priority so BI subdomain routers (superset/metabase/grafana) still win.
+      # Lower priority so BI subdomain routers (superset/metabase) still win.
       # Next.js middleware (apps/web/src/middleware.ts) rewrites root requests
       # to /rec/{code} or /country/{code} based on the Host header.
       - "traefik.http.routers.web-subdomain.rule=HostRegexp(`^[a-z0-9-]+\\.au-aris\\.org$`)"
@@ -405,7 +353,6 @@ services:
       # BI integration — internal service URLs (Docker service names)
       METABASE_INTERNAL_URL: http://metabase:3000
       SUPERSET_INTERNAL_URL: http://superset:8088
-      GRAFANA_INTERNAL_URL: http://grafana:3000
       METABASE_ADMIN_EMAIL: admin@au-aris.org
       METABASE_ADMIN_PASSWORD: "ArisMetabase2024!"
       SUPERSET_ADMIN_USERNAME: admin
@@ -1168,7 +1115,6 @@ services:
 volumes:
   minio-data:
   prometheus-data:
-  grafana-data:
   jaeger-data:
   superset_home:
   metabase_data:

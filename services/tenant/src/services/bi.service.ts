@@ -75,12 +75,6 @@ export class BiService {
       };
     }
 
-    // Grafana: build URL with tenant variables via proxy
-    if (tool === 'grafana' && user) {
-      const url = await this.getGrafanaEmbedUrl(user);
-      return { data: { url, guestToken: null } };
-    }
-
     return { data: { url: config.baseUrl, guestToken: null } };
   }
 
@@ -216,42 +210,6 @@ export class BiService {
 
     const body = await res.json() as { token: string };
     return body.token;
-  }
-
-  /* ═══════════════════════════════════════════
-     Grafana — Embed URL with tenant variables
-     ═══════════════════════════════════════════ */
-
-  async getGrafanaEmbedUrl(user: BiUser, dashboardUid?: string): Promise<string> {
-    const tenantIds = await this.resolveTenantIds(user);
-
-    // Resolve base URL from DB config (supports subdomain routing)
-    let baseUrl = '/api/bi-proxy/grafana';
-    try {
-      const rows = await this.prisma.$queryRawUnsafe<{ baseUrl: string }[]>(`
-        SELECT base_url as "baseUrl" FROM governance.bi_tool_configs
-        WHERE tool = 'grafana' AND is_active = true LIMIT 1
-      `);
-      if (rows.length > 0 && rows[0].baseUrl) {
-        baseUrl = rows[0].baseUrl;
-      }
-    } catch { /* fallback to proxy path */ }
-
-    const path = dashboardUid ? `/d/${dashboardUid}` : '/';
-
-    const params = new URLSearchParams();
-    params.set('kiosk', '');
-
-    if (tenantIds.length === 0) {
-      // Continental — wildcard
-      params.set('var-tenant_id', '*');
-    } else {
-      for (const id of tenantIds) {
-        params.append('var-tenant_id', id);
-      }
-    }
-
-    return `${baseUrl}${path}?${params.toString()}`;
   }
 
   /* ═══════════════════════════════════════════

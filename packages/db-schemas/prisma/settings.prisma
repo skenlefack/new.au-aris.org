@@ -367,7 +367,7 @@ model UserRoleAssignment {
 
 model BiToolConfig {
   id          String             @id @default(uuid()) @db.Uuid
-  tool        String             @unique @db.VarChar(30) // "superset", "metabase", "grafana"
+  tool        String             @unique @db.VarChar(30) // "superset", "metabase"
   baseUrl     String             @map("base_url") @db.VarChar(500)
   displayName Json               @map("display_name") // { "en": "Apache Superset", "fr": "..." }
   description Json?

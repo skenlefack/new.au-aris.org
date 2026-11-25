@@ -11,7 +11,6 @@ const prisma = new PrismaClient();
 const BI_TOOL_IDS = {
   SUPERSET: 'a0000000-0000-4000-b000-000000000001',
   METABASE: 'a0000000-0000-4000-b000-000000000002',
-  GRAFANA: 'a0000000-0000-4000-b000-000000000003',
 } as const;
 
 // ─── Seed Data ──────────────────────────────────────────────────────────────
@@ -63,27 +62,6 @@ async function seedBiTools() {
       embedMode: 'iframe',
       sortOrder: 2,
     },
-    {
-      id: BI_TOOL_IDS.GRAFANA,
-      tool: 'grafana',
-      baseUrl: process.env.GRAFANA_URL || 'http://localhost:3200',
-      displayName: {
-        en: 'Grafana',
-        fr: 'Grafana',
-        pt: 'Grafana',
-        ar: 'Grafana',
-      },
-      description: {
-        en: 'Dashboard builder with PostgreSQL queries, template variables, drill-down, and alerting',
-        fr: 'Constructeur de tableaux de bord avec requêtes PostgreSQL, variables, drill-down et alertes',
-        pt: 'Construtor de dashboards com consultas PostgreSQL, variáveis e alertas',
-        ar: 'أداة بناء لوحات المعلومات مع استعلامات PostgreSQL والمتغيرات والتنبيهات',
-      },
-      icon: 'BarChart2',
-      status: 'active',
-      embedMode: 'iframe',
-      sortOrder: 3,
-    },
   ];
 
   for (const t of tools) {
@@ -115,7 +93,7 @@ async function seedBiTools() {
   const SENSITIVE_TABLES = ['User', 'Session', 'RefreshToken'];
   const AUDIT_TABLES = [...SENSITIVE_TABLES, 'AuditLog'];
 
-  const activeTools = [BI_TOOL_IDS.SUPERSET, BI_TOOL_IDS.METABASE, BI_TOOL_IDS.GRAFANA];
+  const activeTools = [BI_TOOL_IDS.SUPERSET, BI_TOOL_IDS.METABASE];
   let ruleCount = 0;
 
   for (const toolId of activeTools) {
@@ -190,132 +168,6 @@ async function seedBiTools() {
   console.log('Seeding default BI dashboards...');
 
   const dashboards = [
-    // ─── Grafana dashboards (provisioned via JSON files) ───────────────
-
-    // Business dashboards (scope: global — visible to all BI users)
-    {
-      biToolConfigId: BI_TOOL_IDS.GRAFANA,
-      externalId: 'aris-continental',
-      name: {
-        en: 'Continental Overview',
-        fr: 'Vue d\'ensemble continentale',
-        pt: 'Visao continental',
-        ar: 'نظرة عامة قارية',
-      },
-      description: {
-        en: 'Key metrics across all AU Member States',
-        fr: 'Indicateurs cles pour tous les Etats membres de l\'UA',
-      },
-      category: 'overview',
-      embedUrl: '/d/aris-continental',
-      scope: 'global',
-      sortOrder: 1,
-      isFeatured: true,
-    },
-    {
-      biToolConfigId: BI_TOOL_IDS.GRAFANA,
-      externalId: 'aris-animal-health',
-      name: {
-        en: 'Animal Health',
-        fr: 'Sante animale',
-        pt: 'Saude animal',
-        ar: 'الصحة الحيوانية',
-      },
-      description: {
-        en: 'Outbreaks, surveillance, lab results, vaccinations',
-        fr: 'Foyers, surveillance, resultats laboratoire, vaccinations',
-      },
-      category: 'health',
-      embedUrl: '/d/aris-animal-health',
-      scope: 'global',
-      sortOrder: 2,
-      isFeatured: true,
-    },
-    {
-      biToolConfigId: BI_TOOL_IDS.GRAFANA,
-      externalId: 'aris-trade-production',
-      name: {
-        en: 'Trade & Production',
-        fr: 'Commerce et production',
-        pt: 'Comercio e producao',
-        ar: 'التجارة والإنتاج',
-      },
-      description: {
-        en: 'Trade flows, livestock production, market prices',
-        fr: 'Flux commerciaux, production animale, prix marche',
-      },
-      category: 'trade',
-      embedUrl: '/d/aris-trade-production',
-      scope: 'global',
-      sortOrder: 3,
-      isFeatured: false,
-    },
-    {
-      biToolConfigId: BI_TOOL_IDS.GRAFANA,
-      externalId: 'aris-business',
-      name: {
-        en: 'Business Metrics',
-        fr: 'Indicateurs metier',
-        pt: 'Metricas de negocio',
-        ar: 'مقاييس الأعمال',
-      },
-      description: {
-        en: 'Cross-domain business KPIs and trends',
-        fr: 'KPI metier transversaux et tendances',
-      },
-      category: 'overview',
-      embedUrl: '/d/aris-business',
-      scope: 'global',
-      sortOrder: 4,
-      isFeatured: false,
-    },
-
-    // Operational dashboards (scope: admin — only SUPER_ADMIN / CONTINENTAL_ADMIN)
-    {
-      biToolConfigId: BI_TOOL_IDS.GRAFANA,
-      externalId: 'aris-overview',
-      name: { en: 'ARIS Overview', fr: 'Vue d\'ensemble ARIS' },
-      description: { en: 'System-wide overview', fr: 'Vue d\'ensemble systeme' },
-      category: 'ops',
-      embedUrl: '/d/aris-overview',
-      scope: 'admin',
-      sortOrder: 10,
-      isFeatured: false,
-    },
-    {
-      biToolConfigId: BI_TOOL_IDS.GRAFANA,
-      externalId: 'aris-api',
-      name: { en: 'API Performance', fr: 'Performance API' },
-      description: { en: 'HTTP latency, error rates, throughput', fr: 'Latence HTTP, taux d\'erreur, debit' },
-      category: 'ops',
-      embedUrl: '/d/aris-api',
-      scope: 'admin',
-      sortOrder: 11,
-      isFeatured: false,
-    },
-    {
-      biToolConfigId: BI_TOOL_IDS.GRAFANA,
-      externalId: 'aris-kafka',
-      name: { en: 'Kafka', fr: 'Kafka' },
-      description: { en: 'Broker health, topic lag, throughput', fr: 'Sante brokers, lag topics, debit' },
-      category: 'ops',
-      embedUrl: '/d/aris-kafka',
-      scope: 'admin',
-      sortOrder: 12,
-      isFeatured: false,
-    },
-    {
-      biToolConfigId: BI_TOOL_IDS.GRAFANA,
-      externalId: 'aris-traces',
-      name: { en: 'Distributed Traces', fr: 'Traces distribuees' },
-      description: { en: 'Jaeger traces and spans', fr: 'Traces et spans Jaeger' },
-      category: 'ops',
-      embedUrl: '/d/aris-traces',
-      scope: 'admin',
-      sortOrder: 13,
-      isFeatured: false,
-    },
-
     // ─── Superset dashboards (created by bootstrap, UUIDs set later) ──
 
     {

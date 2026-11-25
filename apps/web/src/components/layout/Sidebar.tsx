@@ -27,7 +27,6 @@ import {
   Database,
   ShieldCheck,
   BarChart3,
-  BarChart2,
   FileBarChart,
   HardDrive,
   PieChart,
@@ -127,7 +126,6 @@ const STATIC_GROUPS: NavGroup[] = [
     items: [
       { tKey: 'superset', href: '/bi-tools/superset', icon: Layers, matchPrefix: '/bi-tools/superset' },
       { tKey: 'metabase', href: '/bi-tools/metabase', icon: PieChart, matchPrefix: '/bi-tools/metabase' },
-      { tKey: 'grafana', href: '/bi-tools/grafana', icon: BarChart2, matchPrefix: '/bi-tools/grafana' },
     ],
   },
   {
@@ -234,56 +232,56 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
   FIELD_AGENT: new Set(['/home', '/collecte', '/ingest', '/workflow', '/data-sharing', '/support']),
   ANALYST: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/analytics', '/historical', '/reports', '/data-sharing', '/support',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   WAHIS_FOCAL_POINT: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/interop-hub', '/data-sharing', '/support',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   DATA_STEWARD: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing', '/programme-monitoring', '/support',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   NATIONAL_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/analytics', '/historical', '/reports', '/reports/flash-console', '/quality', '/workflow',
     '/master-data', '/settings', '/data-sharing', '/programme-monitoring', '/support',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   REC_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/workflow', '/master-data', '/quality',
     '/interop-hub', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/programme-monitoring', '/support',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   CONTINENTAL_ADMIN: new Set(), // full access handled below
   SUPER_ADMIN: new Set(), // full access handled below
   KNOWLEDGE_MANAGER: new Set(['/home', '/knowledge/admin', '/data-sharing']),
   NATIONAL_LABORATORY: new Set([
     '/home', '/my-dashboards', '/collecte', '/analytics', '/historical', '/reports',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   REGIONAL_LABORATORY: new Set([
     '/home', '/my-dashboards', '/collecte', '/analytics', '/historical', '/reports',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   CONTINENTAL_LABORATORY: new Set([
     '/home', '/my-dashboards', '/collecte', '/analytics', '/historical', '/reports',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   PAID_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/workflow',
     '/master-data',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
     '/support',
   ]),
   DECISION_MAKER: new Set([
     '/home', '/my-dashboards', '/analytics', '/historical', '/reports', '/slideshows',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
     '/support',
   ]),
   INTEROP_MANAGER: new Set([
     '/home', '/my-dashboards', '/interop-hub', '/interop', '/data-sharing', '/analytics',
     '/historical', '/reports', '/collecte', '/workflow', '/quality',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/bi-tools/superset', '/bi-tools/metabase',
     '/support',
   ]),
 };

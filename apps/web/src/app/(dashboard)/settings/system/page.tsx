@@ -161,6 +161,6 @@ const STACK_ITEMS = [
   { label: 'Search', value: 'OpenSearch 2' },
   { label: 'Object Storage', value: 'MinIO (S3)' },
   { label: 'Proxy', value: 'PgBouncer + Traefik' },
-  { label: 'Monitoring', value: 'Prometheus + Grafana' },
+  { label: 'Monitoring', value: 'Prometheus' },
   { label: 'Auth', value: 'JWT RS256 + MFA TOTP' },
 ];

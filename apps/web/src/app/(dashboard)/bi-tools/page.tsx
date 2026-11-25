@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { BarChart3, PieChart, BarChart2, ArrowRight, CheckCircle2, Shield, Lock, Loader2 } from 'lucide-react';
+import { BarChart3, PieChart, ArrowRight, CheckCircle2, Shield, Lock, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -11,25 +11,21 @@ import { useBiTools, useBiAccessRulesForRole, type BiToolConfig } from '@/lib/ap
 const ICON_MAP: Record<string, React.ElementType> = {
   superset: BarChart3,
   metabase: PieChart,
-  grafana: BarChart2,
 };
 
 const COLOR_MAP: Record<string, string> = {
   superset: '#1FC2A7',
   metabase: '#509EE3',
-  grafana: '#FF6600',
 };
 
 const HREF_MAP: Record<string, string> = {
   superset: '/bi-tools/superset',
   metabase: '/bi-tools/metabase',
-  grafana: '/bi-tools/grafana',
 };
 
 const FEATURES_MAP: Record<string, string[]> = {
   superset: ['SQL Lab', 'Custom Dashboards', 'Chart Builder', 'Data Exploration'],
   metabase: ['Question Builder', 'Auto Dashboards', 'Alerts', 'Collections'],
-  grafana: ['Dashboard Builder', 'PostgreSQL Queries', 'Variables & Drill-down', 'Alerting'],
 };
 
 export default function BiToolsPage() {

@@ -437,14 +437,6 @@ export function DashboardFilterPanel({
             Metabase
             <span className="ml-auto text-[9px] rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5">{t('biActive')}</span>
           </a>
-          <a
-            href="/bi-tools/grafana"
-            className="flex items-center gap-2 px-3 py-1.5 text-[11px] text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
-          >
-            <BarChart3 className="h-3 w-3" />
-            Grafana
-            <span className="ml-auto text-[9px] rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5">{t('biActive')}</span>
-          </a>
         </div>
       </div>
     </div>

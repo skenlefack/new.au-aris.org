@@ -83,20 +83,6 @@ const FALLBACK_TOOLS: BiToolConfig[] = [
     embedMode: 'iframe',
     sortOrder: 2,
   },
-  {
-    id: 'grafana',
-    tool: 'grafana',
-    baseUrl: process.env.NEXT_PUBLIC_GRAFANA_URL ?? '/api/bi-proxy/grafana',
-    displayName: { en: 'Grafana', fr: 'Grafana' },
-    description: {
-      en: 'Dashboard builder with PostgreSQL queries, variables, and alerting',
-      fr: 'Constructeur de tableaux de bord avec requetes PostgreSQL, variables et alertes',
-    },
-    icon: 'BarChart2',
-    status: 'active',
-    embedMode: 'iframe',
-    sortOrder: 3,
-  },
 ];
 
 /* ── Helpers ── */
@@ -297,19 +283,3 @@ export function useRequestMetabaseEmbedUrl() {
   });
 }
 
-/* ── Hooks — Grafana Embed URL ── */
-
-export function useGrafanaEmbedUrl(dashboardUid?: string) {
-  return useQuery({
-    queryKey: ['bi', 'grafana', 'embed-url', dashboardUid],
-    queryFn: async () => {
-      try {
-        const params = dashboardUid ? `?dashboardUid=${dashboardUid}` : '';
-        return await apiFetch<{ data: { url: string } }>(`/bi/grafana/embed-url${params}`);
-      } catch {
-        return { data: { url: '/api/bi-proxy/grafana/?kiosk' } };
-      }
-    },
-    staleTime: 5 * 60_000,
-  });
-}

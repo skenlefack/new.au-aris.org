@@ -348,43 +348,6 @@ services:
       - aris-network
 
   # ═══════════════════════════════════════════════════
-  # GRAFANA — Dashboards & Visualization
-  # ═══════════════════════════════════════════════════
-  grafana:
-    image: grafana/grafana:10.4.2
-    container_name: aris-grafana
-    restart: unless-stopped
-    ports:
-      - "3200:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-aris_grafana_2024}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      # Auth Proxy — ARIS backend injects X-WEBAUTH-USER header
-      GF_AUTH_PROXY_ENABLED: "true"
-      GF_AUTH_PROXY_HEADER_NAME: "X-WEBAUTH-USER"
-      GF_AUTH_PROXY_HEADER_PROPERTY: "email"
-      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
-      GF_AUTH_PROXY_HEADERS: "Name:X-WEBAUTH-NAME Role:X-WEBAUTH-ROLE"
-      GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_SECURITY_ALLOW_EMBEDDING: "true"
-    volumes:
-      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
-      - grafana-data:/var/lib/grafana
-    depends_on:
-      - prometheus
-      - jaeger
-      - postgres
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-    networks:
-      - aris-network
-
-  # ═══════════════════════════════════════════════════
   # JAEGER — Distributed Tracing (OpenTelemetry)
   # ═══════════════════════════════════════════════════
   jaeger:
@@ -725,7 +688,6 @@ volumes:
   opensearch-data:
   minio-data:
   prometheus-data:
-  grafana-data:
   jaeger-data:
   superset_home:
   metabase_data:

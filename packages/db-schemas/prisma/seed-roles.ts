@@ -653,7 +653,6 @@ const PERMISSION_DEFS: PermissionSeed[] = [
   // BI Tools
   { module: 'bi-tools', feature: 'superset', actions: ['view', 'configure'] },
   { module: 'bi-tools', feature: 'metabase', actions: ['view', 'configure'] },
-  { module: 'bi-tools', feature: 'grafana', actions: ['view', 'configure'] },
 
   // Settings
   { module: 'settings', feature: 'profile', actions: ['view', 'edit'] },
@@ -735,7 +734,7 @@ const REC_ADMIN_PERMS = [
   'settings:statistics:view', 'settings:statistics:create', 'settings:statistics:edit',
   'settings:validation-chains:view', 'settings:validation-chains:create', 'settings:validation-chains:edit',
   'settings:audit:view',
-  'bi-tools:superset:view', 'bi-tools:metabase:view', 'bi-tools:grafana:view',
+  'bi-tools:superset:view', 'bi-tools:metabase:view',
 ];
 
 // NATIONAL_ADMIN: similar to REC but national scope + master data
@@ -753,7 +752,7 @@ const NATIONAL_ADMIN_PERMS = [
   'settings:countries:view', 'settings:countries:edit',
   'settings:audit:view',
   'quality:rules:view', 'quality:reports:view', 'quality:reports:export',
-  'bi-tools:superset:view', 'bi-tools:metabase:view', 'bi-tools:grafana:view',
+  'bi-tools:superset:view', 'bi-tools:metabase:view',
   'interop:wahis:view', 'interop:empres:view', 'interop:faostat:view', 'interop:exports:view', 'interop:exports:export',
 ];
 
@@ -792,7 +791,7 @@ const ANALYST_PERMS = [
   ...allPermsForModules(DOMAIN_MODULES).filter(p => p.endsWith(':view') || p.endsWith(':export')),
   ...allPermsForModules(['analytics', 'historical', 'reports']),
   'master-data:referentials:view', 'master-data:denominators:view', 'master-data:infrastructures:view',
-  'bi-tools:superset:view', 'bi-tools:metabase:view', 'bi-tools:grafana:view',
+  'bi-tools:superset:view', 'bi-tools:metabase:view',
   'settings:profile:view', 'settings:profile:edit',
 ];
 
@@ -835,7 +834,7 @@ const DECISION_MAKER_PERMS = [
   // Analytics, Historical, Reports: full read + export
   ...allPermsForModules(['analytics', 'historical', 'reports']),
   // BI tools: view only (no configure)
-  'bi-tools:superset:view', 'bi-tools:metabase:view', 'bi-tools:grafana:view',
+  'bi-tools:superset:view', 'bi-tools:metabase:view',
   // Profile only
   'settings:profile:view', 'settings:profile:edit',
 ];
@@ -864,7 +863,6 @@ const DELEGATE_ARIS_NATIONAL_PERMS = [
 const DELEGATE_ARIS_REGIONAL_PERMS = [
   ...DELEGATE_ARIS_NATIONAL_PERMS,
   'settings:countries:view',
-  'bi-tools:grafana:view',
 ];
 
 // DATA_COLLECTOR_*: all variants match FIELD_AGENT's capability set — the
@@ -886,7 +884,6 @@ const DATA_VISUALIZER_PERMS = [
   'reports:generate:view', 'reports:generate:create', 'reports:generate:export', 'reports:history:view',
   'bi-tools:superset:view', 'bi-tools:superset:configure',
   'bi-tools:metabase:view', 'bi-tools:metabase:configure',
-  'bi-tools:grafana:view', 'bi-tools:grafana:configure',
   'settings:profile:view', 'settings:profile:edit',
 ];
 
@@ -900,7 +897,7 @@ const LABORATORY_PERMS = [
   'analytics:geo:view', 'analytics:geo:export', 'analytics:export:view', 'analytics:export:export',
   'historical:data:view', 'historical:data:export',
   'reports:generate:view', 'reports:generate:create', 'reports:generate:export', 'reports:history:view',
-  'bi-tools:superset:view', 'bi-tools:metabase:view', 'bi-tools:grafana:view',
+  'bi-tools:superset:view', 'bi-tools:metabase:view',
   'settings:profile:view', 'settings:profile:edit',
 ];
 const NATIONAL_LABORATORY_PERMS = LABORATORY_PERMS;
