@@ -24,6 +24,13 @@ const BCRYPT_ROUNDS = 10;
 const ALL_DOMAINS_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN']);
 const hasAllDomainsRole = (roles: string[]): boolean => roles.some((r) => ALL_DOMAINS_ROLES.has(r));
 
+/** Programme domains that are not governance domains, granted by role (PAID campaigns use domain "paid"). */
+const ROLE_DOMAINS: Record<string, string[]> = { PAID_ADMIN: ['paid'] };
+export const withRoleDomains = (perms: Record<string, string[]>, roles: string[]): Record<string, string[]> => {
+  const extra = roles.flatMap((r) => ROLE_DOMAINS[r] ?? []).filter((d) => !perms[d]);
+  return extra.length === 0 ? perms : { ...perms, ...Object.fromEntries(extra.map((d) => [d, ['*']])) };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
@@ -250,7 +257,7 @@ export class AuthService {
     // Compute permissions for frontend
     const permissions = await this.computePermissions(effectiveRoles);
 
-    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, effectiveDomainPerms, effectiveRoles);
+    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, withRoleDomains(effectiveDomainPerms, effectiveRoles), effectiveRoles);
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, user.role, user.tenantId, user.tenant.level, deviceType);
 
     await (this.prisma as any).user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
@@ -336,7 +343,7 @@ export class AuthService {
       domainPerms = await this.allDomainsWildcard(domainPerms);
     }
 
-    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainPerms, effectiveRoles);
+    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, withRoleDomains(domainPerms, effectiveRoles), effectiveRoles);
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, sessionData.role, sessionData.tenantId, sessionData.tenantLevel);
 
     return { data: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expiresIn: 900 } };
