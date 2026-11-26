@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { cleanText, gdeltQuery, parseFeed, parseGdelt } from '../lib/feeds';
+import { describe, it, expect, vi } from 'vitest';
+import { cleanText, fetchText, gdeltQuery, parseFeed, parseGdelt } from '../lib/feeds';
 
 describe('parseFeed', () => {
   it('reads RSS 2.0 items with CDATA and entities', () => {
@@ -37,5 +37,33 @@ describe('GDELT', () => {
 describe('cleanText', () => {
   it('strips tags and collapses spaces', () => {
     expect(cleanText('<b>Hello</b>\n  <i>world</i>')).toBe('Hello world');
+  });
+});
+
+describe('fetchText', () => {
+  const ok = (body: string) => ({ ok: true, status: 200, statusText: 'OK', headers: new Headers(), text: async () => body });
+  const status = (code: number) => ({ ok: false, status: code, statusText: '', headers: new Headers(), text: async () => '' });
+
+  it('retries a rate-limited request, then succeeds', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(status(429)).mockResolvedValueOnce(ok('<rss/>'));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(fetchText('https://x.org/feed', 1000, 3, 1)).resolves.toBe('<rss/>');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
+  it('reports the network cause after the last attempt', async () => {
+    const err = Object.assign(new TypeError('fetch failed'), { cause: { code: 'UND_ERR_CONNECT_TIMEOUT' } });
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(err));
+    await expect(fetchText('https://x.org/feed', 1000, 2, 1)).rejects.toThrow('fetch failed: UND_ERR_CONNECT_TIMEOUT');
+    vi.unstubAllGlobals();
+  });
+
+  it('does not retry a 404', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(status(404));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(fetchText('https://x.org/feed', 1000, 3, 1)).rejects.toThrow('HTTP 404');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
   });
 });

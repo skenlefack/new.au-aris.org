@@ -104,13 +104,23 @@ export class ScannerService {
     const span = Math.min(7 * 24 * 60, Math.max(60, source.intervalMinutes * 2));
     const timespan = span >= 1440 ? `${Math.ceil(span / 1440)}d` : `${span}min`;
     const out: Candidate[] = [];
+    const errors: string[] = [];
+    let queried = 0;
     for (const rule of rules) {
       const q = gdeltQuery(rule.anyTerms, rule.allTerms);
       if (!q) continue;
-      const items = await fetchGdelt(source.url, q, timespan);
-      out.push(...items.map((item) => ({ item, queriedFor: rule })));
-      await new Promise((r) => setTimeout(r, 5_000)); // GDELT asks for one request every 5 s
+      queried++;
+      try {
+        const items = await fetchGdelt(source.url, q, timespan);
+        out.push(...items.map((item) => ({ item, queriedFor: rule })));
+      } catch (err) {
+        // one failing query must not lose the others
+        errors.push((err as Error).message);
+      }
+      await new Promise((r) => setTimeout(r, 8_000)); // GDELT asks for at most one request every 5 s
     }
+    if (queried > 0 && errors.length === queried) throw new Error(errors[0]);
+    if (errors.length > 0) this.log.warn(`[veille] ${source.name}: ${errors.length}/${queried} GDELT queries failed (${errors[0]})`);
     return out;
   }
 

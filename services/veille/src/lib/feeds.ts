@@ -75,16 +75,46 @@ export function parseFeed(xml: string): FeedItem[] {
   return items;
 }
 
-async function fetchText(url: string, timeoutMs: number): Promise<string> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/atom+xml, application/xml, application/json, text/xml;q=0.9, */*;q=0.5' },
-    signal: AbortSignal.timeout(timeoutMs),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  const text = await res.text();
-  if (text.length > MAX_BYTES) throw new Error(`response larger than ${MAX_BYTES} bytes`);
-  return text;
+const RETRYABLE_STATUS = new Set([429, 502, 503, 504]);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Network error with its low-level cause ("fetch failed" alone says nothing). */
+function describe(err: unknown): string {
+  const e = err as { name?: string; message?: string; cause?: { code?: string; message?: string } };
+  if (e.name === 'TimeoutError') return 'timeout';
+  return [e.message, e.cause?.code ?? e.cause?.message].filter(Boolean).join(': ');
+}
+
+/**
+ * GET with up to `attempts` tries: network errors and 429/5xx are retried with a growing delay
+ * (Retry-After when the server sends one). The AU egress IP is shared, so GDELT often answers 429.
+ */
+export async function fetchText(url: string, timeoutMs = 30_000, attempts = 3, baseDelayMs = 10_000): Promise<string> {
+  let last = '';
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/atom+xml, application/xml, application/json, text/xml;q=0.9, */*;q=0.5' },
+        signal: AbortSignal.timeout(timeoutMs),
+        redirect: 'follow',
+      });
+    } catch (err) {
+      last = describe(err);
+      if (attempt < attempts) await sleep(baseDelayMs * attempt);
+      continue;
+    }
+    if (res.ok) {
+      const text = await res.text();
+      if (text.length > MAX_BYTES) throw new Error(`response larger than ${MAX_BYTES} bytes`);
+      return text;
+    }
+    last = `HTTP ${res.status} ${res.statusText}`.trim();
+    if (!RETRYABLE_STATUS.has(res.status) || attempt === attempts) break;
+    const retryAfter = Number(res.headers.get('retry-after'));
+    await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 120) * 1000 : baseDelayMs * attempt);
+  }
+  throw new Error(last || 'request failed');
 }
 
 export async function fetchFeed(url: string, timeoutMs = 30_000): Promise<FeedItem[]> {
