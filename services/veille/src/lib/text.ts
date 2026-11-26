@@ -28,9 +28,20 @@ export function urlHash(url: string): string {
   }
 }
 
+/** Title without trailing outlet names ("Story - Xinhua", "Story - Republikein - Jou Land"). */
+export function stripOutlet(title: string): string {
+  let t = title;
+  for (let i = 0; i < 2; i++) {
+    const m = t.match(/^(.{20,}?)\s+[-|–—]\s+[^-|–—]{2,60}$/);
+    if (!m) break;
+    t = m[1];
+  }
+  return t;
+}
+
 /** Hash of the normalised title: the same story syndicated on several sites shares this key. */
 export function titleKey(title: string): string {
-  return sha256(normalize(title).trim());
+  return sha256(normalize(stripOutlet(title)).trim());
 }
 
 /** A term matches on word boundaries, accent and case insensitive. */

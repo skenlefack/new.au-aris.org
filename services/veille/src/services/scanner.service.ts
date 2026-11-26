@@ -118,7 +118,7 @@ export class ScannerService {
           // one failing query must not lose the others
           errors.push((err as Error).message);
         }
-        await new Promise((r) => setTimeout(r, 8_000)); // GDELT asks for at most one request every 5 s
+        await new Promise((r) => setTimeout(r, 12_000)); // GDELT asks for one request every 5 s; the AU egress IP is shared
       }
     }
     if (queried > 0 && errors.length === queried) throw new Error(errors[0]);
@@ -160,7 +160,8 @@ export class ScannerService {
       const matches: RuleMatch[] = rules.map((r) => matchWatchList(r, normText, countries)).filter((m): m is RuleMatch => !!m);
       if (queriedFor && !matches.some((m) => m.watchListId === queriedFor.id) && ARIS_LANGUAGES.has(item.language ?? '')) {
         // GDELT matched the article body (in an ARIS language); keep it unless the title hits an exclusion or the country filter
-        const blocked = queriedFor.excludeTerms.some((t) => containsTerm(normText, t));
+        // without a term in the title, the text itself must name Africa or a Member State
+        const blocked = queriedFor.excludeTerms.some((t) => containsTerm(normText, t)) || !concernsAfrica(normText, countries);
         const outOfScope = queriedFor.countries.length > 0 && !countries.some((c) => queriedFor.countries.includes(c));
         if (!blocked && !outOfScope) matches.push({ watchListId: queriedFor.id, domain: queriedFor.domain, matchedTerms: [] });
       }

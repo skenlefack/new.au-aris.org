@@ -10,6 +10,11 @@ describe('normalize and hashes', () => {
   it('ignores tracking parameters and www in URL hashes', () => {
     expect(urlHash('https://www.site.org/a/?utm_source=x#top')).toBe(urlHash('https://site.org/a'));
   });
+  it('ignores a trailing outlet name in title keys', () => {
+    expect(titleKey('Can aquaculture unlock sustainable economic growth - Republikein - Jou Land')).toBe(titleKey('Can aquaculture unlock sustainable economic growth'));
+    expect(titleKey('Anthrax outbreak in Kenya | The Star')).toBe(titleKey('Anthrax outbreak in Kenya'));
+    expect(titleKey('Short - title')).not.toBe(titleKey('Short'));
+  });
   it('gives the same title key to the same story', () => {
     expect(titleKey('PPR outbreak in Kenya')).toBe(titleKey('ppr  OUTBREAK in kenya!'));
   });
