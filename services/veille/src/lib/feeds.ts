@@ -207,6 +207,6 @@ export function parseGdelt(json: string): FeedItem[] {
     }));
 }
 
-export async function fetchGdelt(base: string, query: string, timespan?: string, timeoutMs = 60_000): Promise<FeedItem[]> {
-  return parseGdelt(await fetchText(gdeltUrl(base, query, timespan), timeoutMs));
+export async function fetchGdelt(base: string, query: string, timespan?: string, maxRecords = 75, timeoutMs = 60_000): Promise<FeedItem[]> {
+  return parseGdelt(await fetchText(gdeltUrl(base, query, timespan, maxRecords), timeoutMs));
 }

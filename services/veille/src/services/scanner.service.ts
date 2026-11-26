@@ -100,9 +100,10 @@ export class ScannerService {
 
   private async collect(source: any, rules: WatchListRule[]): Promise<Candidate[]> {
     if (source.type === 'RSS') return (await fetchFeed(source.url)).map((item) => ({ item }));
-    // GDELT: one query per watchlist, over the window since the previous run
-    const span = Math.min(7 * 24 * 60, Math.max(60, source.intervalMinutes * 2));
-    const timespan = span >= 1440 ? `${Math.ceil(span / 1440)}d` : `${span}min`;
+    // GDELT: one query per watchlist. GDELT covers the world press and few items concern Africa,
+    // so look back at least 3 days with the maximum page size; URL de-duplication drops repeats.
+    const days = Math.min(7, Math.max(3, Math.ceil((source.intervalMinutes * 2) / 1440)));
+    const timespan = `${days}d`;
     const out: Candidate[] = [];
     const errors: string[] = [];
     let queried = 0;
@@ -111,7 +112,7 @@ export class ScannerService {
       if (!q) continue;
       queried++;
       try {
-        const items = await fetchGdelt(source.url, q, timespan);
+        const items = await fetchGdelt(source.url, q, timespan, 250);
         out.push(...items.map((item) => ({ item, queriedFor: rule })));
       } catch (err) {
         // one failing query must not lose the others
