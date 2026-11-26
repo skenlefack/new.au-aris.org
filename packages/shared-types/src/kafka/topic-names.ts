@@ -245,6 +245,9 @@ export const TOPIC_SYS_DATA_SHARING_AGREEMENT_REVOKED = 'sys.data-sharing.agreem
 export const TOPIC_SYS_DATA_SHARING_AGREEMENT_EXPIRED = 'sys.data-sharing.agreement.expired.v1' as const;
 export const TOPIC_SYS_DATA_SHARING_ACCESS_RECORDED = 'sys.data-sharing.access.recorded.v1' as const;
 
+// ── Veille (information watch) ──
+export const TOPIC_AU_VEILLE_SIGNAL_CREATED = 'au.veille.signal.created.v1' as const;
+
 // ── Report & Flash Topics ──
 export const TOPIC_SYS_ANALYTICS_REPORT_GENERATED = 'sys.analytics.report.generated.v1' as const;
 export const TOPIC_SYS_ANALYTICS_REPORT_PUBLISHED = 'sys.analytics.report.published.v1' as const;
@@ -440,6 +443,7 @@ export const ALL_TOPICS = [
   TOPIC_SYS_DATA_SHARING_AGREEMENT_REVOKED,
   TOPIC_SYS_DATA_SHARING_AGREEMENT_EXPIRED,
   TOPIC_SYS_DATA_SHARING_ACCESS_RECORDED,
+  TOPIC_AU_VEILLE_SIGNAL_CREATED,
   TOPIC_SYS_ANALYTICS_REPORT_GENERATED,
   TOPIC_SYS_ANALYTICS_REPORT_PUBLISHED,
   TOPIC_SYS_ANALYTICS_REPORT_GENERATION_FAILED,

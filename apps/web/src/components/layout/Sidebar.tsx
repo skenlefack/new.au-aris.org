@@ -46,6 +46,7 @@ import {
   Briefcase,
   Network,
   WifiOff,
+  Radar,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -108,6 +109,7 @@ const STATIC_GROUPS: NavGroup[] = [
     items: [
       { tKey: 'quality', href: '/quality', icon: ShieldCheck, matchPrefix: '/quality' },
       { tKey: 'interopHub', href: '/interop-hub', icon: Network, matchPrefix: '/interop-hub' },
+      { tKey: 'veille', href: '/veille', icon: Radar, matchPrefix: '/veille' },
       { tKey: 'analytics', href: '/analytics', icon: BarChart3, matchPrefix: '/analytics' },
       { tKey: 'historicalData', href: '/historical', icon: HardDrive, matchPrefix: '/historical' },
       { tKey: 'reports', href: '/reports', icon: FileBarChart, matchPrefix: '/reports' },
@@ -239,17 +241,17 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
     '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   DATA_STEWARD: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing', '/programme-monitoring', '/support',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing', '/programme-monitoring', '/veille', '/support',
     '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   NATIONAL_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/analytics', '/historical', '/reports', '/reports/flash-console', '/quality', '/workflow',
-    '/master-data', '/settings', '/data-sharing', '/programme-monitoring', '/support',
+    '/master-data', '/settings', '/data-sharing', '/programme-monitoring', '/veille', '/support',
     '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   REC_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/ingest', '/workflow', '/master-data', '/quality',
-    '/interop-hub', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/programme-monitoring', '/support',
+    '/interop-hub', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/programme-monitoring', '/veille', '/support',
     '/bi-tools/superset', '/bi-tools/metabase',
   ]),
   CONTINENTAL_ADMIN: new Set(), // full access handled below

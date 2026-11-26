@@ -1,0 +1,128 @@
+// ARIS — Veille (information watch)
+// Configured sources are scanned for keyword watchlists; matching items become
+// classified signals that a watch manager triages, validates and integrates.
+
+enum WatchSourceType {
+  RSS // RSS 2.0 or Atom feed
+  GDELT // GDELT DOC 2.0 API, queried with the active watchlists
+
+  @@schema("veille")
+}
+
+enum WatchSignalStatus {
+  NEW
+  IN_REVIEW
+  TO_VERIFY
+  VALIDATED
+  REJECTED
+  INTEGRATED
+
+  @@schema("veille")
+}
+
+model WatchSource {
+  id              String          @id @default(uuid()) @db.Uuid
+  name            String          @db.VarChar(255)
+  type            WatchSourceType @default(RSS)
+  url             String          @db.Text
+  countryCode     String?         @map("country_code") @db.VarChar(2)
+  language        String?         @db.VarChar(5)
+  reliability     String          @default("C") @db.VarChar(1) // Admiralty scale A (reliable) … F (cannot be judged)
+  intervalMinutes Int             @default(60) @map("interval_minutes")
+  isActive        Boolean         @default(true) @map("is_active")
+  lastRunAt       DateTime?       @map("last_run_at") @db.Timestamptz
+  lastStatus      String?         @map("last_status") @db.VarChar(20) // ok | error
+  lastError       String?         @map("last_error") @db.Text
+  lastItemCount   Int             @default(0) @map("last_item_count")
+  createdBy       String?         @map("created_by") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  signals WatchSignal[]
+
+  @@index([isActive], map: "idx_watch_source_active")
+  @@map("watch_sources")
+  @@schema("veille")
+}
+
+model WatchList {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(255)
+  description  String?  @db.Text
+  domain       String   @db.VarChar(50) // ARIS domain code (animal-health, fisheries…)
+  campaignId   String?  @map("campaign_id") @db.Uuid // collecte campaign the watchlist feeds
+  anyTerms     String[] @default([]) @map("any_terms") // at least one must appear
+  allTerms     String[] @default([]) @map("all_terms") // every one must appear
+  excludeTerms String[] @default([]) @map("exclude_terms") // none may appear
+  countries    String[] @default([]) // ISO2 filter; empty = whole continent
+  isActive     Boolean  @default(true) @map("is_active")
+  createdBy    String?  @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([isActive], map: "idx_watch_list_active")
+  @@map("watch_lists")
+  @@schema("veille")
+}
+
+model WatchSignal {
+  id                 String            @id @default(uuid()) @db.Uuid
+  sourceId           String            @map("source_id") @db.Uuid
+  urlHash            String            @unique @map("url_hash") @db.VarChar(64)
+  titleKey           String            @map("title_key") @db.VarChar(64) // hash of the normalised title, for near-duplicates
+  url                String            @db.Text
+  title              String            @db.Text
+  excerpt            String?           @db.Text
+  language           String?           @db.VarChar(5)
+  publishedAt        DateTime?         @map("published_at") @db.Timestamptz
+  collectedAt        DateTime          @default(now()) @map("collected_at") @db.Timestamptz
+  watchListIds       String[]          @default([]) @map("watch_list_ids") @db.Uuid
+  domain             String            @db.VarChar(50)
+  category           String            @db.VarChar(40) // outbreak, trade, market, policy, climate, wildlife, production, other
+  countries          String[]          @default([])
+  matchedTerms       String[]          @default([]) @map("matched_terms")
+  relevance          Int               @default(0) // 0–100
+  severity           Int               @default(1) // 1 (info) … 3 (alert)
+  priority           Int               @default(0) // 0–100, sort key of the triage queue
+  reliability        String            @db.VarChar(1) // copied from the source when collected
+  confidence         String            @default("RUMOR") @db.VarChar(20) // RUMOR | VERIFIED | CONFIRMED
+  aiSummary          String?           @map("ai_summary") @db.Text
+  aiClassification   Json?             @map("ai_classification")
+  status             WatchSignalStatus @default(NEW)
+  dataClassification String            @default("RESTRICTED") @map("data_classification") @db.VarChar(20)
+  campaignId         String?           @map("campaign_id") @db.Uuid
+  integrationTarget  String?           @map("integration_target") @db.VarChar(20) // campaign | dataset
+  reviewedBy         String?           @map("reviewed_by") @db.Uuid
+  reviewedAt         DateTime?         @map("reviewed_at") @db.Timestamptz
+  reviewNote         String?           @map("review_note") @db.Text
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  source  WatchSource         @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  actions WatchTriageAction[]
+
+  @@index([status, priority], map: "idx_watch_signal_status_priority")
+  @@index([domain], map: "idx_watch_signal_domain")
+  @@index([titleKey], map: "idx_watch_signal_title_key")
+  @@index([collectedAt], map: "idx_watch_signal_collected")
+  @@map("watch_signals")
+  @@schema("veille")
+}
+
+// Audit trail of every triage decision.
+model WatchTriageAction {
+  id         String   @id @default(uuid()) @db.Uuid
+  signalId   String   @map("signal_id") @db.Uuid
+  actorId    String   @map("actor_id") @db.Uuid
+  actorRole  String   @map("actor_role") @db.VarChar(40)
+  action     String   @db.VarChar(30) // status change, integrate, edit
+  fromStatus String?  @map("from_status") @db.VarChar(20)
+  toStatus   String?  @map("to_status") @db.VarChar(20)
+  note       String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  signal WatchSignal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@index([signalId], map: "idx_watch_action_signal")
+  @@map("watch_triage_actions")
+  @@schema("veille")
+}

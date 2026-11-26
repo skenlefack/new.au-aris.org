@@ -539,6 +539,31 @@ services:
       - "traefik.http.routers.data-sharing.entrypoints=websecure"
       - "traefik.http.services.data-sharing.loadbalancer.server.port=3034"
 
+  veille:
+    container_name: aris-veille
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: veille
+        SERVICE_PORT: "3047"
+    ports:
+      - "3047:3047"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3047"
+      KAFKA_CLIENT_ID: aris-veille-service
+      OLLAMA_URL: http://10.202.101.142:11434
+      VEILLE_AI_ENABLED: "1"
+      VEILLE_AI_MODEL: qwen2.5:32b
+      VEILLE_AI_MIN_PRIORITY: "55"
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.veille.rule=PathPrefix(`/api/v1/veille`)"
+      - "traefik.http.routers.veille.entrypoints=websecure"
+      - "traefik.http.services.veille.loadbalancer.server.port=3047"
+
   interop-hub:
     container_name: aris-interop-hub
     <<: *service-common
