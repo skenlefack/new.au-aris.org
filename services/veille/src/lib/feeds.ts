@@ -161,14 +161,32 @@ export async function fetchFeed(url: string, timeoutMs = 60_000): Promise<FeedIt
 
 const GDELT_LANG: Record<string, string> = { English: 'en', French: 'fr', Portuguese: 'pt', Arabic: 'ar', Spanish: 'es', Swahili: 'sw' };
 
-/** GDELT query for one watchlist: (any OR terms) plus the mandatory terms, quoted when they contain spaces. */
-export function gdeltQuery(anyTerms: string[], allTerms: string[]): string {
-  const q = (t: string) => (/\s/.test(t.trim()) ? `"${t.trim()}"` : t.trim());
-  const any = anyTerms.filter((t) => t.trim().length >= 3).slice(0, 20).map(q);
-  const parts = [...allTerms.filter((t) => t.trim()).map(q)];
-  if (any.length === 1) parts.push(any[0]);
-  if (any.length > 1) parts.push(`(${any.join(' OR ')})`);
-  return parts.join(' ');
+const GDELT_MAX_QUERY = 180;
+
+/**
+ * GDELT queries for one watchlist: the mandatory terms plus groups of (any OR …) terms, split so each
+ * query stays short (GDELT rejects long queries). Apostrophes become spaces and terms under 3
+ * characters are dropped, which GDELT also refuses.
+ */
+export function gdeltQueries(anyTerms: string[], allTerms: string[], maxLen = GDELT_MAX_QUERY): string[] {
+  const clean = (t: string) => t.replace(/['’`"]/g, ' ').replace(/\s+/g, ' ').trim();
+  const q = (t: string) => (t.includes(' ') ? `"${t}"` : t);
+  const must = allTerms.map(clean).filter((t) => t.length >= 3).map(q).join(' ');
+  const any = [...new Set(anyTerms.map(clean).filter((t) => t.length >= 3))].map(q);
+  if (any.length === 0) return must ? [must] : [];
+  const prefix = must ? `${must} ` : '';
+  const queries: string[] = [];
+  let group: string[] = [];
+  const render = (g: string[]) => prefix + (g.length === 1 ? g[0] : `(${g.join(' OR ')})`);
+  for (const term of any) {
+    if (group.length > 0 && render([...group, term]).length > maxLen) {
+      queries.push(render(group));
+      group = [];
+    }
+    group.push(term);
+  }
+  queries.push(render(group));
+  return queries;
 }
 
 export function gdeltUrl(base: string, query: string, timespan = '1d', maxRecords = 75): string {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { cleanText, fetchText, gdeltQuery, parseFeed, parseGdelt } from '../lib/feeds';
+import { cleanText, fetchText, gdeltQueries, parseFeed, parseGdelt } from '../lib/feeds';
 
 describe('parseFeed', () => {
   it('reads RSS 2.0 items with CDATA and entities', () => {
@@ -21,8 +21,16 @@ describe('parseFeed', () => {
 
 describe('GDELT', () => {
   it('builds a query with quoted phrases', () => {
-    expect(gdeltQuery(['peste des petits ruminants', 'PPR'], [])).toBe('("peste des petits ruminants" OR PPR)');
-    expect(gdeltQuery(['anthrax'], ['cattle'])).toBe('cattle anthrax');
+    expect(gdeltQueries(['peste des petits ruminants', 'PPR'], [])).toEqual(['("peste des petits ruminants" OR PPR)']);
+    expect(gdeltQueries(['anthrax'], ['cattle'])).toEqual(['cattle anthrax']);
+  });
+  it('splits long watchlists into short queries and cleans terms', () => {
+    const terms = Array.from({ length: 30 }, (_, i) => `livestock disease number ${i}`);
+    const qs = gdeltQueries([...terms, "saisie d'ivoire", 'H5'], []);
+    expect(qs.length).toBeGreaterThan(1);
+    expect(qs.every((q) => q.length <= 180)).toBe(true);
+    expect(qs.join(' ')).toContain('"saisie d ivoire"');
+    expect(qs.join(' ')).not.toContain('H5)');
   });
   it('parses the artlist response', () => {
     const json = JSON.stringify({ articles: [{ url: 'https://n.ke/x', title: 'Anthrax in Kenya', seendate: '20261125T101500Z', language: 'English', sourcecountry: 'Kenya' }] });

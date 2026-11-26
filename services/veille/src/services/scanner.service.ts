@@ -3,7 +3,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { FastifyBaseLogger } from 'fastify';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
 import { TOPIC_AU_VEILLE_SIGNAL_CREATED } from '@aris/shared-types';
-import { fetchFeed, fetchGdelt, gdeltQuery, type FeedItem } from '../lib/feeds';
+import { fetchFeed, fetchGdelt, gdeltQueries, type FeedItem } from '../lib/feeds';
 import {
   classifyCategory, classifySeverity, concernsAfrica, containsTerm, detectCountries, matchWatchList, normalize, priorityScore,
   relevanceScore, titleKey, urlHash, type RuleMatch, type WatchListRule,
@@ -12,6 +12,7 @@ import type { AiEnrichmentService } from './ai.service';
 
 const SERVICE_NAME = 'veille-service';
 const DUPLICATE_WINDOW_DAYS = 14;
+const ARIS_LANGUAGES = new Set(['en', 'fr', 'pt', 'ar', 'es', 'sw']);
 const AI_MIN_PRIORITY = parseInt(process.env['VEILLE_AI_MIN_PRIORITY'] ?? '45', 10);
 
 export interface RunResult {
@@ -108,17 +109,17 @@ export class ScannerService {
     const errors: string[] = [];
     let queried = 0;
     for (const rule of rules) {
-      const q = gdeltQuery(rule.anyTerms, rule.allTerms);
-      if (!q) continue;
-      queried++;
-      try {
-        const items = await fetchGdelt(source.url, q, timespan, 250);
-        out.push(...items.map((item) => ({ item, queriedFor: rule })));
-      } catch (err) {
-        // one failing query must not lose the others
-        errors.push((err as Error).message);
+      for (const q of gdeltQueries(rule.anyTerms, rule.allTerms)) {
+        queried++;
+        try {
+          const items = await fetchGdelt(source.url, q, timespan, 250);
+          out.push(...items.map((item) => ({ item, queriedFor: rule })));
+        } catch (err) {
+          // one failing query must not lose the others
+          errors.push((err as Error).message);
+        }
+        await new Promise((r) => setTimeout(r, 8_000)); // GDELT asks for at most one request every 5 s
       }
-      await new Promise((r) => setTimeout(r, 8_000)); // GDELT asks for at most one request every 5 s
     }
     if (queried > 0 && errors.length === queried) throw new Error(errors[0]);
     if (errors.length > 0) this.log.warn(`[veille] ${source.name}: ${errors.length}/${queried} GDELT queries failed (${errors[0]})`);
@@ -145,21 +146,20 @@ export class ScannerService {
 
       const normTitle = normalize(item.title);
       const normText = normalize(`${item.title} ${item.excerpt}`);
-      const countries = [...new Set([
-        ...detectCountries(normText),
-        ...detectCountries(normalize(item.countryHint ?? '')),
-        ...(source.countryCode ? [source.countryCode] : []),
-      ])];
+      // Countries named in the item; GDELT's source country is the outlet's, not the event's,
+      // so it only tells whether the item comes from the African press.
+      const countries = [...new Set([...detectCountries(normText), ...(source.countryCode ? [source.countryCode] : [])])];
+      const africanOutlet = detectCountries(normalize(item.countryHint ?? '')).length > 0;
 
       // The watch covers the African continent: drop items that name neither Africa nor a Member State
-      if (!concernsAfrica(normText, countries)) {
+      if (!concernsAfrica(normText, countries) && !africanOutlet) {
         result.unmatched++;
         continue;
       }
 
       const matches: RuleMatch[] = rules.map((r) => matchWatchList(r, normText, countries)).filter((m): m is RuleMatch => !!m);
-      if (queriedFor && !matches.some((m) => m.watchListId === queriedFor.id)) {
-        // GDELT matched the article body; keep it unless the title hits an exclusion or the country filter
+      if (queriedFor && !matches.some((m) => m.watchListId === queriedFor.id) && ARIS_LANGUAGES.has(item.language ?? '')) {
+        // GDELT matched the article body (in an ARIS language); keep it unless the title hits an exclusion or the country filter
         const blocked = queriedFor.excludeTerms.some((t) => containsTerm(normText, t));
         const outOfScope = queriedFor.countries.length > 0 && !countries.some((c) => queriedFor.countries.includes(c));
         if (!blocked && !outOfScope) matches.push({ watchListId: queriedFor.id, domain: queriedFor.domain, matchedTerms: [] });
