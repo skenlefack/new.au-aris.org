@@ -41,29 +41,24 @@ describe('cleanText', () => {
 });
 
 describe('fetchText', () => {
-  const ok = (body: string) => ({ ok: true, status: 200, statusText: 'OK', headers: new Headers(), text: async () => body });
-  const status = (code: number) => ({ ok: false, status: code, statusText: '', headers: new Headers(), text: async () => '' });
+  const ok = (body: string) => ({ status: 200, headers: {}, body });
+  const status = (code: number) => ({ status: code, headers: {}, body: '' });
 
   it('retries a rate-limited request, then succeeds', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(status(429)).mockResolvedValueOnce(ok('<rss/>'));
-    vi.stubGlobal('fetch', fetchMock);
-    await expect(fetchText('https://x.org/feed', 1000, 3, 1)).resolves.toBe('<rss/>');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    vi.unstubAllGlobals();
+    const get = vi.fn().mockResolvedValueOnce(status(429)).mockResolvedValueOnce(ok('<rss/>'));
+    await expect(fetchText('https://x.org/feed', 1000, 3, 1, get)).resolves.toBe('<rss/>');
+    expect(get).toHaveBeenCalledTimes(2);
   });
 
-  it('reports the network cause after the last attempt', async () => {
-    const err = Object.assign(new TypeError('fetch failed'), { cause: { code: 'UND_ERR_CONNECT_TIMEOUT' } });
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(err));
-    await expect(fetchText('https://x.org/feed', 1000, 2, 1)).rejects.toThrow('fetch failed: UND_ERR_CONNECT_TIMEOUT');
-    vi.unstubAllGlobals();
+  it('reports the network error after the last attempt', async () => {
+    const get = vi.fn().mockRejectedValue(new Error('connect ETIMEDOUT (ETIMEDOUT)'));
+    await expect(fetchText('https://x.org/feed', 1000, 2, 1, get)).rejects.toThrow('ETIMEDOUT');
+    expect(get).toHaveBeenCalledTimes(2);
   });
 
   it('does not retry a 404', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(status(404));
-    vi.stubGlobal('fetch', fetchMock);
-    await expect(fetchText('https://x.org/feed', 1000, 3, 1)).rejects.toThrow('HTTP 404');
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    vi.unstubAllGlobals();
+    const get = vi.fn().mockResolvedValue(status(404));
+    await expect(fetchText('https://x.org/feed', 1000, 3, 1, get)).rejects.toThrow('HTTP 404');
+    expect(get).toHaveBeenCalledTimes(1);
   });
 });

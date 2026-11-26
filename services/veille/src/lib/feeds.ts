@@ -1,5 +1,8 @@
 // Feed fetching and parsing without extra dependencies: RSS 2.0, Atom and the GDELT DOC 2.0 API.
 
+import http from 'http';
+import https from 'https';
+
 export interface FeedItem {
   url: string;
   title: string;
@@ -78,46 +81,79 @@ export function parseFeed(xml: string): FeedItem[] {
 const RETRYABLE_STATUS = new Set([429, 502, 503, 504]);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Network error with its low-level cause ("fetch failed" alone says nothing). */
-function describe(err: unknown): string {
-  const e = err as { name?: string; message?: string; cause?: { code?: string; message?: string } };
-  if (e.name === 'TimeoutError') return 'timeout';
-  return [e.message, e.cause?.code ?? e.cause?.message].filter(Boolean).join(': ');
+export interface HttpResponse {
+  status: number;
+  headers: Record<string, string | string[] | undefined>;
+  body: string;
+}
+
+export type HttpGet = (url: string, timeoutMs: number) => Promise<HttpResponse>;
+
+/**
+ * GET with Node's http/https modules rather than fetch: AU networks inspect outbound TLS, and the
+ * handshake can take more than undici's fixed 10 s connect timeout. Here only `timeoutMs` (whole
+ * request) applies. Follows up to 5 redirects.
+ */
+export function httpGet(url: string, timeoutMs: number, redirects = 5): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const lib = u.protocol === 'http:' ? http : https;
+    const req = lib.get(u, {
+      headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/atom+xml, application/xml, application/json, text/xml;q=0.9, */*;q=0.5' },
+    }, (res) => {
+      const status = res.statusCode ?? 0;
+      if (status >= 300 && status < 400 && res.headers.location && redirects > 0) {
+        res.resume();
+        clearTimeout(timer);
+        httpGet(new URL(res.headers.location, u).toString(), timeoutMs, redirects - 1).then(resolve, reject);
+        return;
+      }
+      const chunks: Buffer[] = [];
+      let size = 0;
+      res.on('data', (c: Buffer) => {
+        size += c.length;
+        if (size > MAX_BYTES) req.destroy(new Error(`response larger than ${MAX_BYTES} bytes`));
+        else chunks.push(c);
+      });
+      res.on('end', () => {
+        clearTimeout(timer);
+        resolve({ status, headers: res.headers, body: Buffer.concat(chunks).toString('utf8') });
+      });
+      res.on('error', reject);
+    });
+    const timer = setTimeout(() => req.destroy(new Error('timeout')), timeoutMs);
+    req.on('error', (err: NodeJS.ErrnoException) => {
+      clearTimeout(timer);
+      reject(new Error(err.code ? `${err.message} (${err.code})` : err.message));
+    });
+  });
 }
 
 /**
  * GET with up to `attempts` tries: network errors and 429/5xx are retried with a growing delay
  * (Retry-After when the server sends one). The AU egress IP is shared, so GDELT often answers 429.
  */
-export async function fetchText(url: string, timeoutMs = 30_000, attempts = 3, baseDelayMs = 10_000): Promise<string> {
+export async function fetchText(url: string, timeoutMs = 60_000, attempts = 3, baseDelayMs = 10_000, get: HttpGet = httpGet): Promise<string> {
   let last = '';
   for (let attempt = 1; attempt <= attempts; attempt++) {
-    let res: Response;
+    let res: HttpResponse;
     try {
-      res = await fetch(url, {
-        headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/atom+xml, application/xml, application/json, text/xml;q=0.9, */*;q=0.5' },
-        signal: AbortSignal.timeout(timeoutMs),
-        redirect: 'follow',
-      });
+      res = await get(url, timeoutMs);
     } catch (err) {
-      last = describe(err);
+      last = (err as Error).message;
       if (attempt < attempts) await sleep(baseDelayMs * attempt);
       continue;
     }
-    if (res.ok) {
-      const text = await res.text();
-      if (text.length > MAX_BYTES) throw new Error(`response larger than ${MAX_BYTES} bytes`);
-      return text;
-    }
-    last = `HTTP ${res.status} ${res.statusText}`.trim();
+    if (res.status >= 200 && res.status < 300) return res.body;
+    last = `HTTP ${res.status}`;
     if (!RETRYABLE_STATUS.has(res.status) || attempt === attempts) break;
-    const retryAfter = Number(res.headers.get('retry-after'));
+    const retryAfter = Number(res.headers['retry-after']);
     await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 120) * 1000 : baseDelayMs * attempt);
   }
   throw new Error(last || 'request failed');
 }
 
-export async function fetchFeed(url: string, timeoutMs = 30_000): Promise<FeedItem[]> {
+export async function fetchFeed(url: string, timeoutMs = 60_000): Promise<FeedItem[]> {
   return parseFeed(await fetchText(url, timeoutMs));
 }
 
@@ -171,6 +207,6 @@ export function parseGdelt(json: string): FeedItem[] {
     }));
 }
 
-export async function fetchGdelt(base: string, query: string, timespan?: string, timeoutMs = 30_000): Promise<FeedItem[]> {
+export async function fetchGdelt(base: string, query: string, timespan?: string, timeoutMs = 60_000): Promise<FeedItem[]> {
   return parseGdelt(await fetchText(gdeltUrl(base, query, timespan), timeoutMs));
 }
