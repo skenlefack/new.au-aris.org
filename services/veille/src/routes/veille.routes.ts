@@ -38,8 +38,11 @@ export async function registerVeilleRoutes(app: FastifyInstance): Promise<void> 
     const q = req.query as Record<string, string>;
     return app.veilleService.listSignals({ ...q, page: q.page ? Number(q.page) : undefined, limit: q.limit ? Number(q.limit) : undefined }, user(req));
   });
+  // rebuild groups and detected countries of untriaged signals after a rule change
+  app.post(`${BASE}/signals/regroup`, manage, async () => app.veilleService.regroup());
   app.get<{ Params: { id: string } }>(`${BASE}/signals/:id`, triage, async (req) => app.veilleService.getSignal(req.params.id, user(req)));
   app.patch<{ Params: { id: string } }>(`${BASE}/signals/:id`, triage, async (req) => app.veilleService.reviewSignal(req.params.id, req.body ?? {}, user(req)));
+  app.post<{ Params: { id: string } }>(`${BASE}/signals/:id/detach`, triage, async (req) => app.veilleService.detachSignal(req.params.id, user(req)));
   app.post<{ Params: { id: string } }>(`${BASE}/signals/:id/integrate`, triage, async (req) => app.veilleService.integrateSignal(req.params.id, req.body ?? {}, user(req)));
   app.post<{ Params: { id: string } }>(`${BASE}/signals/:id/ai`, manage, async (req) => {
     if (!app.ai.isEnabled) return { data: { queued: false, reason: 'AI enrichment is disabled' } };

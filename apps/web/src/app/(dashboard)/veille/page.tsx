@@ -5,11 +5,11 @@
 import { useMemo, useState } from 'react';
 import {
   Radar, Rss, ListFilter, AlertTriangle, Search, ExternalLink, Play, Plus, Trash2, Pencil, X, Download,
-  CheckCircle2, Sparkles, Loader2,
+  CheckCircle2, Sparkles, Loader2, Layers, Unlink,
 } from 'lucide-react';
 import {
   useVeilleStats, useWatchSignals, useWatchSignal, useWatchSources, useWatchLists, useReviewSignal, useIntegrateSignal,
-  useSaveSource, useDeleteSource, useRunSource, useSaveWatchList, useDeleteWatchList, downloadVeilleDataset,
+  useDetachSignal, useSaveSource, useDeleteSource, useRunSource, useSaveWatchList, useDeleteWatchList, downloadVeilleDataset,
   SIGNAL_STATUSES, SIGNAL_CATEGORIES, RELIABILITY_LEVELS, CONFIDENCE_LEVELS, NEXT_STATUSES,
   type SignalFilters, type SignalStatus, type WatchList, type WatchSource,
 } from '@/lib/api/veille';
@@ -157,6 +157,11 @@ function SignalsTab({ t }: { t: T }) {
                     </span>
                     <span className="mt-1.5 flex flex-wrap gap-1.5">
                       <Badge className={STATUS_STYLE[s.status]}>{t(`status.${s.status}`)}</Badge>
+                      {s.clusterSize > 1 && (
+                        <Badge className="inline-flex items-center gap-1 bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">
+                          <Layers className="h-3 w-3" /> {t('groupSources', { count: s.clusterSize })}
+                        </Badge>
+                      )}
                       <Badge className={SEVERITY_STYLE[s.severity]}>{t(`severity.${s.severity}`)}</Badge>
                       <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">{t(`category.${s.category}`)}</Badge>
                       <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">{t(`domain.${s.domain}`)}</Badge>
@@ -196,6 +201,7 @@ function SignalPanel({ id, t, onClose }: { id: string; t: T; onClose: () => void
   const { data, isLoading } = useWatchSignal(id);
   const review = useReviewSignal();
   const integrate = useIntegrateSignal();
+  const detach = useDetachSignal();
   const campaigns = useCollectionCampaigns({ limit: 100, status: 'ACTIVE' }).data?.data ?? [];
   const [note, setNote] = useState('');
   const [target, setTarget] = useState<'dataset' | 'campaign'>('dataset');
@@ -309,6 +315,32 @@ function SignalPanel({ id, t, onClose }: { id: string; t: T; onClose: () => void
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      {(s.members?.length ?? 0) > 0 && (
+        <div className="border-t border-gray-100 pt-4 dark:border-gray-700">
+          <p className="mb-1 flex items-center gap-1.5 text-sm font-medium"><Layers className="h-4 w-4" /> {t('sameStory', { count: s.members!.length })}</p>
+          <p className="mb-2 text-xs text-muted-foreground">{t('sameStoryHint')}</p>
+          <ul className="space-y-2 text-sm">
+            {s.members!.map((m) => (
+              <li key={m.id} className="flex items-start gap-2">
+                <a href={m.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 hover:underline">
+                  <span className="line-clamp-2">{m.title}</span>
+                  <span className="text-xs text-muted-foreground">{m.source?.name} · {m.reliability}{m.publishedAt ? ` · ${formatDate(m.publishedAt)}` : ''}</span>
+                </a>
+                {s.status !== 'INTEGRATED' && (
+                  <button
+                    className="shrink-0 rounded p-1 text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-700"
+                    title={t('detach')} aria-label={t('detach')} disabled={detach.isPending}
+                    onClick={() => run(() => detach.mutateAsync(m.id))}
+                  >
+                    <Unlink className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {(s.actions?.length ?? 0) > 0 && (
         <div className="border-t border-gray-100 pt-4 dark:border-gray-700">

@@ -76,7 +76,13 @@ export interface WatchSignal {
   integrationTarget: string | null;
   reviewNote: string | null;
   reviewedAt: string | null;
+  /** lead signal of the story this article belongs to; null when it leads its own group */
+  clusterId: string | null;
+  /** articles reporting the story, lead included */
+  clusterSize: number;
   source?: { id: string; name: string; type: string; url?: string };
+  /** other outlets reporting the same story (detail view of a lead) */
+  members?: Array<{ id: string; title: string; url: string; language: string | null; publishedAt: string | null; reliability: string; countries: string[]; source?: { name: string } }>;
   actions?: Array<{ id: string; action: string; fromStatus: string | null; toStatus: string | null; note: string | null; actorRole: string; createdAt: string }>;
 }
 
@@ -147,6 +153,15 @@ export function useReviewSignal() {
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string; status?: SignalStatus; note?: string; category?: string; severity?: number; confidence?: string; domain?: string; countries?: string[] }) =>
       apiClient.patch<{ data: WatchSignal }>(`/veille/signals/${id}`, body),
+    onSuccess: invalidate,
+  });
+}
+
+/** Take an article out of a story it was wrongly grouped with. */
+export function useDetachSignal() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.post<{ data: WatchSignal }>(`/veille/signals/${id}/detach`, {}),
     onSuccess: invalidate,
   });
 }

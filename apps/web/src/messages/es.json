@@ -6384,6 +6384,10 @@
       "PARTNER": "Socios",
       "RESTRICTED": "Restringido",
       "CONFIDENTIAL": "Confidencial"
-    }
+    },
+    "groupSources": "{count} fuentes",
+    "sameStory": "Misma noticia, {count} fuentes más",
+    "sameStoryHint": "Artículos de otros medios que informan de esta noticia. Su estado sigue el de esta señal.",
+    "detach": "No es la misma noticia: separar"
   }
 }

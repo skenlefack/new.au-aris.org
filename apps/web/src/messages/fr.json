@@ -7042,6 +7042,10 @@
       "PARTNER": "Partenaires",
       "RESTRICTED": "Restreint",
       "CONFIDENTIAL": "Confidentiel"
-    }
+    },
+    "groupSources": "{count} sources",
+    "sameStory": "Même information, {count} autres sources",
+    "sameStoryHint": "Articles d'autres médias rapportant cette information. Leur statut suit celui de ce signal.",
+    "detach": "Pas la même information : séparer"
   }
 }

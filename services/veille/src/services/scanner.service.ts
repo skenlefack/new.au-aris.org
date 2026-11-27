@@ -5,8 +5,9 @@ import type { StandaloneKafkaProducer } from '@aris/kafka-client';
 import { TOPIC_AU_VEILLE_SIGNAL_CREATED } from '@aris/shared-types';
 import { fetchFeed, fetchGdelt, gdeltQueries, type FeedItem } from '../lib/feeds';
 import {
-  classifyCategory, classifySeverity, concernsAfrica, containsTerm, detectCountries, matchWatchList, normalize, priorityScore,
-  relevanceScore, titleKey, urlHash, type RuleMatch, type WatchListRule,
+  classifyCategory, classifySeverity, concernsAfrica, containsTerm, corroborationBonus, countryText, detectCountries, findClusterLead,
+  matchWatchList, normalize, priorityScore, relevanceScore, titleKey, titleTokens, urlHash, type ClusterEntry, type RuleMatch,
+  type WatchListRule,
 } from '../lib/text';
 import type { AiEnrichmentService } from './ai.service';
 
@@ -19,6 +20,8 @@ export interface RunResult {
   sourceId: string;
   fetched: number;
   created: number;
+  /** articles attached to an existing story (another outlet reporting it) */
+  grouped: number;
   duplicates: number;
   unmatched: number;
   error?: string;
@@ -75,7 +78,7 @@ export class ScannerService {
   async runSource(sourceId: string): Promise<RunResult> {
     const source = await this.db.watchSource.findUnique({ where: { id: sourceId } });
     if (!source) throw Object.assign(new Error('Source not found'), { statusCode: 404 });
-    const result: RunResult = { sourceId, fetched: 0, created: 0, duplicates: 0, unmatched: 0 };
+    const result: RunResult = { sourceId, fetched: 0, created: 0, grouped: 0, duplicates: 0, unmatched: 0 };
     try {
       const rules: WatchListRule[] = await this.db.watchList.findMany({
         where: { isActive: true },
@@ -86,7 +89,7 @@ export class ScannerService {
       await this.ingest(source, rules, candidates, result);
       await this.db.watchSource.update({
         where: { id: sourceId },
-        data: { lastRunAt: new Date(), lastStatus: 'ok', lastError: null, lastItemCount: result.created },
+        data: { lastRunAt: new Date(), lastStatus: 'ok', lastError: null, lastItemCount: result.created + result.grouped },
       });
     } catch (err) {
       result.error = (err as Error).message;
@@ -133,22 +136,23 @@ export class ScannerService {
     );
     const since = new Date(Date.now() - DUPLICATE_WINDOW_DAYS * 86_400_000);
     const seen = new Set<string>();
+    // Recent stories new articles can join; filled lazily, then grows with this run's signals
+    let pool: ClusterEntry[] | null = null;
 
     for (const { item, queriedFor } of candidates) {
       const hash = urlHash(item.url);
-      const tKey = titleKey(item.title);
-      if (existing.has(hash) || seen.has(hash) || seen.has(tKey)) {
+      if (existing.has(hash) || seen.has(hash)) {
         result.duplicates++;
         continue;
       }
       seen.add(hash);
-      seen.add(tKey);
+      const tKey = titleKey(item.title);
 
       const normTitle = normalize(item.title);
       const normText = normalize(`${item.title} ${item.excerpt}`);
-      // Countries named in the item; GDELT's source country is the outlet's, not the event's,
-      // so it only tells whether the item comes from the African press.
-      const countries = [...new Set([...detectCountries(normText), ...(source.countryCode ? [source.countryCode] : [])])];
+      // Countries named in the item (without the outlet's byline); GDELT's source country is the outlet's,
+      // not the event's, so it only tells whether the item comes from the African press.
+      const countries = [...new Set([...detectCountries(countryText(item.title, item.excerpt)), ...(source.countryCode ? [source.countryCode] : [])])];
       const africanOutlet = detectCountries(normalize(item.countryHint ?? '')).length > 0;
 
       // The watch covers the African continent: drop items that name neither Africa nor a Member State
@@ -170,10 +174,9 @@ export class ScannerService {
         continue;
       }
 
-      if (await this.db.watchSignal.findFirst({ where: { titleKey: tKey, collectedAt: { gte: since } }, select: { id: true } })) {
-        result.duplicates++;
-        continue;
-      }
+      pool ??= await this.clusterPool(since);
+      const tokens = titleTokens(item.title);
+      const leadId = findClusterLead(pool, tKey, tokens);
 
       const matchedTerms = [...new Set(matches.flatMap((m) => m.matchedTerms))];
       const domain = this.mainDomain(matches);
@@ -202,11 +205,38 @@ export class ScannerService {
           priority,
           reliability: source.reliability,
           campaignId: campaignIds.length === 1 ? campaignIds[0] : null,
+          clusterId: leadId,
         },
       });
+      pool.push({ id: signal.id, leadId: leadId ?? signal.id, titleKey: tKey, tokens });
+      if (leadId) {
+        // Another outlet tells the same story: the lead gains a source and a corroboration bonus, no new alert
+        await this.attachToLead(leadId);
+        result.grouped++;
+        continue;
+      }
       result.created++;
       void this.publish(signal);
       if (priority >= AI_MIN_PRIORITY) this.ai.enqueue(signal.id);
+    }
+  }
+
+  /** Signals collected in the duplicate window, as fingerprints pointing at the lead of their group. */
+  private async clusterPool(since: Date): Promise<ClusterEntry[]> {
+    const rows = await this.db.watchSignal.findMany({
+      where: { collectedAt: { gte: since } },
+      select: { id: true, clusterId: true, titleKey: true, title: true },
+      orderBy: { collectedAt: 'asc' },
+    });
+    return rows.map((r: any) => ({ id: r.id, leadId: r.clusterId ?? r.id, titleKey: r.titleKey, tokens: titleTokens(r.title) }));
+  }
+
+  private async attachToLead(leadId: string): Promise<void> {
+    // atomic increment: a manual run can ingest while the scheduled cycle does
+    const lead = await this.db.watchSignal.update({ where: { id: leadId }, data: { clusterSize: { increment: 1 } }, select: { clusterSize: true, priority: true } });
+    const bonus = corroborationBonus(lead.clusterSize) - corroborationBonus(lead.clusterSize - 1);
+    if (bonus > 0 && lead.priority < 100) {
+      await this.db.watchSignal.update({ where: { id: leadId }, data: { priority: Math.min(100, lead.priority + bonus) } });
     }
   }
 

@@ -44,6 +44,56 @@ export function titleKey(title: string): string {
   return sha256(normalize(stripOutlet(title)).trim());
 }
 
+const TITLE_STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'from', 'into', 'over', 'its', 'are', 'was', 'has', 'have', 'how', 'why', 'what', 'new', 'says', 'amid',
+  'les', 'des', 'une', 'pour', 'dans', 'sur', 'par', 'avec', 'aux', 'est', 'son', 'ses', 'qui', 'que', 'plus',
+  'para', 'com', 'uma', 'dos', 'das', 'nos', 'nas', 'pelo', 'pela',
+]);
+
+/** Words that carry a title's meaning, cut to 5 letters so "investors" and "investment" meet. */
+export function titleTokens(title: string): Set<string> {
+  return new Set(
+    normalize(stripOutlet(title)).trim().split(' ')
+      .filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !TITLE_STOPWORDS.has(w))
+      .map((w) => w.slice(0, 5)),
+  );
+}
+
+/**
+ * Same story reworded by another outlet ("Oyetola seeks Polish investment…" / "Oyetola woos Polish investors…").
+ * Jaccard ≥ 0.6, or one title almost contained in the other when both are long enough to be specific.
+ */
+export function isNearDuplicate(a: Set<string>, b: Set<string>): boolean {
+  if (a.size < 4 || b.size < 4) return false;
+  let shared = 0;
+  for (const w of a) if (b.has(w)) shared++;
+  const jaccard = shared / (a.size + b.size - shared);
+  const overlap = shared / Math.min(a.size, b.size);
+  return jaccard >= 0.6 || (overlap >= 0.8 && Math.min(a.size, b.size) >= 6);
+}
+
+/** A recent signal a new article can join: its own id, the lead of its group and its title fingerprints. */
+export interface ClusterEntry {
+  id: string;
+  leadId: string;
+  titleKey: string;
+  tokens: Set<string>;
+}
+
+/** Lead of the group an article belongs to (same title key or reworded title), or null for a new story. */
+export function findClusterLead(pool: ClusterEntry[], key: string, tokens: Set<string>): string | null {
+  const hit = pool.find((e) => e.titleKey === key) ?? pool.find((e) => isNearDuplicate(e.tokens, tokens));
+  return hit ? hit.leadId : null;
+}
+
+/** Priority bonus of a story told by several outlets: +5 per extra article, at most +20. */
+export const corroborationBonus = (clusterSize: number): number => Math.min(20, 5 * Math.max(0, clusterSize - 1));
+
+/** Item text for country detection: no leading "[Ghanaian Times]" byline (AllAfrica) and no trailing outlet name. */
+export function countryText(title: string, excerpt: string): string {
+  return normalize(`${stripOutlet(title)} ${excerpt.replace(/^\s*\[[^\]]{2,80}\]\s*/, '')}`);
+}
+
 /** A term matches on word boundaries, accent and case insensitive. */
 export function containsTerm(normText: string, term: string): boolean {
   const t = normalize(term).trim();
@@ -84,7 +134,7 @@ const COUNTRY_NAMES: Record<string, string[]> = {
   CV: ['cabo verde', 'cape verde', 'cap vert'], CM: ['cameroon', 'cameroun', 'cameroonian', 'camerounais'],
   CF: ['central african republic', 'centrafrique', 'centrafricaine'], TD: ['chad', 'tchad', 'chadian', 'tchadien'],
   KM: ['comoros', 'comores'], CG: ['republic of the congo', 'congo brazzaville', 'republique du congo'],
-  CD: ['democratic republic of the congo', 'dr congo', 'drc', 'rdc', 'republique democratique du congo'],
+  CD: ['democratic republic of the congo', 'dr congo', 'drc', 'rdc', 'republique democratique du congo', 'congo kinshasa'],
   CI: ['cote d ivoire', 'ivory coast', 'ivoirien', 'ivorian'], DJ: ['djibouti'], EG: ['egypt', 'egypte', 'egyptian', 'egyptien'],
   GQ: ['equatorial guinea', 'guinee equatoriale'], ER: ['eritrea', 'erythree', 'eritrean'], SZ: ['eswatini', 'swaziland'],
   ET: ['ethiopia', 'ethiopie', 'ethiopian', 'ethiopien'], GA: ['gabon', 'gabonese', 'gabonais'], GM: ['gambia', 'gambie', 'gambian'],
@@ -101,9 +151,11 @@ const COUNTRY_NAMES: Record<string, string[]> = {
   ZM: ['zambia', 'zambie', 'zambian'], ZW: ['zimbabwe', 'zimbabwean'],
 };
 
-/** Longer names that contain another country's name ("guinea" in "guinea bissau"). */
+/** Longer names that contain another country's name ("guinea" in "guinea bissau") or a place that is not the country. */
 const MASKED_BY: Record<string, string[]> = {
-  GN: ['guinea bissau', 'guinee bissau', 'equatorial guinea', 'guinee equatoriale', 'papua new guinea'],
+  CG: ['democratic republic of the congo', 'republique democratique du congo'],
+  GN: ['guinea bissau', 'guinee bissau', 'equatorial guinea', 'guinee equatoriale', 'papua new guinea', 'gulf of guinea', 'golfe de guinee'],
+  NE: ['niger delta', 'delta du niger', 'niger river', 'fleuve niger', 'niger state'],
   SD: ['south sudan', 'soudan du sud'],
 };
 

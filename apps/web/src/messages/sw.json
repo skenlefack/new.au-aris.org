@@ -6383,6 +6383,10 @@
       "PARTNER": "Washirika",
       "RESTRICTED": "Imezuiliwa",
       "CONFIDENTIAL": "Siri"
-    }
+    },
+    "groupSources": "vyanzo {count}",
+    "sameStory": "Habari hiyo hiyo kutoka vyanzo vingine {count}",
+    "sameStoryHint": "Makala kutoka vyombo vingine vya habari vinavyoripoti taarifa hii. Hali yake inafuata ya ishara hii.",
+    "detach": "Si habari ile ile: tenganisha"
   }
 }

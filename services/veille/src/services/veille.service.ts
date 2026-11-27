@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+import { corroborationBonus, countryText, detectCountries, findClusterLead, titleKey, titleTokens, type ClusterEntry } from '../lib/text';
 
 export const SIGNAL_STATUSES = ['NEW', 'IN_REVIEW', 'TO_VERIFY', 'VALIDATED', 'REJECTED', 'INTEGRATED'] as const;
 export type SignalStatus = (typeof SIGNAL_STATUSES)[number];
@@ -165,8 +166,9 @@ export class VeilleService {
 
   /* ── Signals ── */
 
+  /** The triage queue lists one signal per story: the lead of each group. */
   private async signalWhere(q: SignalQuery, user: AuthenticatedUser) {
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { clusterId: null };
     const and: Record<string, unknown>[] = [];
     if (q.status && SIGNAL_STATUSES.includes(q.status as SignalStatus)) where.status = q.status;
     if (q.domain) where.domain = q.domain;
@@ -203,7 +205,14 @@ export class VeilleService {
   async getSignal(id: string, user: AuthenticatedUser) {
     const signal = await this.db.watchSignal.findUnique({
       where: { id },
-      include: { source: { select: { id: true, name: true, type: true, url: true } }, actions: { orderBy: { createdAt: 'desc' } } },
+      include: {
+        source: { select: { id: true, name: true, type: true, url: true } },
+        actions: { orderBy: { createdAt: 'desc' } },
+        members: {
+          orderBy: { collectedAt: 'asc' },
+          select: { id: true, title: true, url: true, language: true, publishedAt: true, reliability: true, countries: true, source: { select: { name: true } } },
+        },
+      },
     });
     if (!signal || !(await this.canSee(signal, user))) throw httpError(404, `Signal ${id} not found`);
     return { data: signal };
@@ -249,6 +258,8 @@ export class VeilleService {
     if (body.note !== undefined) data.reviewNote = body.note ? String(body.note).slice(0, 4000) : null;
     const [updated] = await this.prisma.$transaction([
       this.db.watchSignal.update({ where: { id }, data }),
+      // the other articles of the story follow the lead's status
+      ...(toStatus ? [this.db.watchSignal.updateMany({ where: { clusterId: id }, data: { status: toStatus, reviewedBy: user.userId, reviewedAt: new Date() } })] : []),
       this.db.watchTriageAction.create({
         data: {
           signalId: id, actorId: user.userId, actorRole: user.role,
@@ -258,6 +269,76 @@ export class VeilleService {
       }),
     ]);
     return { data: updated };
+  }
+
+  /** Take an article out of a group it was wrongly attached to: it becomes a story of its own. */
+  async detachSignal(id: string, user: AuthenticatedUser) {
+    const { data: signal } = await this.getSignal(id, user);
+    if (!signal.clusterId) throw httpError(409, 'This signal is not part of a group');
+    const lead = await this.db.watchSignal.findUnique({ where: { id: signal.clusterId }, select: { id: true, clusterSize: true, priority: true } });
+    const size = Math.max(1, (lead?.clusterSize ?? 2) - 1);
+    await this.prisma.$transaction([
+      this.db.watchSignal.update({ where: { id }, data: { clusterId: null, clusterSize: 1, status: 'NEW' } }),
+      ...(lead
+        ? [this.db.watchSignal.update({
+            where: { id: lead.id },
+            data: { clusterSize: size, priority: Math.max(0, lead.priority - (corroborationBonus(lead.clusterSize) - corroborationBonus(size))) },
+          })]
+        : []),
+      this.db.watchTriageAction.create({
+        data: { signalId: id, actorId: user.userId, actorRole: user.role, action: 'detach', fromStatus: signal.status, toStatus: 'NEW', note: `from ${signal.clusterId}` },
+      }),
+    ]);
+    return this.getSignal(id, user);
+  }
+
+  /**
+   * Rebuild groups and detected countries for untriaged signals (status NEW, no triage action), oldest first:
+   * used after a change in the grouping or country rules. Reviewed signals keep their countries and group.
+   */
+  async regroup(windowDays = 14) {
+    const rows: any[] = await this.db.watchSignal.findMany({
+      orderBy: { collectedAt: 'asc' },
+      select: {
+        id: true, title: true, excerpt: true, titleKey: true, status: true, clusterId: true, priority: true, clusterSize: true,
+        countries: true, collectedAt: true, source: { select: { countryCode: true } }, _count: { select: { actions: true } },
+      },
+    });
+    const untouched = (r: any) => r.status === 'NEW' && r._count.actions === 0;
+    const pool: Array<ClusterEntry & { at: number }> = [];
+    const leadOf = new Map<string, string | null>();
+    for (const r of rows) {
+      const at = new Date(r.collectedAt).getTime();
+      const tokens = titleTokens(r.title);
+      let lead: string | null = r.clusterId;
+      if (untouched(r)) {
+        const recent = pool.filter((e) => at - e.at <= windowDays * 86_400_000);
+        lead = findClusterLead(recent, titleKey(r.title), tokens);
+      }
+      leadOf.set(r.id, lead);
+      pool.push({ id: r.id, leadId: lead ?? r.id, titleKey: r.titleKey, tokens, at });
+    }
+    const sizes = new Map<string, number>();
+    for (const lead of leadOf.values()) if (lead) sizes.set(lead, (sizes.get(lead) ?? 1) + 1);
+
+    let regrouped = 0;
+    let recountried = 0;
+    for (const r of rows) {
+      const data: Record<string, unknown> = {};
+      const lead = leadOf.get(r.id) ?? null;
+      const size = lead ? 1 : sizes.get(r.id) ?? 1;
+      if (lead !== r.clusterId) { data.clusterId = lead; regrouped++; }
+      if (size !== r.clusterSize) {
+        data.clusterSize = size;
+        data.priority = Math.max(0, Math.min(100, r.priority - corroborationBonus(r.clusterSize) + corroborationBonus(size)));
+      }
+      if (untouched(r)) {
+        const countries = [...new Set([...detectCountries(countryText(r.title, r.excerpt ?? '')), ...(r.source?.countryCode ? [r.source.countryCode] : [])])];
+        if (countries.join() !== r.countries.join()) { data.countries = countries; recountried++; }
+      }
+      if (Object.keys(data).length) await this.db.watchSignal.update({ where: { id: r.id }, data });
+    }
+    return { data: { scanned: rows.length, regrouped, recountried, groups: sizes.size } };
   }
 
   /** Integrate a validated signal into a collecte campaign or the published watch dataset. */
@@ -292,7 +373,7 @@ export class VeilleService {
 
   /** Signals published as a data source; non-triage readers only get PUBLIC and PARTNER rows. */
   async dataset(q: { domain?: string; from?: string; to?: string; country?: string }, user: AuthenticatedUser, fullAccess: boolean) {
-    const where: Record<string, unknown> = { status: 'INTEGRATED', integrationTarget: 'dataset' };
+    const where: Record<string, unknown> = { status: 'INTEGRATED', integrationTarget: 'dataset', clusterId: null };
     if (!fullAccess) where.dataClassification = { in: ['PUBLIC', 'PARTNER'] };
     if (q.domain) where.domain = q.domain;
     const range: Record<string, Date> = {};
@@ -313,13 +394,13 @@ export class VeilleService {
     return rows.map((r: any) => ({
       id: r.id, publishedAt: r.publishedAt, domain: r.domain, category: r.category, countries: r.countries,
       severity: r.severity, confidence: r.confidence, reliability: r.reliability, title: r.title, summary: r.aiSummary,
-      url: r.url, source: r.source?.name, dataClassification: r.dataClassification, validatedAt: r.reviewedAt,
+      url: r.url, source: r.source?.name, sourceCount: r.clusterSize, dataClassification: r.dataClassification, validatedAt: r.reviewedAt,
     }));
   }
 
   async stats(user: AuthenticatedUser) {
     const scope = await this.scopeCountries(user);
-    const where = scope ? { countries: { hasSome: scope.length ? scope : ['__'] } } : {};
+    const where = { clusterId: null, ...(scope ? { countries: { hasSome: scope.length ? scope : ['__'] } } : {}) };
     const since = new Date(Date.now() - 7 * 86_400_000);
     const [byStatus, byDomain, byCategory, last7, alerts, sources] = await Promise.all([
       this.db.watchSignal.groupBy({ by: ['status'], where, _count: { _all: true } }),

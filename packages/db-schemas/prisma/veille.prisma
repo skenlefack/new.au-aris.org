@@ -95,15 +95,20 @@ model WatchSignal {
   reviewedBy         String?           @map("reviewed_by") @db.Uuid
   reviewedAt         DateTime?         @map("reviewed_at") @db.Timestamptz
   reviewNote         String?           @map("review_note") @db.Text
+  clusterId          String?           @map("cluster_id") @db.Uuid // lead signal of the same story; null = this signal leads its group
+  clusterSize        Int               @default(1) @map("cluster_size") // on a lead: articles in the group, lead included
   updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
   source  WatchSource         @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   actions WatchTriageAction[]
+  lead    WatchSignal?        @relation("SignalCluster", fields: [clusterId], references: [id], onDelete: SetNull)
+  members WatchSignal[]       @relation("SignalCluster")
 
   @@index([status, priority], map: "idx_watch_signal_status_priority")
   @@index([domain], map: "idx_watch_signal_domain")
   @@index([titleKey], map: "idx_watch_signal_title_key")
   @@index([collectedAt], map: "idx_watch_signal_collected")
+  @@index([clusterId], map: "idx_watch_signal_cluster")
   @@map("watch_signals")
   @@schema("veille")
 }

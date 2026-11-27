@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { classifyCategory, concernsAfrica, classifySeverity, detectCountries, matchWatchList, normalize, priorityScore, titleKey, urlHash } from '../lib/text';
+import {
+  classifyCategory, concernsAfrica, classifySeverity, corroborationBonus, countryText, detectCountries, findClusterLead, isNearDuplicate,
+  matchWatchList, normalize, priorityScore, titleKey, titleTokens, urlHash,
+} from '../lib/text';
 
 const rule = { id: 'w1', domain: 'animal-health', anyTerms: ['peste des petits ruminants', 'PPR'], allTerms: [], excludeTerms: ['football'], countries: [] };
 
@@ -78,5 +81,39 @@ describe('classification', () => {
   it('ranks fresh reliable alerts above old unreliable news', () => {
     const now = new Date('2026-11-26T12:00:00Z');
     expect(priorityScore(80, 3, 'A', new Date('2026-11-26T08:00:00Z'), now)).toBeGreaterThan(priorityScore(80, 1, 'E', new Date('2026-09-01'), now));
+  });
+});
+
+describe('story groups', () => {
+  const entry = (id: string, title: string, leadId = id) => ({ id, leadId, titleKey: titleKey(title), tokens: titleTokens(title) });
+  const pool = [
+    entry('a', 'Oyetola seeks Polish investment in Nigeria’s fisheries, aquaculture sectors - OnePage Africa'),
+    entry('b', 'Fièvre aphteuse : Maurice attend les résultats des analyses, le Botswana en renfort - lexpress.mu'),
+  ];
+
+  it('groups a reworded title from another outlet with its lead', () => {
+    const t = 'Oyetola woos polish investors to Nigeria’s fisheries, aquaculture sectors - Eye Witness News';
+    expect(findClusterLead(pool, titleKey(t), titleTokens(t))).toBe('a');
+    const long = 'Oyetola Woos Polish Investors to Nigeria’s Fisheries Sector: Opportunities for Aquaculture and Fish Businesses - MSME Africa';
+    expect(findClusterLead([...pool, entry('c', 'Oyetola woos polish investors to Nigeria’s fisheries, aquaculture sectors', 'a')], titleKey(long), titleTokens(long))).toBe('a');
+  });
+  it('keeps different stories on the same topic apart', () => {
+    const t = 'Fièvre aphteuse : Maurice reprend les importations de Namibie, 6 281 animaux sous surveillance - Le Mauricien';
+    expect(findClusterLead(pool, titleKey(t), titleTokens(t))).toBeNull();
+    expect(isNearDuplicate(titleTokens('Anthrax outbreak in Kenya'), titleTokens('Anthrax outbreak in Uganda'))).toBe(false);
+  });
+  it('caps the corroboration bonus', () => {
+    expect([1, 2, 5, 9].map(corroborationBonus)).toEqual([0, 5, 20, 20]);
+  });
+});
+
+describe('countryText', () => {
+  it('ignores the AllAfrica byline and the DRC does not tag the Republic of the Congo', () => {
+    const text = countryText("Congo-Kinshasa: Anthrax Outbreak Kills Hippos in DR Congo's Virunga National Park",
+      '[Ghanaian Times] WHILE the Democratic Republic of the Congo (DRC) continues to grapple with Ebola');
+    expect(detectCountries(text)).toEqual(['CD']);
+  });
+  it('does not read the Niger Delta or the Gulf of Guinea as countries', () => {
+    expect(detectCountries(normalize('Oil spill in the Niger Delta reaches the Gulf of Guinea, Nigeria says'))).toEqual(['NG']);
   });
 });

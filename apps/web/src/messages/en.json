@@ -7312,6 +7312,10 @@
       "PARTNER": "Partners",
       "RESTRICTED": "Restricted",
       "CONFIDENTIAL": "Confidential"
-    }
+    },
+    "groupSources": "{count} sources",
+    "sameStory": "Same story from {count} other sources",
+    "sameStoryHint": "Articles from other outlets reporting this information. Their status follows this signal.",
+    "detach": "Not the same story: separate"
   }
 }
